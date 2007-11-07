@@ -99,9 +99,9 @@ vm_enabled:
  */
 
 #define TRAP_ENTRY \
-	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
+	nop; rd %psr, %l0; b def_trap; nop;
 #define WINDOW_ENTRY(label) \
-	rd %psr, %l0; mov %l1, %y; ba label; andcc %l0, PSR_PS, %g0;
+	nop; rd %psr, %l0; ba label; andcc %l0, PSR_PS, %g0;
 
 	/* The Trap Base Address (TBA) must be 4096 aligned */
 	.align 4096
@@ -115,7 +115,10 @@ t_wunf:	WINDOW_ENTRY(window_fill)	/* 6: Window Underflow */
 	TRAP_ENTRY
 	.endr
 
+.align 128
 def_trap:
+	rd	%wim, %l3
+
 	set	(kstack_top - TRAPFRAME_SZ), %l5
 
 	STORE_REG_SET(g, l5 + TF_G0)
@@ -203,7 +206,11 @@ ENTRY(thread_arch_idle_asm)
  * because it seems GCC assumes %g1 is preserved across function
  * calls in some places.
  */
+
+.align 128
 window_spill:	
+	mov	%l1, %y
+
 	bz	user_spill
 	 mov	%l2, %g5
 
@@ -233,7 +240,10 @@ user_spill:
 	jmp	%l7
 	 rett	%l7 + 4
 
-window_fill:	
+.align 128
+window_fill:
+	mov	%l1, %y
+
 	bz	user_fill
 	 mov	%l2, %g5
 
