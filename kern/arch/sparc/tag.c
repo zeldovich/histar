@@ -29,8 +29,9 @@ static uint8_t tag_permtable[1 << TAG_PC_BITS][1 << TAG_DATA_BITS];
 static uint64_t dtag_refcount[1 << TAG_DATA_BITS];
 
 static uint64_t dtag_label_id[1 << TAG_DATA_BITS];
+static const struct Label *dtag_label_obj[1 << TAG_PC_BITS];
 static uint64_t pctag_label_id[1 << TAG_PC_BITS];
-static const struct Label *pctag_label[1 << TAG_PC_BITS];
+static const struct Label *pctag_label_obj[1 << TAG_PC_BITS];
 
 const struct Label dtag_label[DTAG_DYNAMIC];
 const struct Thread *cur_mon_thread;
@@ -57,6 +58,8 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
     assert(!(ptr & 3));
     assert(!(n & 3));
 
+    //uint32_t start = karch_get_tsc();
+
     uint32_t last_dtag = ~0;
     uint32_t last_dtag_count = 0;
 
@@ -77,6 +80,9 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 	dtag_refcount[last_dtag] -= last_dtag_count;
 
     dtag_refcount[dtag] += n / 4;
+
+    //uint32_t end = karch_get_tsc();
+    //if (start||end) cprintf("tag_set: %d bytes, %d tsc\n", n, end-start);
 }
 
 uint32_t
@@ -319,17 +325,27 @@ tag_moncall(struct Trapframe *tf)
     case MONCALL_DTAGALLOC: {
 	put_retval = 1;
 	retval = -E_NO_MEM;
-	uint64_t label_id = ((uint64_t) tf->tf_regs.i1) << 32 | tf->tf_regs.i2;
+	const struct Label *l = (const struct Label *) tf->tf_regs.i1;
+	tag_is_kobject(l, kobj_label);
+	uint64_t label_id = l->lb_ko.ko_id;
+
 	for (uint32_t i = DTAG_DYNAMIC; i < (1 << TAG_DATA_BITS); i++) {
 	    if (dtag_refcount[i] == 0 && dtag_label_id[i]) {
 		for (uint32_t j = PCTAG_DYNAMIC; j < (1 << TAG_PC_BITS); j++)
 		    if (tag_getperm(j, i))
 			tag_setperm(j, i, 0);
+
+		if (dtag_label_obj[i])
+		    kobject_unpin_hdr(&dtag_label_obj[i]->lb_ko);
 		dtag_label_id[i] = 0;
+		dtag_label_obj[i] = 0;
 	    }
 
 	    if (dtag_label_id[i] == 0) {
 		dtag_label_id[i] = label_id;
+		dtag_label_obj[i] = l;
+		kobject_pin_hdr(&l->lb_ko);
+
 		retval = i;
 		break;
 	    }
@@ -757,7 +773,7 @@ tag_alloc(const struct Label *l, int tag_type)
 	    return hint;
 
 	if (!(read_tsr() & TSR_T)) {
-	    int r = monitor_call(MONCALL_DTAGALLOC, l->lb_ko.ko_id);
+	    int r = monitor_call(MONCALL_DTAGALLOC, l);
 	    if (r < 0)
 		cprintf("tag_alloc: moncall_dtagalloc: %s (%d)\n", e2s(r), r);
 	    kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_dtag_hint = r;
@@ -769,11 +785,17 @@ tag_alloc(const struct Label *l, int tag_type)
 		for (uint32_t j = PCTAG_DYNAMIC; j < (1 << TAG_PC_BITS); j++)
 		    if (tag_getperm(j, i))
 			tag_setperm(j, i, 0);
+		if (dtag_label_obj[i])
+		    kobject_unpin_hdr(&dtag_label_obj[i]->lb_ko);
+		dtag_label_obj[i] = 0;
 		dtag_label_id[i] = 0;
 	    }
 
 	    if (dtag_label_id[i] == 0) {
 		dtag_label_id[i] = l->lb_ko.ko_id;
+		dtag_label_obj[i] = l;
+		kobject_pin_hdr(&l->lb_ko);
+
 		kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_dtag_hint = i;
 		return i;
 	    }
@@ -794,7 +816,7 @@ tag_alloc(const struct Label *l, int tag_type)
 	for (uint32_t i = PCTAG_DYNAMIC; i < maxtag; i++) {
 	    if (pctag_label_id[i] == 0) {
 		pctag_label_id[i] = l->lb_ko.ko_id;
-		pctag_label[i] = l;
+		pctag_label_obj[i] = l;
 		kobject_pin_hdr(&l->lb_ko);
 
 		kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_pctag_hint = i;
@@ -803,10 +825,21 @@ tag_alloc(const struct Label *l, int tag_type)
 	}
 
 	cprintf("Out of PC tags, flushing table..\n");
+	uint32_t cur_pctag = read_pctag();
 	for (uint32_t i = PCTAG_DYNAMIC; i < maxtag; i++) {
-	    if (pctag_label[i])
-		kobject_unpin_hdr(&pctag_label[i]->lb_ko);
-	    pctag_label[i] = 0;
+	    if (i == cur_pctag)
+		continue;
+
+	    int pctag_inuse = 0;
+	    for (uint32_t j = 0; j < PCALL_DEPTH; j++)
+		if (i == pcall_stack[j].pctag)
+		    pctag_inuse = 1;
+	    if (pctag_inuse)
+		continue;
+
+	    if (pctag_label_obj[i])
+		kobject_unpin_hdr(&pctag_label_obj[i]->lb_ko);
+	    pctag_label_obj[i] = 0;
 	    pctag_label_id[i] = 0;
 
 	    for (uint32_t j = DTAG_DYNAMIC; j < (1 << TAG_DATA_BITS); j++)

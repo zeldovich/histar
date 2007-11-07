@@ -57,13 +57,14 @@ Labels:
 Subset of remaining issues:
     - Label integrity
     - Cached page tables for AS
-    - Need to avoid purging PC tags that are in use or up the stack
 
 Done:
     + Gate, thread allocation [clearance]: kobject_alloc takes clearance
     + Label/clearance changes, category allocation
     + Gate calls
     + Kobject GC / page_free(): run GC with pctag=object-label
+    + Need to avoid purging PC tags that are in use or up the stack
+    + Pin data tag / PC tag labels so they don't get GCed underneath us
 
 		Set T	Set S
 Tag exception	YES	YES
