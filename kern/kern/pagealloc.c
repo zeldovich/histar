@@ -27,8 +27,6 @@ struct page_stats page_stats;
 PROT_FUNC(PCTAG_P_ALLOC, DTAG_P_ALLOC,
 	  void, page_free_real, void *v)
 {
-    tag_set(v, DTAG_P_ALLOC, PGSIZE);
-
     struct Page_link *pl = (struct Page_link *) v;
     if (PGOFF(pl))
 	panic("page_free: not a page-aligned pointer %p", pl);
