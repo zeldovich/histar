@@ -57,11 +57,24 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
     assert(!(ptr & 3));
     assert(!(n & 3));
 
+    uint32_t last_dtag = ~0;
+    uint32_t last_dtag_count = 0;
+
     for (uint32_t i = 0; i < n; i += 4) {
 	uint32_t old_tag = read_dtag(addr + i);
-	dtag_refcount[old_tag & ((1 << TAG_DATA_BITS) - 1)]--;
+	if (old_tag == last_dtag) {
+	    last_dtag_count++;
+	} else {
+	    if (last_dtag_count)
+		dtag_refcount[last_dtag] -= last_dtag_count;
+	    last_dtag = old_tag;
+	    last_dtag_count = 1;
+	}
 	write_dtag(addr + i, dtag);
     }
+
+    if (last_dtag_count)
+	dtag_refcount[last_dtag] -= last_dtag_count;
 
     dtag_refcount[dtag] += n / 4;
 }
@@ -151,6 +164,9 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
     if (((uintptr_t) addr) & 3)
 	return -E_INVAL;
 
+    if (nbytes & 3)
+	return -E_INVAL;
+
     if (dtag == DTAG_TYPE_KOBJ || dtag == DTAG_TYPE_SYNC)
 	return -E_INVAL;
 
@@ -159,6 +175,7 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
     uint32_t pctag = read_pctag();
     uint32_t pbits = TAG_PERM_READ | TAG_PERM_WRITE;
     uint32_t last_dtag = ~0;
+    uint32_t last_dtag_count = 0;
     for (uint32_t i = 0; i < nbytes; i += 4) {
 	uint32_t old_dtag = read_dtag(addr + i);
 	if (old_dtag != last_dtag) {
@@ -172,16 +189,24 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
 		    tag_print_label_id("PC tag", pctag_label_id[pctag]);
 		    tag_print_label_id("Old dtag", dtag_label_id[old_dtag]);
 		    tag_print_label_id("New dtag", dtag_label_id[dtag]);
-		    return -E_LABEL;
+		    //return -E_LABEL;
 		}
 	    }
+
+	    if (last_dtag_count)
+		dtag_refcount[last_dtag] -= last_dtag_count;
 	    last_dtag = old_dtag;
+	    last_dtag_count = 1;
+	} else {
+	    last_dtag_count++;
 	}
 
 	write_dtag(addr + i, dtag);
-	dtag_refcount[old_dtag]--;
-	dtag_refcount[dtag]++;
     }
+
+    dtag_refcount[dtag] += nbytes / 4;
+    if (last_dtag_count)
+	dtag_refcount[last_dtag] -= last_dtag_count;
 
     //uint32_t end = karch_get_tsc();
     //if (start||end) cprintf("moncall_tagset: %d bytes, %d tsc\n", nbytes, end-start);
@@ -680,7 +705,10 @@ tag_init(void)
     cprintf("done.\n");
 
     cprintf("Initializing memory tags.. ");
-    tag_set(pa2kva(ppn2pa(0)), DTAG_NOACCESS, global_npages * PGSIZE);
+    void *basep = pa2kva(ppn2pa(0));
+    uint32_t global_nbytes = global_npages * PGSIZE;
+    for (uint32_t i = 0; i < global_nbytes; i++)
+	write_dtag(basep + i, DTAG_NOACCESS);
 
     /* Normalize refcounts */
     for (uint32_t i = 0; i < (1 << TAG_DATA_BITS); i++)
