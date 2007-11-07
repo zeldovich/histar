@@ -143,16 +143,26 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
     if (((uintptr_t) addr) & 3)
 	return -E_INVAL;
 
+    if (dtag == DTAG_TYPE_KOBJ || dtag == DTAG_TYPE_SYNC)
+	return -E_INVAL;
+
     uint32_t pctag = read_pctag();
     uint32_t pbits = TAG_PERM_READ | TAG_PERM_WRITE;
+    uint32_t last_dtag = ~0;
     for (uint32_t i = 0; i < nbytes; i += 4) {
 	uint32_t old_dtag = read_dtag(addr + i);
-	uint32_t perm = tag_getperm(pctag, old_dtag);
-	if ((perm & pbits) != pbits) {
-	    tag_compare(pctag, old_dtag, 1);
-	    perm = tag_getperm(pctag, old_dtag);
-	    if (!(perm & pbits) != pbits)
-		return -E_LABEL;
+	if (old_dtag != last_dtag) {
+	    uint32_t perm = tag_getperm(pctag, old_dtag);
+	    if ((perm & pbits) != pbits) {
+		tag_compare(pctag, old_dtag, 1);
+		perm = tag_getperm(pctag, old_dtag);
+		if (!(perm & pbits) != pbits) {
+		    cprintf("moncall_tagset: err %p pctag=%d old dtag=%d new dtag=%d\n",
+			    addr + i, pctag, old_dtag, dtag);
+		    return -E_LABEL;
+		}
+	    }
+	    last_dtag = old_dtag;
 	}
 
 	write_dtag(addr + i, dtag);
