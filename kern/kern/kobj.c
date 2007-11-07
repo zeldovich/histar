@@ -696,16 +696,10 @@ kobject_unpin_page(const struct kobject_hdr *ko)
     kobject_unpin_hdr(ko);
 }
 
-static int
+int64_t
 kobject_gc(struct kobject *ko)
 {
-    int r;
-    const struct Label *l[kolabel_max];
-    for (int i = 0; i < kolabel_max; i++) {
-	r = kobject_get_label(&ko->hdr, i, &l[i]);
-	if (r < 0)
-	    return r;
-    }
+    int r = 0;
 
     if ((ko->hdr.ko_flags & KOBJ_DIRTY_LATER))
 	kobject_dirty_eval(ko);
@@ -736,24 +730,32 @@ kobject_gc(struct kobject *ko)
 	panic("kobject_gc: unknown kobject type %d", ko->hdr.ko_type);
     }
 
-    if (r < 0)
+    if (r < 0) {
+	cprintf("kobject_gc: %s (%d)\n", e2s(r), r);
 	return r;
-
-    for (int i = 0; i < kolabel_max; i++)
-	kobject_set_label_prepared(&ko->hdr, i, l[i], 0, 0);
+    }
 
     pagetree_free(&ko->ko_pt, 0);
     ko->hdr.ko_nbytes = 0;
-    ko->hdr.ko_type = kobj_dead;
+
+    LIST_REMOVE(ko, ko_link);
+    LIST_REMOVE(ko, ko_gc_link);
+
+    if (read_tsr() & TSR_T) {
+	for (int i = 0; i < kolabel_max; i++)
+	    assert(0 == kobject_set_label(&ko->hdr, i, 0));
+	LIST_REMOVE(ko, ko_hash);
+	page_free(ko);
+    } else {
+	monitor_call(MONCALL_KOBJ_FREE, ko);
+    }
+
     return 0;
 }
 
 void
 kobject_gc_scan(void)
 {
-    // XXX figure out who needs to actually run the GC..
-    return;
-
     // Clear cur_thread to avoid putting it to sleep on behalf of
     // our swapped-in objects.
     const struct Thread *t = cur_thread;
@@ -778,15 +780,15 @@ kobject_gc_scan(void)
 	    }
 
 	    if (ko->hdr.ko_type == kobj_dead) {
-		if (!(ko->hdr.ko_flags & KOBJ_ON_DISK))
-		    kobject_swapout(ko);
+		cprintf("kobj_dead should not exist\n");
 	    } else {
-		int r = kobject_gc(kobject_dirty(&ko->hdr));
+		//int r = kobject_gc(kobject_dirty(&ko->hdr));
+		int r = monitor_call(MONCALL_KOBJ_GC, ko);
 		if (r >= 0)
 		    progress = 1;
 		if (r < 0 && r != -E_RESTART)
-		    cprintf("kobject_gc_scan: %"PRIu64" type %d: %s\n",
-			    ko->hdr.ko_id, ko->hdr.ko_type, e2s(r));
+		    cprintf("kobject_gc_scan: %"PRIu64" type %d: %s (%d)\n",
+			    ko->hdr.ko_id, ko->hdr.ko_type, e2s(r), r);
 	    }
 	}
     } while (progress);
@@ -797,6 +799,8 @@ kobject_gc_scan(void)
 void
 kobject_swapout(struct kobject *ko)
 {
+    cprintf("kobject_swapout not supported\n");
+
     if (kobject_checksum_pedantic) {
 	uint64_t sum1 = ko->hdr.ko_cksum;
 	uint64_t sum2 = kobject_cksum(&ko->hdr);
@@ -820,8 +824,7 @@ kobject_swapout(struct kobject *ko)
     LIST_REMOVE(ko, ko_hash);
     pagetree_free(&ko->ko_pt, 0);
 
-    /* XXX need to do kobject GC in the monitor somehow */
-    //page_free(ko);
+    page_free(ko);
 }
 
 static struct kobject *
@@ -952,7 +955,8 @@ kobject_reclaim(void)
 	    cprintf("kobject_reclaim: swapping out %"PRIu64" (%s)\n",
 		    ko->hdr.ko_id, ko->hdr.ko_name);
 
-	kobject_swapout(ko);
+	/* XXX no swapout for now */
+	//kobject_swapout(ko);
     }
 
     cur_thread = t;

@@ -55,14 +55,14 @@ Labels:
       - Keep the ko_id as DTAG_KOBJ, ko_ref as DTAG_KRW
 
 Subset of remaining issues:
-    - Kobject GC / page_free()
-    - Gate calls
     - Label integrity
     - Cached page tables for AS
 
 Done:
     + Gate, thread allocation [clearance]: kobject_alloc takes clearance
     + Label/clearance changes, category allocation
+    + Gate calls
+    + Kobject GC / page_free(): run GC with pctag=object-label
 
 		Set T	Set S
 Tag exception	YES	YES

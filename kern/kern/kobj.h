@@ -119,6 +119,7 @@ void kobject_swapout(struct kobject *kp);
 
 // Perform a garbage-collection pass.
 void kobject_gc_scan(void);
+int64_t kobject_gc(struct kobject *ko);
 
 // Deallocate physical memory used for clean objects.
 void kobject_reclaim(void);

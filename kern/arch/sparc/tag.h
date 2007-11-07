@@ -72,6 +72,8 @@
 #define MONCALL_SET_CLEAR	9	/* Change clearance */
 #define MONCALL_GATE_ENTER	10	/* Invoke a gate */
 #define MONCALL_THREAD_START	11	/* Start a thread */
+#define MONCALL_KOBJ_FREE	12	/* Free a kobject */
+#define MONCALL_KOBJ_GC		13	/* GC an object */
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>

@@ -30,6 +30,7 @@ static uint64_t dtag_refcount[1 << TAG_DATA_BITS];
 
 static uint64_t dtag_label_id[1 << TAG_DATA_BITS];
 static uint64_t pctag_label_id[1 << TAG_PC_BITS];
+static const struct Label *pctag_label[1 << TAG_PC_BITS];
 
 const struct Label dtag_label[DTAG_DYNAMIC];
 const struct Thread *cur_mon_thread;
@@ -182,8 +183,7 @@ tag_moncall(struct Trapframe *tf)
 
     switch (tf->tf_regs.l0) {
     case MONCALL_PCALL:
-	if (pcall_next == PCALL_DEPTH)
-	    panic("MONCALL_PCALL: out of pstack space\n");
+	assert(pcall_next < PCALL_DEPTH);
 
 	ps = &pcall_stack[pcall_next++];
 	memcpy(&ps->tf, tf, sizeof(*tf));
@@ -201,6 +201,41 @@ tag_moncall(struct Trapframe *tf)
 	tf->tf_regs.fp = 0;
 	cur_stack_base = (uintptr_t) ps->stack_base;
 	break;
+
+    case MONCALL_KOBJ_GC: {
+	const struct kobject *ko = (const struct kobject *) tf->tf_regs.i1;
+
+	tag_is_kobject(ko, kobj_any);
+	if (ko->hdr.ko_type == kobj_label) {
+	    put_retval = 1;
+	    retval = kobject_gc(kobject_dirty(&ko->hdr));
+	    break;
+	}
+
+	assert(pcall_next < PCALL_DEPTH);
+	ps = &pcall_stack[pcall_next++];
+	memcpy(&ps->tf, tf, sizeof(*tf));
+	ps->pctag = read_pctag();
+	ps->prev_stack_base = cur_stack_base;
+
+	const struct Label *l;
+	assert(0 == kobject_get_label(&ko->hdr, kolabel_contaminate, &l));
+	uint32_t pctag = tag_alloc(l, tag_type_pc);
+
+	write_pctag(pctag);
+	tag_set(ps->stack_base, DTAG_KRW, KSTACK_SIZE);
+
+	tf->tf_pc = (uintptr_t) &pcall_trampoline;
+	tf->tf_npc = tf->tf_pc + 4;
+	tf->tf_psr = PSR_S | PSR_PS | PSR_PIL | PSR_ET;
+	tf->tf_wim = 2;
+	tf->tf_regs.l3 = (uintptr_t) &kobject_gc;
+	tf->tf_regs.i0 = (uintptr_t) ko;
+	tf->tf_regs.sp = ((uintptr_t) ps->stack_top) - STACKFRAME_SZ;
+	tf->tf_regs.fp = 0;
+	cur_stack_base = (uintptr_t) ps->stack_base;
+	break;
+    }
 
     case MONCALL_PRETURN:
 	if (pcall_next == 0)
@@ -263,6 +298,20 @@ tag_moncall(struct Trapframe *tf)
 	tf->tf_regs.sp = ((uintptr_t) &kstack_top[0]) - STACKFRAME_SZ;
 	tf->tf_regs.fp = 0;
 	tf->tf_regs.o0 = (uintptr_t) tptr;
+	break;
+    }
+
+    case MONCALL_KOBJ_FREE: {
+	put_retval = 1;
+	retval = 0;
+
+	struct kobject *ko = (struct kobject *) tf->tf_regs.i1;
+	tag_is_kobject(ko, kobj_any);
+
+	for (int i = 0; i < kolabel_max; i++)
+	    assert(0 == kobject_set_label(&ko->hdr, i, 0));
+	LIST_REMOVE(ko, ko_hash);
+	page_free(ko);
 	break;
     }
 
@@ -673,6 +722,9 @@ tag_alloc(const struct Label *l, int tag_type)
 	for (uint32_t i = PCTAG_DYNAMIC; i < maxtag; i++) {
 	    if (pctag_label_id[i] == 0) {
 		pctag_label_id[i] = l->lb_ko.ko_id;
+		pctag_label[i] = l;
+		kobject_pin_hdr(&l->lb_ko);
+
 		kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_pctag_hint = i;
 		return i;
 	    }
@@ -680,7 +732,11 @@ tag_alloc(const struct Label *l, int tag_type)
 
 	cprintf("Out of PC tags, flushing table..\n");
 	for (uint32_t i = PCTAG_DYNAMIC; i < maxtag; i++) {
+	    if (pctag_label[i])
+		kobject_unpin_hdr(&pctag_label[i]->lb_ko);
+	    pctag_label[i] = 0;
 	    pctag_label_id[i] = 0;
+
 	    for (uint32_t j = DTAG_DYNAMIC; j < (1 << TAG_DATA_BITS); j++)
 		if (tag_getperm(i, j))
 		    tag_setperm(i, j, 0);
@@ -699,7 +755,7 @@ tag_is_kobject(const void *ptr, uint8_t type)
     //assert(DTAG_TYPE_KOBJ == read_dtag(ptr));
 
     const struct kobject_hdr *ko = ptr;
-    assert(ko->ko_type == type);
+    assert(type == kobj_any || ko->ko_type == type);
 }
 
 void
