@@ -79,34 +79,6 @@ tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t perm)
     wrtperm(pctag, dtag, perm);
 }
 
-/*
- * Tag comparison logic
- */
-
-static int
-tag_compare(uint32_t pctag, uint32_t dtag, int write)
-{
-    int r = label_compare_id(dtag_label_id[dtag],
-			     pctag_label_id[pctag],
-			     label_leq_starhi);
-    if (r < 0)
-	return r;
-
-    if (write) {
-	r = label_compare_id(pctag_label_id[pctag],
-			     dtag_label_id[dtag],
-			     label_leq_starlo);
-	if (r < 0)
-	    return r;
-
-	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
-    } else {
-	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_EXEC);
-    }
-
-    return 0;
-}
-
 static void
 tag_print_label_id(const char *msg, uint64_t id)
 {
@@ -120,6 +92,42 @@ tag_print_label_id(const char *msg, uint64_t id)
 
     cprintf("%s %"PRIu64": ", msg, id);
     label_cprint(l);
+}
+
+/*
+ * Tag comparison logic
+ */
+
+static int
+tag_compare(uint32_t pctag, uint32_t dtag, int write)
+{
+    int r = label_compare_id(dtag_label_id[dtag],
+			     pctag_label_id[pctag],
+			     label_leq_starhi);
+    if (r < 0) {
+	cprintf("tag_compare: cannot read\n");
+	tag_print_label_id("PC label", pctag_label_id[pctag]);
+	tag_print_label_id("Data label", dtag_label_id[dtag]);
+	return r;
+    }
+
+    if (write) {
+	r = label_compare_id(pctag_label_id[pctag],
+			     dtag_label_id[dtag],
+			     label_leq_starlo);
+	if (r < 0) {
+	    cprintf("tag_compare: cannot write\n");
+	    tag_print_label_id("PC label", pctag_label_id[pctag]);
+	    tag_print_label_id("Data label", dtag_label_id[dtag]);
+	    return r;
+	}
+
+	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+    } else {
+	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_EXEC);
+    }
+
+    return 0;
 }
 
 /*
@@ -156,9 +164,12 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
 	    if ((perm & pbits) != pbits) {
 		tag_compare(pctag, old_dtag, 1);
 		perm = tag_getperm(pctag, old_dtag);
-		if (!(perm & pbits) != pbits) {
+		if ((perm & pbits) != pbits) {
 		    cprintf("moncall_tagset: err %p pctag=%d old dtag=%d new dtag=%d\n",
 			    addr + i, pctag, old_dtag, dtag);
+		    tag_print_label_id("PC tag", pctag_label_id[pctag]);
+		    tag_print_label_id("Old dtag", dtag_label_id[old_dtag]);
+		    tag_print_label_id("New dtag", dtag_label_id[dtag]);
 		    return -E_LABEL;
 		}
 	    }
