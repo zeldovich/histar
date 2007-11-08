@@ -227,10 +227,12 @@ pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
 	    return 0;
 	}
 
-	int r = page_alloc(&indir->page, &dtag_label[DTAG_KRW]);
+	void *npg = 0;
+	int r = page_alloc(&npg, &dtag_label[DTAG_KRW]);
 	if (r < 0)
 	    return r;
 
+	indir->page = npg;
 	memset(indir->page, 0, PGSIZE);
 	pagetree_incref(indir->page);
 	page_to_pageinfo(indir->page)->pi_indir = 1;
