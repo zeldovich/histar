@@ -470,6 +470,9 @@ $(OBJDIR)/user/ssh.tar: $(ACPKG_BUILDDIR)/openssh-4.3p2/__build
 					etc/ssh_host_rsa_key.pub \
 					.ssh/authorized_keys
 
+$(OBJDIR)/acpkg/lib/libz.so.1: $(ACPKG_BUILDDIR)/zlib-1.2.3/__build
+	@
+
 $(ACPKG_BUILDDIR)/zlib-1.2.3/__build: | $(ACPKG_WRAPS) $(ACPKG_BUILDDIR)/zlib-1.2.3/__patch
 	@mkdir -p $(ACPKG_PREFIX)
 	-( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
