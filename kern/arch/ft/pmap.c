@@ -177,6 +177,7 @@ pmap_set_current(struct Pagemap *pm)
 void
 as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 {
+    ptep->pte = 0;
 }
 
 void
@@ -187,10 +188,21 @@ as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 void
 as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 {
+    ptep->pte ~= PTE_W;
 }
 
 int
 as_arch_putpage(struct Pagemap *pmap, void *va, void *pp, uint32_t flags)
 {
-    return -E_INVAL;
+    for (uint32_t i = 0; i < NPME; i++) {
+	if ((pmap->pme[i].pte & PTE_P) && (pmap->pme[i].va != va))
+	    continue;
+
+	pmap->pme[i].va = va;
+	pmap->pme[i].pte = kva2pa(pp) | PTE_P | PTE_U;
+	if (flags & SEGMAP_WRITE)
+	    pmap->pme[i].pte |= PTE_W;
+    }
+
+    return -E_NO_MEM;
 }
