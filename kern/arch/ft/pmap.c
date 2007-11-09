@@ -50,11 +50,11 @@ check_user_access2(const void *base, uint64_t nbytes,
 	pte_flags |= PTE_W;
 
     if (nbytes > 0) {
-	void *orig_base = base;
+	const void *orig_base = base;
 
 	int overflow = 0;
 	uintptr_t ibase = (uintptr_t) base;
-	uintptr_t end = safe_addptr(&overflow, base, nbytes);
+	uintptr_t end = safe_addptr(&overflow, (uintptr_t) base, nbytes);
 	base = ROUNDDOWN(base, PGSIZE);
 	end = ROUNDUP(end, PGSIZE);
 	if (end <= ibase || overflow)
@@ -177,7 +177,7 @@ pmap_set_current(struct Pagemap *pm)
 void
 as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 {
-    ptep->pte = 0;
+    *ptep = 0;
 }
 
 void
@@ -188,7 +188,7 @@ as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 void
 as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 {
-    ptep->pte ~= PTE_W;
+    *ptep &= ~PTE_W;
 }
 
 int
@@ -202,6 +202,7 @@ as_arch_putpage(struct Pagemap *pmap, void *va, void *pp, uint32_t flags)
 	pmap->pme[i].pte = kva2pa(pp) | PTE_P | PTE_U;
 	if (flags & SEGMAP_WRITE)
 	    pmap->pme[i].pte |= PTE_W;
+	return 0;
     }
 
     return -E_NO_MEM;
