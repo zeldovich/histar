@@ -5,6 +5,7 @@
 #include <kern/sched.h>
 #include <kern/pstate.h>
 #include <kern/uinit.h>
+#include <kern/prof.h>
 #include <machine/trap.h>
 #include <machine/pmap.h>
 #include <machine/sparc-common.h>
@@ -56,6 +57,7 @@ init (void)
     kobject_init();
     sched_init();
     pstate_init();
+    prof_init();
 
     user_init();
 
