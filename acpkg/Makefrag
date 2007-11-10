@@ -636,10 +636,11 @@ INCLUDE_BUILD_TAR_CMD := \
 	    --exclude .svn --exclude '*.c' --exclude '*.S' \
 	    --exclude 'Makefile*' --exclude Makefrag \
 	    --exclude .cvsignore --exclude .indent.pro \
-	    -hrf $(TOP)/$(OBJDIR)/user/include.tar .
+	    -hrf $(TOP)/$(OBJDIR)/user/.tmp.include.tar .
 
 $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
-	rm -f $@
+	rm -f $(TOP)/$(OBJDIR)/user/.tmp.include.tar $@
+	touch $(TOP)/$(OBJDIR)/user/.tmp.include.tar
 
 	rm -rf $(OBJDIR)/acpkg/.include-build
 	mkdir -p $(OBJDIR)/acpkg/.include-build
@@ -677,6 +678,7 @@ $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
 	$(INCLUDE_BUILD_TAR_CMD)
 
 	rm -rf $(OBJDIR)/acpkg/.include-build
+	mv $(TOP)/$(OBJDIR)/user/.tmp.include.tar $@
 
 $(OBJDIR)/user/include.tar.gz: $(OBJDIR)/user/include.tar
 	gzip -c $< > $@
