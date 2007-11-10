@@ -857,7 +857,7 @@ void
 tag_is_kobject(const void *ptr, uint8_t type)
 {
     assert(!PGOFF(ptr));
-    //assert(DTAG_TYPE_KOBJ == read_dtag(ptr));
+    assert(DTAG_TYPE_KOBJ == read_dtag(ptr));
 
     const struct kobject_hdr *ko = ptr;
     assert(type == kobj_any || ko->ko_type == type);
