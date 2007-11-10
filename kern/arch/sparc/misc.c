@@ -27,8 +27,8 @@ karch_jmpbuf_init(struct jos_jmp_buf *jb,
     jb->jb_pc = (uint32_t) fn - 8;
 }
 
-void __attribute__((noreturn))
+void
 karch_fp_init(struct Fpregs *fpreg)
 {
-    panic("no fp support");
+    cprintf("FP not supported\n");
 }

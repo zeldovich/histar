@@ -38,7 +38,7 @@
  #include <machine/trapcodes.h>
  #define ARCH_PGFLTD  T_DATAFAULT
  #define ARCH_PGFLTI  T_TEXTFAULT
- #define ARCH_DEVICE  T_FP
+ #define ARCH_DEVICE  T_FP_DISABLED
  #define ARCH_BRKPT   T_BRKPT
  #define ARCH_DEBUG   T_BRKPT
 
