@@ -39,10 +39,10 @@ ENTRY(abort)
  */
 
 ENTRY(start)
-	/* Turn on Supervisor, EnableFloating, and all the PIL bits.
+	/* Turn on Supervisor and all the PIL bits.
 	 * Also puts us in register window zero with traps off.
 	 */
-	set	(PSR_S | PSR_PIL | PSR_EF), %g2
+	set	(PSR_S | PSR_PIL), %g2
 	wr	%g2, %psr
 	WRITE_PAUSE
 		
