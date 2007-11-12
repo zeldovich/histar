@@ -391,8 +391,8 @@ $(ACPKG_BUILDDIR)/gdb-6.5/gdb/config/i386/__gl: | $(ACPKG_BUILDDIR)/gdb-6.5/__un
 	ln -fs $(TOP)/pkg/gdb-gl/jos64.mh $(@D)/jos64.mh 
 	ln -fs $(TOP)/pkg/gdb-gl/jos64.mt $(@D)/jos64.mt
 	ln -fs $(TOP)/pkg/gdb-gl/nm-jos64.h $(@D)/nm-jos64.h
-	ln -fs $(TOP)/pkg/gdb-gl/jos64-nat.c 	\
-	       $(TOP)/acpkg/gdb-6.5/gdb/jos64-nat.c
+	ln -fs $(TOP)/pkg/gdb-gl/jos64-nat.c \
+	       $(ACPKG_BUILDDIR)/gdb-6.5/gdb/jos64-nat.c
 	touch $@
 
 $(OBJDIR)/acpkg/bin/gdbserver $(OBJDIR)/acpkg/bin/gdb: \
