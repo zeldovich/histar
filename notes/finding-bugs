@@ -160,3 +160,9 @@ mapped kobject #2 do not.
 Did not always call kobject_qres_release() on the failure path
 after calling kobject_qres_reserve().
 
+***
+
+Did not roll back in-memory data structures reflecting disk state
+(freelist, btrees) when we failed in checkpointing to disk (e.g.
+did not have enough space on disk).
+
