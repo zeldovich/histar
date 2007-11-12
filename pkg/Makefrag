@@ -7,3 +7,4 @@ include pkg/cat/Makefrag
 include pkg/links/Makefrag
 include pkg/ftpd/Makefrag
 include pkg/httpd/Makefrag
+include pkg/primes/Makefrag
