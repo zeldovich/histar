@@ -7,8 +7,11 @@ KERN_BINFILES	+= user/ld.so user/libm.so user/libutil.so user/libdl.so user/libc
 endif
 
 ## Pick your TCP stack
+ifeq ($(K_ARCH),amd64)
+KERN_BINFILES	+= user/vmlinux user/initrd
+else
 KERN_BINFILES	+= user/netd
-#KERN_BINFILES	+= user/vmlinux user/initrd
+endif
 
 ## Basic command-line programs
 KERN_BINFILES	+= user/jls user/asprint user/gl user/jcat user/taintcat
