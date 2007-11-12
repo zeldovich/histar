@@ -8,6 +8,7 @@ extern "C" {
 #include <unistd.h>
 #include <pwd.h>
 #include <inttypes.h>
+#include <login_cap.h>
 }
 
 #include <inc/error.hh>
@@ -37,8 +38,6 @@ login(char *u, char *p)
     const char *user_home = "/";
     struct passwd *pw = getpwnam(u);
     if (pw) {
-	start_env->ruid = pw->pw_uid;
-	start_env->euid = pw->pw_uid;
 	user_shell = pw->pw_shell;
 	user_home = pw->pw_dir;
     }
@@ -52,10 +51,12 @@ login(char *u, char *p)
 
     chdir(user_home);
 
+    setusercontext(0, pw, pw->pw_uid, LOGIN_SETALL);
+
     const char *argv[] = { user_shell };
     const char *envv[] = { "TERM=vt100", "TERMINFO=/x/share/terminfo",
 			   &env_user[0], &env_home[0] };
-    struct child_process shell = spawn(start_env->shared_container,
+    struct child_process shell = spawn(start_env->process_pool,
                                        fsshell,
                                        0, 1, 2,
                                        sizeof(argv)/sizeof(argv[0]), &argv[0],
