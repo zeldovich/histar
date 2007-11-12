@@ -755,6 +755,10 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
 	// Reset the un-committed log by applying the committed on-disk one.
 	assert(0 == pstate_apply_disk_log());
 
+	// Restore the freelist and btree structures to their on-disk state
+	freelist_deserialize(&freelist, &stable_hdr.ph_free);
+	btree_manager_deserialize(&stable_hdr.ph_btrees);
+
 	if (rvalp && !*rvalp)
 	    *rvalp = r;
     }
