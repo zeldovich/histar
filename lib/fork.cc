@@ -14,6 +14,8 @@ extern "C" {
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <inttypes.h>
 }
 
 #include <inc/error.hh>
@@ -190,17 +192,29 @@ do_fork()
     }
 
     // Copy the address space, much like taint_cow() in lib/taint.c
-    enum { uas_size = 64 };
-    struct u_segment_mapping uas_ents[uas_size];
     struct u_address_space uas;
-    uas.size = uas_size;
-    uas.ents = &uas_ents[0];
+    uas.size = 32;
+    uas.ents = (u_segment_mapping *) malloc(uas.size * sizeof(uas.ents[0]));
+    if (!uas.ents)
+	throw error(-E_NO_MEM, "cannot allocate uas.ents");
 
+    scope_guard<void, u_segment_mapping **> uas_ents_free(free_indir, &uas.ents);
     segment_unmap_flush();
 
     struct cobj_ref cur_as;
     error_check(sys_self_get_as(&cur_as));
-    error_check(sys_as_get(cur_as, &uas));
+    int r = sys_as_get(cur_as, &uas);
+    while (r == -E_NO_SPACE) {
+	uas.size *= 2;
+	void *p = realloc(uas.ents, uas.size * sizeof(uas.ents[0]));
+	if (!p)
+	    throw error(-E_NO_MEM, "cannot realloc uas.ents, size %"PRIu64,
+			uas.size);
+	uas.ents = (u_segment_mapping *) p;
+
+	r = sys_as_get(cur_as, &uas);
+    }
+    error_check(r);
 
     void *fd_base = (void *) UFDBASE;
     void *fd_end = ((char *) fd_base) + MAXFD * PGSIZE;

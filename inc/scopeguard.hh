@@ -12,6 +12,11 @@ void delete_obj(T *o) {
     delete o;
 }
 
+template <class T>
+void free_indir(T **p) {
+    free(*p);
+}
+
 template <class R, class T>
 class scope_guard {
  public:
