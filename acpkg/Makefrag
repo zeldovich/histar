@@ -697,12 +697,22 @@ $(OBJDIR)/user/python.tar.gz: $(ACPKG_BUILDDIR)/python-svn/__build
                 lib/libpython2.6.so.1.0 \
                 --exclude=lib/python2.6/test/*
 
+$(ACPKG_BUILDDIR)/python-svn/__unpack:
+	@mkdir -p acpkg/distcache
+	@mkdir -p $(ACPKG_BUILDDIR)
+	svn co http://svn.python.org/projects/python/trunk $(ACPKG_BUILDDIR)/$(PKGNAME)
+	touch $(ACPKG_BUILDDIR)/$(PKGNAME)/__unpack
+
 $(ACPKG_BUILDDIR)/python-svn/Makefile: $(ACPKG_BUILDDIR)/python-svn/__patch | $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
-	-find $(ACPKG_BUILDDIR)/python-svn -name config.cache | xargs rm -f
-	-find $(ACPKG_BUILDDIR)/python-svn -name config.status | xargs rm -f
+	-find $(ACPKG_BUILDDIR)/$(PKGNAME) -name config.cache | xargs rm -f
+	-find $(ACPKG_BUILDDIR)/$(PKGNAME) -name config.status | xargs rm -f
 	-rm $(ACPKG_BUILDDIR)/python-svn/configure
-	( cd $(ACPKG_BUILDDIR)/python-svn && sh -c "$(ACENV) autoconf" )
-	( cd $(ACPKG_BUILDDIR)/python-svn && sh -c "$(ACENV) ./configure --without-threads \
+	ln -fs $(TOP)/pkg/python-histar/_histarmodule.cc $(TOP)/$(ACPKG_BUILDDIR)/$(PKGNAME)/Modules/_histarmodule.cc
+	ln -fs $(TOP)/pkg/python-histar/histar.py $(TOP)/$(ACPKG_BUILDDIR)/$(PKGNAME)/Lib/histar.py
+	echo "_histar _histarmodule.cc" >> $(TOP)/$(ACPKG_BUILDDIR)/$(PKGNAME)/Modules/Setup.local
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) autoconf" )
+	-( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) automake --add-missing" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) ./configure --without-threads \
 		$(AUTOCONF_ARGS) $(AUTOCONF_python-svn)" )
 	touch $@
