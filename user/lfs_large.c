@@ -14,6 +14,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -124,7 +125,7 @@ write_test(int n, int size, int sequential, int finesync)
 
     memset(buf, 0xab + sequential * 2 + finesync * 4, size);
 
-    unsigned s, mid, fin;
+    uint64_t s, mid, fin;
     s = time_msec();
    
     int syncflag = finesync ? O_SYNC : 0;
@@ -181,7 +182,7 @@ write_test(int n, int size, int sequential, int finesync)
     }
 
     fin = time_msec();
-    printf("write_test: write took %d msec (%d msec write, %d msec sync)\n", fin - s, mid-s, fin-mid);
+    printf("write_test: write took %"PRIu64" msec (%"PRIu64" msec write, %"PRIu64" msec sync)\n", fin - s, mid-s, fin-mid);
 
 }
 
@@ -203,7 +204,7 @@ read_test(int n, int size, int sequential)
     long pos;
 
 
-    unsigned s, fin;
+    uint64_t s, fin;
     s = time_msec();
     
     if((fd = open(name, O_RDONLY, 0)) < 0) {
@@ -237,7 +238,7 @@ read_test(int n, int size, int sequential)
     
 
     fin = time_msec();
-    printf("%s: read took %d msec\n",
+    printf("%s: read took %"PRIu64" msec\n",
 	   prog_name,
 	   fin - s);
 }
