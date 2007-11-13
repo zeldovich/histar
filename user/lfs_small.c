@@ -27,7 +27,7 @@ enum { lfs_iterations = 1 };
 #include <inc/profiler.h>
 #include <inc/lib.h>
 
-#define time_msec() (NSEC_PER_SECOND / 1000 * sys_clock_nsec())
+#define time_msec() (sys_clock_nsec() * 1000 / NSEC_PER_SECOND)
 #endif // JOS64
 
 #if LINUX
