@@ -77,6 +77,7 @@
 #define MONCALL_THREAD_START	11	/* Start a thread */
 #define MONCALL_KOBJ_FREE	12	/* Free a kobject */
 #define MONCALL_KOBJ_GC		13	/* GC an object */
+#define MONCALL_MAX		14
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>
@@ -127,6 +128,7 @@ extern const struct Label dtag_label[DTAG_DYNAMIC];
 extern uint32_t moncall_dummy;
 extern uintptr_t cur_stack_base;
 extern const struct Thread *cur_mon_thread;
+extern const char *moncall_names[MONCALL_MAX];
 
 void	 tag_init(void);
 

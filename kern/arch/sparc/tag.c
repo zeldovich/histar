@@ -8,6 +8,7 @@
 #include <kern/kobj.h>
 #include <kern/label.h>
 #include <kern/handle.h>
+#include <kern/prof.h>
 #include <inc/error.h>
 
 extern const uint8_t stext[],   etext[];
@@ -35,6 +36,12 @@ static const struct Label *pctag_label_obj[1 << TAG_PC_BITS];
 
 const struct Label dtag_label[DTAG_DYNAMIC];
 const struct Thread *cur_mon_thread;
+
+const char* moncall_names[] = {
+    "zero", "pcall", "preturn", "tagset", "dtag alloc", "thread switch",
+    "kobj alloc", "cat alloc", "set label", "set clear",
+    "gate enter", "thread start", "kobj free", "kobj gc",
+};
 
 const char* const cause_table[] = {
     [ET_CAUSE_PCV]   = "PC tag invalid",
@@ -223,6 +230,9 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
 static void __attribute__((noreturn))
 tag_moncall(struct Trapframe *tf)
 {
+    //uint32_t start = karch_get_tsc();
+    uint32_t callnum = tf->tf_regs.l0;
+
     if (!(tf->tf_psr & PSR_PS)) {
 	cprintf("tag_moncall: from user mode at 0x%x, 0x%x\n",
 		tf->tf_pc, tf->tf_npc);
@@ -238,7 +248,7 @@ tag_moncall(struct Trapframe *tf)
     int64_t retval = 0;
     int put_retval = 0;
 
-    switch (tf->tf_regs.l0) {
+    switch (callnum) {
     case MONCALL_PCALL: {
 	assert(pcall_next < PCALL_DEPTH);
 
@@ -603,6 +613,7 @@ tag_moncall(struct Trapframe *tf)
     }
 
  out:
+    //prof_moncall(callnum, karch_get_tsc() - start);
     tag_trap_return(tf);
 }
 
@@ -613,6 +624,8 @@ tag_moncall(struct Trapframe *tf)
 void
 tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 {
+    //uint32_t start = karch_get_tsc();
+
     if (tag_trap_debug)
 	cprintf("tag trap...\n");
 
@@ -681,6 +694,8 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 
     if (tag_trap_debug)
 	cprintf("tag trap: returning..\n");
+    //prof_tagtrap(karch_get_tsc() - start);
+
     tag_trap_return(tf);
 }
 
