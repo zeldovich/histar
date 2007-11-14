@@ -71,9 +71,9 @@ gaisler_ddrspa_detect(void)
     cprintf("SDRAM: 0x%08x-0x%08x (%dM available)\n", 
 	    ahb_dev.start[0], ahb_dev.stop[0], sdram_sz);
 
-    if (sdram_sz > 16) {
-	cprintf("Truncating memory to 16MB, for testing..\n");
-	sdram_sz = 16;
+    if (sdram_sz > 32) {
+	cprintf("Truncating memory to 32MB, for testing..\n");
+	sdram_sz = 32;
     }
 
     global_npages = sdram_sz << 8;
