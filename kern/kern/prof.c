@@ -25,7 +25,7 @@ struct entry sysc_table[NSYSCALLS] __krw__;
 struct entry trap_table[NTRAPS] __krw__;
 struct entry user_table[2] __krw__;
 struct entry monc_table[MONCALL_MAX] __krw__;
-struct entry tagtrap_table[1] __krw__;
+struct entry tagstuff_table[2] __krw__;
 struct tentry thread_table[NTHREADS] __krw__;
 
 static struct periodic_task prof_timer;
@@ -86,7 +86,7 @@ prof_init(void)
     memset(trap_table, 0, sizeof(trap_table));
     memset(thread_table, 0, sizeof(thread_table));
     memset(monc_table, 0, sizeof(monc_table));
-    memset(tagtrap_table, 0, sizeof(tagtrap_table));
+    memset(tagstuff_table, 0, sizeof(tagstuff_table));
 
     memset(&cyg_data, 0, sizeof(cyg_data));
     hash_init(&cyg_data.stats_lookup, cyg_data.stats_lookup_back, NUM_SYMS);
@@ -157,10 +157,13 @@ prof_moncall(uint64_t num, uint64_t time)
 }
 
 void
-prof_tagtrap(uint64_t time)
+prof_tagstuff(uint64_t num, uint64_t time)
 {
-    tagtrap_table[0].count++;
-    tagtrap_table[0].time += time;
+    if (num >= 2)
+	return;
+
+    tagstuff_table[num].count++;
+    tagstuff_table[num].time += time;
 }
 
 void
@@ -212,7 +215,7 @@ prof_reset(void)
     memset(user_table, 0, sizeof(user_table));
     memset(thread_table, 0, sizeof(thread_table));
     memset(monc_table, 0, sizeof(monc_table));
-    memset(tagtrap_table, 0, sizeof(tagtrap_table));
+    memset(tagstuff_table, 0, sizeof(tagstuff_table));
 }
 
 static void
@@ -263,7 +266,8 @@ prof_print(void)
 	print_entry(&monc_table[0], i, moncall_names[i]);
 
     cprintf("prof_print: tag traps\n");
-    print_entry(&tagtrap_table[0], 0, "tagtrap");
+    print_entry(&tagstuff_table[0], 0, "tag trap");
+    print_entry(&tagstuff_table[1], 0, "tag set");
 
     prof_reset();
 }

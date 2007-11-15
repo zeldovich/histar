@@ -11,7 +11,7 @@ void prof_trap(uint64_t num, uint64_t time);
 void prof_user(int idle, uint64_t time);
 void prof_thread(const struct Thread *th, uint64_t time);
 void prof_moncall(uint64_t num, uint64_t time);
-void prof_tagtrap(uint64_t time);
+void prof_tagstuff(uint64_t num, uint64_t time);
 void prof_print(void);
 void prof_toggle(void);
 

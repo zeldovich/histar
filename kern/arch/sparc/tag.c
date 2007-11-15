@@ -61,11 +61,11 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 	return;
     }
 
+    uint32_t start = karch_get_tsc();
+
     uintptr_t ptr = (uintptr_t) addr;
     assert(!(ptr & 3));
     assert(!(n & 3));
-
-    //uint32_t start = karch_get_tsc();
 
     uint32_t last_dtag = ~0;
     uint32_t last_dtag_count = 0;
@@ -88,8 +88,7 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 
     dtag_refcount[dtag] += n / 4;
 
-    //uint32_t end = karch_get_tsc();
-    //if (start||end) cprintf("tag_set: %d bytes, %d tsc\n", n, end-start);
+    prof_tagstuff(1, karch_get_tsc() - start);
 }
 
 uint32_t
@@ -183,8 +182,6 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
     if (dtag == DTAG_TYPE_KOBJ || dtag == DTAG_TYPE_SYNC)
 	return -E_INVAL;
 
-    //uint32_t start = karch_get_tsc();
-
     uint32_t pctag = read_pctag();
     uint32_t pbits = TAG_PERM_READ | TAG_PERM_WRITE;
     uint32_t last_dtag = ~0;
@@ -221,16 +218,13 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
     if (last_dtag_count)
 	dtag_refcount[last_dtag] -= last_dtag_count;
 
-    //uint32_t end = karch_get_tsc();
-    //if (start||end) cprintf("moncall_tagset: %d bytes, %d tsc\n", nbytes, end-start);
-
     return 0;
 }
 
 static void __attribute__((noreturn))
 tag_moncall(struct Trapframe *tf)
 {
-    //uint32_t start = karch_get_tsc();
+    uint32_t start = karch_get_tsc();
     uint32_t callnum = tf->tf_regs.l0;
 
     if (!(tf->tf_psr & PSR_PS)) {
@@ -613,7 +607,7 @@ tag_moncall(struct Trapframe *tf)
     }
 
  out:
-    //prof_moncall(callnum, karch_get_tsc() - start);
+    prof_moncall(callnum, karch_get_tsc() - start);
     tag_trap_return(tf);
 }
 
@@ -624,7 +618,7 @@ tag_moncall(struct Trapframe *tf)
 void
 tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 {
-    //uint32_t start = karch_get_tsc();
+    uint32_t start = karch_get_tsc();
 
     if (tag_trap_debug)
 	cprintf("tag trap...\n");
@@ -694,7 +688,7 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 
     if (tag_trap_debug)
 	cprintf("tag trap: returning..\n");
-    //prof_tagtrap(karch_get_tsc() - start);
+    prof_tagstuff(0, karch_get_tsc() - start);
 
     tag_trap_return(tf);
 }
