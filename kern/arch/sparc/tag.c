@@ -35,7 +35,9 @@ static const struct Label *dtag_label_obj[1 << TAG_PC_BITS];
 static uint64_t pctag_label_id[1 << TAG_PC_BITS];
 static const struct Label *pctag_label_obj[1 << TAG_PC_BITS];
 
+#if TAG_DEBUG
 static uint32_t pctag_dtag_count[1 << TAG_PC_BITS] __krw__;
+#endif
 
 const struct Label dtag_label[DTAG_DYNAMIC];
 const struct Thread *cur_mon_thread;
