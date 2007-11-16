@@ -66,7 +66,7 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 	return;
     }
 
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
     uint32_t start = karch_get_tsc();
 #endif
 
@@ -95,7 +95,7 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 
     dtag_refcount[dtag] += n / 4;
 
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
     prof_tagstuff(1, karch_get_tsc() - start);
 #endif
 }
@@ -109,7 +109,7 @@ tag_getperm(uint32_t pctag, uint32_t dtag)
 void
 tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t perm)
 {
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
     if (dtag >= DTAG_DYNAMIC) {
 	if (perm && !tag_permtable[pctag][dtag])
 	    pctag_dtag_count[pctag]++;
@@ -242,7 +242,7 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
 static void __attribute__((noreturn))
 tag_moncall(struct Trapframe *tf)
 {
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
     uint32_t start = karch_get_tsc();
 #endif
     uint32_t callnum = tf->tf_regs.l0;
@@ -636,7 +636,7 @@ tag_moncall(struct Trapframe *tf)
     }
 
  out:
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
     prof_moncall(callnum, karch_get_tsc() - start);
 #endif
     tag_trap_return(tf);
@@ -649,7 +649,7 @@ tag_moncall(struct Trapframe *tf)
 void
 tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 {
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
     uint32_t start = karch_get_tsc();
 #endif
 
@@ -721,14 +721,14 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 
     if (tag_trap_debug)
 	cprintf("tag trap: returning..\n");
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
     prof_tagstuff(0, karch_get_tsc() - start);
 #endif
 
     tag_trap_return(tf);
 }
 
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
 static void
 periodic_pctag_show(void)
 {
@@ -749,7 +749,7 @@ periodic_pctag_show(void)
 void
 tag_init_late(void)
 {
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
     static struct periodic_task show_pt = {
 	.pt_fn = &periodic_pctag_show, .pt_interval_sec = 10 };
     timer_add_periodic(&show_pt);
@@ -844,7 +844,7 @@ tag_alloc(const struct Label *l, int tag_type)
 	if (hint < maxtag && dtag_label_id[hint] == l->lb_ko.ko_id)
 	    return hint;
 
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
 	static uint32_t max_dtag;
 #endif
 
@@ -854,7 +854,7 @@ tag_alloc(const struct Label *l, int tag_type)
 		cprintf("tag_alloc: moncall_dtagalloc: %s (%d)\n", e2s(r), r);
 	    kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_dtag_hint = r;
 
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
 	    if (r >= 0 && ((uint32_t)r) > max_dtag) {
 		cprintf("max_dtag = %d\n", max_dtag);
 		max_dtag = r;
@@ -882,7 +882,7 @@ tag_alloc(const struct Label *l, int tag_type)
 
 		kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_dtag_hint = i;
 
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
 		if (i > max_dtag) {
 		    cprintf("max_dtag = %d\n", max_dtag);
 		    max_dtag = i;
@@ -917,7 +917,7 @@ tag_alloc(const struct Label *l, int tag_type)
 	}
 
 	cprintf("Out of PC tags, flushing table..\n");
-#ifdef TAG_DEBUG
+#if TAG_DEBUG
 	periodic_pctag_show();
 #endif
 
