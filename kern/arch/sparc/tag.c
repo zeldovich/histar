@@ -9,6 +9,7 @@
 #include <kern/label.h>
 #include <kern/handle.h>
 #include <kern/prof.h>
+#include <kern/timer.h>
 #include <inc/error.h>
 
 extern const uint8_t stext[],   etext[];
@@ -34,6 +35,8 @@ static const struct Label *dtag_label_obj[1 << TAG_PC_BITS];
 static uint64_t pctag_label_id[1 << TAG_PC_BITS];
 static const struct Label *pctag_label_obj[1 << TAG_PC_BITS];
 
+static uint32_t pctag_dtag_count[1 << TAG_PC_BITS] __krw__;
+
 const struct Label dtag_label[DTAG_DYNAMIC];
 const struct Thread *cur_mon_thread;
 
@@ -51,6 +54,8 @@ const char* const cause_table[] = {
     [ET_CAUSE_EXEC]  = "Execute",
 };
 
+extern uint64_t nkobjects;
+
 void
 tag_set(const void *addr, uint32_t dtag, size_t n)
 {
@@ -61,7 +66,9 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 	return;
     }
 
+#ifdef TAG_DEBUG
     uint32_t start = karch_get_tsc();
+#endif
 
     uintptr_t ptr = (uintptr_t) addr;
     assert(!(ptr & 3));
@@ -88,7 +95,9 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 
     dtag_refcount[dtag] += n / 4;
 
+#ifdef TAG_DEBUG
     prof_tagstuff(1, karch_get_tsc() - start);
+#endif
 }
 
 uint32_t
@@ -100,6 +109,15 @@ tag_getperm(uint32_t pctag, uint32_t dtag)
 void
 tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t perm)
 {
+#ifdef TAG_DEBUG
+    if (dtag >= DTAG_DYNAMIC) {
+	if (perm && !tag_permtable[pctag][dtag])
+	    pctag_dtag_count[pctag]++;
+	if (!perm && tag_permtable[pctag][dtag])
+	    pctag_dtag_count[pctag]--;
+    }
+#endif
+
     tag_permtable[pctag][dtag] = perm;
     wrtperm(pctag, dtag, perm);
 }
@@ -224,7 +242,9 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
 static void __attribute__((noreturn))
 tag_moncall(struct Trapframe *tf)
 {
+#ifdef TAG_DEBUG
     uint32_t start = karch_get_tsc();
+#endif
     uint32_t callnum = tf->tf_regs.l0;
 
     if (!(tf->tf_psr & PSR_PS)) {
@@ -243,6 +263,14 @@ tag_moncall(struct Trapframe *tf)
     int put_retval = 0;
 
     switch (callnum) {
+    case MONCALL_FLUSHPERM: {
+	for (uint32_t i = PCTAG_DYNAMIC; i < (1 << TAG_PC_BITS); i++)
+	    for (uint32_t j = DTAG_DYNAMIC; j < (1 << TAG_DATA_BITS); j++)
+		if (tag_getperm(i, j))
+		    tag_setperm(i, j, 0);
+	break;
+    }
+
     case MONCALL_PCALL: {
 	assert(pcall_next < PCALL_DEPTH);
 
@@ -392,6 +420,7 @@ tag_moncall(struct Trapframe *tf)
 	    assert(0 == kobject_set_label(&ko->hdr, i, 0));
 	LIST_REMOVE(ko, ko_hash);
 	page_free(ko);
+	nkobjects--;
 	break;
     }
 
@@ -607,7 +636,9 @@ tag_moncall(struct Trapframe *tf)
     }
 
  out:
+#ifdef TAG_DEBUG
     prof_moncall(callnum, karch_get_tsc() - start);
+#endif
     tag_trap_return(tf);
 }
 
@@ -618,7 +649,9 @@ tag_moncall(struct Trapframe *tf)
 void
 tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 {
+#ifdef TAG_DEBUG
     uint32_t start = karch_get_tsc();
+#endif
 
     if (tag_trap_debug)
 	cprintf("tag trap...\n");
@@ -688,9 +721,39 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 
     if (tag_trap_debug)
 	cprintf("tag trap: returning..\n");
+#ifdef TAG_DEBUG
     prof_tagstuff(0, karch_get_tsc() - start);
+#endif
 
     tag_trap_return(tf);
+}
+
+#ifdef TAG_DEBUG
+static void
+periodic_pctag_show(void)
+{
+    cprintf("PC tag / dtag histogram:\n");
+    for (uint32_t i = PCTAG_DYNAMIC; i < (1 << TAG_PC_BITS); i++) {
+	if (pctag_dtag_count[i])
+	    cprintf("%d->%d ", i, pctag_dtag_count[i]);
+    }
+    cprintf("\n");
+
+    cprintf("%lld pages used, %lld kobjects\n",
+	    page_stats.pages_used, nkobjects);
+
+    monitor_call(MONCALL_FLUSHPERM);
+}
+#endif
+
+void
+tag_init_late(void)
+{
+#ifdef TAG_DEBUG
+    static struct periodic_task show_pt = {
+	.pt_fn = &periodic_pctag_show, .pt_interval_sec = 10 };
+    timer_add_periodic(&show_pt);
+#endif
 }
 
 void
@@ -781,11 +844,23 @@ tag_alloc(const struct Label *l, int tag_type)
 	if (hint < maxtag && dtag_label_id[hint] == l->lb_ko.ko_id)
 	    return hint;
 
+#ifdef TAG_DEBUG
+	static uint32_t max_dtag;
+#endif
+
 	if (!(read_tsr() & TSR_T)) {
 	    int r = monitor_call(MONCALL_DTAGALLOC, l);
 	    if (r < 0)
 		cprintf("tag_alloc: moncall_dtagalloc: %s (%d)\n", e2s(r), r);
 	    kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_dtag_hint = r;
+
+#ifdef TAG_DEBUG
+	    if (r >= 0 && ((uint32_t)r) > max_dtag) {
+		cprintf("max_dtag = %d\n", max_dtag);
+		max_dtag = r;
+	    }
+#endif
+
 	    return r;
 	}
 
@@ -806,6 +881,14 @@ tag_alloc(const struct Label *l, int tag_type)
 		kobject_pin_hdr(&l->lb_ko);
 
 		kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_dtag_hint = i;
+
+#ifdef TAG_DEBUG
+		if (i > max_dtag) {
+		    cprintf("max_dtag = %d\n", max_dtag);
+		    max_dtag = i;
+		}
+#endif
+
 		return i;
 	    }
 	}
@@ -834,6 +917,10 @@ tag_alloc(const struct Label *l, int tag_type)
 	}
 
 	cprintf("Out of PC tags, flushing table..\n");
+#ifdef TAG_DEBUG
+	periodic_pctag_show();
+#endif
+
 	uint32_t cur_pctag = read_pctag();
 	for (uint32_t i = PCTAG_DYNAMIC; i < maxtag; i++) {
 	    if (i == cur_pctag)

@@ -1,6 +1,8 @@
 #ifndef JOS_MACHINE_TAG_H
 #define JOS_MACHINE_TAG_H
 
+#define TAG_DEBUG	0
+
 #define TSR_PET		(1 << 26)	/* Previous Enable Traps (from PSR) */
 #define TSR_T		(1 << 25)	/* Trust */
 #define TSR_PT		(1 << 24)	/* Previous Trust */
@@ -77,7 +79,8 @@
 #define MONCALL_THREAD_START	11	/* Start a thread */
 #define MONCALL_KOBJ_FREE	12	/* Free a kobject */
 #define MONCALL_KOBJ_GC		13	/* GC an object */
-#define MONCALL_MAX		14
+#define MONCALL_FLUSHPERM	14	/* Flush permissions cache */
+#define MONCALL_MAX		15
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>
@@ -131,6 +134,7 @@ extern const struct Thread *cur_mon_thread;
 extern const char *moncall_names[MONCALL_MAX];
 
 void	 tag_init(void);
+void	 tag_init_late(void);
 
 void	 tag_trap_entry(void) __attribute__((noreturn));
 void	 tag_trap(struct Trapframe *tf, uint32_t err, uint32_t v)

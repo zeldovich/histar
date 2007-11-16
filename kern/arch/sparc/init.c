@@ -64,6 +64,7 @@ init (void)
     prof_init();
 
     user_init();
+    tag_init_late();
 
     cprintf("Kernel init done, disabling trusted mode.. ");
     write_tsr(0);
