@@ -239,6 +239,8 @@ kobject_alloc(uint8_t type, const struct Label *l, const struct Label *clear,
 	return monitor_call(MONCALL_KOBJ_ALLOC, type, l, clear, kp);
 }
 
+uint64_t nkobjects;
+
 int
 kobject_alloc_real(uint8_t type, const struct Label *l,
 		   const struct Label *clear,
@@ -319,6 +321,7 @@ kobject_alloc_real(uint8_t type, const struct Label *l,
     tag_set(&ko->ko_gc_link, DTAG_KRW,       sizeof(ko->ko_gc_link));
 
     *kp = ko;
+    nkobjects++;
     return 0;
 }
 
@@ -746,6 +749,7 @@ kobject_gc(struct kobject *ko)
 	    assert(0 == kobject_set_label(&ko->hdr, i, 0));
 	LIST_REMOVE(ko, ko_hash);
 	page_free(ko);
+	nkobjects--;
     } else {
 	monitor_call(MONCALL_KOBJ_FREE, ko);
     }
