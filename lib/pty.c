@@ -434,7 +434,9 @@ ptm_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	int *ptyno = va_arg(ap, int *);
 	*ptyno = fd->fd_pty.pty_no;
 	return 0;
-    } if (req == TIOCSPTLCK) {
+    }
+
+    if (req == TIOCSPTLCK) {
 	/* the pts associated with fd is always unlocked */
 	return 0;
     } 
