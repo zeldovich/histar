@@ -45,7 +45,7 @@ const struct Thread *cur_mon_thread;
 const char* moncall_names[] = {
     "zero", "pcall", "preturn", "tagset", "dtag alloc", "thread switch",
     "kobj alloc", "cat alloc", "set label", "set clear",
-    "gate enter", "thread start", "kobj free", "kobj gc",
+    "gate enter", "thread start", "kobj free", "kobj gc", "label compare",
 };
 
 const char* const cause_table[] = {
@@ -265,6 +265,20 @@ tag_moncall(struct Trapframe *tf)
     int put_retval = 0;
 
     switch (callnum) {
+    case MONCALL_LABEL_COMPARE: {
+	const struct Label *l1 = (const struct Label *) tf->tf_regs.i1;
+	const struct Label *l2 = (const struct Label *) tf->tf_regs.i2;
+	level_comparator cmp = (level_comparator) tf->tf_regs.i3;
+
+	tag_is_kobject(l1, kobj_label);
+	tag_is_kobject(l2, kobj_label);
+	assert(cmp == label_leq_starlo || cmp == label_leq_starhi || cmp == label_eq);
+
+	put_retval = 1;
+	retval = label_compare(l1, l2, cmp, 1);
+	break;
+    }
+
     case MONCALL_FLUSHPERM: {
 	for (uint32_t i = PCTAG_DYNAMIC; i < (1 << TAG_PC_BITS); i++)
 	    for (uint32_t j = DTAG_DYNAMIC; j < (1 << TAG_DATA_BITS); j++)

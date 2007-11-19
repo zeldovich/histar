@@ -2,9 +2,10 @@
 #include <kern/kobj.h>
 #include <kern/arch.h>
 #include <kern/lib.h>
-#include <machine/sparc-tag.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
+#include <machine/tag.h>
+#include <machine/sparc-tag.h>
 
 ////////////////////////////////
 // Level comparison functions
@@ -340,6 +341,9 @@ label_compare(const struct Label *l1, const struct Label *l2,
 {
     assert(l1);
     assert(l2);
+
+    if (cacheable && !(read_tsr() & TSR_T))
+	return monitor_call(MONCALL_LABEL_COMPARE, l1, l2, cmp);
 
     kobject_id_t lhs_id = l1->lb_ko.ko_id;
     kobject_id_t rhs_id = l2->lb_ko.ko_id;

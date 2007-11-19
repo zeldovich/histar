@@ -80,7 +80,8 @@
 #define MONCALL_KOBJ_FREE	12	/* Free a kobject */
 #define MONCALL_KOBJ_GC		13	/* GC an object */
 #define MONCALL_FLUSHPERM	14	/* Flush permissions cache */
-#define MONCALL_MAX		15
+#define MONCALL_LABEL_COMPARE	15	/* Compare labels & add to cache */
+#define MONCALL_MAX		16
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>
