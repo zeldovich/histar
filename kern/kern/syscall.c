@@ -110,7 +110,7 @@ sys_net_create(uint64_t container, uint64_t card_idx,
     check(alloc_ulabel(ul, &l, 0));
 
     struct kobject *ko;
-    check(kobject_alloc(kobj_netdev, l, &ko));
+    check(kobject_alloc(kobj_netdev, l, 0, &ko));
     check(alloc_set_name(&ko->hdr, name));
     ko->nd.nd_idx = card_idx;
 
@@ -447,9 +447,6 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
     const struct Label *g_label, *g_clear;
     check(alloc_ulabel(u_label, &g_label, &cur_th_label->lb_ko));
     check(alloc_ulabel(u_clear, &g_clear, &cur_th_clearance->lb_ko));
-    check(label_compare(cur_th_label, g_label, label_leq_starlo, 0));
-    check(label_compare(g_label, g_clear, label_leq_starlo, 0));
-    check(label_compare(g_clear, cur_th_clearance, label_leq_starlo, 0));
 
     const struct Label *g_guard = 0;
     if (u_guard)

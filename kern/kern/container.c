@@ -8,7 +8,7 @@ int
 container_alloc(const struct Label *l, struct Container **cp)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_container, l, &ko);
+    int r = kobject_alloc(kobj_container, l, 0, &ko);
     if (r < 0)
 	return r;
 

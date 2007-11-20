@@ -135,7 +135,7 @@ int
 label_alloc(struct Label **lp, uint8_t def)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_label, 0, &ko);
+    int r = kobject_alloc(kobj_label, 0, 0, &ko);
     if (r < 0)
 	return r;
 

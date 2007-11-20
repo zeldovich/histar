@@ -86,10 +86,12 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     kobject_id_t th_label_id = cur_thread->th_ko.ko_label[kolabel_contaminate];
     kobject_id_t th_clear_id = cur_thread->th_ko.ko_label[kolabel_clearance];
     kobject_id_t ko_label_id = ko->ko_label[kolabel_contaminate];
+    kobject_id_t ko_clear_id = ko->ko_label[kolabel_clearance];
 
     assert(th_label_id && th_clear_id);
     if (ko_label_id == 0) {
-	cprintf("Missing label on object %"PRIu64" (%s)\n", ko->ko_id, ko->ko_name);
+	cprintf("Missing label on object %"PRIu64" (%s)\n",
+		ko->ko_id, ko->ko_name);
 	return -E_LABEL;
     }
 
@@ -97,12 +99,15 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     if (SAFE_EQUAL(iflow, iflow_read)) {
 	r = label_compare_id(ko_label_id, th_label_id, label_leq_starhi);
     } else if (SAFE_EQUAL(iflow, iflow_rw)) {
-	r = (ko->ko_flags & KOBJ_READONLY) ? -E_LABEL :
+	r = (ko->ko_flags & KOBJ_READONLY) ? -E_READ_ONLY :
 	    label_compare_id(th_label_id, ko_label_id, label_leq_starlo) ? :
 	    label_compare_id(ko_label_id, th_label_id, label_leq_starhi);
     } else if (SAFE_EQUAL(iflow, iflow_alloc)) {
 	r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo) ? :
-	    label_compare_id(ko_label_id, th_clear_id, label_leq_starlo);
+	    ko_clear_id
+	    ? label_compare_id(ko_label_id, ko_clear_id, label_leq_starlo) ? :
+	      label_compare_id(ko_clear_id, th_clear_id, label_leq_starlo)
+	    : label_compare_id(ko_label_id, th_clear_id, label_leq_starlo);
     } else {
 	panic("kobject_get: unknown iflow type %d", SAFE_UNWRAP(iflow));
     }
@@ -233,10 +238,11 @@ kobject_set_label_prepared(struct kobject_hdr *kp, int idx,
 }
 
 int
-kobject_alloc(uint8_t type, const struct Label *l,
+kobject_alloc(uint8_t type, const struct Label *l, const struct Label *c,
 	      struct kobject **kp)
 {
-    assert(type == kobj_label || l != 0);
+    assert((type == kobj_label) ^ (l != 0));
+    assert((type == kobj_thread || type == kobj_gate) ^ (c == 0));
 
     void *p;
     int r = page_alloc(&p);
@@ -261,18 +267,17 @@ kobject_alloc(uint8_t type, const struct Label *l,
     kh->ko_quota_total = kh->ko_quota_used;
 
     r = kobject_set_label(kh, kolabel_contaminate, l);
-    if (r < 0) {
-	page_free(p);
-	return r;
-    }
+    if (r < 0)
+	goto err_page;
+
+    r = kobject_set_label(kh, kolabel_clearance, c);
+    if (r < 0)
+	goto err_label;
 
     // Make sure that it's legal to allocate object at this label!
-    r = l ? kobject_iflow_check(kh, iflow_alloc) : 0;
-    if (r < 0) {
-	kobject_set_label_prepared(kh, kolabel_contaminate, l, 0, 0);
-	page_free(p);
-	return r;
-    }
+    r = (type == kobj_label) ? 0 : kobject_iflow_check(kh, iflow_alloc);
+    if (r < 0)
+	goto err_clear;
 
     kobject_negative_remove(kh->ko_id);
     struct kobject_list *hash_head = HASH_SLOT(&ko_hash, kh->ko_id);
@@ -282,6 +287,14 @@ kobject_alloc(uint8_t type, const struct Label *l,
 
     *kp = ko;
     return 0;
+
+ err_clear:
+    kobject_set_label_prepared(kh, kolabel_clearance, c, 0, 0);
+ err_label:
+    kobject_set_label_prepared(kh, kolabel_contaminate, l, 0, 0);
+ err_page:
+    page_free(p);
+    return r;
 }
 
 int

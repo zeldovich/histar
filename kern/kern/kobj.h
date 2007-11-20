@@ -73,6 +73,7 @@ int  kobject_get(kobject_id_t id, const struct kobject **kpp,
 		 uint8_t type, info_flow_type iflow)
     __attribute__ ((warn_unused_result));
 int  kobject_alloc(uint8_t type, const struct Label *contaminate,
+		   const struct Label *clear,
 		   struct kobject **kpp)
     __attribute__ ((warn_unused_result));
 int  kobject_incore(kobject_id_t id)

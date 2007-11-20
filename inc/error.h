@@ -19,6 +19,7 @@ enum {
     E_VAR_QUOTA,	// object has a variable quota
     E_RESOURCE,		// container out of space
     E_BAD_TYPE,		// bad object type
+    E_READ_ONLY,	// read-only object
 
     // user-space errors
     E_RANGE,		// value out of range

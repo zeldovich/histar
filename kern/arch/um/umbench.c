@@ -75,12 +75,12 @@ um_bench(void)
     TEST_END("kobject GC scan");
 
     TEST_START {
-	assert(0 == kobject_alloc(kobj_label, 0, &ko));
+	assert(0 == kobject_alloc(kobj_label, 0, 0, &ko));
 	kobject_gc_scan();
     }
     TEST_END("kobject alloc/GC");
 
-    assert(0 == kobject_alloc(kobj_label, 0, &ko));
+    assert(0 == kobject_alloc(kobj_label, 0, 0, &ko));
     assert(0 == kobject_set_nbytes(&ko->hdr, 8 * PGSIZE));
     kobject_incref_resv(&ko->hdr, 0);
 
