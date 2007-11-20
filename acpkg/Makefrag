@@ -640,6 +640,8 @@ INCLUDE_BUILD_TAR_CMD := \
 
 $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
 	rm -f $(TOP)/$(OBJDIR)/user/.tmp.include.tar $@
+
+	rm -rf $(OBJDIR)/acpkg/.include-build
 	mkdir -p $(OBJDIR)/acpkg/.include-build
 	tar -C $(OBJDIR)/acpkg/.include-build -cf $(TOP)/$(OBJDIR)/user/.tmp.include.tar .
 
