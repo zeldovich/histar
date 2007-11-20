@@ -29,7 +29,7 @@ KERN_BINFILES	+= user/bash user/grep user/egrep user/uniq user/mv user/cat
 KERN_BINFILES	+= user/links user/od user/du user/head user/tail user/sync
 KERN_BINFILES	+= user/md5sum user/sha1sum user/mkdir user/stty user/printf
 KERN_BINFILES	+= user/vim user/echo user/dirname user/basename user/file
-KERN_BINFILES	+= user/sleep
+KERN_BINFILES	+= user/sleep user/env
 
 ## SSH
 KERN_BINFILES	+= user/ptyd user/sshd user/ssh.tar user/scp user/sshdi
