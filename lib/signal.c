@@ -394,6 +394,9 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
             /* Really we are supposed to stop all threads in the process
              * but that's tricky so we just stop this one and hope for the best
              */
+            /* Must notify parent of stop per signal specs */
+            thread_stopped_flag = 1;
+            kill(start_env->ppid, SIGCHLD);
             sys_sync_wait(&thread_stopped_flag, 1, UINT64(~0));
 	    return;
 
