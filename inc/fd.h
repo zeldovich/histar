@@ -131,7 +131,6 @@ struct Fd
 	    struct jcomm pty_jc;
 	    int pty_no;
 	    struct cobj_ref pty_slave_seg;
-	    struct pty_seg ptm_ps; /* only used by a pty master */
 	} fd_pty;
 
 	struct {

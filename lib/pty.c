@@ -119,8 +119,6 @@ ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 	return -1;
     }
     fd->fd_pty.pty_no = r;
-    fd->fd_pty.ptm_ps.ios.c_cc[VINTR] = 3; /* C-c */
-    fd->fd_pty.ptm_ps.ios.c_cc[VSUSP] = 26; /* C-z */
     
     /* For another thread to use the slave, it must have grant and taint.
      * Setting the extra handles should work for most UNIX processes,
@@ -246,7 +244,7 @@ pty_handle_nl(struct Fd *fd, char *buf, tcflag_t flags)
 }
 
 static ssize_t
-pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps, uint8_t from_master)
+pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
 {
     char bf[count * 2];
     const char *ch = ((const char *)buf);
@@ -254,21 +252,22 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps, uint
 	
     uint32_t i = 0;
     for (; i < count; i++) {
-        switch (ch[i]) {
-	case '\n':
-	    cc += pty_handle_nl(fd, &bf[cc], ps->ios.c_oflag);
-	    break;
-	default:
-            if (from_master && ps->ios.c_cc[VINTR] == ch[i]) {
+        if (fd->fd_dev_id == devpts.dev_id && ch[i] == '\n') {
+            cc += pty_handle_nl(fd, &bf[cc], ps->ios.c_oflag);
+            continue;
+        }
+        if (fd->fd_dev_id == devptm.dev_id) {
+            if (ps->ios.c_cc[VINTR] == ch[i]) {
                 killpg(ps->pgrp, SIGINT);
-            } else if (from_master && ps->ios.c_cc[VSUSP] == ch[i]) {
+                continue;
+            } else if (ps->ios.c_cc[VSUSP] == ch[i]) {
                 killpg(ps->pgrp, SIGTSTP);
-            } else {
-                bf[cc] = ch[i];
-                cc++;
+                continue;
             }
-	    break;
-	}
+        /* if master->slave but none above match just fall through */
+        }
+        bf[cc] = ch[i];
+        cc++;
     }
     
     int r = jcomm_write(PTY_JCOMM(fd), bf, cc, 1);
@@ -303,7 +302,7 @@ ptm_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 	return -1;
     }
     
-    r = pty_write(fd, buf, count, ps, 1);
+    r = pty_write(fd, buf, count, ps);
     segment_unmap_delayed(ps, 1);
     return r;
 }
@@ -319,7 +318,7 @@ pts_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 	return -1;
     }
     
-    r = pty_write(fd, buf, count, ps, 0);
+    r = pty_write(fd, buf, count, ps);
     segment_unmap_delayed(ps, 1);
     return r;
 }
@@ -450,6 +449,14 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap, struct pty_seg *ps)
 static int
 ptm_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 {
+    struct pty_seg *ps = 0;
+    int r = segment_map(PTY_SLAVE(fd), 0, SEGMAP_READ | SEGMAP_WRITE,
+			(void **)&ps, 0, 0);
+    if (r < 0) {
+	cprintf("pts_ioctl: unable to map pty_seg: %s\n", e2s(r));
+	return -1;
+    }
+
     if (req == TIOCGPTN) {
 	int *ptyno = va_arg(ap, int *);
 	*ptyno = fd->fd_pty.pty_no;
@@ -460,8 +467,10 @@ ptm_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	/* the pts associated with fd is always unlocked */
 	return 0;
     } 
-
-    return pty_ioctl(fd, req, ap, &fd->fd_pty.ptm_ps);
+    
+    r = pty_ioctl(fd, req, ap, ps);
+    segment_unmap_delayed(ps, 1);
+    return r;
 }
 
 static int
