@@ -85,6 +85,9 @@ typedef struct {
     char trace_on;
     int ruid, euid;
 
+    /* Controlling TTY (-1 if none) */
+    int ctty;
+
     int argc;
     int envc;
     char args[];

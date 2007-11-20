@@ -71,6 +71,9 @@ static siginfo_t signal_queued_si[_NSIG];
 // Avoid growing stack in signal handler, for vmlinux
 int signal_grow_stack;
 
+// sync_wait/wakeup on this value to implement SIGSTOP/CONT
+uint64_t thread_stopped_flag;
+
 libc_hidden_proto(sigprocmask)
 libc_hidden_proto(sigsuspend)
 libc_hidden_proto(sigwaitinfo)
@@ -387,9 +390,21 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
 
 	case SIGSTOP: case SIGTSTP: case SIGTTIN: case SIGTTOU:
 	    cprintf("%s: should stop process: %d\n", jos_progname, si->si_signo);
+            /* Wait for SIGCONT to reset flag and wake us up */
+            /* Really we are supposed to stop all threads in the process
+             * but that's tricky so we just stop this one and hope for the best
+             */
+            sys_sync_wait(&thread_stopped_flag, 1, UINT64(~0));
 	    return;
 
-	case SIGURG:  case SIGCONT: case SIGCHLD: case SIGWINCH:
+        case SIGCONT:
+	    cprintf("%s: should wakeup process: %d\n", jos_progname, si->si_signo);
+            /* Wake up stopped process */
+            thread_stopped_flag = 0;
+            sys_sync_wakeup(&thread_stopped_flag);
+            return;
+
+	case SIGURG:  case SIGCHLD: case SIGWINCH:
 	case SIGINFO:
 	    return;
 
@@ -873,31 +888,40 @@ kill_siginfo(pid_t pid, siginfo_t *si)
 	}
 
 	int sendcount = 0;
-	for (int64_t slot = 0; slot < procslots; slot++) {
-	    int64_t procpid = sys_container_get_slot_id(start_env->process_pool,
-							slot);
-	    if (procpid < 0)
-		continue;
+        /* TODO: for loop here to scan start_env->process_pool and 
+           process pool of pid given (negative of it since it's a pgrp id */
+        uint64_t procpool[2] = {start_env->process_pool,
+                                sys_container_get_parent(-pid)};
+        for (uint64_t pi = 0; pi < 2; pi++) {
+            /* If the first pool and the second are the same only check one */
+            if (pi && procpool[0] == procpool[1])
+                continue;
+            for (int64_t slot = 0; slot < procslots; slot++) {
+                int64_t procpid = sys_container_get_slot_id(procpool[pi],
+                                                            slot);
+                if (procpid < 0)
+                    continue;
 
-	    int send = 0;
-	    if (pid == -1) {
-		send = 1;
-	    } else {
-		pid_t pgid = __getpgid(procpid);
-		if (pgid == -pid)
-		    send = 1;
-	    }
+                int send = 0;
+                if (pid == -1) {
+                    send = 1;
+                } else {
+                    pid_t pgid = __getpgid(procpid);
+                    if (pgid == -pid)
+                        send = 1;
+                }
 
-	    if (send) {
-		kill_siginfo(procpid, si);
-		sendcount++;
-	    }
-	}
+                if (send) {
+                    kill_siginfo(procpid, si);
+                    sendcount++;
+                }
+            }
+        }
 
-	if (sendcount == 0) {
-	    __set_errno(ESRCH);
-	    return -1;
-	}
+        if (sendcount == 0) {
+            __set_errno(ESRCH);
+            return -1;
+        }
 
 	return 0;
     }

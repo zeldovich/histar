@@ -119,6 +119,8 @@ ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 	return -1;
     }
     fd->fd_pty.pty_no = r;
+    fd->fd_pty.ptm_ps.ios.c_cc[VINTR] = 3; /* C-c */
+    fd->fd_pty.ptm_ps.ios.c_cc[VSUSP] = 26; /* C-z */
     
     /* For another thread to use the slave, it must have grant and taint.
      * Setting the extra handles should work for most UNIX processes,
@@ -257,12 +259,10 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps, uint
 	    cc += pty_handle_nl(fd, &bf[cc], ps->ios.c_oflag);
 	    break;
 	default:
-            if (!from_master && ps->ios.c_cc[VINTR] == ch[i]) {
-                cprintf("pty_write: kill SIGINT pgrp: %"PRIx64"\n", ps->pgrp);
-                kill(-ps->pgrp, SIGINT);
-            } else if (!from_master && ps->ios.c_cc[VSUSP] == ch[i]) {
-                cprintf("pty_write: kill SIGSUSP pgrp: %"PRIx64"\n", ps->pgrp);
-                kill(-ps->pgrp, SIGTSTP);
+            if (from_master && ps->ios.c_cc[VINTR] == ch[i]) {
+                killpg(ps->pgrp, SIGINT);
+            } else if (from_master && ps->ios.c_cc[VSUSP] == ch[i]) {
+                killpg(ps->pgrp, SIGTSTP);
             } else {
                 bf[cc] = ch[i];
                 cc++;
@@ -295,7 +295,17 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps, uint
 static ssize_t
 ptm_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
-    return pty_write(fd, buf, count, &fd->fd_pty.ptm_ps, 1);
+    struct pty_seg *ps = 0;
+    int r = segment_map(PTY_SLAVE(fd), 0, SEGMAP_READ | SEGMAP_WRITE,
+			(void **)&ps, 0, 0);
+    if (r < 0) {
+	cprintf("pts_write: unable to map pty_seg: %s\n", e2s(r));
+	return -1;
+    }
+    
+    r = pty_write(fd, buf, count, ps, 1);
+    segment_unmap_delayed(ps, 1);
+    return r;
 }
 
 static ssize_t
@@ -410,7 +420,14 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap, struct pty_seg *ps)
     }
 
     case TIOCSCTTY:
-	ps->pgrp = getpgrp();
+        /* Set processes controlling tty as this pty and update pgrp */
+        ps->pgrp = getpgrp();
+        start_env->ctty = fd->fd_pty.pty_no;
+	return 0;
+
+    case TIOCNOTTY:
+        /* Disassociate this pty from its controlling tty */
+        start_env->ctty = -1;
 	return 0;
 
     case TIOCSWINSZ:
@@ -462,6 +479,27 @@ pts_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     segment_unmap_delayed(ps, 1);
     return r;
 }
+
+static int
+tty_open(struct fs_inode ino, int flags, uint32_t dev_opt)
+{
+    if (start_env->ctty < 0) {
+        /* If no ctty was specified then just return the console this probably
+           isn't correct, we should probably have init set the console as its
+           childrens' controlling tty and return error if it wasn't set at all,
+           but it seems like this should work in general as long as the console
+           doesn't go away. */
+        return opencons();
+    }
+    /* ino and flags seem to be ignored by pts_open anyway */
+    return pts_open(ino, flags, start_env->ctty);
+}
+
+struct Dev devtty = {
+    .dev_id = 'w',
+    .dev_name = "tty",
+    .dev_open = tty_open,
+};
 
 struct Dev devptm = {
     .dev_id = 'x',

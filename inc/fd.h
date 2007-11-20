@@ -198,6 +198,7 @@ extern struct Dev devbipipe;	/* type 'b' */
 extern struct Dev devrand;	/* type 'r' */
 extern struct Dev devzero;	/* type 'z' */
 extern struct Dev devnull;	/* type 'n' */
+extern struct Dev devtty;       /* type 'w' */
 extern struct Dev devptm;	/* type 'x' */
 extern struct Dev devpts;	/* type 'y' */
 extern struct Dev devuds;	/* type 'u' */
