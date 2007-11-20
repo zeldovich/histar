@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <inttypes.h>
+#include <signal.h>
 
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -243,7 +244,7 @@ pty_handle_nl(struct Fd *fd, char *buf, tcflag_t flags)
 }
 
 static ssize_t
-pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
+pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps, uint8_t from_master)
 {
     char bf[count * 2];
     const char *ch = ((const char *)buf);
@@ -256,14 +257,16 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
 	    cc += pty_handle_nl(fd, &bf[cc], ps->ios.c_oflag);
 	    break;
 	default:
-	    /*
-	      if (fd->fd_pt.is_master && otermios->c_cc[VINTR] == ch[i])
-	          kill(oios->pgrp, SIGINT);
-	      else
-	    */
-
-	    bf[cc] = ch[i];
-	    cc++;
+            if (!from_master && ps->ios.c_cc[VINTR] == ch[i]) {
+                cprintf("pty_write: kill SIGINT pgrp: %"PRIx64"\n", ps->pgrp);
+                kill(-ps->pgrp, SIGINT);
+            } else if (!from_master && ps->ios.c_cc[VSUSP] == ch[i]) {
+                cprintf("pty_write: kill SIGSUSP pgrp: %"PRIx64"\n", ps->pgrp);
+                kill(-ps->pgrp, SIGTSTP);
+            } else {
+                bf[cc] = ch[i];
+                cc++;
+            }
 	    break;
 	}
     }
@@ -292,7 +295,7 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
 static ssize_t
 ptm_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
-    return pty_write(fd, buf, count, &fd->fd_pty.ptm_ps);
+    return pty_write(fd, buf, count, &fd->fd_pty.ptm_ps, 1);
 }
 
 static ssize_t
@@ -306,7 +309,7 @@ pts_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 	return -1;
     }
     
-    r = pty_write(fd, buf, count, ps);
+    r = pty_write(fd, buf, count, ps, 0);
     segment_unmap_delayed(ps, 1);
     return r;
 }
