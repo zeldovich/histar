@@ -113,12 +113,12 @@ thread_halt(const struct Thread *const_t)
 }
 
 int
-thread_alloc(const struct Label *contaminate,
+thread_alloc(const struct Label *tracking,
 	     const struct Label *clearance,
 	     struct Thread **tp)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_thread, contaminate, clearance, &ko);
+    int r = kobject_alloc(kobj_thread, tracking, clearance, &ko);
     if (r < 0)
 	return r;
 
@@ -128,7 +128,7 @@ thread_alloc(const struct Label *contaminate,
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
 
     struct Segment *sg;
-    r = segment_alloc(contaminate, &sg);
+    r = segment_alloc(tracking, &sg);
     if (r < 0)
 	return r;
 
@@ -355,11 +355,11 @@ thread_change_label(const struct Thread *const_t,
 
     // Prepare labels for all of the objects
     const struct Label *cur_th_label, *cur_sg_label;
-    r = kobject_get_label(&t->th_ko, kolabel_contaminate, &cur_th_label);
+    r = kobject_get_label(&t->th_ko, kolabel_tracking, &cur_th_label);
     if (r < 0)
 	return r;
 
-    r = kobject_get_label(&ko_sg->hdr, kolabel_contaminate, &cur_sg_label);
+    r = kobject_get_label(&ko_sg->hdr, kolabel_tracking, &cur_sg_label);
     if (r < 0)
 	return r;
 
@@ -397,9 +397,9 @@ thread_change_label(const struct Thread *const_t,
     kobject_decref(&ko_sg->hdr,	&t->th_ko);
     kobject_incref_resv(&sg_new->sg_ko, &qr_th);
 
-    kobject_set_label_prepared(&t->th_ko, kolabel_contaminate,
+    kobject_set_label_prepared(&t->th_ko, kolabel_tracking,
 			       cur_th_label, new_label, &qr_th);
-    kobject_set_label_prepared(&sg_new->sg_ko, kolabel_contaminate,
+    kobject_set_label_prepared(&sg_new->sg_ko, kolabel_tracking,
 			       cur_sg_label, new_label, &qr_sg);
 
     thread_check_sched_parents(t);

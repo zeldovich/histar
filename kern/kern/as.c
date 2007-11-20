@@ -520,7 +520,7 @@ as_pagefault(const struct Address_space *as, void *va, uint32_t reqflags)
 	    return r;
 
 	mas->as_pgmap_tls_id = cur_thread->th_sg;
-	mas->as_pgmap_label_id = cur_thread->th_ko.ko_label[kolabel_contaminate];
+	mas->as_pgmap_label_id = cur_thread->th_ko.ko_label[kolabel_tracking];
     }
 
     if (as_debug)
@@ -586,7 +586,7 @@ as_switch(const struct Address_space *as)
     // In case we have thread-specific kobjects cached here..
     if (as && cur_thread) {
 	kobject_id_t cur_tls = cur_thread->th_sg;
-	kobject_id_t cur_lbl = cur_thread->th_ko.ko_label[kolabel_contaminate];
+	kobject_id_t cur_lbl = cur_thread->th_ko.ko_label[kolabel_tracking];
 	as_switch_invalidate(as,
 			     as->as_pgmap_tls_id != cur_tls,
 			     as->as_pgmap_label_id != cur_lbl);

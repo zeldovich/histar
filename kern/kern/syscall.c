@@ -56,7 +56,7 @@ alloc_ulabel(struct ulabel *ul, const struct Label **lp,
 	if (inherit_from->ko_type == kobj_label)
 	    *lp = &kobject_ch2ck(inherit_from)->lb;
 	else
-	    check(kobject_get_label(inherit_from, kolabel_contaminate, lp));
+	    check(kobject_get_label(inherit_from, kolabel_tracking, lp));
 
 	if (!*lp)
 	    return -E_INVAL;
@@ -289,7 +289,7 @@ sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
 	check(cobj_get(cobj, kobj_any, &ko, iflow_read));
 
     const struct Label *l;
-    check(kobject_get_label(&ko->hdr, kolabel_contaminate, &l));
+    check(kobject_get_label(&ko->hdr, kolabel_tracking, &l));
     check(label_to_ulabel(l, ul));
     return 0;
 }
@@ -522,9 +522,9 @@ sys_gate_enter(struct cobj_ref gt,
     const struct Gate *g = &ko->gt;
 
     const struct Label *gt_label, *gt_clear, *gt_verify;
-    check(kobject_get_label(&g->gt_ko, kolabel_contaminate, &gt_label));
+    check(kobject_get_label(&g->gt_ko, kolabel_tracking, &gt_label));
     check(kobject_get_label(&g->gt_ko, kolabel_clearance, &gt_clear));
-    check(kobject_get_label(&g->gt_ko, kolabel_verify_contaminate, &gt_verify));
+    check(kobject_get_label(&g->gt_ko, kolabel_verify_tracking, &gt_verify));
 
     if (gt_verify)
 	check(label_compare(cur_th_label, gt_verify, label_leq_starlo, 0));
@@ -547,9 +547,9 @@ sys_gate_enter(struct cobj_ref gt,
     if (!ute) {
 	const struct Label *vl, *vc;
 	check(kobject_get_label(&cur_thread->th_ko,
-				kolabel_verify_contaminate, &vl));
+				kolabel_verify_tracking, &vl));
 	check(kobject_get_label(&cur_thread->th_ko,
-				kolabel_verify_clearance,   &vc));
+				kolabel_verify_clearance, &vc));
 	if (vl)
 	    check(label_compare(cur_th_label, vl, label_leq_starlo, 0));
 	if (vc)
@@ -608,7 +608,7 @@ sys_thread_trap(struct cobj_ref thread, struct cobj_ref asref,
     check(cobj_get(asref, kobj_address_space, &as, iflow_rw));
 
     const struct Label *th_label;
-    check(kobject_get_label(&th->hdr, kolabel_contaminate, &th_label));
+    check(kobject_get_label(&th->hdr, kolabel_tracking, &th_label));
 
     struct Label *lmax;
     check(label_max(th_label, cur_th_label, &lmax, label_leq_starhi));
@@ -710,8 +710,8 @@ sys_self_set_verify(struct ulabel *uvl, struct ulabel *uvc)
 
     const struct Label *ovl, *ovc;
     struct kobject_hdr *tko = &kobject_dirty(&cur_thread->th_ko)->hdr;
-    check(kobject_get_label(tko, kolabel_verify_contaminate, &ovl));
-    check(kobject_get_label(tko, kolabel_verify_clearance,   &ovc));
+    check(kobject_get_label(tko, kolabel_verify_tracking,  &ovl));
+    check(kobject_get_label(tko, kolabel_verify_clearance, &ovc));
 
     struct kobject_quota_resv qr;
     kobject_qres_init(&qr, tko);
@@ -723,8 +723,8 @@ sys_self_set_verify(struct ulabel *uvl, struct ulabel *uvc)
 	return r;
     }
 
-    kobject_set_label_prepared(tko, kolabel_verify_contaminate, ovl, vl, &qr);
-    kobject_set_label_prepared(tko, kolabel_verify_clearance,   ovc, vc, &qr);
+    kobject_set_label_prepared(tko, kolabel_verify_tracking,  ovl, vl, &qr);
+    kobject_set_label_prepared(tko, kolabel_verify_clearance, ovc, vc, &qr);
     return 0;
 }
 
@@ -732,8 +732,8 @@ static int64_t __attribute__ ((warn_unused_result))
 sys_self_get_verify(struct ulabel *uvl, struct ulabel *uvc)
 {
     const struct Label *vl, *vc;
-    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify_contaminate, &vl));
-    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify_clearance,   &vc));
+    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify_tracking,  &vl));
+    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify_clearance, &vc));
     if (!vl)
 	check(label_alloc((struct Label **) &vl, 3));
     if (!vc)
@@ -1004,7 +1004,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
     void __attribute__((unused)) *p6 = (void *) (uintptr_t) a6;
     void __attribute__((unused)) *p7 = (void *) (uintptr_t) a7;
 
-    check(kobject_get_label(&cur_thread->th_ko, kolabel_contaminate,
+    check(kobject_get_label(&cur_thread->th_ko, kolabel_tracking,
 			    &cur_th_label));
     check(kobject_get_label(&cur_thread->th_ko, kolabel_clearance,
 			    &cur_th_clearance));

@@ -83,9 +83,9 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     if (cur_thread == 0)
 	return 0;
 
-    kobject_id_t th_label_id = cur_thread->th_ko.ko_label[kolabel_contaminate];
+    kobject_id_t th_label_id = cur_thread->th_ko.ko_label[kolabel_tracking];
     kobject_id_t th_clear_id = cur_thread->th_ko.ko_label[kolabel_clearance];
-    kobject_id_t ko_label_id = ko->ko_label[kolabel_contaminate];
+    kobject_id_t ko_label_id = ko->ko_label[kolabel_tracking];
     kobject_id_t ko_clear_id = ko->ko_label[kolabel_clearance];
 
     assert(th_label_id && th_clear_id);
@@ -266,7 +266,7 @@ kobject_alloc(uint8_t type, const struct Label *l, const struct Label *c,
     kh->ko_quota_used = KOBJ_DISK_SIZE;
     kh->ko_quota_total = kh->ko_quota_used;
 
-    r = kobject_set_label(kh, kolabel_contaminate, l);
+    r = kobject_set_label(kh, kolabel_tracking, l);
     if (r < 0)
 	goto err_page;
 
@@ -291,7 +291,7 @@ kobject_alloc(uint8_t type, const struct Label *l, const struct Label *c,
  err_clear:
     kobject_set_label_prepared(kh, kolabel_clearance, c, 0, 0);
  err_label:
-    kobject_set_label_prepared(kh, kolabel_contaminate, l, 0, 0);
+    kobject_set_label_prepared(kh, kolabel_tracking, l, 0, 0);
  err_page:
     page_free(p);
     return r;

@@ -13,7 +13,7 @@ gate_alloc(const struct Label *l,
     if (r < 0)
 	return r;
 
-    r = kobject_set_label(&ko->hdr, kolabel_verify_contaminate, verify);
+    r = kobject_set_label(&ko->hdr, kolabel_verify_tracking, verify);
     if (r < 0)
 	return r;
 

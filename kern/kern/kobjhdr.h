@@ -7,9 +7,9 @@
 #include <inc/safetype.h>
 
 enum {
-    kolabel_contaminate,
+    kolabel_tracking,
     kolabel_clearance,
-    kolabel_verify_contaminate,
+    kolabel_verify_tracking,
     kolabel_verify_clearance,
     kolabel_max
 };
