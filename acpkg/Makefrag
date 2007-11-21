@@ -93,6 +93,7 @@ DISTURL_fbida-2.06	    := http://dl.bytesex.org/releases/fbida/fbida-2.06.tar.gz
 DISTURL_libexif-0.6.16	    := http://easynews.dl.sourceforge.net/sourceforge/libexif/libexif-0.6.16.tar.gz
 DISTURL_jpeg-6b		    := http://www.ijg.org/files/jpegsrc.v6b.tar.gz
 DISTURL_freetype-2.3.5	    := http://download.savannah.gnu.org/releases/freetype/freetype-2.3.5.tar.gz
+DISTURL_fontconfig-2.5.0    := http://fontconfig.org/release/fontconfig-2.5.0.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -114,6 +115,7 @@ AUTOCONF_apr-1.2.8	    := --disable-dso --disable-shared
 AUTOCONF_python-svn	    := --enable-shared
 AUTOCONF_mutt-1.4.2.3	    := --with-ssl --enable-imap --disable-nls
 AUTOCONF_file-4.21	    := --enable-shared=$(SHARED_ENABLE)
+AUTOCONF_fontconfig-2.5.0   := --with-arch=$(TARGET)
 
 ##
 ## Patches to apply to various packages
