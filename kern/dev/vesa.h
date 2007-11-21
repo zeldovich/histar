@@ -1,6 +1,8 @@
 #ifndef JOS_DEV_VESA_H
 #define JOS_DEV_VESA_H
 
+#define VBE_MODE_FLAT_FB	(1 << 14)
+
 enum {
     vbe_red,
     vbe_green,
@@ -9,18 +11,23 @@ enum {
     vbe_rgb_max
 };
 
+typedef struct {
+    uint16_t seg;
+    uint16_t off;
+} vbe_fptr;
+
 struct vbe_control_info {
     char     sig[4];		/* 'V' 'E' 'S' 'A' */
     uint16_t ver;		/* version# */
-    uint32_t oem_string_addr;	/* OEM string */
+    vbe_fptr oem_string_addr;	/* OEM string */
     uint32_t cap;		/* capabilities */
-    uint32_t modeaddr;		/* video mode pointer */
+    vbe_fptr modeaddr;		/* video mode pointer */
     uint16_t memsize;		/* 64k memory blocks */
 
     uint16_t oem_rev;		/* OEM software rev */
-    uint32_t oem_vendor_addr;	/* vendor name */
-    uint32_t oem_product_addr;	/* product name */
-    uint32_t oem_prev_addr;	/* product rev string */
+    vbe_fptr oem_vendor_addr;	/* vendor name */
+    vbe_fptr oem_product_addr;	/* product name */
+    vbe_fptr oem_prev_addr;	/* product rev string */
 
     uint8_t  vbe_pad[222];
     uint8_t  oem_pad[256];

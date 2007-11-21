@@ -3,6 +3,8 @@
 #include <dev/vesa.h>
 #include <boot/code16gcc.h>
 
+enum { enable_vesa = 0 };
+
 extern struct sysx_info sysx_info;
 
 /*
@@ -56,6 +58,9 @@ detect_memory_e801(void)
 static void
 set_video(void)
 {
+    if (!enable_vesa)
+	return;
+
     uint16_t ax, bx, cx, di;
 
     /* Save our %es which points to video memory */
@@ -78,9 +83,8 @@ set_video(void)
     di = (uint16_t) &vbe_control_info;
     __asm volatile("int $0x10; cli"
 		   : "+a" (ax) : "D" (di) : "memory");
-
-    if (ax == 0x4f)
-	sysx_info.vbe_control_info = (es << 4) + (uint16_t) &vbe_control_info;
+    if (ax != 0x4f)
+	return;
 
     /* Get VBE mode info */
     extern struct vbe_mode_info vbe_mode_info;
@@ -91,17 +95,19 @@ set_video(void)
     di = (uint16_t) &vbe_mode_info;
     __asm volatile("int $0x10; cli"
 		   : "+a" (ax) : "c" (cx), "D" (di) : "memory");
-
-    if (ax == 0x4f)
-	sysx_info.vbe_mode_info = (es << 4) + (uint16_t) &vbe_mode_info;
+    if (ax != 0x4f)
+	return;
 
     /* Switch to VBE mode */
     ax = 0x4f02;
-    bx = vbe_mode | (1 << 14);
-    //__asm volatile("int $0x10; cli" : "+a" (ax) : "b" (bx) : "memory");
+    bx = vbe_mode | VBE_MODE_FLAT_FB;
+    __asm volatile("int $0x10; cli" : "+a" (ax) : "b" (bx) : "memory");
+    if (ax != 0x4f)
+	return;
 
-    if (ax == 0x4f)
-	sysx_info.vbe_mode = vbe_mode;
+    sysx_info.vbe_control_info = (es << 4) + (uint16_t) &vbe_control_info;
+    sysx_info.vbe_mode_info = (es << 4) + (uint16_t) &vbe_mode_info;
+    sysx_info.vbe_mode = vbe_mode;
 
     /* Restore the %es which points to video memory */
     __asm volatile("movw %%ax, %%es" : : "a" (save_es));
