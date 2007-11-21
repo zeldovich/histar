@@ -20,21 +20,23 @@ try
     printf("yres = %d\n", fb_mode.yres);
     printf("bpp  = %d\n", fb_mode.bpp);
 
+    uint8_t pixelbytes = fb_mode.bpp / 8;
+
     for (uint32_t i = 0; i < 1000000; i++) {
-	uint8_t buf[3];
+	uint8_t buf[pixelbytes];
 
-	buf[0] = random();
-	buf[1] = random();
-	buf[2] = random();
+	for (uint32_t j = 0; j < pixelbytes; j++)
+	    buf[j] = random();
 
-	uint32_t x0 = random() % (fb_mode.xres - 3);
-	uint32_t y0 = random() % (fb_mode.yres - 3);
-	uint32_t xd = random() % MIN(256, fb_mode.xres - 3 - x0);
-	uint32_t yd = random() % MIN(256, fb_mode.yres - 3 - y0);
+	uint32_t x0 = random() % fb_mode.xres;
+	uint32_t y0 = random() % fb_mode.yres;
+	uint32_t xd = random() % MIN(256, fb_mode.xres - x0);
+	uint32_t yd = random() % MIN(256, fb_mode.yres - y0);
 
 	for (uint32_t x = x0; x < x0 + xd; x++)
 	    for (uint32_t y = y0; y < y0 + yd; y++)
-		error_check(sys_fb_set(3 * (y * fb_mode.xres + x), 3, buf));
+		error_check(sys_fb_set(pixelbytes * (y * fb_mode.xres + x),
+				       pixelbytes, buf));
     }
 } catch (std::exception &e) {
     printf("Caught exception: %s\n", e.what());
