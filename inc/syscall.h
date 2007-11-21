@@ -9,6 +9,7 @@
 #include <inc/kobj.h>
 #include <inc/label.h>
 #include <inc/netdev.h>
+#include <inc/fb.h>
 
 uint64_t syscall(uint32_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 		 uint64_t a4, uint64_t a5, uint64_t a6, uint64_t a7);
@@ -16,6 +17,9 @@ uint64_t syscall(uint32_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 int	sys_cons_puts(const char *s, uint64_t size);
 int	sys_cons_getc(void);
 int	sys_cons_probe(void);
+
+int	sys_fb_get_mode(struct jos_fb_mode *buf);
+int	sys_fb_set(uint64_t off, uint64_t nbytes, uint8_t *buf);
 
 int64_t sys_net_create(uint64_t container, uint64_t card_idx,
 		       const struct ulabel *l, const char *name);

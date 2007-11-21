@@ -23,6 +23,18 @@ sys_cons_probe(void)
     return syscall(SYS_cons_probe, 0, 0, 0, 0, 0, 0, 0);
 }
 
+int
+sys_fb_get_mode(struct jos_fb_mode *buf)
+{
+    return syscall(SYS_fb_get_mode, SPTR(buf), 0, 0, 0, 0, 0, 0);
+}
+
+int
+sys_fb_set(uint64_t off, uint64_t nbytes, uint8_t *buf)
+{
+    return syscall(SYS_fb_set, off, nbytes, SPTR(buf), 0, 0, 0, 0);
+}
+
 int64_t
 sys_net_create(uint64_t container, uint64_t card_idx,
 	       const struct ulabel *l, const char *name)

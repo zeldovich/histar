@@ -17,6 +17,7 @@
 #include <kern/pstate.h>
 #include <kern/arch.h>
 #include <kern/thread.h>
+#include <kern/fb.h>
 #include <inc/error.h>
 #include <inc/thread.h>
 #include <inc/netdev.h>
@@ -94,6 +95,27 @@ static int64_t __attribute__ ((warn_unused_result))
 sys_cons_probe(void)
 {
     return cons_probe();
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_fb_get_mode(struct jos_fb_mode *buf)
+{
+    if (!the_fb_dev)
+	return -E_NOT_FOUND;
+
+    check(check_user_access(buf, sizeof(*buf), SEGMAP_WRITE));
+    memcpy(buf, &the_fb_dev->fb_mode, sizeof(*buf));
+    return 0;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_fb_set(uint64_t off, uint64_t nbytes, uint8_t *buf)
+{
+    if (!the_fb_dev)
+	return -E_NOT_FOUND;
+
+    check(check_user_access(buf, nbytes, 0));
+    return the_fb_dev->fb_set(the_fb_dev->fb_arg, off, nbytes, buf);
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1011,6 +1033,8 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 
     switch (num) {
 	SYSCALL(cons_puts, p1, a2);
+	SYSCALL(fb_get_mode, p1);
+	SYSCALL(fb_set, a1, a2, p3);
 	SYSCALL(net_macaddr, COBJ(a1, a2), p3);
 	SYSCALL(net_buf, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
 	SYSCALL(machine_reboot);

@@ -12,6 +12,7 @@
 #include <dev/kclock.h>
 #include <dev/apic.h>
 #include <dev/acpi.h>
+#include <dev/vesafb.h>
 #include <kern/sched.h>
 #include <kern/lib.h>
 #include <kern/timer.h>
@@ -89,6 +90,11 @@ init (uint32_t start_eax, uint32_t start_ebx)
 	char *cmdline = pa2kva(sxi->cmdline);
 	strncpy(&boot_cmdline[0], cmdline, sizeof(boot_cmdline) - 1);
 	upper_kb = sxi->extmem_kb;
+
+	if (sxi->vbe_mode)
+	    vesafb_init(pa2kva(sxi->vbe_control_info),
+			pa2kva(sxi->vbe_mode_info),
+			sxi->vbe_mode);
     }
 
     // Our boot sector passes in the upper memory size this way

@@ -9,6 +9,9 @@
 struct sysx_info {
     uint32_t extmem_kb;
     uint32_t cmdline;
+    uint32_t vbe_control_info;
+    uint32_t vbe_mode_info;
+    uint32_t vbe_mode;
 } __attribute__ ((packed));
 
 #endif
