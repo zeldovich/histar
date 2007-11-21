@@ -31,7 +31,7 @@
 #
 
 # Must be a multiple of 512 and fit bbootsect and bsetup
-ELFOFF := 1024
+ELFOFF := 4096
 
 OBJDIRS += boot
 
@@ -41,11 +41,11 @@ SETUP_OBJS := $(OBJDIR)/boot/setup.o $(OBJDIR)/boot/csetup.o
 BOOT_CFLAGS := -m32 -DCODE32 -g -Os -MD -Wall -Werror -DJOS_KARCH_$(K_ARCH) \
 	       -DELFOFF=$(ELFOFF)
 
-$(OBJDIR)/boot/%.o: boot/%.S
+$(OBJDIR)/boot/%.o: boot/%.S boot/Makefrag
 	@mkdir -p $(@D)
 	$(CC) $(BOOT_CFLAGS) $(INCLUDES) -c -o $@ $<
 
-$(OBJDIR)/boot/%.o: boot/%.c
+$(OBJDIR)/boot/%.o: boot/%.c boot/Makefrag
 	$(CC) $(BOOT_CFLAGS) $(INCLUDES) $(CSTD) -c -o $@ $<
 
 $(OBJDIR)/boot/bbootsect: $(BBS_OBJS)
