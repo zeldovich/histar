@@ -64,3 +64,90 @@
  #include "fbtools.h"
  
  /* -------------------------------------------------------------------- */
+--- fbida-2.06/fb-gui.c	2007/11/21 21:06:39	1.1
++++ fbida-2.06/fb-gui.c	2007/11/21 21:16:14
+@@ -148,24 +148,28 @@
+     case 15:
+     case 16:
+ 	for (x = 0; x < swidth; x++) {
+-	    ptr2[x] = s_lut_red[buffer[x*3]] |
++	    uint16_t v = s_lut_red[buffer[x*3]] |
+ 		s_lut_green[buffer[x*3+1]] |
+ 		s_lut_blue[buffer[x*3+2]];
++	    fb_memcpy(&ptr2[x], &v, 2);
+ 	}
+ 	break;
+     case 24:
+ 	for (x = 0; x < swidth; x++) {
+-	    ptr[3*x+2] = buffer[3*x+0];
+-	    ptr[3*x+1] = buffer[3*x+1];
+-	    ptr[3*x+0] = buffer[3*x+2];
++	    uint8_t buf[3];
++	    buf[2] = buffer[3*x+0];
++	    buf[1] = buffer[3*x+1];
++	    buf[0] = buffer[3*x+2];
++	    fb_memcpy(&ptr[3*x], &buf[0], 3);
+ 	}
+ 	break;
+     case 32:
+ 	for (x = 0; x < swidth; x++) {
+-	    ptr4[x] = s_lut_transp[255] |
++	    uint32_t v = s_lut_transp[255] |
+ 		s_lut_red[buffer[x*3]] |
+ 		s_lut_green[buffer[x*3+1]] |
+ 		s_lut_blue[buffer[x*3+2]];
++	    fb_memcpy(&ptr4[x], &v, 4);
+ 	}
+ 	break;
+     }
+--- fbida-2.06/fbtools.c	2007/11/21 21:06:35	1.1
++++ fbida-2.06/fbtools.c	2007/11/21 21:41:24
+@@ -156,17 +156,19 @@
+ void
+ fb_memset (void *addr, int c, size_t len)
+ {
+-#if 1 /* defined(__powerpc__) */
+     unsigned int i, *p;
+     
+     i = (c & 0xff) << 8;
+     i |= i << 16;
+     len >>= 2;
+     for (p = addr; len--; p++)
+-	*p = i;
+-#else
+-    memset(addr, c, len);
+-#endif
++	pwrite(fb, &i, sizeof(i), (uintptr_t) p);
++}
++
++void
++fb_memcpy (void *addr, const void *src, size_t len)
++{
++    pwrite(fb, src, len, (uintptr_t) addr);
+ }
+ 
+ static int
+@@ -426,12 +428,7 @@
+ #endif
+     page_mask = getpagesize()-1;
+     fb_mem_offset = (unsigned long)(fb_fix.smem_start) & page_mask;
+-    fb_mem = mmap(NULL,fb_fix.smem_len+fb_mem_offset,
+-		  PROT_READ|PROT_WRITE,MAP_SHARED,fb,0);
+-    if (-1L == (long)fb_mem) {
+-	perror("mmap");
+-	goto err;
+-    }
++    fb_mem = 0;
+     /* move viewport to upper left corner */
+     if (fb_var.xoffset != 0 || fb_var.yoffset != 0) {
+ 	fb_var.xoffset = 0;
+--- fbida-2.06/fbtools.h	2007/11/21 21:13:23	1.1
++++ fbida-2.06/fbtools.h	2007/11/21 21:13:32
+@@ -16,6 +16,7 @@
+ void fb_cleanup(void);
+ void fb_catch_exit_signals(void);
+ void fb_memset(void *addr, int c, size_t len);
++void fb_memcpy(void *addr, const void *src, size_t len);
+ 
+ /* console switching */
+ int  fb_switch_init(void);
