@@ -1,5 +1,6 @@
 #include <machine/x86.h>
 #include <machine/boot.h>
+#include <dev/vesa.h>
 #include <boot/code16gcc.h>
 
 extern struct sysx_info sysx_info;
@@ -29,7 +30,7 @@ enable_a20_fast(void)
     outb(0x92, port_a);
 }
 
-static int 
+static void
 detect_memory_e801(void)
 {
     uint16_t ax, bx, cx, dx;
@@ -50,13 +51,50 @@ detect_memory_e801(void)
        hole at 16MB and no support for 0E820h they should probably
        generate a fake e820 map. */
     sysx_info.extmem_kb = (cx == 15*1024) ? (dx << 6)+cx : cx;
-    return 0;
 }
 
 static void
 set_video(void)
 {
-    /* XXX */
+    uint32_t ax, bx, cx, di, es;
+
+    /* Figure out the offset that SYSLINUX set up for us */
+    es = 0;
+    __asm("movw %%es, %%ax" : "+a" (es));
+
+    /* Get VBE control info */
+    static struct vbe_control_info vbe_control_info;
+    vbe_control_info.sig[0] = 'V';
+    vbe_control_info.sig[1] = 'B';
+    vbe_control_info.sig[2] = 'E';
+    vbe_control_info.sig[3] = '2';
+
+    ax = 0x4f00;
+    di = (uint16_t) &vbe_control_info;
+    __asm("int $0x10; cli" : "+a" (ax), "+D" (di));
+
+    if (ax == 0x4f)
+	sysx_info.vbe_control_info = (es << 8) | (uint16_t) &vbe_control_info;
+
+    /* Get VBE mode info */
+    static struct vbe_mode_info vbe_mode_info;
+    uint16_t vbe_mode = 0x118;
+
+    ax = 0x4f01;
+    cx = vbe_mode;
+    di = (uint16_t) &vbe_mode_info;
+    __asm("int $0x10; cli" : "+a" (ax), "+c" (cx), "+D" (di));
+
+    if (ax == 0x4f)
+	sysx_info.vbe_mode_info = (es << 8) | (uint16_t) &vbe_mode_info;
+
+    /* Switch to VBE mode */
+    ax = 0x4f02;
+    bx = vbe_mode | (1 << 14);
+    //__asm("int $0x10; cli" : "+a" (ax), "+b" (bx));
+
+    if (ax == 0x4f)
+	sysx_info.vbe_mode = vbe_mode;
 }
 
 void

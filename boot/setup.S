@@ -95,9 +95,12 @@ ramdisk_max:	.long	0xffffffff
 # a command line pointer to init()
 .globl sysx_info
 sysx_info:
-memory_size:	.long	0x00000000
-cmd_line_addr:	.long	0x00000000
-	
+memory_size:	.long	0
+cmd_line_addr:	.long	0
+		.long	0
+		.long	0
+		.long	0
+
 trampoline:
 		cli				# Disable interrupts
 		cld				# String operations increment
