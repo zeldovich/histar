@@ -9,7 +9,7 @@ enum {
     vbe_rgb_max
 };
 
-struct vbe_info {
+struct vbe_control_info {
     char     sig[4];		/* 'V' 'E' 'S' 'A' */
     uint16_t ver;		/* version# */
     uint32_t oem_string_addr;	/* OEM string */
