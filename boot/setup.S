@@ -233,3 +233,16 @@ gdtdesc:
 	.word	0x17			# sizeof(gdt) - 1
 gdtaddr:
 	.long	gdt			# address gdt
+
+.globl vbe_control_info
+vbe_control_info:			# 512-byte buffer
+	.rept	128
+	.long	0
+	.endr
+
+.globl vbe_mode_info			# 256-byte buffer
+vbe_mode_info:
+	.rept	64
+	.long	0
+	.endr
+
