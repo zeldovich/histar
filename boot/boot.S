@@ -1,4 +1,5 @@
 #include <machine/mmu.h>
+#include <machine/boot.h>
 
 .set PROT_MODE_CSEG,0x8		# code segment selector
 .set PROT_MODE_DSEG,0x10        # data segment selector
@@ -112,8 +113,9 @@ protcseg:
 		addl	%edx,%ecx		# add results
 
 		pushl	%ecx			# Push the amount of extended memory
-		call	cmain			# finish the boot load from C.
-						# cmain() should not return
+		pushl	$DIRECT_BOOT_EAX_MAGIC
+		call	diskboot		# finish the boot load from C.
+						# diskboot() should not return
 spin:		jmp	spin			# ..but in case it does, spin
 	
 .p2align 2					# force 4 byte alignment

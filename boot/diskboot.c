@@ -38,46 +38,37 @@
 #define SECTSIZE	512
 #define ELFHDR		((ELF_EHDR *) 0x10000)	// scratch space
 
-void readsect(void *, uint32_t);
-void readseg(uint32_t, uint32_t, uint32_t);
-
-void
-cmain(uint32_t extmem_kb)
+static void
+waitdisk(void)
 {
-    ELF_PHDR *ph;
-    int i;
+    // wait for disk reaady
+    while ((inb(0x1F7) & 0xC0) != 0x40)
+	/* do nothing */ ;
+}
 
-    // read 1st page off disk
-    readseg((uint32_t) ELFHDR, SECTSIZE * 8, ELFOFF);
+static void
+readsect(void *dst, uint32_t offset)
+{
+    // wait for disk to be ready
+    waitdisk();
 
-    if (ELFHDR->e_magic != ELF_MAGIC_LE ||	/* Invalid ELF */
-	ELFHDR->e_machine != ELF_MACH)		/* Wrong machine */
-	goto bad;
+    outb(0x1F2, 1);		// count = 1
+    outb(0x1F3, offset);
+    outb(0x1F4, offset >> 8);
+    outb(0x1F5, offset >> 16);
+    outb(0x1F6, (offset >> 24) | 0xE0);
+    outb(0x1F7, 0x20);		// cmd 0x20 - read sectors
 
-    // load each program segment (ignores ph flags)
-    ph = (ELF_PHDR *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
-    for (i = ELFHDR->e_phnum; i != 0; i--) {
-	readseg(ph->p_vaddr, ph->p_memsz, ph->p_offset + ELFOFF);
-	ph = (ELF_PHDR *) ((uint8_t *) ph + ELFHDR->e_phentsize);
-    }
+    // wait for disk to be ready
+    waitdisk();
 
-    // call the entry point from the ELF header, passing in extmem_kb
-    // note: does not return!
-    uint32_t eax = DIRECT_BOOT_EAX_MAGIC;
-    uint32_t ebx = extmem_kb;
-    uint32_t ecx = ELFHDR->e_entry & 0xFFFFFF;
-    __asm__("jmp *%%ecx": :"a"(eax), "b"(ebx), "c"(ecx));
-
- bad:
-    outw(0x8A00, 0x8A00);
-    outw(0x8A00, 0x8AE0);
-    for (;;)
-	;
+    // read a sector
+    insl(0x1F0, dst, SECTSIZE / 4);
 }
 
 // Read 'count' bytes at 'offset' from kernel into virtual address 'va'.
 // Might copy more than asked
-void
+static void
 readseg(uint32_t va, uint32_t count, uint32_t offset)
 {
     uint32_t end_va;
@@ -102,29 +93,35 @@ readseg(uint32_t va, uint32_t count, uint32_t offset)
 }
 
 void
-waitdisk(void)
+diskboot(uint32_t start_eax, uint32_t start_ebx)
 {
-    // wait for disk reaady
-    while ((inb(0x1F7) & 0xC0) != 0x40)
-	/* do nothing */ ;
-}
+    ELF_PHDR *ph;
+    int i;
 
-void
-readsect(void *dst, uint32_t offset)
-{
-    // wait for disk to be ready
-    waitdisk();
+    // read 1st page off disk
+    readseg((uint32_t) ELFHDR, SECTSIZE * 8, ELFOFF);
 
-    outb(0x1F2, 1);		// count = 1
-    outb(0x1F3, offset);
-    outb(0x1F4, offset >> 8);
-    outb(0x1F5, offset >> 16);
-    outb(0x1F6, (offset >> 24) | 0xE0);
-    outb(0x1F7, 0x20);		// cmd 0x20 - read sectors
+    if (ELFHDR->e_magic != ELF_MAGIC_LE ||	/* Invalid ELF */
+	ELFHDR->e_machine != ELF_MACH)		/* Wrong machine */
+	goto bad;
 
-    // wait for disk to be ready
-    waitdisk();
+    // load each program segment (ignores ph flags)
+    ph = (ELF_PHDR *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
+    for (i = ELFHDR->e_phnum; i != 0; i--) {
+	readseg(ph->p_vaddr, ph->p_memsz, ph->p_offset + ELFOFF);
+	ph = (ELF_PHDR *) ((uint8_t *) ph + ELFHDR->e_phentsize);
+    }
 
-    // read a sector
-    insl(0x1F0, dst, SECTSIZE / 4);
+    // call the entry point from the ELF header, passing in args.
+    // note: does not return!
+    uint32_t eax = start_eax;
+    uint32_t ebx = start_ebx;
+    uint32_t ecx = ELFHDR->e_entry & 0xFFFFFF;
+    __asm__("jmp *%%ecx": :"a"(eax), "b"(ebx), "c"(ecx));
+
+ bad:
+    outw(0x8A00, 0x8A00);
+    outw(0x8A00, 0x8AE0);
+    for (;;)
+	;
 }
