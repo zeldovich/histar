@@ -743,7 +743,6 @@ $(ACPKG_BUILDDIR)/fbida-2.06/__build: $(ACPKG_BUILDDIR)/fbida-2.06/__patch \
 		$(ACPKG_BUILDDIR)/libexif-0.6.16/__build \
 		$(ACPKG_BUILDDIR)/jpeg-6b/__build \
 		$(ACPKG_BUILDDIR)/fontconfig-2.5.0/__build
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "prefix=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "prefix=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake install" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "verbose=yes prefix=$(TOP)/$(ACPKG_PREFIX) CFLAGS=-I$(TOP)/$(ACPKG_PREFIX)/include/freetype2 LDFLAGS='-Wl,-rpath-link -Wl,$(TOP)/$(ACPKG_PREFIX)/lib' $(ACENV) gmake install" )
 	touch $@
 
