@@ -56,11 +56,15 @@ detect_memory_e801(void)
 static void
 set_video(void)
 {
-    uint32_t ax, bx, cx, di, es;
+    uint16_t ax, bx, cx, di;
 
-    /* Figure out the offset that SYSLINUX set up for us */
-    es = 0;
-    __asm("movw %%es, %%ax" : "+a" (es));
+    /* Save our %es which points to video memory */
+    uint16_t save_es = 0;
+    __asm("movw %%es, %%ax; movw %%ds, %%es" : "+a" (save_es));
+
+    /* Use the %cs/%ds offset for %es, and note it */
+    uint32_t es = 0;
+    __asm("movw %%ds, %%ax; movw %%ax, %%es" : "+a" (es));
 
     /* Get VBE control info */
     static struct vbe_control_info vbe_control_info;
@@ -74,7 +78,7 @@ set_video(void)
     __asm("int $0x10; cli" : "+a" (ax), "+D" (di));
 
     if (ax == 0x4f)
-	sysx_info.vbe_control_info = (es << 8) | (uint16_t) &vbe_control_info;
+	sysx_info.vbe_control_info = (es << 4) | (uint16_t) &vbe_control_info;
 
     /* Get VBE mode info */
     static struct vbe_mode_info vbe_mode_info;
@@ -86,7 +90,7 @@ set_video(void)
     __asm("int $0x10; cli" : "+a" (ax), "+c" (cx), "+D" (di));
 
     if (ax == 0x4f)
-	sysx_info.vbe_mode_info = (es << 8) | (uint16_t) &vbe_mode_info;
+	sysx_info.vbe_mode_info = (es << 4) | (uint16_t) &vbe_mode_info;
 
     /* Switch to VBE mode */
     ax = 0x4f02;
@@ -95,6 +99,9 @@ set_video(void)
 
     if (ax == 0x4f)
 	sysx_info.vbe_mode = vbe_mode;
+
+    /* Restore the %es which points to video memory */
+    __asm("movw %%ax, %%es" : "+a" (save_es));
 }
 
 void
