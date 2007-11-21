@@ -95,6 +95,7 @@ DISTURL_libexif-0.6.16	    := http://easynews.dl.sourceforge.net/sourceforge/lib
 DISTURL_jpeg-6b		    := http://www.ijg.org/files/jpegsrc.v6b.tar.gz
 DISTURL_freetype-2.3.5	    := http://download.savannah.gnu.org/releases/freetype/freetype-2.3.5.tar.gz
 DISTURL_fontconfig-2.5.0    := http://fontconfig.org/release/fontconfig-2.5.0.tar.gz
+DISTURL_expat-2.0.1	    := http://internap.dl.sourceforge.net/sourceforge/expat/expat-2.0.1.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -116,7 +117,7 @@ AUTOCONF_apr-1.2.8	    := --disable-dso --disable-shared
 AUTOCONF_python-svn	    := --enable-shared
 AUTOCONF_mutt-1.4.2.3	    := --with-ssl --enable-imap --disable-nls
 AUTOCONF_file-4.21	    := --enable-shared=$(SHARED_ENABLE)
-AUTOCONF_fontconfig-2.5.0   := --with-arch=$(TARGET)
+AUTOCONF_fontconfig-2.5.0   := --with-arch=$(TARGET) --with-freetype-config=$(TOP)/$(ACPKG_PREFIX)/bin/freetype-config
 AUTOCONF_libxml2-2.6.30	    := --without-python
 
 ##
@@ -731,12 +732,11 @@ $(ACPKG_BUILDDIR)/jpeg-6b/__build: $(ACPKG_BUILDDIR)/jpeg-6b/Makefile | $(LDEPS)
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake install-lib" )
 	touch $@
 
-$(ACPKG_BUILDDIR)/fontconfig-2.5.0/Makefile: $(ACPKG_BUILDDIR)/libxml2-2.6.30/__build
+$(ACPKG_BUILDDIR)/fontconfig-2.5.0/Makefile: $(ACPKG_BUILDDIR)/expat-2.0.1/__build $(ACPKG_BUILDDIR)/freetype-2.3.5/__build
 
 $(ACPKG_BUILDDIR)/fbida-2.06/__build: $(ACPKG_BUILDDIR)/fbida-2.06/__patch \
 		$(ACPKG_BUILDDIR)/libexif-0.6.16/__build \
 		$(ACPKG_BUILDDIR)/jpeg-6b/__build \
-		$(ACPKG_BUILDDIR)/freetype-2.3.5/__build \
 		$(ACPKG_BUILDDIR)/fontconfig-2.5.0/__build
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "prefix=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake" )
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "prefix=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake install" )
