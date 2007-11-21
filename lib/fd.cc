@@ -812,6 +812,55 @@ write(int fdnum, const void *buf, size_t n)
     return r;
 }
 
+ssize_t
+pread(int fdnum, void *buf, size_t n, off_t off)
+{
+    int64_t r;
+    struct Dev *dev;
+    struct Fd *fd;
+
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+    {
+	__set_errno(EBADF);
+	return -1;
+    }
+
+    if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
+	cprintf("[%"PRIx64"] pread %d -- bad mode\n", thread_id(), fdnum); 
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    r = DEV_CALL(dev, read, fd, buf, n, off);
+    if (fd->fd_omode & O_ASYNC)
+	jos_sigio_activate(fdnum);
+    return r;
+}
+
+ssize_t
+pwrite(int fdnum, const void *buf, size_t n, off_t off)
+{
+    int64_t r;
+    struct Dev *dev;
+    struct Fd *fd;
+
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+    {
+	__set_errno(EBADF);
+	return -1;
+    }
+
+    if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
+	cprintf("[%"PRIx64"] pwrite %d -- bad mode\n", thread_id(), fdnum);
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    return DEV_CALL(dev, write, fd, buf, n, off);
+}
+
 ssize_t 
 readv(int fd, const struct iovec *vector, int count)
 {
