@@ -1,5 +1,5 @@
---- /home/nickolai/build/svgalib-1.9.25/Makefile.cfg	2007-11-21 11:09:36.000000000 -0800
-+++ svgalib-1.9.25/Makefile.cfg	2007-11-21 11:16:00.000000000 -0800
+--- /home/nickolai/build/svgalib-1.9.25/Makefile.cfg	2007-11-21 11:22:33.000000000 -0800
++++ svgalib-1.9.25/Makefile.cfg	2007-11-21 11:22:53.000000000 -0800
 @@ -18,19 +18,7 @@
  # Char major device used by module
  SVGALIB_HELPER_MAJOR = 209
@@ -25,7 +25,7 @@
  
  # Common prefix for installation directories.
  # NOTE: This directory must exist when you start the install.
--TOPDIR=/home/nickolai/build/svgalib-1.9.25/top
+-TOPDIR=
 -prefix = $(TOPDIR)/usr/local
 +prefix = $(TOPDIR)
  exec_prefix = $(prefix)
