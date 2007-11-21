@@ -553,6 +553,7 @@ static struct Dev *devlist[] = {
     &devuds,
     &devsymlink,
     &devlfs,
+    &devfb,
     0
 };
 

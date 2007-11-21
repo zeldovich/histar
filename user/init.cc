@@ -194,13 +194,14 @@ init_fs(void)
     error_check(fs_mkdir(start_env->fs_root, "dev", &dev, 0));
 
     struct fs_inode dummy_ino;
-    error_check(fs_mknod(dev, "null", 'n', 0, &dummy_ino, 0));
-    error_check(fs_mknod(dev, "zero", 'z', 0, &dummy_ino, 0));
-    error_check(fs_mknod(dev, "console", 'c', 0, &dummy_ino, 0));
-    error_check(fs_mknod(dev, "tty", 'w', 0, &dummy_ino, 0));
-    error_check(fs_mknod(dev, "random", 'r', 0, &dummy_ino, 0));
-    error_check(fs_mknod(dev, "urandom", 'r', 0, &dummy_ino, 0));
-    error_check(fs_mknod(dev, "ptmx", 'x', 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "null", devnull.dev_id, 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "zero", devzero.dev_id, 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "console", devcons.dev_id, 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "fb0", devfb.dev_id, 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "tty", devtty.dev_id, 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "random", devrand.dev_id, 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "urandom", devrand.dev_id, 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "ptmx", devptm.dev_id, 0, &dummy_ino, 0));
     error_check(fs_mkdir(dev, "pts", &dummy_ino, 0));
 
     // create a /home directory

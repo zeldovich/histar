@@ -203,6 +203,7 @@ extern struct Dev devpts;	/* type 'y' */
 extern struct Dev devuds;	/* type 'u' */
 extern struct Dev devsymlink;	/* type 'l' */
 extern struct Dev devlfs;       /* type 'o' */
+extern struct Dev devfb;	/* type 'F' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);

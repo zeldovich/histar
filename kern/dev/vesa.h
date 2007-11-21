@@ -16,6 +16,11 @@ typedef struct {
     uint16_t off;
 } vbe_fptr;
 
+typedef struct {
+    uint8_t masksize;
+    uint8_t fieldpos;
+} vbe_colorinfo;
+
 struct vbe_control_info {
     char     sig[4];		/* 'V' 'E' 'S' 'A' */
     uint16_t ver;		/* version# */
@@ -54,10 +59,7 @@ struct vbe_mode_info {
     uint8_t  nipages;
     uint8_t  pad0;
 
-    struct {
-	uint8_t masksize;
-	uint8_t fieldpos;
-    } color[vbe_rgb_max];
+    vbe_colorinfo color[vbe_rgb_max];
     uint8_t  colormode;
 
     uint32_t fb_physaddr;
@@ -66,10 +68,7 @@ struct vbe_mode_info {
     uint16_t fb_bytes_per_scanline;   
     uint8_t  bank_nipages;
     uint8_t  fb_nipages;
-    struct {
-	uint8_t masksize;
-	uint8_t fieldpost;
-    } fb_color[vbe_rgb_max];
+    vbe_colorinfo fb_color[vbe_rgb_max];
     uint32_t maxclock;
 
     uint8_t  pad2[190];
