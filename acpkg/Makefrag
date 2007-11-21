@@ -741,7 +741,10 @@ $(ACPKG_BUILDDIR)/jpeg-6b/__build: $(ACPKG_BUILDDIR)/jpeg-6b/Makefile | $(LDEPS)
 	touch $@
 
 $(ACPKG_BUILDDIR)/svgalib-1.9.25/__build: $(ACPKG_BUILDDIR)/svgalib-1.9.25/__patch | $(LDEPS)
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "TOPDIR=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake install" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "TOPDIR=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake install demoprogs" )
+	ln -sf libvga.so.1.9.25   $(ACPKG_PREFIX)/lib/libvga.so.1
+	ln -sf libvgagl.so.1.9.25 $(ACPKG_PREFIX)/lib/libvgagl.so.1
+	cp $(ACPKG_BUILDDIR)/$(PKGNAME)/demos/fun $(ACPKG_PREFIX)/bin/vgafun
 	touch $@
 
 $(ACPKG_BUILDDIR)/fontconfig-2.5.0/Makefile: $(ACPKG_BUILDDIR)/expat-2.0.1/__build $(ACPKG_BUILDDIR)/freetype-2.3.5/__build
