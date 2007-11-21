@@ -30,7 +30,7 @@ sys_fb_get_mode(struct jos_fb_mode *buf)
 }
 
 int
-sys_fb_set(uint64_t off, uint64_t nbytes, uint8_t *buf)
+sys_fb_set(uint64_t off, uint64_t nbytes, const uint8_t *buf)
 {
     return syscall(SYS_fb_set, off, nbytes, SPTR(buf), 0, 0, 0, 0);
 }

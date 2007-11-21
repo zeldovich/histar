@@ -39,6 +39,11 @@ fb_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	return 0;
     }
 
+    case FBIOPUT_VSCREENINFO: {
+	/* potentially bad, but we have no way of changing VESA modes.. */
+	return 0;
+    }
+
     case FBIOGET_VSCREENINFO: {
 	struct fb_var_screeninfo *v = va_arg(ap, struct fb_var_screeninfo*);
 	memset(v, 0, sizeof(*v));
@@ -103,10 +108,23 @@ fb_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     }
 }
 
+static ssize_t
+fb_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
+{
+    int r = sys_fb_set(offset, len, buf);
+    if (r < 0) {
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    return len;
+}
+
 struct Dev devfb = {
     .dev_id = 'F',
     .dev_name = "fb",
     .dev_open = fb_open,
     .dev_ioctl = fb_ioctl,
+    .dev_write = fb_write,
 };
 

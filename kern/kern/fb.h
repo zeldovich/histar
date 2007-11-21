@@ -6,7 +6,7 @@
 struct fb_dev {
     struct jos_fb_mode fb_mode;
 
-    int (*fb_set) (void*, uint64_t, uint64_t, uint8_t*);
+    int (*fb_set) (void*, uint64_t, uint64_t, const uint8_t*);
     void *fb_arg;
 };
 

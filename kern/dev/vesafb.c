@@ -16,7 +16,7 @@ struct vesafb_dev {
 };
 
 static int
-vesafb_set(void *arg, uint64_t offset, uint64_t nbytes, uint8_t *buf)
+vesafb_set(void *arg, uint64_t offset, uint64_t nbytes, const uint8_t *buf)
 {
     struct vesafb_dev *vfb = arg;
 

@@ -19,7 +19,7 @@ int	sys_cons_getc(void);
 int	sys_cons_probe(void);
 
 int	sys_fb_get_mode(struct jos_fb_mode *buf);
-int	sys_fb_set(uint64_t off, uint64_t nbytes, uint8_t *buf);
+int	sys_fb_set(uint64_t off, uint64_t nbytes, const uint8_t *buf);
 
 int64_t sys_net_create(uint64_t container, uint64_t card_idx,
 		       const struct ulabel *l, const char *name);
