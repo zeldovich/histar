@@ -82,6 +82,7 @@ DISTURL_vim70		    := ftp://ftp.vim.org/pub/vim/unix/vim-7.0.tar.bz2
 DISTURL_mutt-1.4.2.3	    := ftp://ftp.mutt.org/mutt/mutt-1.4.2.3.tar.gz
 DISTURL_linux-2.6.20.4	    := ftp://ftp.kernel.org/pub/linux/kernel/v2.6/linux-2.6.20.4.tar.gz
 DISTURL_file-4.21	    := ftp://ftp.astron.com/pub/file/file-4.21.tar.gz
+DISTURL_libxml2-2.6.30	    := ftp://xmlsoft.org/libxml2/libxml2-2.6.30.tar.gz
 
 DISTURL_sfslite-1.0.0	    := http://dist.okws.org/dist/sfslite-1.0.0.tar.gz
 DISTURL_zlib-1.2.3	    := http://www.zlib.net/zlib-1.2.3.tar.gz
@@ -116,6 +117,7 @@ AUTOCONF_python-svn	    := --enable-shared
 AUTOCONF_mutt-1.4.2.3	    := --with-ssl --enable-imap --disable-nls
 AUTOCONF_file-4.21	    := --enable-shared=$(SHARED_ENABLE)
 AUTOCONF_fontconfig-2.5.0   := --with-arch=$(TARGET)
+AUTOCONF_libxml2-2.6.30	    := --without-python
 
 ##
 ## Patches to apply to various packages
@@ -729,10 +731,13 @@ $(ACPKG_BUILDDIR)/jpeg-6b/__build: $(ACPKG_BUILDDIR)/jpeg-6b/Makefile | $(LDEPS)
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake install-lib" )
 	touch $@
 
+$(ACPKG_BUILDDIR)/fontconfig-2.5.0/Makefile: $(ACPKG_BUILDDIR)/libxml2-2.6.30/__build
+
 $(ACPKG_BUILDDIR)/fbida-2.06/__build: $(ACPKG_BUILDDIR)/fbida-2.06/__patch \
 		$(ACPKG_BUILDDIR)/libexif-0.6.16/__build \
 		$(ACPKG_BUILDDIR)/jpeg-6b/__build \
-		$(ACPKG_BUILDDIR)/freetype-2.3.5/__build
+		$(ACPKG_BUILDDIR)/freetype-2.3.5/__build \
+		$(ACPKG_BUILDDIR)/fontconfig-2.5.0/__build
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "prefix=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake" )
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "prefix=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake install" )
 	touch $@
