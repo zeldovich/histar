@@ -92,6 +92,7 @@ DISTURL_ghostscript-8.54-gpl := http://internap.dl.sourceforge.net/sourceforge/g
 DISTURL_fbida-2.06	    := http://dl.bytesex.org/releases/fbida/fbida-2.06.tar.gz
 DISTURL_libexif-0.6.16	    := http://easynews.dl.sourceforge.net/sourceforge/libexif/libexif-0.6.16.tar.gz
 DISTURL_jpeg-6b		    := http://www.ijg.org/files/jpegsrc.v6b.tar.gz
+DISTURL_freetype-2.3.5	    := http://download.savannah.gnu.org/releases/freetype/freetype-2.3.5.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -728,7 +729,8 @@ $(ACPKG_BUILDDIR)/jpeg-6b/__build: $(ACPKG_BUILDDIR)/jpeg-6b/Makefile | $(LDEPS)
 
 $(ACPKG_BUILDDIR)/fbida-2.06/__build: $(ACPKG_BUILDDIR)/fbida-2.06/__patch \
 		$(ACPKG_BUILDDIR)/libexif-0.6.16/__build \
-		$(ACPKG_BUILDDIR)/jpeg-6b/__build
+		$(ACPKG_BUILDDIR)/jpeg-6b/__build \
+		$(ACPKG_BUILDDIR)/freetype-2.3.5/__build
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "prefix=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake" )
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "prefix=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake install" )
 	touch $@
