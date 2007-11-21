@@ -616,29 +616,34 @@ $(ACPKG_BUILDDIR)/gcc-3.4.5/__build: $(ACPKG_BUILDDIR)/gcc-3.4.5/Makefile
 	cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, -e s,MAYBE_GCC_EH,, >> $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/specs
 	touch $@
 
-$(OBJDIR)/user/gcc.tar.gz: $(ACPKG_BUILDDIR)/gcc-3.4.5/__build $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build | $(LDEPS)
+$(OBJDIR)/user/gcc.tar: $(ACPKG_BUILDDIR)/gcc-3.4.5/__build $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build | $(LDEPS)
 	rm -f $@
+
+	rm -f $(OBJDIR)/user/.tmp.gcc.tar
 	cp $(OBJDIR)/lib/crt{1,i,n}.o $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/
-	cp $(OBJDIR)/lib/libjos.a $(OBJDIR)/acpkg/lib/
-	cp $(OBJDIR)/lib/libnetd.a $(OBJDIR)/acpkg/lib/
-	cp $(OBJDIR)/lib/libc.a $(OBJDIR)/acpkg/lib/
-	cp $(OBJDIR)/lib/libm.a $(OBJDIR)/acpkg/lib/
-	cp $(OBJDIR)/lib/liblwip.a $(OBJDIR)/acpkg/lib/
-	cp $(OBJDIR)/lib/libutil.a $(OBJDIR)/acpkg/lib/
-	cp $(OBJDIR)/lib/libstdc++.a $(OBJDIR)/acpkg/lib/
-	echo 'INPUT(/bin/ld.so)' > $(OBJDIR)/acpkg/lib/libc.so
-	tar -zcf $@ -C $(OBJDIR)/acpkg \
+	tar -cf $(OBJDIR)/user/.tmp.gcc.tar -C $(OBJDIR)/acpkg \
 		bin/gcc bin/ld bin/as \
 		libexec/gcc/$(TARGET)/3.4.5/cc1 \
 		libexec/gcc/$(TARGET)/3.4.5/collect2 \
-		lib/libjos.a lib/libnetd.a lib/libc.a lib/libm.a \
-		lib/liblwip.a lib/libutil.a lib/libstdc++.a lib/libc.so \
 		lib/gcc/$(TARGET)/3.4.5/crt{begin,end}{,S}.o \
 		lib/gcc/$(TARGET)/3.4.5/crtbeginT.o \
 		lib/gcc/$(TARGET)/3.4.5/crt{1,i,n}.o \
 		lib/gcc/$(TARGET)/3.4.5/libgcc.a \
 		lib/gcc/$(TARGET)/3.4.5/specs \
 		lib/gcc/$(TARGET)/3.4.5/include
+
+	tar -hrf $(OBJDIR)/user/.tmp.gcc.tar -C $(OBJDIR) \
+		lib/libjos.a lib/libnetd.a lib/libc.a lib/libm.a \
+		lib/liblwip.a lib/libutil.a lib/libstdc++.a
+
+	rm -rf $(OBJDIR)/user/.tmp.gcc.dir
+	mkdir -p $(OBJDIR)/user/.tmp.gcc.dir/lib
+	echo 'INPUT(/bin/ld.so)' > $(OBJDIR)/user/.tmp.gcc.dir/lib/libc.so
+	tar -hrf $(OBJDIR)/user/.tmp.gcc.tar -C $(OBJDIR)/user/.tmp.gcc.dir \
+		lib/libc.so
+	rm -rf $(OBJDIR)/user/.tmp.gcc.dir
+
+	mv $(OBJDIR)/user/.tmp.gcc.tar $@
 
 INCLUDE_BUILD_TAR_CMD := \
 	tar -C $(OBJDIR)/acpkg/.include-build \
@@ -689,7 +694,7 @@ $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
 	rm -rf $(OBJDIR)/acpkg/.include-build
 	mv $(TOP)/$(OBJDIR)/user/.tmp.include.tar $@
 
-$(OBJDIR)/user/include.tar.gz: $(OBJDIR)/user/include.tar
+$(OBJDIR)/user/%.tar.gz: $(OBJDIR)/user/%.tar
 	gzip -c $< > $@
 
 # NOTE: 'python' must be in your path and be new enough to run
