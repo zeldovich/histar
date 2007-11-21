@@ -117,7 +117,7 @@ AUTOCONF_apr-1.2.8	    := --disable-dso --disable-shared
 AUTOCONF_python-svn	    := --enable-shared
 AUTOCONF_mutt-1.4.2.3	    := --with-ssl --enable-imap --disable-nls
 AUTOCONF_file-4.21	    := --enable-shared=$(SHARED_ENABLE)
-AUTOCONF_fontconfig-2.5.0   := --with-arch=$(TARGET) --with-freetype-config=$(TOP)/$(ACPKG_PREFIX)/bin/freetype-config
+AUTOCONF_fontconfig-2.5.0   := --with-arch=$(TARGET) --with-freetype-config=$(TOP)/$(ACPKG_PREFIX)/bin/freetype-config --disable-docs
 AUTOCONF_libxml2-2.6.30	    := --without-python
 
 ##
