@@ -16,11 +16,11 @@ try
 
     struct jos_fb_mode fb_mode;
     error_check(sys_fb_get_mode(&fb_mode));
-    printf("xres = %d\n", fb_mode.xres);
-    printf("yres = %d\n", fb_mode.yres);
-    printf("bpp  = %d\n", fb_mode.bpp);
+    printf("xres = %d\n", fb_mode.vm.xres);
+    printf("yres = %d\n", fb_mode.vm.yres);
+    printf("bpp  = %d\n", fb_mode.vm.bpp);
 
-    uint8_t pixelbytes = fb_mode.bpp / 8;
+    uint8_t pixelbytes = fb_mode.vm.bpp / 8;
 
     for (uint32_t i = 0; i < 1000000; i++) {
 	uint8_t buf[pixelbytes];
@@ -28,14 +28,14 @@ try
 	for (uint32_t j = 0; j < pixelbytes; j++)
 	    buf[j] = random();
 
-	uint32_t x0 = random() % fb_mode.xres;
-	uint32_t y0 = random() % fb_mode.yres;
-	uint32_t xd = random() % MIN(256, fb_mode.xres - x0);
-	uint32_t yd = random() % MIN(256, fb_mode.yres - y0);
+	uint32_t x0 = random() % fb_mode.vm.xres;
+	uint32_t y0 = random() % fb_mode.vm.yres;
+	uint32_t xd = random() % MIN(256, fb_mode.vm.xres - x0);
+	uint32_t yd = random() % MIN(256, fb_mode.vm.yres - y0);
 
 	for (uint32_t x = x0; x < x0 + xd; x++)
 	    for (uint32_t y = y0; y < y0 + yd; y++)
-		error_check(sys_fb_set(pixelbytes * (y * fb_mode.xres + x),
+		error_check(sys_fb_set(pixelbytes * (y * fb_mode.vm.xres + x),
 				       pixelbytes, buf));
     }
 } catch (std::exception &e) {

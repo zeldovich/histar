@@ -1,10 +1,10 @@
 #ifndef JOS_INC_FB_H
 #define JOS_INC_FB_H
 
+#include <dev/vesa.h>
+
 struct jos_fb_mode {
-    uint32_t xres;
-    uint32_t yres;
-    uint32_t bpp;
+    struct vbe_mode_info vm;
 };
 
 #endif

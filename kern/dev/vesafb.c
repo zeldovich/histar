@@ -42,10 +42,7 @@ vesafb_init(struct vbe_control_info *ctl_info,
 
     vfb.fbdev.fb_arg = &vfb;
     vfb.fbdev.fb_set = &vesafb_set;
-
-    vfb.fbdev.fb_mode.xres = vfb.mode_info.xres;
-    vfb.fbdev.fb_mode.yres = vfb.mode_info.yres;
-    vfb.fbdev.fb_mode.bpp = vfb.mode_info.bpp;
+    memcpy(&vfb.fbdev.fb_mode.vm, &vfb.mode_info, sizeof(vfb.fbdev.fb_mode.vm));
 
     the_fb_dev = &vfb.fbdev;
 }
