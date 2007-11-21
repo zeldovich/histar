@@ -549,6 +549,12 @@ chmod(const char *path, mode_t mode)
     return 0;
 }
 
+int
+fchmod(int fdnum, mode_t mode)
+{
+    return 0;
+}
+
 int 
 creat(const char *pathname, mode_t mode)
 {
