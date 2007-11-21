@@ -1,0 +1,66 @@
+--- fbida-2.06/GNUmakefile	2007/11/21 08:42:17	1.1
++++ fbida-2.06/GNUmakefile	2007/11/21 09:21:00
+@@ -165,8 +165,7 @@
+ OBJS_FBI += $(filter-out wr/%,$(call ac_lib_mkvar,$(fbi_libs),OBJS))
+ 
+ # jpeg/exif libs
+-fbi : CFLAGS += $(shell pkg-config --cflags freetype2 fontconfig)
+-fbi : LDLIBS += $(shell pkg-config --libs   freetype2 fontconfig)
++fbi : LDLIBS += -lfreetype -lfontconfig
+ fbi : LDLIBS += -ljpeg -lexif -lm
+ 
+ fbi: $(OBJS_FBI) $(OBJS_READER)
+--- fbida-2.06/desktop.c	2007/11/21 08:41:06	1.1
++++ fbida-2.06/desktop.c	2007/11/21 09:19:03
+@@ -14,7 +14,6 @@
+ #include <unistd.h>
+ #include <string.h>
+ #include <errno.h>
+-#include <iconv.h>
+ #include <langinfo.h>
+ 
+ #include "list.h"
+@@ -28,31 +27,7 @@
+ static int iconv_string(char *to, char *from,
+ 			char *src, char *dst, size_t max)
+ {
+-    size_t ilen = strlen(src);
+-    size_t olen = max-1;
+-    iconv_t ic;
+-
+-    ic = iconv_open(to,from);
+-    if (NULL == ic)
+-	return 0;
+-
+-    while (ilen > 0) {
+-	if (-1 == iconv(ic,&src,&ilen,&dst,&olen)) {
+-	    /* skip + quote broken byte unless we are out of space */
+-	    if (E2BIG == errno)
+-		break;
+-	    if (olen < 4)
+-		break;
+-	    sprintf(dst,"\\x%02x",(int)(unsigned char)src[0]);
+-	    src  += 1;
+-	    dst  += 4;
+-	    ilen -= 1;
+-	    olen -= 4;
+-	}
+-    }
+-    dst[0] = 0;
+-    iconv_close(ic);
+-    return max-1 - olen;
++    return 0;
+ }
+ 
+ int utf8_to_locale(char *src, char *dst, size_t max)
+--- fbida-2.06/fbtools.c	2007/11/21 07:34:27	1.1
++++ fbida-2.06/fbtools.c	2007/11/21 07:34:32
+@@ -21,8 +21,6 @@
+ #include <linux/vt.h>
+ #include <linux/fb.h>
+ 
+-#include <asm/page.h>
+-
+ #include "fbtools.h"
+ 
+ /* -------------------------------------------------------------------- */

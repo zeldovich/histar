@@ -96,6 +96,7 @@ DISTURL_jpeg-6b		    := http://www.ijg.org/files/jpegsrc.v6b.tar.gz
 DISTURL_freetype-2.3.5	    := http://download.savannah.gnu.org/releases/freetype/freetype-2.3.5.tar.gz
 DISTURL_fontconfig-2.5.0    := http://fontconfig.org/release/fontconfig-2.5.0.tar.gz
 DISTURL_expat-2.0.1	    := http://internap.dl.sourceforge.net/sourceforge/expat/expat-2.0.1.tar.gz
+DISTURL_svgalib-1.9.25	    := http://www.arava.co.il/matan/svgalib/svgalib-1.9.25.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -142,6 +143,8 @@ PATCHFILE_grep-2.5.3	    := grep-2.5.3.patch
 PATCHFILE_python-svn        := python-svn.patch
 PATCHFILE_binutils-2.17.50.0.15 := binutils-2.17.50.0.15.patch
 PATCHFILE_zlib-1.2.3	    := zlib-1.2.3.patch
+PATCHFILE_fbida-2.06	    := fbida-2.06.patch
+PATCHFILE_svgalib-1.9.25    := svgalib-1.9.25.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -735,6 +738,10 @@ $(ACPKG_BUILDDIR)/jpeg-6b/__build: $(ACPKG_BUILDDIR)/jpeg-6b/Makefile | $(LDEPS)
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake" )
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake install-lib" )
+	touch $@
+
+$(ACPKG_BUILDDIR)/svgalib-1.9.25/__build: $(ACPKG_BUILDDIR)/svgalib-1.9.25/__patch | $(LDEPS)
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "TOPDIR=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake install" )
 	touch $@
 
 $(ACPKG_BUILDDIR)/fontconfig-2.5.0/Makefile: $(ACPKG_BUILDDIR)/expat-2.0.1/__build $(ACPKG_BUILDDIR)/freetype-2.3.5/__build

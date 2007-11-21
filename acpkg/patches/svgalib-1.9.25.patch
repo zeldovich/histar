@@ -1,0 +1,275 @@
+--- svgalib-1.9.25/Makefile.cfg	2007/11/21 18:46:26	1.1
++++ svgalib-1.9.25/Makefile.cfg	2007/11/21 18:56:04
+@@ -18,19 +18,7 @@
+ # Char major device used by module
+ SVGALIB_HELPER_MAJOR = 209
+ 
+-# Linux kernel includes
+-ifeq ($(S_KERNELRELEASE),)
+-S_KERNELRELEASE = $(shell uname -r)
+-endif
+-
+-INCLUDEDIR = /lib/modules/$(S_KERNELRELEASE)/build/include
+-
+-DIREXIST = $(shell if [ -e $(INCLUDEDIR) ] ; then echo OK ; fi)
+-ifneq ($(DIREXIST), OK)
+-INCLUDEDIR = /usr/src/linux/include
+-endif
+-
+-ARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ -e s/arm.*/arm/ -e s/sa110/arm/)
++ARCH := i386
+ 
+ #----------------------------------------------------------------------
+ # Configuration Section
+@@ -43,8 +31,7 @@
+ 
+ # Common prefix for installation directories.
+ # NOTE: This directory must exist when you start the install.
+-TOPDIR=
+-prefix = $(TOPDIR)/usr/local
++prefix = $(TOPDIR)
+ exec_prefix = $(prefix)
+ 
+ # Directory where the shared stubs and static library will be installed.
+@@ -57,7 +44,7 @@
+ bindir = $(exec_prefix)/bin
+ 
+ # Directory where the run-time configuration files will be installed.
+-datadir = $(TOPDIR)/etc/vga
++datadir = $(prefix)/etc/vga
+ 
+ # Directory where the header files will be installed.
+ includedir = $(prefix)/include
+@@ -79,7 +66,7 @@
+ 
+ # uncomment this if your compiler fails on compiling the assembler in
+ # src/vgaconvplanar.c, gl/inlstring.h, gl/line.c or gl/scale.c
+-# NO_ASM = y
++NO_ASM = y
+ 
+ # uncomment if you want to set attribute controller and dac without delay
+ # This breaks original VGA, but seems to work on new cards.
+@@ -113,7 +100,7 @@
+ INSTALLUTILS = installutils
+ 
+ # Comment this out if you don't want to install the man pages by default
+-INSTALLMAN = installman
++#INSTALLMAN = installman
+ 
+ # Remove the '# ' from one of the next two lines if you want to install the
+ # man pages compressed (with gzip) or not. If you comment out both lines,
+@@ -133,159 +120,17 @@
+ 
+ # Select which makefile to use to install the module, or comment both out if
+ # you are going to install the kernel module manually
+-INSTALLMODULE = installmodule
++# INSTALLMODULE = installmodule
+ # INSTALLMODULE = installmodule.alt
+ 
+ #
+ # Comment out any driver that you don't want included in the library.
+ 
+-# These drivers are obsolete and quite likely broken:
+-
+-#INCLUDE_ET4000_DRIVER = y
+-#INCLUDE_OAK_DRIVER = y
+-#INCLUDE_EGA_DRIVER = y
+-#INCLUDE_MACH32_DRIVER = y
+-#INCLUDE_ET3000_DRIVER = y
+-#INCLUDE_GVGA6400_DRIVER = y
+-#INCLUDE_ATI_DRIVER = y
+-
+-# End of obsolete drivers.
+-
+-INCLUDE_CHIPS_DRIVER = y
+-
+-INCLUDE_APM_DRIVER = y
+-INCLUDE_NV3_DRIVER = y
+-INCLUDE_G400_DRIVER = y
+-INCLUDE_R128_DRIVER = y
+-INCLUDE_VESA_DRIVER = y
+-INCLUDE_MX_DRIVER = y
+-INCLUDE_RENDITION_DRIVER = y
+-INCLUDE_RAGE_DRIVER = y
+-INCLUDE_BANSHEE_DRIVER = y
+-INCLUDE_SIS_DRIVER = y
+-INCLUDE_I740_DRIVER = y
+-INCLUDE_I810_DRIVER = y
+-INCLUDE_LAGUNA_DRIVER = y
+-INCLUDE_TRIDENT_DRIVER = y
+-INCLUDE_SAVAGE_DRIVER = y
+-INCLUDE_MILLENNIUM_DRIVER = y
+-##INCLUDE_G450C2_DRIVER = y
+-INCLUDE_PM2_DRIVER = y
+-INCLUDE_UNICHROME_DRIVER = y
+-
+-INCLUDE_NEO_DRIVER = y
+-INCLUDE_ET6000_DRIVER = y
+ INCLUDE_FBDEV_DRIVER = y
+ 
+-# These drivers are obsolete, but most likely still work:
+-
+-INCLUDE_PARADISE_DRIVER = y
+-INCLUDE_ARK_DRIVER = y
+-INCLUDE_S3_DRIVER = y
+-INCLUDE_CIRRUS_DRIVER = y
+-INCLUDE_TVGA_DRIVER = y
+-INCLUDE_ALI_DRIVER = y
+-
+-
+-#
+-# Comment out any adapter you don't want to autodetect.
+-#
+-#INCLUDE_ET4000_DRIVER_TEST = y
+-INCLUDE_CIRRUS_DRIVER_TEST = y
+-INCLUDE_TVGA_DRIVER_TEST = y
+-INCLUDE_OAK_DRIVER_TEST = y
+-INCLUDE_EGA_DRIVER_TEST = y
+-INCLUDE_MACH32_DRIVER_TEST = y
+-INCLUDE_GVGA6400_DRIVER_TEST = y
+-INCLUDE_S3_DRIVER_TEST = y
+-INCLUDE_ET3000_DRIVER_TEST = y
+-INCLUDE_ARK_DRIVER_TEST = y
+-INCLUDE_ATI_DRIVER_TEST = y
+-INCLUDE_ALI_DRIVER_TEST = y
+-INCLUDE_CHIPS_DRIVER_TEST = y
+-INCLUDE_APM_DRIVER_TEST = y
+-INCLUDE_NV3_DRIVER_TEST = y
+-INCLUDE_G400_DRIVER_TEST = y
+-INCLUDE_R128_DRIVER_TEST = y
+-INCLUDE_ET6000_DRIVER_TEST = y
+-INCLUDE_MX_DRIVER_TEST = y
+-INCLUDE_TRIDENT_DRIVER_TEST = y
+-INCLUDE_PARADISE_DRIVER_TEST = y
+-INCLUDE_RAGE_DRIVER_TEST = y
+-INCLUDE_BANSHEE_DRIVER_TEST = y
+-INCLUDE_SIS_DRIVER_TEST = y
+-INCLUDE_I740_DRIVER_TEST = y
+-INCLUDE_I810_DRIVER_TEST = y
+-INCLUDE_LAGUNA_DRIVER_TEST = y
+-INCLUDE_NEO_DRIVER_TEST = y
+-INCLUDE_SAVAGE_DRIVER_TEST = y
+-INCLUDE_MILLENNIUM_DRIVER_TEST = y
+-INCLUDE_RENDITION_DRIVER_TEST = y
+-INCLUDE_PM2_DRIVER_TEST = y
+-INCLUDE_UNICHROME_DRIVER_TEST = y
+-
+-#INCLUDE_FBDEV_DRIVER_TEST = y
+-
+-#Might be too dangerous:
+-#INCLUDE_VESA_DRIVER_TEST = y
+-
+-#
+-# Comment out any dac support that you don't want included in the library.
+-#
+-# you must include SIERRA_DAC, if you include any of SCxxxx DACs.
+-
+-
+-INCLUDE_NORMAL_DAC = y
+-INCLUDE_S3_SDAC_DAC = y
+-INCLUDE_S3_GENDAC_DAC = y
+-INCLUDE_S3_TRIO64_DAC = y
+-INCLUDE_SIERRA_DAC = y
+-INCLUDE_SC15025_DAC = y
+-INCLUDE_ATT20C490_DAC = y
+-INCLUDE_ATT20C498_DAC = y
+-INCLUDE_ICW_DAC = y
+-INCLUDE_IBMRGB52x_DAC = y
+-INCLUDE_SC1148X_DAC = y
+-INCLUDE_ICS_GENDAC_DAC = y
+-
+-#
+-# Comment out any dac you don't want to autodetect.
+-# (not all dacs can be autodetected, at this time)
+-#
+-INCLUDE_S3_SDAC_DAC_TEST = y
+-INCLUDE_S3_GENDAC_DAC_TEST = y
+-INCLUDE_SC15025_DAC_TEST = y
+-INCLUDE_ATT20C490_DAC_TEST = y
+-INCLUDE_IBMRGB52x_DAC_TEST = y
+-INCLUDE_SC1148X_DAC_TEST = y
+-INCLUDE_ICS_GENDAC_DAC_TEST = y
+-
+-# LRMI - disbaled for non i386
+-LRMI = lrmi
+-
+ # Location of the svgalib configuration file.
+ SVGALIB_CONFIG_FILE = $(datadir)/libvga.config
+ 
+-# Defining DYNAMIC enables runtime parsing of the file defined by
+-# ET4000_REGS (usually /etc/libvga.et4000) for the et4000 
+-# driver. See et4000/README for details. Commenting this out again
+-# saves binary space.
+-#
+-# If you just want to use the et4000.regs in the source directory,
+-# comment out the definition of DYNAMIC.  DYNAMIC allows development of new
+-# resolutions without recompiling.
+-DYNAMIC = y
+-ET4000_REGS = $(datadir)/libvga.et4000
+-
+-# The EGA driver may load additional modes (SuperEGA cards) like the
+-# et4000 driver does. Just define the configuration file below.
+-# [This should be taken with a grain of salt, EGA is untested.]
+-#EGA_REGS = $(datadir)/libvga.ega
+-
+-# Defining USE_CLOCKS will cause the ET4000 driver to measure clock
+-# frequencies (they are not actually used yet).
+-#USE_CLOCKS = y
+-
+ # Uncomment to allow mouse type overrides
+ ALLOW_MOUSE_OVERRIDE = y
+ 
+@@ -302,7 +147,7 @@
+ 
+ 
+ ifndef CFLAGS
+-	OPTIMIZE = -fomit-frame-pointer -O2 -fno-strength-reduce -pipe
++	OPTIMIZE = -O2 -fno-strength-reduce -pipe
+ else
+ 	OPTIMIZE := $(CFLAGS)
+ endif
+@@ -319,44 +164,8 @@
+ DLLFLAGS = -fPIC -DPIC
+ 
+ # Utilites used.
+-AR	  = ar
+ INSTALL_PROGRAM	= install -sm755
+ INSTALL_SCRIPT	= install -m755
+ INSTALL_SHLIB	= install -m755
+ INSTALL_DATA	= install -m644
+ 
+-ifneq ($(ARCH),i386)
+-	NO_ASM = y
+-	INCLUDE_VESA_DRIVER=
+-
+-	INCLUDE_CHIPS_DRIVER=
+-	INCLUDE_ET4000_DRIVER=
+-	INCLUDE_MACH32_DRIVER=
+-	INCLUDE_NEO_DRIVER=
+-	INCLUDE_TVGA_DRIVER=
+-	INCLUDE_I810_DRIVER=
+-	LRMI=
+-endif
+-
+-ifeq ($(ARCH),ppc)
+-	INCLUDE_S3_DRIVER=
+-endif
+-
+-ifneq ($(INCLUDE_S3_DRIVER),y)
+-	INCLUDE_NORMAL_DAC =
+-	INCLUDE_S3_SDAC_DAC =
+-	INCLUDE_S3_GENDAC_DAC =
+-	INCLUDE_S3_TRIO64_DAC =
+-	INCLUDE_SIERRA_DAC =
+-	INCLUDE_SC15025_DAC =
+-	INCLUDE_ATT20C490_DAC =
+-	INCLUDE_ATT20C498_DAC =
+-	INCLUDE_ICW_DAC =
+-	INCLUDE_IBMRGB52x_DAC =
+-	INCLUDE_SC1148X_DAC =
+-endif
+-
+-ifeq ($(NO_HELPER),y)
+-	INSTALLDEV = 
+-	INSTALLMODULE =
+-endif

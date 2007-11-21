@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <link.h>
 
+#include <sys/io.h>
 #include <bits/unimpl.h>
 
 // Some BSD gunk
@@ -56,3 +57,16 @@ dl_iterate_phdr(int (*callback) (struct dl_phdr_info *info,
 }
 #endif
 
+int
+iopl(int level)
+{
+    set_enosys();
+    return -1;
+}
+
+int
+ioperm(unsigned long from, unsigned long num, int turn_on)
+{
+    set_enosys();
+    return -1;
+}
