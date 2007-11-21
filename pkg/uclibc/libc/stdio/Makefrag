@@ -17,11 +17,15 @@ STDIO_CSRC := \
 	vfprintf.c _ppfs_init.c _ppfs_prepargs.c _ppfs_setargs.c _ppfs_parsespec.c \
 	register_printf_function.c parse_printf_format.c \
 	vfscanf.c __scan_cookie.c __psfs_parse_spec.c __psfs_do_numeric.c \
-        scanf.c sscanf.c fscanf.c vscanf.c vsscanf.c
+        scanf.c sscanf.c fscanf.c vscanf.c vsscanf.c \
+	_wfwrite.c fwprintf.c swprintf.c vswprintf.c vwprintf.c wprintf.c \
+        fwide.c ungetwc.c vfwprintf.c \
+	wscanf.c swscanf.c fwscanf.c vwscanf.c vswscanf.c vfwscanf.c
 
 STDIO_CUSRC := \
 	clearerr.c feof.c ferror.c fflush.c fgetc.c fgets.c fileno.c \
-	fputc.c fputs.c fread.c fwrite.c getchar.c putchar.c
+	fputc.c fputs.c fread.c fwrite.c getchar.c putchar.c \
+	fgetwc.c getwchar.c fgetws.c fputwc.c putwchar.c fputws.c
 
 STDIO_C64SRC := \
 	fgetpos.c fopen.c freopen.c fseeko.c fsetpos.c ftello.c
