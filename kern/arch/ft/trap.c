@@ -186,4 +186,5 @@ karch_fp_init(struct Fpregs *fpreg)
 int
 thread_arch_is_masked(const struct Thread *t)
 {
+    return t->th_tf.tf_cs == GD_UT_MASK;
 }
