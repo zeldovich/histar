@@ -220,38 +220,15 @@ struct Gatedesc {
 struct Trapframe_aux {};
 
 struct Trapframe {
-  /* callee-saved registers */
-  uint64_t tf_rax;
-  uint64_t tf_rcx;
-  uint64_t tf_rdx;
-  uint64_t tf_rsi;
-  uint64_t tf_rdi;
-  uint64_t tf_r8;
-  uint64_t tf_r9;
-  uint64_t tf_r10;
-  uint64_t tf_r11;
+    /* Simulated thread state for the rest of the kernel code */
+    uint64_t tf_masked;
+    uint64_t tf_pc;
+    uint64_t tf_sp;
+    uint64_t tf_jump_regs[6];
 
-  /* caller-saved registers */
-  uint64_t tf_rbx;
-  uint64_t tf_rbp;
-  uint64_t tf_r12;
-  uint64_t tf_r13;
-  uint64_t tf_r14;
-  uint64_t tf_r15;
-
-  uint64_t tf__trapentry_rip;
-  uint64_t tf__trapentry_rax;
-
-  /* hardware-saved registers */
-  uint32_t tf_err;
-  uint32_t tf__pad1;
-  uint64_t tf_rip;
-  uint8_t tf_cs;
-  uint8_t tf__pad2[7];
-  uint64_t tf_rflags;
-  uint64_t tf_rsp;
-  uint8_t tf_ss;
-  uint8_t tf__pad3[7];
+    /* Driver-specific state kept for each thread */
+    uint64_t tf_driver_count;
+    uint64_t tf_driver_upage;
 };
 
 struct Fpregs {

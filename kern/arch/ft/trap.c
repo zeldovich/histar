@@ -120,18 +120,11 @@ thread_arch_get_entry_args(const struct Thread *t,
 void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 {
-    memset(&t->th_tf, 0, sizeof(t->th_tf));
-    t->th_tf.tf_rflags = FL_IF;
-    t->th_tf.tf_cs = GD_UT_NMASK | 3;
-    t->th_tf.tf_ss = GD_UD | 3;
-    t->th_tf.tf_rip = (uintptr_t) te->te_entry;
-    t->th_tf.tf_rsp = (uintptr_t) te->te_stack;
-    t->th_tf.tf_rdi = te->te_arg[0];
-    t->th_tf.tf_rsi = te->te_arg[1];
-    t->th_tf.tf_rdx = te->te_arg[2];
-    t->th_tf.tf_rcx = te->te_arg[3];
-    t->th_tf.tf_r8  = te->te_arg[4];
-    t->th_tf.tf_r9  = te->te_arg[5];
+    t->th_tf.tf_masked = 0;
+    t->th_tf.tf_pc = (uintptr_t) te->te_entry;
+    t->th_tf.tf_sp = (uintptr_t) te->te_stack;
+    for (uint32_t i = 0; i < 6; i++)
+	t->th_tf.tf_jump_regs[i] = te->te_arg[i];
 
     static_assert(thread_entry_narg == 6);
 }
@@ -140,7 +133,7 @@ int
 thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 {
     void *stacktop;
-    uint64_t rsp = t->th_tf.tf_rsp;
+    uint64_t rsp = t->th_tf.tf_sp;
     if (rsp > t->th_as->as_utrap_stack_base &&
 	rsp <= t->th_as->as_utrap_stack_top)
     {
@@ -154,13 +147,7 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
     t_utf.utf_trap_src = src;
     t_utf.utf_trap_num = num;
     t_utf.utf_trap_arg = arg;
-#define UTF_COPY(r) t_utf.utf_##r = t->th_tf.tf_##r
-    UTF_COPY(rax);  UTF_COPY(rbx);  UTF_COPY(rcx);  UTF_COPY(rdx);
-    UTF_COPY(rsi);  UTF_COPY(rdi);  UTF_COPY(rbp);  UTF_COPY(rsp);
-    UTF_COPY(r8);   UTF_COPY(r9);   UTF_COPY(r10);  UTF_COPY(r11);
-    UTF_COPY(r12);  UTF_COPY(r13);  UTF_COPY(r14);  UTF_COPY(r15);
-    UTF_COPY(rip);  UTF_COPY(rflags);
-#undef UTF_COPY
+    t_utf.utf_tf = t->th_tf;
 
     struct UTrapframe *utf = stacktop - sizeof(*utf);
     int r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
@@ -171,10 +158,9 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
     }
 
     memcpy(utf, &t_utf, sizeof(*utf));
-    t->th_tf.tf_rsp = (uintptr_t) utf;
-    t->th_tf.tf_rip = t->th_as->as_utrap_entry;
-    t->th_tf.tf_rflags &= ~FL_TF;
-    t->th_tf.tf_cs = GD_UT_MASK;
+    t->th_tf.tf_sp = (uintptr_t) utf;
+    t->th_tf.tf_pc = t->th_as->as_utrap_entry;
+    t->th_tf.tf_masked = 1;
     return 0;
 }
 
@@ -186,5 +172,5 @@ karch_fp_init(struct Fpregs *fpreg)
 int
 thread_arch_is_masked(const struct Thread *t)
 {
-    return t->th_tf.tf_cs == GD_UT_MASK;
+    return t->th_tf.tf_masked;
 }

@@ -21,9 +21,9 @@ static uint64_t root_container_id;
 static void
 bootstrap_tcb(void *arg, struct Thread *t)
 {
-    unsigned char *upage = (unsigned char *) (uintptr_t) t->th_tf.tf_r15;
+    unsigned char *upage = (unsigned char *) (uintptr_t) t->th_tf.tf_driver_upage;
 
-    uint64_t rip = t->th_tf.tf_rip;
+    uint64_t dc = t->th_tf.tf_driver_count;
     static uint64_t ncalls = 1;
 
     /*
@@ -33,10 +33,10 @@ bootstrap_tcb(void *arg, struct Thread *t)
      *  trap self: thread_utrap(cur_thread, UTRAP_SRC_HW, trapno, traparg);
      */
 
-    if (rip == 0) {
+    if (dc == 0) {
 	/* Set things up.. */
 	//ft_make_symbolic_array(upage, PGSIZE, "upage");
-    } else if (rip <= ncalls) {
+    } else if (dc <= ncalls) {
 	uint64_t a0, a1, a2, a3, a4, a5, a6, a7;
 	make_symbolic(a0, "syscall_a0");
 	make_symbolic(a1, "syscall_a1");
@@ -48,14 +48,14 @@ bootstrap_tcb(void *arg, struct Thread *t)
 	make_symbolic(a7, "syscall_a7");
 
 	kern_syscall(a0, a1, a2, a3, a4, a5, a6, a7);
-    } else if (rip == ncalls + 1) {
+    } else if (dc == ncalls + 1) {
 	kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
     } else {
-	printf("Strange rip value: %"PRIu64"\n", rip);
+	printf("Strange driver counter value: %"PRIu64"\n", dc);
 	assert(0);
     }
 
-    t->th_tf.tf_rip++;
+    t->th_tf.tf_driver_count++;
     schedule();
 }
 
@@ -110,8 +110,8 @@ bootstrap_stuff(void)
     thread_set_runnable(t);
     lnx64_set_thread_cb(t->th_ko.ko_id, &bootstrap_tcb, 0);
 
-    t->th_tf.tf_rip = 0;
-    t->th_tf.tf_r15 = (uintptr_t) upage;
+    t->th_tf.tf_driver_count = 0;
+    t->th_tf.tf_driver_upage = (uintptr_t) upage;
 
     lnxpmap_set_user_concr_page(upage);
 }
