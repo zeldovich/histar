@@ -1,12 +1,13 @@
 --- openssl-0.9.8a_bad/Configure	2005-08-02 03:59:42.000000000 -0700
 +++ openssl-0.9.8a/Configure	2006-03-28 18:55:05.000000000 -0800
-@@ -172,6 +172,10 @@
+@@ -172,6 +172,11 @@
  "gcc",		"gcc:-O3::(unknown):::BN_LLONG:::",
  "cc",		"cc:-O::(unknown)::::::",
  
 +# jos64 configs
 +"x86_64-jos-linux", "acpkg-wrap-gcc:-m64 -DL_ENDIAN -DTERMIO -O3 -Wall -DMD32_REG_T=int:::::SIXTY_FOUR_BIT_LONG RC4_CHUNK BF_PTR2 DES_INT DES_UNROLL:${x86_64_asm}:::::",
-+"i386-jos-linux", "acpkg-wrap-gcc:-DL_ENDIAN -DTERMIO -O3 -Wall::-D_REENTRANT::-ldl:BN_LLONG ${x86_gcc_des} ${x86_gcc_opts}:${x86_elf_asm}:::::",
++"i386-jos-linux", "acpkg-wrap-gcc:-DL_ENDIAN -DTERMIO -O3 -Wall::-D_REENTRANT:::BN_LLONG ${x86_gcc_des} ${x86_gcc_opts}:${x86_elf_asm}:::::",
++"sparc-jos-linux", "acpkg-wrap-gcc:-DB_ENDIAN -DTERMIO -O3 -Wall -DBN_DIV2W::-D_REENTRANT:::BN_LLONG RC4_CHAR RC4_CHUNK DES_UNROLL BF_PTR::sparcv8.o::::::::::::::",
 +
  ####VOS Configurations
  "vos-gcc","gcc:-O3 -Wall -D_POSIX_C_SOURCE=200112L -D_BSD -DB_ENDIAN::(unknown):VOS:-Wl,-map:BN_LLONG:${no_asm}:::::.so:",
@@ -62,3 +63,49 @@
  
  SRC= $(LIBSRC)
  
+--- openssl-0.9.8a/crypto/bn/asm/sparcv8.S.orig	2007-11-26 23:38:21.000000000 -0800
++++ openssl-0.9.8a/crypto/bn/asm/sparcv8.S	2007-11-26 23:39:09.000000000 -0800
+@@ -927,8 +927,9 @@
+ 	st	c_3,rp(14)	!r[14]=c3;
+ 	st	c_1,rp(15)	!r[15]=c1;
+ 
++	mov	%g0, %i0
+ 	ret
+-	restore	%g0,%g0,%o0
++	 restore
+ 
+ .type	bn_mul_comba8,#function
+ .size	bn_mul_comba8,(.-bn_mul_comba8)
+@@ -1041,8 +1042,9 @@
+ 	st	c_1,rp(6)	!r[6]=c1;
+ 	st	c_2,rp(7)	!r[7]=c2;
+ 	
++	mov	%g0, %i0
+ 	ret
+-	restore	%g0,%g0,%o0
++	 restore
+ 
+ .type	bn_mul_comba4,#function
+ .size	bn_mul_comba4,(.-bn_mul_comba4)
+@@ -1351,8 +1353,9 @@
+ 	st	c_3,rp(14)	!r[14]=c3;
+ 	st	c_1,rp(15)	!r[15]=c1;
+ 
++	mov	%g0, %i0
+ 	ret
+-	restore	%g0,%g0,%o0
++	 restore
+ 
+ .type	bn_sqr_comba8,#function
+ .size	bn_sqr_comba8,(.-bn_sqr_comba8)
+@@ -1449,8 +1452,9 @@
+ 	st	c_1,rp(6)	!r[6]=c1;
+ 	st	c_2,rp(7)	!r[7]=c2;
+ 	
++	mov	%g0, %i0
+ 	ret
+-	restore	%g0,%g0,%o0
++	 restore
+ 
+ .type	bn_sqr_comba4,#function
+ .size	bn_sqr_comba4,(.-bn_sqr_comba4)

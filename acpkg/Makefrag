@@ -107,7 +107,7 @@ AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared
 AUTOCONF_binutils-2.17.50.0.15 := --disable-nls --enable-64-bit-bfd --enable-shared=no
 AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --disable-threads --disable-shared --enable-languages=c,c++
 AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
-AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep
+AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep --disable-strip
 AUTOCONF_ncurses-5.5	    := --without-cxx-binding
 AUTOCONF_vim70		    := --with-tlib=ncurses
 AUTOCONF_gmp-4.2.1	    := --enable-shared=$(SHARED_ENABLE)
