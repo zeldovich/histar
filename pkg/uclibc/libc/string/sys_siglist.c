@@ -15,7 +15,7 @@ extern const char _string_syssigmsgs[] attribute_hidden;
 #ifdef __UCLIBC_HAS_SYS_SIGLIST__
 
 const char *const sys_siglist[_NSIG] = {
-	[0] =				NULL,
+	[0 ... _NSIG - 1] =		_string_syssigmsgs,
 	[SIGHUP] =			_string_syssigmsgs + 1,
 	[SIGINT] =			_string_syssigmsgs + 8,
 	[SIGQUIT] =			_string_syssigmsgs + 18,
