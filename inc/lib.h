@@ -157,12 +157,14 @@ int     thread_cleanup(struct thread_args *ta);
 #define PROCESS_EXITED		2
 #define PROCESS_TAINTED_EXIT	3
 #define PROCESS_DEAD		4
+#define PROCESS_STOPPED         5
 
 struct process_state {
     char procname[64];
     uint64_t status;
     int64_t exit_code;
     int64_t exit_signal;
+    uint64_t stops;             /* number of stop signals that have occured */
 };
 
 struct child_process {

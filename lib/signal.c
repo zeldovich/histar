@@ -107,9 +107,6 @@ static siginfo_t signal_queued_si[_NSIG];
 // Avoid growing stack in signal handler, for vmlinux
 int signal_grow_stack;
 
-// sync_wait/wakeup on this value to implement SIGSTOP/CONT
-uint64_t thread_stopped_flag;
-
 libc_hidden_proto(sigprocmask)
 libc_hidden_proto(sigsuspend)
 libc_hidden_proto(sigwaitinfo)
@@ -415,6 +412,9 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
 	return;
 
     if (sa.sa_handler == SIG_DFL) {
+        struct process_state *ps = 0;
+        int r = 0;
+
 	switch (si->si_signo) {
 	case SIGHUP:  case SIGINT:  case SIGQUIT: case SIGSTKFLT:
 	case SIGTRAP: case SIGABRT: case SIGFPE:  case SIGSYS:
@@ -424,22 +424,35 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
 	    sig_fatal(si, sc);
 
 	case SIGSTOP: case SIGTSTP: case SIGTTIN: case SIGTTOU:
-	    cprintf("%s: should stop process: %d\n", jos_progname, si->si_signo);
             /* Wait for SIGCONT to reset flag and wake us up */
             /* Really we are supposed to stop all threads in the process
              * but that's tricky so we just stop this one and hope for the best
              */
             /* Must notify parent of stop per signal specs */
-            thread_stopped_flag = 1;
+            r = segment_map(start_env->process_status_seg,
+                            0, SEGMAP_READ | SEGMAP_WRITE,
+                            (void **) &ps, 0, 0);
+            if (r < 0)
+                return;
+            ps->status = PROCESS_STOPPED;
+            ps->stops++;
             kill(start_env->ppid, SIGCHLD);
-            sys_sync_wait(&thread_stopped_flag, 1, UINT64(~0));
+            /* Stall the thread until woken up by CONT */
+            while (!ps->status == PROCESS_RUNNING)
+                sys_sync_wait(&ps->status, PROCESS_STOPPED, UINT64(~0));
+            segment_unmap(ps);
 	    return;
 
         case SIGCONT:
-	    cprintf("%s: should wakeup process: %d\n", jos_progname, si->si_signo);
+            r = segment_map(start_env->process_status_seg,
+                            0, SEGMAP_READ | SEGMAP_WRITE,
+                            (void **) &ps, 0, 0);
+            if (r < 0)
+                return;
             /* Wake up stopped process */
-            thread_stopped_flag = 0;
-            sys_sync_wakeup(&thread_stopped_flag);
+            ps->status = PROCESS_RUNNING;
+            sys_sync_wakeup(&ps->status);
+            segment_unmap(ps);
             return;
 
 	case SIGURG:  case SIGCHLD: case SIGWINCH:

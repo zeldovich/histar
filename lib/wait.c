@@ -21,6 +21,7 @@ struct wait_child {
     pid_t wc_pid;
     struct cobj_ref wc_seg;
     uint64_t wc_sig_gen;
+    uint64_t wc_handled_stops; /* last count of child stops as seen by parent */
     LIST_ENTRY(wait_child) wc_link;
 };
 
@@ -48,6 +49,7 @@ child_add(pid_t pid, struct cobj_ref status_seg)
     wc->wc_pid = pid;
     wc->wc_seg = status_seg;
     wc->wc_sig_gen = 0;
+    wc->wc_handled_stops = 0;
     LIST_INSERT_HEAD(&live_children, wc, wc_link);
 }
 
@@ -74,37 +76,6 @@ child_notify()
 {
     child_counter++;
     sys_sync_wakeup(&child_counter);
-}
-
-// Returns 1 if child has exited, 0 if still running
-static int
-child_get_status(struct wait_child *wc, int *statusp)
-{
-    struct process_state *ps = 0;
-    int r = segment_map(wc->wc_seg, 0, SEGMAP_READ, (void **) &ps, 0, 0);
-    if (r < 0) {
-	__set_errno(ESRCH);
-	return -1;
-    }
-
-    uint64_t status = ps->status;
-    int64_t exit_code = ps->exit_code;
-    int64_t exit_signal = ps->exit_signal;
-    segment_unmap(ps);
-
-    if (status == PROCESS_RUNNING)
-	return 0;
-
-    union wait wstat;
-    memset(&wstat, 0, sizeof(wstat));
-    wstat.w_termsig = exit_signal;
-    wstat.w_coredump = 0;
-    wstat.w_retcode = exit_code;
-
-    if (statusp)
-	*statusp = wstat.w_status;
-
-    return 1;
 }
 
 static int
@@ -154,24 +125,62 @@ again:
 
     int found_pid = 0;
     for (wc = LIST_FIRST(&live_children); wc; wc = next) {
+        struct process_state *ps = 0;
+        int r;
+        uint64_t status, stops;
+        int64_t exit_code, exit_signal;
 	next = LIST_NEXT(wc, wc_link);
 
 	if (pid >= 0 && pid != wc->wc_pid)
 	    continue;
 
 	found_pid = 1;
-	int r = child_get_status(wc, statusp);
-	if (child_debug)
-	    cprintf("[%"PRIu64"] wait4: child %"PRIu64" status %d\n",
-		    thread_id(), wc->wc_pid, r);
-	if (r < 0) {
+        r = segment_map(wc->wc_seg, 0, SEGMAP_READ,
+                        (void **) &ps, 0, 0);
+        if (r < 0) {
+            __set_errno(ESRCH);
 	    // Bad child?
 	    LIST_REMOVE(wc, wc_link);
 	    LIST_INSERT_HEAD(&free_children, wc, wc_link);
 	    continue;
-	}
+        }
 
-	if (r == 0) {
+	if (child_debug)
+	    cprintf("[%"PRIu64"] wait4: child %"PRIu64" map ok? %d\n",
+		    thread_id(), wc->wc_pid, r);
+
+        status = ps->status;
+        stops = ps->stops;
+        exit_code = ps->exit_code;
+        exit_signal = ps->exit_signal;
+        segment_unmap(ps);
+
+	if (child_debug)
+	    cprintf("[%"PRIu64"] wait4: child %"PRIu64" status %"PRId64"\n",
+		    thread_id(), wc->wc_pid, status);
+
+        /* Report stopped only once to parent by catching up handled_stops */
+        if (options & WUNTRACED &&
+            status == PROCESS_STOPPED &&
+            stops != wc->wc_handled_stops) {
+            if (child_debug)
+                cprintf("[%"PRIu64"] wait4: child %"PRIu64" handling stop "
+                        "ps stops %"PRIu64" handled stops %"PRIu64"\n",
+                        thread_id(), wc->wc_pid, stops, wc->wc_handled_stops);
+            union wait wstat;
+            wc->wc_sig_gen = exit_signal;
+            memset(&wstat, 0, sizeof(wstat));
+            wstat.w_status = W_STOPCODE(exit_signal);
+            if (statusp)
+                *statusp = wstat.w_status;
+            wc->wc_handled_stops = stops;
+            return wc->wc_pid;
+        }
+
+        if (status == PROCESS_RUNNING) {
+            if (child_debug)
+                cprintf("[%"PRIu64"] wait4: child %"PRIu64" RUNNING\n",
+                        thread_id(), wc->wc_pid);
 	    r = child_get_siginfo(wc, statusp);
 	    if (child_debug)
 		cprintf("[%"PRIu64"] wait4: child %"PRIu64" siginfo %d\n",
@@ -181,7 +190,17 @@ again:
 	    continue;
 	}
 
-	if (r == 1) {
+        if (status == PROCESS_EXITED) {
+            if (child_debug)
+                cprintf("[%"PRIu64"] wait4: child %"PRIu64" EXITED\n",
+                        thread_id(), wc->wc_pid);
+            union wait wstat;
+            memset(&wstat, 0, sizeof(wstat));
+            wstat.w_termsig = exit_signal;
+            wstat.w_coredump = 0;
+            wstat.w_retcode = exit_code;
+            if (statusp)
+                *statusp = wstat.w_status;
 	    // Child exited
 	    pid = wc->wc_pid;
 	    LIST_REMOVE(wc, wc_link);
@@ -196,7 +215,11 @@ again:
 		cprintf("[%"PRIu64"] wait4: returning child %"PRIu64"\n",
 			thread_id(), pid);
 	    return pid;
-	}
+        }
+        if (child_debug)
+            cprintf("[%"PRIu64"] wait4: child %"PRIu64" status transition "
+                    "not handled\n",
+                    thread_id(), wc->wc_pid);
     }
 
     if (pid >= 0 && !found_pid) {
