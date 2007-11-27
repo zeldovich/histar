@@ -318,6 +318,16 @@ pty_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     return r;
 }
 
+static ssize_t
+pts_read(struct Fd *fd, void *buf, size_t count, off_t offset)
+{
+    int64_t pty_pgrp;
+    ioctl(fd2num(fd), TIOCGPGRP, &pty_pgrp);
+    if (pty_pgrp != getpgrp())
+        kill(0, SIGTTIN);
+    return pty_read(fd, buf, count, offset);
+}
+
 static int
 pty_probe(struct Fd *fd, dev_probe_t probe)
 {
@@ -535,7 +545,7 @@ struct Dev devptm = {
 struct Dev devpts = {
     .dev_id = 'y',
     .dev_name = "pts",
-    .dev_read = pty_read,
+    .dev_read = pts_read,
     .dev_write = pty_write,
     .dev_open = pts_open,
     .dev_close = pts_close,
