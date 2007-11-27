@@ -129,8 +129,7 @@ struct Fd
 	
 	struct {
 	    struct jcomm pty_jc;
-	    int pty_no;
-	    struct cobj_ref pty_slave_seg;
+	    uint64_t pty_seg;
 	} fd_pty;
 
 	struct {

@@ -91,7 +91,6 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
 
     start_env->user_grant = h_root;
     start_env->user_taint = 0;
-    start_env->ctty = -1;       // No initial controlling tty
 
     error_check(segment_alloc(c_self, sizeof(struct fs_mount_table),
 			      &start_env->fs_mtab_seg, 0, 0, "mount table"));
@@ -202,7 +201,6 @@ init_fs(void)
     error_check(fs_mknod(dev, "random", devrand.dev_id, 0, &dummy_ino, 0));
     error_check(fs_mknod(dev, "urandom", devrand.dev_id, 0, &dummy_ino, 0));
     error_check(fs_mknod(dev, "ptmx", devptm.dev_id, 0, &dummy_ino, 0));
-    error_check(fs_mkdir(dev, "pts", &dummy_ino, 0));
 
     // create a /home directory
     struct fs_inode fs_home;

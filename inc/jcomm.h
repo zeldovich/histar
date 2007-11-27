@@ -4,6 +4,7 @@
 #include <inc/container.h>
 #include <inc/multisync.h>
 #include <inc/label.h>
+#include <inc/jthread.h>
 
 enum { jlink_bufsz = 9000 };
 enum { jcomm_chan0 = 0, jcomm_chan1 = 1 };

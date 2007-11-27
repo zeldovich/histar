@@ -8,6 +8,7 @@
 #include <inc/fs.h>
 #include <inc/intmacro.h>
 #include <inc/gateparam.h>
+#include <inc/pty.h>
 
 #define NSEC_PER_SECOND		UINT64(1000000000)
 
@@ -85,8 +86,7 @@ typedef struct {
     char trace_on;
     int ruid, euid;
 
-    /* Controlling TTY (-1 if none) */
-    int ctty;
+    uint64_t ctty;	/* controlling tty's pty_seg */
 
     int argc;
     int envc;

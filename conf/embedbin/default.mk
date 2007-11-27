@@ -29,10 +29,10 @@ KERN_BINFILES	+= user/bash user/grep user/egrep user/uniq user/mv user/cat
 KERN_BINFILES	+= user/links user/od user/du user/head user/tail user/sync
 KERN_BINFILES	+= user/md5sum user/sha1sum user/mkdir user/stty user/printf
 KERN_BINFILES	+= user/vim user/echo user/dirname user/basename user/file
-KERN_BINFILES	+= user/sleep user/env user/strings
+KERN_BINFILES	+= user/sleep user/env user/strings user/tty
 
 ## SSH
-KERN_BINFILES	+= user/ptyd user/sshd user/ssh.tar user/scp user/sshdi
+KERN_BINFILES	+= user/sshd user/ssh.tar user/scp user/sshdi
 
 ## Development
 KERN_BINFILES	+= user/gcc.tar.gz user/include.tar.gz
@@ -54,7 +54,7 @@ KERN_BINFILES	+= user/fetch user/dnstest
 #KERN_BINFILES	+= user/netd_vpn user/openvpn user/vpn_start
 
 ## What gets run at startup; flags are "r" for root, "a" for passing args
-INITTAB_ENTRIES	:= /bin/netd_mom:ra /bin/ptyd:ra /bin/sshdi:ra
+INITTAB_ENTRIES	:= /bin/netd_mom:ra /bin/sshdi:ra
 
 #include conf/embedbin/httpd.mk
 #include conf/embedbin/dj.mk
