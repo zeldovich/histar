@@ -211,6 +211,14 @@ pci_func_enable(struct pci_func *f)
 	pci_conf_write(f, bar, oldv);
 	f->reg_base[regnum] = base;
 	f->reg_size[regnum] = size;
+
+	if (size && !base) {
+	    cprintf("PCI device %02x:%02x.%d (%04x:%04x) may be misconfigured",
+		    f->bus->busno, f->dev, f->func,
+		    PCI_VENDOR(f->dev_id), PCI_PRODUCT(f->dev_id));
+	    cprintf("  Region %d: base 0x%x, size %d\n",
+		    regnum, base, size);
+	}
     }
 }
 
