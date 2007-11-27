@@ -13,7 +13,7 @@
 #include <sys/socket.h>
 
 static void
-lnx_cons_putc(void *arg, int c)
+lnx_cons_putc(void *arg, int c, cons_source src)
 {
     putc(c, stdout);
 }

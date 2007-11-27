@@ -3,7 +3,7 @@
 #include <machine/um.h>
 
 static void
-um_putchar(void *arg, int c)
+um_putchar(void *arg, int c, cons_source src)
 {
     putchar(c);
 }
