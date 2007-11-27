@@ -121,14 +121,26 @@ ne2kpci_flush_packet(struct ne2kpci_card *c, struct dp8390_ring *rrd)
     outb(c->iobase + ED_P0_BNRY, boundary);
 }
 
-static void
+static int
 ne2kpci_init(struct ne2kpci_card *c)
 {
     // init procedure as specified in NS reference
 
     // reset
     outb(c->iobase + NE2KPCI_RESET, inb(c->iobase + NE2KPCI_RESET));
-    while ((inb(c->iobase + ED_P0_ISR) & ED_ISR_RST) == 0) ;
+    uint64_t tsc_start = karch_get_tsc();
+    for (;;) {
+	uint8_t isr = inb(c->iobase + ED_P0_ISR);
+	if (isr & ED_ISR_RST)
+	    break;
+
+	uint64_t tsc_diff = karch_get_tsc() - tsc_start;
+	if (tsc_diff > 1024 * 1024 * 1024) {
+	    cprintf("ne2kpci_init: stuck for %"PRIu64" cycles, isr 0x%x\n",
+		    tsc_diff, isr);
+	    return -E_BUSY;
+	}
+    }
 
     outb(c->iobase + ED_P0_CR, ED_CR_STP | ED_CR_RD2);
     outb(c->iobase + ED_P0_DCR, ED_DCR_LS | ED_DCR_FT1);
@@ -171,6 +183,7 @@ ne2kpci_init(struct ne2kpci_card *c)
     outb(c->iobase + ED_P0_CR, ED_CR_PAGE_0 | ED_CR_RD2 | ED_CR_STA);
 
     outb(c->iobase + ED_P0_TCR, 0);
+    return 0;
 }
 
 static void
@@ -329,7 +342,11 @@ ne2kpci_attach(struct pci_func *pcif)
 	return 0;
     }
 
-    ne2kpci_init(c);
+    r = ne2kpci_init(c);
+    if (r < 0) {
+	page_free(c);
+	return r;
+    }
 
     irq_register(c->irq_line, &c->ih);
 
