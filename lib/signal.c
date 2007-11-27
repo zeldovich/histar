@@ -436,6 +436,7 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
                 return;
             ps->status = PROCESS_STOPPED;
             ps->stops++;
+            ps->exit_signal = si->si_signo;
             kill(start_env->ppid, SIGCHLD);
             /* Stall the thread until woken up by CONT */
             while (ps->status == PROCESS_STOPPED)
