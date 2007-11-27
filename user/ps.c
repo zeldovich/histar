@@ -14,6 +14,14 @@ main(int ac, char **av)
     uint64_t poolct;
     char *ep;
     struct fs_inode ino;
+    const char *status_string[6] = {
+        "RUNNING",
+        "TAINTED",
+        "EXITED",
+        "TAINTED_EXIT",
+        "DEAD",
+        "STOPPED"
+    };
 
     switch (ac) {
     case 1:
@@ -41,7 +49,7 @@ main(int ac, char **av)
 	exit(1);
     }
 
-    printf("%22s  %s\n", "PID", "CMD");
+    printf("%22s %8s %s\n", "PID", "STATUS","CMD");
 
     for (int64_t i = 0; i < nslots; i++) {
 	int64_t ctid = sys_container_get_slot_id(poolct, i);
@@ -62,10 +70,12 @@ main(int ac, char **av)
 	}
 
 	char buf[sizeof(procstat->procname) + 1];
+        uint64_t status;
 	strncpy(&buf[0], &procstat->procname[0], sizeof(procstat->procname));
+        status = procstat->status;
 	segment_unmap_delayed(procstat, 1);
 
 	buf[sizeof(buf) - 1] = '\0';
-	printf("%22"PRIu64"  %s\n", ctid, buf);
+	printf("%22"PRIu64" %8s %s\n", ctid, status_string[status], buf);
     }
 }
