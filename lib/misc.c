@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <link.h>
 
-#include <sys/io.h>
 #include <bits/unimpl.h>
 
 // Some BSD gunk
@@ -57,6 +56,9 @@ dl_iterate_phdr(int (*callback) (struct dl_phdr_info *info,
 }
 #endif
 
+#if defined(JOS_ARCH_i386) || defined(JOS_ARCH_amd64)
+#include <sys/io.h>
+
 int
 iopl(int level)
 {
@@ -70,3 +72,4 @@ ioperm(unsigned long from, unsigned long num, int turn_on)
     set_enosys();
     return -1;
 }
+#endif
