@@ -4,3 +4,6 @@
 *libgcc:
 %{!static:LDSOPATH} -lgcc MAYBE_GCC_EH
 
+*linker:
+collect2 -E
+

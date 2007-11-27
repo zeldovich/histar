@@ -97,7 +97,6 @@ LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
 
 ifeq ($(SHARED_ENABLE),yes)
 CFLAGS_LIB_SHARED := -fPIC -DSHARED
-LDFLAGS += -Wl,-E
 LDEPS += $(OBJDIR)/lib/libm.so \
 	 $(OBJDIR)/lib/libutil.so \
 	 $(OBJDIR)/lib/libdl.so \
