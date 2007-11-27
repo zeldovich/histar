@@ -18,7 +18,7 @@ static void
 serial_putc(void *arg, int c, cons_source src)
 {
     if (c == '\n')
-	serial_putc(arg, '\r');
+	serial_putc(arg, '\r', src);
 
     LEON3_APBUART_Regs_Map *uart_regs = (LEON3_APBUART_Regs_Map *) arg;
     
