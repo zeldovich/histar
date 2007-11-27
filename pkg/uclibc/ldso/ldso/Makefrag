@@ -9,7 +9,8 @@ LDSO_LIBS := \
 	$(OBJDIR)/lib/libc.a \
 	$(OBJDIR)/lib/libstdc++.a \
 	$(OBJDIR)/lib/liblwip.a \
-	$(OBJDIR)/lib/libnetd.a
+	$(OBJDIR)/lib/libnetd.a \
+	$(OBJDIR)/lib/libdl.a
 
 LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
 		-DNOT_IN_libc -DIS_IN_rtld \
