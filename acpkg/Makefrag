@@ -197,7 +197,7 @@ $(ACPKG_BUILDDIR)/%/Makefile: $(ACPKG_BUILDDIR)/%/__patch | $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
 	-find $(ACPKG_BUILDDIR)/$(PKGNAME) -name config.cache | xargs rm -f
 	-find $(ACPKG_BUILDDIR)/$(PKGNAME) -name config.status | xargs rm -f
-	-( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
+	-( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) distclean" )
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) ./configure \
 		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" )
 	touch $@
@@ -229,8 +229,8 @@ $(ACPKG_BUILDDIR)/%/__reconf: $(ACPKG_BUILDDIR)/%/__patch | $(ACPKG_WRAPS)
 .PRECIOUS: $(ACPKG_BUILDDIR)/%/__build
 $(ACPKG_BUILDDIR)/%/__build: PKGNAME=$(patsubst $(ACPKG_BUILDDIR)/%/__build,%,$@)
 $(ACPKG_BUILDDIR)/%/__build: $(ACPKG_BUILDDIR)/%/Makefile | $(LDEPS) $(ACPKG_BUILDDIR)/%/__unpack
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE)" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) install" )
 	touch $@
 
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/$(TARGET)-%
@@ -314,11 +314,11 @@ ACPKG_GS_FONTS = $(FONTDIR)/n022003l.pfb \
 
 $(ACPKG_BUILDDIR)/ghostscript-8.54-gpl/__build: $(ACPKG_BUILDDIR)/ghostscript-8.54-gpl/Makefile $(ACPKG_GS_FONTS) | $(LDEPS)
 	mkdir -p $(ACPKG_BUILDDIR)/$(PKGNAME)/obj
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "PREFIX=\"$(TOP)/$(ACPKG_PREFIX)\" gmake -f src/jos64-gcc.mak obj/arch.h obj/genconf obj/echogs" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "PREFIX=\"$(TOP)/$(ACPKG_PREFIX)\" $(MAKE) -f src/jos64-gcc.mak obj/arch.h obj/genconf obj/echogs" )
 	cp $(ACPKG_BUILDDIR)/$(PKGNAME)/{jos64-arch.h,obj/arch.h}
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "PREFIX=\"$(TOP)/$(ACPKG_PREFIX)\" gmake -f src/jos64-gcc.mak CC=: CCLD=: $(GSENV)" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake $(GSENV)" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake install $(GSENV)" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "PREFIX=\"$(TOP)/$(ACPKG_PREFIX)\" $(MAKE) -f src/jos64-gcc.mak CC=: CCLD=: $(GSENV)" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) $(GSENV)" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) install $(GSENV)" )
 	touch $@
 
 $(OBJDIR)/acpkg/bin/gs: $(ACPKG_BUILDDIR)/ghostscript-8.54-gpl/__build
@@ -332,7 +332,7 @@ $(OBJDIR)/user/gs.tar: $(ACPKG_BUILDDIR)/ghostscript-8.54-gpl/__build $(ACPKG_GS
 ## [ description of microperl:
 ##   http://www.foo.be/docs/tpj/issues/vol5_3/tpj0503-0003.html ]
 $(ACPKG_BUILDDIR)/perl-5.8.8/__build: $(ACPKG_BUILDDIR)/perl-5.8.8/__patch | $(LDEPS)
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake -f Makefile.micro" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) -f Makefile.micro" )
 	mkdir -p $(OBJDIR)/acpkg/bin
 	cp $(ACPKG_BUILDDIR)/perl-5.8.8/microperl $(OBJDIR)/acpkg/bin/perl
 	touch $@
@@ -372,7 +372,7 @@ $(OBJDIR)/acpkg/bin/mutt: $(ACPKG_BUILDDIR)/mutt-1.4.2.3/__build
 $(OBJDIR)/acpkg/bin/bash: $(ACPKG_BUILDDIR)/bash-3.1/__build
 	@
 
-$(OBJDIR)/acpkg/bin/ar $(OBJDIR)/acpkg/bin/nm $(OBJDIR)/acpkg/bin/objdump: $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build
+$(OBJDIR)/acpkg/bin/ar $(OBJDIR)/acpkg/bin/nm $(OBJDIR)/acpkg/bin/objdump $(OBJDIR)/acpkg/bin/strings: $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build
 	@
 
 $(OBJDIR)/acpkg/bin/file: $(ACPKG_BUILDDIR)/file-4.21/__build
@@ -380,7 +380,7 @@ $(OBJDIR)/acpkg/bin/file: $(ACPKG_BUILDDIR)/file-4.21/__build
 
 $(ACPKG_BUILDDIR)/dhcp-3.0.5/__build: $(ACPKG_BUILDDIR)/dhcp-3.0.5/__patch | $(LDEPS) $(ACPKG_WRAPS)
 	( cd $(ACPKG_BUILDDIR)/dhcp-3.0.5 && sh -c "$(ACENV) ./configure" )
-	( cd $(ACPKG_BUILDDIR)/dhcp-3.0.5 && sh -c "$(ACENV) gmake" )
+	( cd $(ACPKG_BUILDDIR)/dhcp-3.0.5 && sh -c "$(ACENV) $(MAKE)" )
 	touch $@
 
 $(OBJDIR)/acpkg/sbin/dhclient: $(ACPKG_BUILDDIR)/dhcp-3.0.5/__build
@@ -390,8 +390,8 @@ $(OBJDIR)/acpkg/sbin/dhclient: $(ACPKG_BUILDDIR)/dhcp-3.0.5/__build
 ## http://linuxfromscratch.org/pipermail/patches/attachments/20060606/fc29f4b0/vim-7.0-cross_compile-1.bin
 $(ACPKG_BUILDDIR)/vim70/__build: $(ACPKG_BUILDDIR)/vim70/__patch | $(OBJDIR)/lib/libncurses.a $(ACPKG_WRAPS)
 	( cd $(ACPKG_BUILDDIR)/vim70 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) $(AUTOCONF_vim70)" )
-	( cd $(ACPKG_BUILDDIR)/vim70 && sh -c "$(ACENV) gmake" )
-	( cd $(ACPKG_BUILDDIR)/vim70 && sh -c "$(ACENV) gmake install" )
+	( cd $(ACPKG_BUILDDIR)/vim70 && sh -c "$(ACENV) $(MAKE)" )
+	( cd $(ACPKG_BUILDDIR)/vim70 && sh -c "$(ACENV) $(MAKE) install" )
 	touch $@	
 
 $(OBJDIR)/acpkg/bin/vim: $(ACPKG_BUILDDIR)/vim70/__build
@@ -435,8 +435,8 @@ $(OBJDIR)/acpkg/bin/make: $(ACPKG_BUILDDIR)/make-3.81/__build
 $(ACPKG_BUILDDIR)/openssh-4.3p2/Makefile: | $(ACPKG_BUILDDIR)/openssl-0.9.8a/__build
 $(ACPKG_BUILDDIR)/openssh-4.3p2/Makefile: | $(ACPKG_BUILDDIR)/zlib-1.2.3/__build
 $(ACPKG_BUILDDIR)/openssh-4.3p2/__build: $(ACPKG_BUILDDIR)/openssh-4.3p2/Makefile | $(LDEPS)
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake install-nokeys" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE)" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) install-nokeys" )
 	touch $@
 
 $(OBJDIR)/acpkg/bin/scp: $(ACPKG_BUILDDIR)/openssh-4.3p2/__build
@@ -488,10 +488,10 @@ $(OBJDIR)/acpkg/lib/libz.so.1: $(ACPKG_BUILDDIR)/zlib-1.2.3/__build
 
 $(ACPKG_BUILDDIR)/zlib-1.2.3/__build: | $(ACPKG_WRAPS) $(ACPKG_BUILDDIR)/zlib-1.2.3/__patch
 	@mkdir -p $(ACPKG_PREFIX)
-	-( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
+	-( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) distclean" )
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) ./configure --prefix=$(TOP)/$(ACPKG_PREFIX) $(if $(patsubst no,,$(SHARED_ENABLE)),--shared)" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE)" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) install" )
 	touch $@
 
 $(ACPKG_BUILDDIR)/clamav-0.88/Makefile: | $(ACPKG_BUILDDIR)/zlib-1.2.3/__build
@@ -504,18 +504,18 @@ $(ACPKG_BUILDDIR)/openssl-0.9.8a/__build: $(ACPKG_BUILDDIR)/zlib-1.2.3/__build $
 	ln -fs $(TOP)/pkg/ssl-eproc/e_proc.c $(TOP)/$(ACPKG_BUILDDIR)/openssl-0.9.8a/engines/e_proc.c
 	ln -fs $(TOP)/pkg/httpd/inc/ssleproc.h $(TOP)/$(ACPKG_BUILDDIR)/openssl-0.9.8a/engines/ssleproc.h
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX) threads" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake install_sw" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE)" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) install_sw" )
 	touch $@
 
 $(OBJDIR)/acpkg/lib/libssl.a $(OBJDIR)/acpkg/lib/libcrypto.a: $(ACPKG_BUILDDIR)/openssl-0.9.8a/__build
 	@
 
 $(ACPKG_BUILDDIR)/ncurses-5.5/__build: $(ACPKG_BUILDDIR)/ncurses-5.5/Makefile | $(ACPKG_WRAPS) $(LDEPS)
-	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) gmake" )
-	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) gmake install.progs" )
-	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) gmake install.libs" )
-	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) gmake install.data" )
+	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) $(MAKE)" )
+	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) $(MAKE) install.progs" )
+	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) $(MAKE) install.libs" )
+	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) $(MAKE) install.data" )
 	( cd $(OBJDIR)/acpkg/include/ && ln -fs ncurses/curses.h curses.h )
 	touch $@
 
@@ -563,7 +563,7 @@ $(LINUX_SRC)/__build: $(LINUX_SRC)/include/asm-lind \
 		      $(LINUX_SRC)/arch/lind $(LINUX_OUT)/.config | $(LDEPS)
 	@mkdir -p $(LINUX_OUT)
 	rm -f $(LINUX_OUT)/vmlinux $(LINUX_OUT)/kernel/kallsyms.o
-	( cd $(LINUX_SRC) && make \
+	( cd $(LINUX_SRC) && $(MAKE) \
 	  ARCH=lind \
 	  OS=jos64 \
 	  O=$(TOP)/$(LINUX_OUT) \
@@ -614,8 +614,8 @@ GCC_ACENV := $(ACENV) \
 
 $(ACPKG_BUILDDIR)/gcc-3.4.5/Makefile: | $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build
 $(ACPKG_BUILDDIR)/gcc-3.4.5/__build: $(ACPKG_BUILDDIR)/gcc-3.4.5/Makefile
-	( cd $(ACPKG_BUILDDIR)/gcc-3.4.5 && sh -c "$(GCC_ACENV) gmake" )
-	( cd $(ACPKG_BUILDDIR)/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
+	( cd $(ACPKG_BUILDDIR)/gcc-3.4.5 && sh -c "$(GCC_ACENV) $(MAKE)" )
+	( cd $(ACPKG_BUILDDIR)/gcc-3.4.5 && sh -c "$(ACENV) $(MAKE) install" )
 	cp $(ACPKG_BUILDDIR)/gcc-3.4.5/gcc/gsyslimits.h $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/include/syslimits.h
 	cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, -e s,MAYBE_GCC_EH,, >> $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/specs
 	touch $@
@@ -736,13 +736,13 @@ $(ACPKG_BUILDDIR)/python-svn/Makefile: $(ACPKG_BUILDDIR)/python-svn/__patch | $(
 	touch $@
 
 $(ACPKG_BUILDDIR)/jpeg-6b/__build: $(ACPKG_BUILDDIR)/jpeg-6b/Makefile | $(LDEPS)
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) gmake install-lib" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE)" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) install" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) install-lib" )
 	touch $@
 
 $(ACPKG_BUILDDIR)/svgalib-1.9.25/__build: $(ACPKG_BUILDDIR)/svgalib-1.9.25/__patch | $(LDEPS)
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "TOPDIR=$(TOP)/$(ACPKG_PREFIX) $(ACENV) gmake install demoprogs" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "TOPDIR=$(TOP)/$(ACPKG_PREFIX) $(ACENV) $(MAKE) install demoprogs" )
 	ln -sf libvga.so.1.9.25   $(ACPKG_PREFIX)/lib/libvga.so.1
 	ln -sf libvgagl.so.1.9.25 $(ACPKG_PREFIX)/lib/libvgagl.so.1
 	cp $(ACPKG_BUILDDIR)/$(PKGNAME)/demos/fun $(ACPKG_PREFIX)/bin/vgafun
@@ -758,6 +758,6 @@ $(ACPKG_BUILDDIR)/fbida-2.06/__build: $(ACPKG_BUILDDIR)/fbida-2.06/__patch \
 		$(ACPKG_BUILDDIR)/libexif-0.6.16/__build \
 		$(ACPKG_BUILDDIR)/jpeg-6b/__build \
 		$(ACPKG_BUILDDIR)/fontconfig-2.5.0/__build
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "verbose=yes prefix=$(TOP)/$(ACPKG_PREFIX) CFLAGS=-I$(TOP)/$(ACPKG_PREFIX)/include/freetype2 LDFLAGS='-Wl,-rpath-link -Wl,$(TOP)/$(ACPKG_PREFIX)/lib' $(ACENV) gmake install" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "verbose=yes prefix=$(TOP)/$(ACPKG_PREFIX) CFLAGS=-I$(TOP)/$(ACPKG_PREFIX)/include/freetype2 LDFLAGS='-Wl,-rpath-link -Wl,$(TOP)/$(ACPKG_PREFIX)/lib' $(ACENV) $(MAKE) install" )
 	touch $@
 
