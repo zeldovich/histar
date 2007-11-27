@@ -6,6 +6,7 @@
 #include <inc/labelutil.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
+#include <inc/setjmp.h>
 
 #include <bits/unimpl.h>
 
@@ -179,13 +180,20 @@ pts_close(struct Fd *fd)
     if (!fd->fd_pty.pty_seg)
 	return 0;
 
+    struct jos_jmp_buf *pf_old = tls_data->tls_pgfault;
     struct pty_seg *ps = 0;
-    int r = segment_map(PTY_SEG(fd), 0, SEGMAP_READ | SEGMAP_WRITE,
+
+    struct jos_jmp_buf pf_jb;
+    if (jos_setjmp(&pf_jb) != 0)
+	goto err;
+    tls_data->tls_pgfault = &pf_jb;
+
+    int r = segment_map(PTY_SEG(fd), 0,
+			SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF,
 			(void **)&ps, 0, 0);
     if (r < 0) {
 	cprintf("pts_close: unable to map pty_seg: %s\n", e2s(r));
-	errno = EACCES;
-	return -1;
+	goto err;
     }
 
     if (jos_atomic_dec_and_test(&ps->ref)) {
@@ -195,7 +203,13 @@ pts_close(struct Fd *fd)
     }
 
     segment_unmap_delayed(ps, 1);
+    tls_data->tls_pgfault = pf_old;
     return pty_unref(fd);
+
+ err:
+    tls_data->tls_pgfault = pf_old;
+    errno = EACCES;
+    return -1;
 }
 
 static int
@@ -216,12 +230,20 @@ pty_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     const char *ch = ((const char *)buf);
     uint32_t cc = 0;
 
+    struct jos_jmp_buf *pf_old = tls_data->tls_pgfault;
     struct pty_seg *ps = 0;
-    int r = segment_map(PTY_SEG(fd), 0, SEGMAP_READ | SEGMAP_WRITE,
+
+    struct jos_jmp_buf pf_jb;
+    if (jos_setjmp(&pf_jb) != 0)
+	goto err;
+    tls_data->tls_pgfault = &pf_jb;
+
+    int r = segment_map(PTY_SEG(fd), 0,
+			SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF,
 			(void **)&ps, 0, 0);
     if (r < 0) {
 	cprintf("pty_write: unable to map pty_seg: %s\n", e2s(r));
-	return -1;
+	goto err;
     }
 
     uint32_t i = 0;
@@ -267,23 +289,32 @@ pty_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     }
     assert((uint32_t)r == cc);
     ret = count;
+    goto out;
 
+ err:
+    errno = EACCES;
  out:
-    segment_unmap_delayed(ps, 1);
+    if (ps)
+	segment_unmap_delayed(ps, 1);
+    tls_data->tls_pgfault = pf_old;
     return ret;
 }
 
 static ssize_t
 pty_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
-    int r = jcomm_read(PTY_JCOMM(fd), buf, count, !(fd->fd_omode & O_NONBLOCK));
+    ssize_t r = jcomm_read(PTY_JCOMM(fd), buf, count,
+			   !(fd->fd_omode & O_NONBLOCK));
     if (r == -E_AGAIN) {
 	__set_errno(EAGAIN);
 	return -1;
     }
 
-    if (r < 0)
-	cprintf("pty_read: jcomm_read error: %s\n", e2s(r));
+    if (r < 0) {
+	__set_errno(EINVAL);
+	return -1;
+    }
+
     return r;
 }
 
@@ -324,19 +355,36 @@ pty_shutdown(struct Fd *fd, int how)
 }
 
 static int
-pty_ioctl(struct Fd *fd, uint64_t req, va_list ap, struct pty_seg *ps)
+pty_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 {
+    int ret = -1;
+
+    struct jos_jmp_buf *pf_old = tls_data->tls_pgfault;
+    struct pty_seg *ps = 0;
+
+    struct jos_jmp_buf pf_jb;
+    if (jos_setjmp(&pf_jb) != 0)
+	goto err;
+    tls_data->tls_pgfault = &pf_jb;
+
+    int r = segment_map(PTY_SEG(fd), 0,
+			SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF,
+			(void **)&ps, 0, 0);
+    if (r < 0)
+	goto err;
+
     switch (req) {
     case TCGETS: {
     	if (!fd->fd_isatty) {
 	    __set_errno(ENOTTY);
-	    return -1;
+	    goto out;
     	}
 
 	struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
 	memcpy(k_termios, &ps->ios, sizeof(*k_termios));
-	return 0;
+	ret = 0;
+	break;
     }
 
     case TCSETS:
@@ -345,88 +393,74 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap, struct pty_seg *ps)
 	const struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
 	memcpy(&ps->ios, k_termios, sizeof(ps->ios));
-	return 0;
+	ret = 0;
+	break;
     }
 
     case TIOCGPGRP: {
 	pid_t *pgrp = va_arg(ap, pid_t *);
 	*pgrp = ps->pgrp;
-	return 0;
+	ret = 0;
+	break;
     }
 
     case TIOCSPGRP: {
 	pid_t *pgrp = va_arg(ap, pid_t *);
 	ps->pgrp = *pgrp;
-	return 0;
+	ret = 0;
+	break;
     }
 
     case TIOCSCTTY:
         /* Set processes controlling tty as this pty and update pgrp */
         ps->pgrp = getpgrp();
         start_env->ctty = fd->fd_pty.pty_seg;
-	return 0;
+	ret = 0;
+	break;
 
     case TIOCNOTTY:
         /* Disassociate this pty from its controlling tty */
 	start_env->ctty = 0;
-	return 0;
+	ret = 0;
+	break;
 
     case TIOCSWINSZ:
 	ps->winsize = *(struct winsize *) va_arg(ap, struct winsize*);
 	killpg(ps->pgrp, SIGWINCH);
-	return 0;
+	ret = 0;
+	break;
 
     case TIOCGWINSZ:
 	*(struct winsize *) va_arg(ap, struct winsize*) = ps->winsize;
-	return 0;
+	ret = 0;
+	break;
+
+    case TIOCGPTN:
+	cprintf("pty_ioctl: TIOCGPTN not supported\n");
+	__set_errno(E2BIG);
+	ret = -1;
+	break;
+
+    case TIOCSPTLCK:
+	/* the pts associated with fd is always unlocked */
+	ret = 0;
+	break;
 
     default:
 	cprintf("pty_ioctl: request 0x%"PRIx64" unimplemented\n", req);
-	return -1;
-    }
-}
-
-static int
-ptm_ioctl(struct Fd *fd, uint64_t req, va_list ap)
-{
-    struct pty_seg *ps = 0;
-    int r = segment_map(PTY_SEG(fd), 0, SEGMAP_READ | SEGMAP_WRITE,
-			(void **)&ps, 0, 0);
-    if (r < 0) {
-	cprintf("ptm_ioctl: unable to map pty_seg: %s\n", e2s(r));
-	return -1;
+	__set_errno(EINVAL);
     }
 
-    if (req == TIOCGPTN) {
-	cprintf("ptm_ioctl: TIOCGPTN not supported\n");
-	__set_errno(E2BIG);
-	return -1;
-    }
+    goto out;
 
-    if (req == TIOCSPTLCK) {
-	/* the pts associated with fd is always unlocked */
-	return 0;
-    } 
-    
-    r = pty_ioctl(fd, req, ap, ps);
-    segment_unmap_delayed(ps, 1);
-    return r;
-}
+ err:
+    errno = EACCES;
 
-static int
-pts_ioctl(struct Fd *fd, uint64_t req, va_list ap)
-{
-    struct pty_seg *ps = 0;
-    int r = segment_map(PTY_SEG(fd), 0, SEGMAP_READ | SEGMAP_WRITE,
-			(void **)&ps, 0, 0);
-    if (r < 0) {
-	cprintf("pts_ioctl: unable to map pty_seg: %s\n", e2s(r));
-	return -1;
-    }
-    
-    r = pty_ioctl(fd, req, ap, ps);
-    segment_unmap_delayed(ps, 1);
-    return r;
+ out:
+    if (ps)
+	segment_unmap_delayed(ps, 1);
+    tls_data->tls_pgfault = pf_old;
+    return ret;
 }
 
 static int
@@ -493,7 +527,7 @@ struct Dev devptm = {
     .dev_probe = pty_probe,
     .dev_statsync = pty_statsync,
     .dev_shutdown = pty_shutdown,
-    .dev_ioctl = ptm_ioctl,
+    .dev_ioctl = pty_ioctl,
     .dev_addref = &pty_addref,
     .dev_unref = &pty_unref,
 };
@@ -509,7 +543,7 @@ struct Dev devpts = {
     .dev_probe = pty_probe,
     .dev_statsync = pty_statsync,
     .dev_shutdown = pty_shutdown,
-    .dev_ioctl = pts_ioctl,
+    .dev_ioctl = pty_ioctl,
     .dev_addref = &pty_addref,
     .dev_unref = &pty_unref,
 };

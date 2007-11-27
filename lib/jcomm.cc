@@ -22,11 +22,11 @@ pf_restore(struct jos_jmp_buf *jb)
 }
 
 #define PF_CATCH_BLOCK						\
+    scope_guard<void, struct jos_jmp_buf*> __pf_restore		\
+	(pf_restore, tls_data->tls_pgfault);			\
     struct jos_jmp_buf __pf_jb;					\
     if (jos_setjmp(&__pf_jb) != 0)				\
 	return -E_INVAL;					\
-    scope_guard<void, struct jos_jmp_buf*> __pf_restore		\
-	(pf_restore, tls_data->tls_pgfault);			\
     tls_data->tls_pgfault = &__pf_jb;				\
 
 
