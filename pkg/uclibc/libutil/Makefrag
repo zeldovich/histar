@@ -1,6 +1,6 @@
 OBJDIRS += pkg/uclibc/libutil
 
-LIBUTIL_CSRC := openpty.c
+LIBUTIL_CSRC := openpty.c login_tty.c
 LIBUTIL_CSRC := $(patsubst %.c, pkg/uclibc/libutil/%.c, $(LIBUTIL_CSRC))
 LIBUTIL_COBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LIBUTIL_CSRC))
 
