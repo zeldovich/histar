@@ -19,3 +19,10 @@ if booting errors or hangs:
 
       make sure BIOS is booting USB key in "USB-HDD" mode..see
       http://syslinux.zytor.com/usbkey.php for hints.
+
+in cygwin:
+
+      $ syslinux.exe -m -a f:
+      $ echo 'default histar' > /cygdrive/f/syslinux.cfg
+      $ cp ~/jos64/obj/boot/bimage.init /cygdrive/f/histar
+
