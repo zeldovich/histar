@@ -8,7 +8,7 @@
 static void
 putch (int ch, void *cnt)
 {
-  cons_putc(ch);
+  cons_putc(ch, cons_source_kernel);
   (*((int *) cnt))++;
 }
 

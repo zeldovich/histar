@@ -12,12 +12,12 @@ static struct {
 } cons_inq;
 
 void
-cons_putc(int c)
+cons_putc(int c, cons_source src)
 {
     struct cons_device *cd;
     LIST_FOREACH(cd, &cdevs, cd_link)
 	if (cd->cd_output)
-	    cd->cd_output(cd->cd_arg, c);
+	    cd->cd_output(cd->cd_arg, c, src);
 }
 
 int

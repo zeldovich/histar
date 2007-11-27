@@ -85,7 +85,7 @@ cga_savebuf_copy(int first_line, bool_t to_screen)
 
 
 static void
-cga_putc(void *arg, int c)
+cga_putc(void *arg, int c, cons_source src)
 {
 #if CRT_SAVEROWS > 0
     // unscroll if necessary
@@ -95,9 +95,14 @@ cga_putc(void *arg, int c)
     }
 #endif
 
-    // if no attribute given, then use black on white
-    if (!(c & ~0xFF))
-	c |= 0x0700;
+    c &= 0xff;
+
+    if (SAFE_EQUAL(src, cons_source_kernel))
+	c |= ((CGA_BLUE << CGA_BG_SHIFT) | CGA_BRITE_WHITE) << 8;
+    else if (SAFE_EQUAL(src, cons_source_user))
+	c |= ((CGA_BLACK << CGA_BG_SHIFT) | CGA_WHITE) << 8;
+    else
+	c |= ((CGA_RED << CGA_BG_SHIFT) | CGA_BRITE_WHITE) << 8;
 
     switch (c & 0xff) {
     case '\b':
@@ -113,11 +118,11 @@ cga_putc(void *arg, int c)
 	crt_pos -= (crt_pos % CRT_COLS);
 	break;
     case '\t':
-	cga_putc(arg, ' ');
-	cga_putc(arg, ' ');
-	cga_putc(arg, ' ');
-	cga_putc(arg, ' ');
-	cga_putc(arg, ' ');
+	cga_putc(arg, ' ', src);
+	cga_putc(arg, ' ', src);
+	cga_putc(arg, ' ', src);
+	cga_putc(arg, ' ', src);
+	cga_putc(arg, ' ', src);
 	break;
     default:
 	crt_buf[crt_pos++] = c;	/* write the character */

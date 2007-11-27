@@ -18,7 +18,7 @@ delay(void)
 /***** Parallel port output code *****/
 
 static void
-lpt_putc(void *arg, int c)
+lpt_putc(void *arg, int c, cons_source src)
 {
     int i;
 
@@ -47,7 +47,7 @@ lptcons_init(void)
 
     if (lpt_enable) {
 	uint64_t start = karch_get_tsc();
-	lpt_putc(0, '\n');
+	lpt_putc(0, '\n', cons_source_kernel);
 	if (karch_get_tsc() - start > 0x100000) {
 	    lpt_enable = 0;
 	    cprintf("Parallel port too slow, disabling.\n");

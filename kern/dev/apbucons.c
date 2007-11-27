@@ -15,7 +15,7 @@
 enum { baud_rate = 38400 };
 
 static void
-serial_putc(void *arg, int c)
+serial_putc(void *arg, int c, cons_source src)
 {
     if (c == '\n')
 	serial_putc(arg, '\r');

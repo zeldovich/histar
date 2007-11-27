@@ -65,7 +65,7 @@ serial_intr(void *arg)
 }
 
 static void
-serial_putc(void *arg, int c)
+serial_putc(void *arg, int c, cons_source src)
 {
     struct serial_port *com_port = arg;
 
@@ -126,7 +126,7 @@ sercons_init(void)
     }
 
     uint64_t start = karch_get_tsc();
-    serial_putc(com_port, '\n');
+    serial_putc(com_port, '\n', cons_source_kernel);
     if (karch_get_tsc() - start > 0x100000) {
 	cprintf("Serial port too slow, disabling.\n");
 	return;

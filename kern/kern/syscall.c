@@ -71,12 +71,9 @@ alloc_ulabel(struct ulabel *ul, const struct Label **lp,
 static int64_t __attribute__ ((warn_unused_result))
 sys_cons_puts(const char *s, uint64_t size)
 {
-    int sz = size;
-    if (sz < 0)
-	return -E_INVAL;
-
-    check(check_user_access(s, sz, 0));
-    cprintf("%.*s", sz, s);
+    check(check_user_access(s, size, 0));
+    for (uint64_t i = 0; i < size; i++)
+	cons_putc(s[i], cons_source_user);
     return 0;
 }
 
