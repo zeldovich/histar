@@ -52,7 +52,43 @@ enum { signal_debug_utf_dump = 0 };
 volatile uint64_t signal_counter;
 
 // BSD compat
-const char *sys_signame[_NSIG];
+const char *sys_signame[_NSIG] = {
+    [0 ... _NSIG - 1]	= "",
+#define SYS_SIGNAME(signame) [signame] = #signame + 3
+    SYS_SIGNAME(SIGHUP),
+    SYS_SIGNAME(SIGINT),
+    SYS_SIGNAME(SIGQUIT),
+    SYS_SIGNAME(SIGILL),
+    SYS_SIGNAME(SIGTRAP),
+    SYS_SIGNAME(SIGABRT),
+    SYS_SIGNAME(SIGBUS),
+    SYS_SIGNAME(SIGFPE),
+    SYS_SIGNAME(SIGKILL),
+    SYS_SIGNAME(SIGUSR1),
+    SYS_SIGNAME(SIGSEGV),
+    SYS_SIGNAME(SIGUSR2),
+    SYS_SIGNAME(SIGPIPE),
+    SYS_SIGNAME(SIGALRM),
+    SYS_SIGNAME(SIGTERM),
+    SYS_SIGNAME(SIGSTKFLT),
+    SYS_SIGNAME(SIGCHLD),
+    SYS_SIGNAME(SIGCONT),
+    SYS_SIGNAME(SIGSTOP),
+    SYS_SIGNAME(SIGTSTP),
+    SYS_SIGNAME(SIGTTIN),
+    SYS_SIGNAME(SIGTTOU),
+    SYS_SIGNAME(SIGURG),
+    SYS_SIGNAME(SIGXCPU),
+    SYS_SIGNAME(SIGXFSZ),
+    SYS_SIGNAME(SIGVTALRM),
+    SYS_SIGNAME(SIGPROF),
+    SYS_SIGNAME(SIGWINCH),
+    SYS_SIGNAME(SIGIO),
+    SYS_SIGNAME(SIGPWR),
+    SYS_SIGNAME(SIGSYS),
+    SYS_SIGNAME(SIGINFO),
+#undef SYS_SIGNAME
+};
 
 // Thread which will receive traps to handle signals
 static uint64_t signal_thread_id;
