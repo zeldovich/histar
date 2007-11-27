@@ -438,7 +438,7 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
             ps->stops++;
             kill(start_env->ppid, SIGCHLD);
             /* Stall the thread until woken up by CONT */
-            while (!ps->status == PROCESS_RUNNING)
+            while (ps->status == PROCESS_STOPPED)
                 sys_sync_wait(&ps->status, PROCESS_STOPPED, UINT64(~0));
             segment_unmap(ps);
 	    return;
