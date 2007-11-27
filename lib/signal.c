@@ -230,7 +230,6 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
 			"(rip=0x%zx, rsp=0x%zx), backtrace follows.\n",
 		sys_self_id(), jos_progname, si->si_signo,
 		sc->sc_utf.utf_pc, sc->sc_utf.utf_stackptr);
-	utf_dump(&sc->sc_utf);
 	print_backtrace(0);
 	segfault_helper(si, sc);
 	break;
@@ -670,7 +669,7 @@ signal_utrap(struct UTrapframe *utf)
 		return;
 	    }
 
-	    cprintf("[%"PRIu64"] signal_utrap: cannot enable fp: %s\n",
+	    fprintf(stderr, "[%"PRIu64"] signal_utrap: cannot enable fp: %s\n",
 		    thread_id(), e2s(r));
 	    si.si_signo = SIGILL;
 	    si.si_code = ILL_ILLTRP;
@@ -692,7 +691,7 @@ signal_utrap(struct UTrapframe *utf)
 	    return;
 
 	if (utf->utf_trap_num != UTRAP_USER_SIGNAL) {
-	    cprintf("[%"PRIu64"] signal_utrap: unknown user trap# %d\n",
+	    fprintf(stderr, "[%"PRIu64"] signal_utrap: unknown user trap# %d\n",
 		    thread_id(), utf->utf_trap_num);
 	    return;
 	}
