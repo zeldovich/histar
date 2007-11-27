@@ -13,7 +13,6 @@
 #include <dev/amba.h>
 #include <dev/irqmp.h>
 #include <dev/gptimer.h>
-#include <dev/greth.h>
 
 char boot_cmdline[256];
 
@@ -35,25 +34,19 @@ bss_init (void)
 void __attribute__((noreturn))
 init (void)
 {
-    int r;
-
     mmu_init();
     bss_init();
 
     amba_init();
     irqmp_init();
-
     gptimer_init();
 
     apbucons_init();
     amba_print();
 
     page_init();
+    amba_attach();
 
-    r = greth_init();
-    if (r < 0)
-	cprintf("init: greth_init error: %s\n", e2s(r));
-    
     kobject_init();
     sched_init();
     pstate_init();

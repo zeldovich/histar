@@ -5,6 +5,7 @@
 
 void amba_init(void);
 void amba_print(void);
+void amba_attach(void);
 
 /* AHB slaves */
 struct amba_ahb_device {

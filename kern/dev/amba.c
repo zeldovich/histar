@@ -3,8 +3,21 @@
 #include <dev/amba.h>
 #include <dev/ambapp.h>
 
+#include <dev/greth.h>
+#include <dev/grata.h>
+
 #include <machine/leon.h>
 #include <machine/leon3.h>
+
+/* AMBA peripheral device drivers */
+static struct {
+    uint32_t vendor;
+    uint32_t device;
+    int (*attach)(struct amba_apb_device *);
+} apb_drivers[] = {
+    { VENDOR_GAISLER, GAISLER_ETHMAC,  &greth_attach },
+    { VENDOR_GAISLER, GAISLER_ATACTRL, &grata_attach },
+};
 
 /*
  *  Types and structure used for AMBA Plug & Play bus scanning 
@@ -69,6 +82,24 @@ amba_print(void)
 	conf = amba_get_confword(amba_conf.apbslv, i, 0);
 	vendor_dev_string(conf, venbuf, devbuf);
 	cprintf("%2d %-16s %-16s\n", i, venbuf, devbuf);
+    }
+}
+
+void
+amba_attach(void)
+{
+    for (uint32_t i = 0; i < sizeof(apb_drivers) / sizeof(apb_drivers[0]); i++) {
+	struct amba_apb_device dev;
+	int r = amba_apbslv_device(apb_drivers[i].vendor,
+				   apb_drivers[i].device,
+				   &dev, 0);
+	if (r <= 0)
+	    continue;
+
+	r = apb_drivers[i].attach(&dev);
+	if (r < 0)
+	    cprintf("amba_attach: cannot attach 0x%x.0x%x\n",
+		    apb_drivers[i].vendor, apb_drivers[i].device);
     }
 }
 

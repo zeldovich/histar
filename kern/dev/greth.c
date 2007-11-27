@@ -340,16 +340,12 @@ greth_intr(void *arg)
 }
 
 int
-greth_init(void)
+greth_attach(struct amba_apb_device *dev)
 {
-    struct amba_apb_device dev;
-    int r = amba_apbslv_device(VENDOR_GAISLER, GAISLER_ETHMAC, &dev, 0);
-    if (!r)
-	return -E_NOT_FOUND;
-    struct greth_regs *regs = pa2kva(dev.start);
-    
+    struct greth_regs *regs = pa2kva(dev->start);
+
     struct greth_card *c;
-    r = page_alloc((void **) &c);
+    int r = page_alloc((void **) &c);
     if (r < 0)
 	return r;
     memset(c, 0, PGSIZE);
@@ -371,7 +367,7 @@ greth_init(void)
     }
 
     c->regs = regs;
-    c->irq_line = dev.irq;
+    c->irq_line = dev->irq;
 
     /* Derive the MAC address from the EDCL IP address */
     uint8_t greth_mac[6] = { 0x00, 0x5E, 0x00, 0x00, 0x00, 0x00 };

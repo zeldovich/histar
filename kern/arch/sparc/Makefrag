@@ -39,6 +39,7 @@ KERN_DEV :=					\
 	kern/dev/irqmp.c			\
 	kern/dev/gptimer.c			\
 	kern/dev/greth.c			\
+	kern/dev/grata.c
 
 $(OBJDIR)/kern/kernel.ld.o: $(ARCHDIR)/kernel.ld.S
 	@mkdir -p $(@D)
