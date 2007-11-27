@@ -21,13 +21,6 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
-/* Note: pty Fd slaves use an additional segment (pty_seg) for their 
- * meta data, instead of storing it in the Fd segment like pty masters.
- * This is done so pty masters can read and write slave meta data.
- * This is unnecessary in the current impl, but would be required for
- * some features, like 'ctrl+c'.
- */
-
 /* XXX dependent on fork.cc */
 #define PTY_CT start_env->shared_container
 #define PTY_JCOMM(fd) JCOMM(PTY_CT, fd->fd_pty.pty_jc)
