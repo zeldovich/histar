@@ -36,6 +36,8 @@
 /* Pull in common debug code */
 #include "dl-debug.c"
 
+#include <inc/lib.h>
+
 #define ALLOW_ZERO_PLTGOT
 
 /* Pull in the value of _dl_progname */
@@ -173,9 +175,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, DL_LOADADDR_TYPE load_addr,
 	 * been fixed up by now.  Still no function calls outside of this
 	 * library, since the dynamic resolver is not yet ready.
 	 */
-	if (argv[0]) {
-		_dl_progname = argv[0];
-	}
+	_dl_progname = jos_progname;
 
 	if (_start == (void *) auxvt[AT_ENTRY].a_un.a_val) {
 		_dl_dprintf(_dl_debug_file, "Standalone execution is not supported yet\n");
