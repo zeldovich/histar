@@ -22,6 +22,9 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
+#include <linux/vt.h>
+#include <linux/kd.h>
+
 /* XXX dependent on fork.cc */
 #define PTY_CT start_env->shared_container
 #define PTY_JCOMM(fd) JCOMM(PTY_CT, fd->fd_pty.pty_jc)
@@ -382,6 +385,12 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	goto err;
 
     switch (req) {
+    case VT_GETSTATE:
+    case VT_ACTIVATE:  case VT_WAITACTIVE:
+    case VT_GETMODE:   case VT_SETMODE:
+    case KDGETMODE:    case KDSETMODE:
+	return 0;
+
     case TCGETS: {
     	if (!fd->fd_isatty) {
 	    __set_errno(ENOTTY);

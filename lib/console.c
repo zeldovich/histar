@@ -11,6 +11,8 @@
 #include <termios/kernel_termios.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <linux/vt.h>
+#include <linux/kd.h>
 
 int
 iscons(int fdnum)
@@ -96,7 +98,9 @@ static int
 cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 {
     assert(fd->fd_isatty);
-    if (req == TCGETS) {
+
+    switch (req) {
+    case TCGETS:
 	struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
 	if (k_termios)
@@ -105,16 +109,25 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	// XXX 
 	k_termios->c_lflag |= ECHO;
 	return 0;
-    }
-    else if (req == TIOCGPGRP) {
+
+    case TIOCGPGRP:
 	pid_t *pgrp = va_arg(ap, pid_t *);
 	*pgrp = fd->fd_cons.pgid;
 	return 0;
-    } else if (req == TIOCSPGRP) {
+
+    case TIOCSPGRP:
 	pid_t *pgrp = va_arg(ap, pid_t *);
 	if (!fd->fd_immutable)
 	    fd->fd_cons.pgid = *pgrp;
 	return 0;
+
+    case VT_GETSTATE:
+    case VT_ACTIVATE:  case VT_WAITACTIVE:
+    case VT_GETMODE:   case VT_SETMODE:
+    case KDGETMODE:    case KDSETMODE:
+	return 0;
+
+    default:
     }
     return -1;
 }
