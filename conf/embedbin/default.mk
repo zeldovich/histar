@@ -43,6 +43,12 @@ KERN_BINFILES	+= user/make user/ar user/nm user/objdump
 ## ClamAV
 KERN_BINFILES	+= user/clamscan user/clamav_main.cvd user/clamav_daily.cvd
 
+## Graphics stuff
+#KERN_BINFILES	+= user/libfreetype.so.6 user/libfontconfig.so.1
+#KERN_BINFILES	+= user/libexif.so.12 user/libexpat.so.1
+#KERN_BINFILES	+= user/fc-cache user/fc-list user/fonts.tar.gz
+#KERN_BINFILES	+= user/fbi
+
 ## Miscellaneous stuff: testing, benchmarking, experimental..
 KERN_BINFILES	+= user/fetch user/dnstest
 #KERN_BINFILES	+= user/db user/dbc
