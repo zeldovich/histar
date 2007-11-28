@@ -389,7 +389,7 @@ $(OBJDIR)/acpkg/sbin/dhclient: $(ACPKG_BUILDDIR)/dhcp-3.0.5/__build
 
 ## http://linuxfromscratch.org/pipermail/patches/attachments/20060606/fc29f4b0/vim-7.0-cross_compile-1.bin
 $(ACPKG_BUILDDIR)/vim70/__build: $(ACPKG_BUILDDIR)/vim70/__patch | $(OBJDIR)/lib/libncurses.a $(ACPKG_WRAPS)
-	( cd $(ACPKG_BUILDDIR)/vim70 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) $(AUTOCONF_vim70)" )
+	( cd $(ACPKG_BUILDDIR)/vim70 && sh -c "$(ACENV) STRIP=true ./configure $(AUTOCONF_ARGS) $(AUTOCONF_vim70)" )
 	( cd $(ACPKG_BUILDDIR)/vim70 && sh -c "$(ACENV) $(MAKE)" )
 	( cd $(ACPKG_BUILDDIR)/vim70 && sh -c "$(ACENV) $(MAKE) install" )
 	touch $@	
