@@ -122,11 +122,17 @@ static int
 container_slot_addref(struct Container *c, struct container_slot *cs,
 		      const struct kobject_hdr *ko)
 {
-    int r = kobject_incref(ko, &c->ct_ko);
-    if (r < 0)
-	return r;
+    if (cs->cs_ref == 0) {
+	if (ko->ko_ref > 0 && !(ko->ko_flags & KOBJ_FIXED_QUOTA))
+	    return -E_VAR_QUOTA;
 
-    cs->cs_id = ko->ko_id;
+	int r = kobject_incref(ko, &c->ct_ko);
+	if (r < 0)
+	    return r;
+
+	cs->cs_id = ko->ko_id;
+    }
+
     cs->cs_ref++;
     return 0;
 }
@@ -136,7 +142,8 @@ container_slot_decref(struct Container *c, struct container_slot *cs,
 		      const struct kobject_hdr *ko)
 {
     cs->cs_ref--;
-    kobject_decref(ko, &c->ct_ko);
+    if (cs->cs_ref == 0)
+	kobject_decref(ko, &c->ct_ko);
 }
 
 int
@@ -152,9 +159,6 @@ container_put(struct Container *c, const struct kobject_hdr *ko)
 	r = container_slot_alloc(c, &cs);
     if (r < 0)
 	return r;
-
-    if (ko->ko_ref > 0 && !(ko->ko_flags & KOBJ_FIXED_QUOTA))
-	return -E_VAR_QUOTA;
 
     r = container_slot_addref(c, cs, ko);
     if (r < 0)
