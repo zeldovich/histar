@@ -151,7 +151,6 @@ conf/gcc.$(K_ARCH).mk:
 	echo "***" 1>&2; exit 1; fi
 
 # Include Makefrags for subdirectories
-include boot/Makefrag
 include kern/Makefrag
 include lib/Makefrag
 include netd/Makefrag

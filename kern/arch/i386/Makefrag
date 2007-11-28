@@ -53,3 +53,4 @@ $(OBJDIR)/kern/kernel.%.debuginfo:
 
 all: $(OBJDIR)/boot/bochs.img $(OBJDIR)/fs/fs.img $(OBJDIR)/boot/bimage.base
 
+include boot/Makefrag
