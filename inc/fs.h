@@ -9,7 +9,7 @@
 #include <inc/kobj.h>
 #include <inc/label.h>
 
-#define FS_NAME_LEN	64
+#define FS_NAME_LEN	128
 
 struct fs_inode {
     struct cobj_ref obj;
