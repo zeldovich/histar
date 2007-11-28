@@ -13,5 +13,5 @@ void
 abort(void)
 {
     for (;;)
-	;
+	pause_nop();
 }

@@ -35,6 +35,7 @@ X86_INST_ATTR void fxsave(struct Fpregs *f);
 X86_INST_ATTR void fxrstor(const struct Fpregs *f);
 X86_INST_ATTR uint64_t read_msr(uint32_t msr);
 X86_INST_ATTR void write_msr(uint32_t msr, uint64_t val);
+X86_INST_ATTR void pause_nop(void);
 
 void
 breakpoint(void)
@@ -244,6 +245,12 @@ write_msr(uint32_t msr, uint64_t val)
     uint32_t lo = val & 0xffffffff;
     uint32_t hi = val >> 32;
     __asm __volatile("wrmsr" : : "c" (msr), "a" (lo), "d" (hi));
+}
+
+void
+pause_nop(void)
+{
+    __asm __volatile("pause" : : );
 }
 
 /* Read/write the extra segment registers */
