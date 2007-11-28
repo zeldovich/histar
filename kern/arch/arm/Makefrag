@@ -34,5 +34,9 @@ KERN_DEV :=
 $(OBJDIR)/kern/kernel.%.debuginfo:
 	$(LD) -o $@ $(KERN_LDFLAGS) $^ $(GCC_LIB)
 
-all: $(OBJDIR)/kern/kernel.init
+all: $(OBJDIR)/kern/kernel.init $(OBJDIR)/boot/bimage.init
+
+$(OBJDIR)/boot/bimage.%: $(OBJDIR)/kern/kernel.%
+	@mkdir -p $(@D)
+	$(OBJCOPY) -S -O binary $< $@
 
