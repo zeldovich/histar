@@ -5,5 +5,5 @@
 %{!static:LDSOPATH} -lgcc MAYBE_GCC_EH
 
 *linker:
-collect2 -E
+collect2 -E ARCH_SPECS_LDFLAGS
 

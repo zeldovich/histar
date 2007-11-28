@@ -1,6 +1,7 @@
 LIB_SRCFILES += lib/$(ARCH)/win.S
 
 # Keep synchronized with memlayout.h
-LDFLAGS += -Wl,--section-start,.utrap_masked=0x3FFFD000 \
-	   -Wl,-u,uwin_overflow -Wl,--section-start,.uwin_overflow=0x3FFFE000 \
-	   -Wl,-u,uwin_underflow -Wl,--section-start,.uwin_underflow=0x3FFFF000
+ARCH_SPECS_LDFLAGS := \
+		--section-start .utrap_masked=0x3FFFD000 \
+		-u uwin_overflow  --section-start .uwin_overflow=0x3FFFE000 \
+		-u uwin_underflow --section-start .uwin_underflow=0x3FFFF000 \

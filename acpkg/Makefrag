@@ -617,7 +617,7 @@ $(ACPKG_BUILDDIR)/gcc-3.4.5/__build: $(ACPKG_BUILDDIR)/gcc-3.4.5/Makefile
 	( cd $(ACPKG_BUILDDIR)/gcc-3.4.5 && sh -c "$(GCC_ACENV) $(MAKE)" )
 	( cd $(ACPKG_BUILDDIR)/gcc-3.4.5 && sh -c "$(ACENV) $(MAKE) install" )
 	cp $(ACPKG_BUILDDIR)/gcc-3.4.5/gcc/gsyslimits.h $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/include/syslimits.h
-	cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, -e s,MAYBE_GCC_EH,, >> $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/specs
+	cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, -e s,MAYBE_GCC_EH,, -e s,ARCH_SPECS_LDFLAGS,"$(ARCH_SPECS_LDFLAGS)", >> $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/specs
 	touch $@
 
 $(OBJDIR)/user/gcc.tar: $(ACPKG_BUILDDIR)/gcc-3.4.5/__build $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build | $(LDEPS)
