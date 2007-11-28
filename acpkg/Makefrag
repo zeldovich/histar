@@ -340,7 +340,7 @@ $(ACPKG_BUILDDIR)/perl-5.8.8/__build: $(ACPKG_BUILDDIR)/perl-5.8.8/__patch | $(L
 $(OBJDIR)/acpkg/bin/perl: $(ACPKG_BUILDDIR)/perl-5.8.8/__build
 	@
 
-$(OBJDIR)/acpkg/bin/find: $(ACPKG_BUILDDIR)/findutils-4.2.31/__build
+$(OBJDIR)/acpkg/bin/find $(OBJDIR)/acpkg/bin/xargs: $(ACPKG_BUILDDIR)/findutils-4.2.31/__build
 	@
 
 $(OBJDIR)/acpkg/bin/sed: $(ACPKG_BUILDDIR)/sed-4.1.5/__build
@@ -753,6 +753,19 @@ $(ACPKG_BUILDDIR)/svgalib-1.9.25/__build: $(ACPKG_BUILDDIR)/svgalib-1.9.25/__pat
 	touch $@
 
 $(ACPKG_BUILDDIR)/fontconfig-2.5.0/Makefile: $(ACPKG_BUILDDIR)/expat-2.0.1/__build $(ACPKG_BUILDDIR)/freetype-2.3.5/__build
+
+$(ACPKG_BUILDDIR)/fontconfig-2.5.0/__build: $(ACPKG_BUILDDIR)/fontconfig-2.5.0/Makefile
+	perl -pi -e s,-DFC_CACHEDIR=....FC_CACHEDIR...,-DFC_CACHEDIR=\'\"/var/cache/fontconfig\"\',\;\ s,-DFONTCONFIG_PATH=....CONFDIR...,-DFONTCONFIG_PATH=\'\"/etc/fonts\"\',\; $(ACPKG_BUILDDIR)/fontconfig-2.5.0/src/Makefile
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE)" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) install" )
+	perl -pi -e s,$(TOP)/$(ACPKG_PREFIX),, $(ACPKG_PREFIX)/etc/fonts/fonts.conf
+	touch $@
+
+$(OBJDIR)/user/fonts.tar: $(ACPKG_BUILDDIR)/fontconfig-2.5.0/__build
+	rm -f $@.tmp
+	tar -C $(OBJDIR)/acpkg -cf $@.tmp etc/fonts
+	tar -C / -rf $@.tmp usr/share/fonts
+	mv $@.tmp $@
 
 $(ACPKG_BUILDDIR)/fbida-2.06/__build: $(ACPKG_BUILDDIR)/fbida-2.06/__patch \
 		$(ACPKG_BUILDDIR)/libexif-0.6.16/__build \

@@ -13,6 +13,17 @@ if [ -f /bin/include.tar.gz ]; then
     tar -C /usr -xzmf /bin/include.tar.gz
 fi
 
+if [ -f /bin/fonts.tar.gz ]; then
+    echo "$0: unpacking fonts.."
+    tar -C / -xzmf /bin/fonts.tar.gz
+fi
+
+if [ -f /bin/fc-cache ]; then
+    echo "$0: generating font cache.."
+    mkdir -p /var/cache/fontconfig
+    fc-cache
+fi
+
 mkdir /sample
 mkdir /sample/wrap
 cat > /sample/wrap/hello.c <<EOM
