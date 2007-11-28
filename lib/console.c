@@ -100,7 +100,7 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     assert(fd->fd_isatty);
 
     switch (req) {
-    case TCGETS:
+    case TCGETS: {
 	struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
 	if (k_termios)
@@ -109,17 +109,20 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	// XXX 
 	k_termios->c_lflag |= ECHO;
 	return 0;
+    }
 
-    case TIOCGPGRP:
+    case TIOCGPGRP: {
 	pid_t *pgrp = va_arg(ap, pid_t *);
 	*pgrp = fd->fd_cons.pgid;
 	return 0;
+    }
 
-    case TIOCSPGRP:
+    case TIOCSPGRP: {
 	pid_t *pgrp = va_arg(ap, pid_t *);
 	if (!fd->fd_immutable)
 	    fd->fd_cons.pgid = *pgrp;
 	return 0;
+    }
 
     case VT_GETSTATE:
     case VT_ACTIVATE:  case VT_WAITACTIVE:
@@ -128,8 +131,8 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	return 0;
 
     default:
+	return -1;
     }
-    return -1;
 }
 
 struct cons_statsync {
