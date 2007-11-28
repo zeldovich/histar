@@ -73,8 +73,15 @@ mkdir(const char *pn, mode_t mode)
     fs_dirbase(pn2, &dirname, &basenm);
 
     r = fs_namei(dirname, &dir);
-    if (r < 0)
+    if (r < 0) {
+	if (r == -E_NOT_FOUND) {
+	    __set_errno(ENOENT);
+	    free(pn2);
+	    return -1;
+	}
+
         goto done;
+    }
 
     struct fs_inode ndir;
     r = fs_mkdir(dir, basenm, &ndir, 0);
