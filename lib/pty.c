@@ -272,7 +272,6 @@ pty_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     
     r = jcomm_write(PTY_JCOMM(fd), bf, cc, 1);
     if (r < 0) {
-	cprintf("pty_write: jcomm_write failed: %s\n", e2s(r));
 	__set_errno(EIO);
 	goto out;
     }
@@ -281,7 +280,6 @@ pty_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     while ((uint32_t) r < cc) {
 	int rr = jcomm_write(PTY_JCOMM(fd), bf + r, cc - r, 1);
 	if (rr < 0) {
-	    cprintf("pty_write: error on jcomm write: %s\n", e2s(rr));
 	    __set_errno(EIO);
 	    goto out;
 	}
