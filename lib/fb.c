@@ -120,11 +120,18 @@ fb_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
     return len;
 }
 
+static int
+fb_close(struct Fd *fd)
+{
+    return 0;
+}
+
 struct Dev devfb = {
     .dev_id = 'F',
     .dev_name = "fb",
     .dev_open = fb_open,
     .dev_ioctl = fb_ioctl,
     .dev_write = fb_write,
+    .dev_close = fb_close,
 };
 
