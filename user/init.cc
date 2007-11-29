@@ -255,10 +255,6 @@ init_auth(int cons, const char *shroot)
     fs_inode uauth_dir;
     error_check(fs_namei("/uauth", &uauth_dir));
 
-    int64_t root_user_ct = sys_container_alloc(uauth_dir.obj.object, 0,
-					       "root", 0, CT_QUOTA_INF);
-    error_check(root_user_ct);
-
     fs_inode user_authd;
     error_check(fs_namei("/bin/auth_user", &user_authd));
 
@@ -267,9 +263,17 @@ init_auth(int cons, const char *shroot)
     sprintf(&root_taint[0], "%"PRIu64, start_env->user_taint);
     const char *argv[] = { "auth_user", root_grant, root_grant, root_taint };
 
-    cp = spawn(root_user_ct, user_authd, cons, cons, cons,
-               sizeof(argv)/sizeof(argv[0]), argv, 0, 0,
-               0, 0, 0, 0, 0);
+    struct spawn_descriptor sd;
+    sd.ct_ = uauth_dir.obj.object;
+    sd.ctname_ = "root";
+    sd.elf_ino_ = user_authd;
+    sd.fd0_ = cons;
+    sd.fd1_ = cons;
+    sd.fd2_ = cons;
+    sd.ac_ = sizeof(argv)/sizeof(argv[0]);
+    sd.av_ = argv;
+    sd.spawn_flags_ = SPAWN_COPY_MTAB;
+    cp = spawn(&sd);
     error_check(process_wait(&cp, &ec));
 
     // register this user-agent with the auth directory
