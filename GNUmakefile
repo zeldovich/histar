@@ -6,21 +6,17 @@
 #	http://aegis.sourceforge.net/auug97.pdf
 #
 
-# Target kernel architecture/type
-
-K_ARCH	:= amd64
-#K_ARCH	:= i386
-#K_ARCH	:= ft
-#K_ARCH	:= sparc
-#K_ARCH	:= um
-#K_ARCH	:= arm
-
-## Use multiple objdirs to build multiple architectures with same source tree
-OBJDIR	:= obj
-#OBJDIR	:= obj.$(K_ARCH)
-
+# Configuration options are set in conf/config.mk -- edit that file first.
+include conf/config.mk
 -include conf/gcc.$(K_ARCH).mk
 include conf/Makefrag.$(K_ARCH)
+
+## Use multiple objdirs to build multiple architectures with same source tree
+ifeq ($(MULTIOBJ),yes)
+OBJDIR	:= obj.$(K_ARCH)
+else
+OBJDIR	:= obj
+endif
 
 GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
 TOP	:= $(shell echo $${PWD-`pwd`})
