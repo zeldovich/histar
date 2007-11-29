@@ -32,3 +32,4 @@ include pkg/uclibc/libcrypt/Makefrag
 include pkg/uclibc/libutil/Makefrag
 include pkg/uclibc/ldso/ldso/Makefrag
 include pkg/uclibc/ldso/libdl/Makefrag
+include pkg/uclibc/utils/Makefrag

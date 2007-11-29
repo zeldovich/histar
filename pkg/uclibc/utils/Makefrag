@@ -1,0 +1,12 @@
+OBJDIRS += pkg/uclibc/utils
+
+$(OBJDIR)/pkg/uclibc/utils/%.o: pkg/uclibc/utils/%.c
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o $@ $< $(LDSO_CFLAGS)
+
+$(OBJDIR)/user/ldd.debuginfo: $(OBJDIR)/pkg/uclibc/utils/ldd.o
+	$(CC) -o $@ $(LDFLAGS) $^
+
+$(OBJDIR)/user/ldconfig.debuginfo: $(OBJDIR)/pkg/uclibc/utils/ldconfig.o $(OBJDIR)/pkg/uclibc/utils/chroot_realpath.o
+	$(CC) -o $@ $(LDFLAGS) $^
+

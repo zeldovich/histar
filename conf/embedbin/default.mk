@@ -3,7 +3,9 @@ KERN_BINFILES	+= user/netd_mom user/jntpd
 
 ## Shared libraries, if enabled
 ifeq ($(SHARED_ENABLE),yes)
-KERN_BINFILES	+= user/ld.so user/libm.so user/libutil.so user/libdl.so user/libcrypt.so user/libz.so.1
+KERN_BINFILES	+= user/ld.so user/libm.so user/libutil.so user/libdl.so
+KERN_BINFILES	+= user/libcrypt.so user/libz.so.1
+KERN_BINFILES	+= user/ldd user/ldconfig
 endif
 
 ## Pick your TCP stack
@@ -40,7 +42,7 @@ KERN_BINFILES	+= user/ssh user/ssh-agent user/ssh-add
 ## Development
 KERN_BINFILES	+= user/gcc.tar.gz user/include.tar.gz
 KERN_BINFILES	+= user/make user/ar user/nm user/objdump user/objcopy
-KERN_BINFILES	+= user/strip
+KERN_BINFILES	+= user/strip user/readelf
 #KERN_BINFILES	+= user/gdb user/gdbserver
 #KERN_BINFILES	+= user/python.tar.gz
 

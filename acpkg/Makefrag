@@ -406,7 +406,7 @@ $(OBJDIR)/acpkg/bin/mutt: $(ACPKG_BUILDDIR)/mutt-1.4.2.3/__build
 $(OBJDIR)/acpkg/bin/bash: $(ACPKG_BUILDDIR)/bash-3.1/__build
 	@
 
-$(OBJDIR)/acpkg/bin/ar $(OBJDIR)/acpkg/bin/nm $(OBJDIR)/acpkg/bin/objdump $(OBJDIR)/acpkg/bin/strings $(OBJDIR)/acpkg/bin/strip $(OBJDIR)/acpkg/bin/objcopy: $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build
+$(OBJDIR)/acpkg/bin/ar $(OBJDIR)/acpkg/bin/nm $(OBJDIR)/acpkg/bin/objdump $(OBJDIR)/acpkg/bin/strings $(OBJDIR)/acpkg/bin/strip $(OBJDIR)/acpkg/bin/objcopy $(OBJDIR)/acpkg/bin/readelf: $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build
 	@
 
 $(OBJDIR)/acpkg/bin/file: $(ACPKG_BUILDDIR)/file-4.21/__build
