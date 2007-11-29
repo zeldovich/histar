@@ -31,7 +31,7 @@ KERN_BINFILES	+= user/md5sum user/sha1sum user/mkdir user/stty user/printf
 KERN_BINFILES	+= user/vim user/echo user/dirname user/basename user/file
 KERN_BINFILES	+= user/sleep user/env user/strings user/tty user/xargs
 KERN_BINFILES	+= user/rmdir user/diff user/reset user/hostname user/id
-KERN_BINFILES	+= user/less
+KERN_BINFILES	+= user/less user/dd user/ed user/patch
 
 ## SSH
 KERN_BINFILES	+= user/sshd user/ssh.tar user/scp user/sshdi
@@ -39,7 +39,8 @@ KERN_BINFILES	+= user/ssh user/ssh-agent user/ssh-add
 
 ## Development
 KERN_BINFILES	+= user/gcc.tar.gz user/include.tar.gz
-KERN_BINFILES	+= user/make user/ar user/nm user/objdump
+KERN_BINFILES	+= user/make user/ar user/nm user/objdump user/objcopy
+KERN_BINFILES	+= user/strip
 #KERN_BINFILES	+= user/gdb user/gdbserver
 #KERN_BINFILES	+= user/python.tar.gz
 

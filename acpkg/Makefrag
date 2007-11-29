@@ -49,7 +49,29 @@ ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no \
 	bash_cv_job_control_missing=no ac_cv_func_fnmatch_works=yes \
 	ac_cv_file__dev_zero=yes apr_cv_tcp_nodelay_with_cork=no \
-	ac_cv_header_dlfcn_h=$(SHARED_ENABLE)
+	ac_cv_header_dlfcn_h=$(SHARED_ENABLE) \
+	gcc_cv_as_balign_and_p2align=yes \
+	gcc_cv_as_max_skip_p2align=yes \
+	gcc_cv_as_subsection_m1=yes \
+	gcc_cv_as_weak=yes \
+	gcc_cv_as_hidden=yes \
+	gcc_cv_as_eh_frame=yes \
+	gcc_cv_as_shf_merge=yes \
+	gcc_cv_as_tls=yes \
+	gcc_cv_as_sparc_offsetable_lo10=yes \
+	gcc_cv_as_sparc_register_op=yes \
+	gcc_cv_as_sparc_relax=yes \
+	gcc_cv_as_sparc_ua_pcrel=yes \
+	gcc_cv_as_sparc_ua_pcrel_hidden=yes \
+	gcc_cv_as_ix86_filds_fists=yes \
+	gcc_cv_as_dwarf2_debug_line=yes \
+	gcc_cv_as_dwarf2_file_buggy=no \
+	gcc_cv_as_gdwarf2_flag=yes \
+	gcc_cv_as_gstabs_flag=yes \
+	gcc_cv_ld_hidden=yes \
+	gcc_cv_ld_as_needed=yes \
+	gcc_cv_ld_eh_frame_hdr=yes \
+	gcc_cv_ld_static_dynamic=yes
 
 ## uncomment the below line to use libcprof with acpkgs
 #ACENV += CC=\"acpkg-wrap-gcc-prof\"
@@ -76,6 +98,8 @@ DISTURL_coreutils-5.94	    := ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar
 DISTURL_gdb-6.5		    := ftp://ftp.gnu.org/gnu/gdb/gdb-6.5.tar.gz
 DISTURL_wget-1.9.1	    := ftp://ftp.gnu.org/gnu/wget/wget-1.9.1.tar.gz
 DISTURL_diffutils-2.8.1	    := ftp://ftp.gnu.org/gnu/diffutils/diffutils-2.8.1.tar.gz
+DISTURL_patch-2.5.4	    := ftp://ftp.gnu.org/gnu/patch/patch-2.5.4.tar.gz
+DISTURL_ed-0.8		    := ftp://ftp.gnu.org/gnu/ed/ed-0.8.tar.bz2
 
 DISTURL_openssl-0.9.8a	    := ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
 DISTURL_openssh-4.3p2	    := ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
@@ -347,6 +371,12 @@ $(OBJDIR)/acpkg/bin/find $(OBJDIR)/acpkg/bin/xargs: $(ACPKG_BUILDDIR)/findutils-
 $(OBJDIR)/acpkg/bin/diff: $(ACPKG_BUILDDIR)/diffutils-2.8.1/__build
 	@
 
+$(OBJDIR)/acpkg/bin/patch: $(ACPKG_BUILDDIR)/patch-2.5.4/__build
+	@
+
+$(OBJDIR)/acpkg/bin/ed: $(ACPKG_BUILDDIR)/ed-0.8/__build
+	@
+
 $(OBJDIR)/acpkg/bin/sed: $(ACPKG_BUILDDIR)/sed-4.1.5/__build
 	@
 
@@ -376,7 +406,7 @@ $(OBJDIR)/acpkg/bin/mutt: $(ACPKG_BUILDDIR)/mutt-1.4.2.3/__build
 $(OBJDIR)/acpkg/bin/bash: $(ACPKG_BUILDDIR)/bash-3.1/__build
 	@
 
-$(OBJDIR)/acpkg/bin/ar $(OBJDIR)/acpkg/bin/nm $(OBJDIR)/acpkg/bin/objdump $(OBJDIR)/acpkg/bin/strings: $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build
+$(OBJDIR)/acpkg/bin/ar $(OBJDIR)/acpkg/bin/nm $(OBJDIR)/acpkg/bin/objdump $(OBJDIR)/acpkg/bin/strings $(OBJDIR)/acpkg/bin/strip $(OBJDIR)/acpkg/bin/objcopy: $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build
 	@
 
 $(OBJDIR)/acpkg/bin/file: $(ACPKG_BUILDDIR)/file-4.21/__build
@@ -629,8 +659,9 @@ $(OBJDIR)/user/gcc.tar: $(ACPKG_BUILDDIR)/gcc-3.4.5/__build $(ACPKG_BUILDDIR)/bi
 	rm -f $(OBJDIR)/user/.tmp.gcc.tar
 	cp $(OBJDIR)/lib/crt{1,i,n}.o $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/
 	tar -cf $(OBJDIR)/user/.tmp.gcc.tar -C $(OBJDIR)/acpkg \
-		bin/gcc bin/ld bin/as \
+		bin/gcc bin/g++ bin/ld bin/as \
 		libexec/gcc/$(TARGET)/3.4.5/cc1 \
+		libexec/gcc/$(TARGET)/3.4.5/cc1plus \
 		libexec/gcc/$(TARGET)/3.4.5/collect2 \
 		lib/gcc/$(TARGET)/3.4.5/crt{begin,end}{,S}.o \
 		lib/gcc/$(TARGET)/3.4.5/crtbeginT.o \

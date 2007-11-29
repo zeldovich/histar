@@ -24,6 +24,8 @@ if [ -f /bin/fc-cache ]; then
     fc-cache
 fi
 
+test -f /bin/vim && ln -s vim /bin/vi
+
 mkdir /sample
 mkdir /sample/wrap
 cat > /sample/wrap/hello.c <<EOM
