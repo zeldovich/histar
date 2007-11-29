@@ -154,13 +154,13 @@ wbinvd(void)
 void
 lidt(void *p)
 {
-	__asm __volatile("lidt (%0)" : : "r" (p));
+	__asm __volatile("lidt (%0)" : : "r" (p) : "memory");
 }
 
 void
 lgdt(void *p)
 {
-	__asm __volatile("lgdt (%0)" : : "r" (p));
+	__asm __volatile("lgdt (%0)" : : "r" (p) : "memory");
 }
 
 void
