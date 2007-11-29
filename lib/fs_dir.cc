@@ -430,14 +430,35 @@ fs_rename(struct fs_inode dir, const char *oldfn, const char *newfn, struct fs_i
 void
 fs_dirbase(char *pn, const char **dirname, const char **basename)
 {
-    char *slash = strrchr(pn, '/');
-    if (slash == 0) {
-	*dirname = "";
-	*basename = pn;
+    char *base_slash_first = 0;
+    char *base_slash_last  = 0;
+    char *cur_slash_first  = (pn[0] == '/' ? pn : 0);
+
+    for (char *p = pn; *p; p++) {
+	if (p[0] != '/' && p[1] == '/')
+	    cur_slash_first = &p[1];
+	if (p[0] == '/' && p[1] && p[1] != '/') {
+	    base_slash_first = cur_slash_first;
+	    base_slash_last = &p[0];
+	}
+    }
+
+    if (!base_slash_first) {
+	if (pn[0] == '/') {
+	    *dirname = "/";
+	    *basename = "";
+	} else {
+	    if (cur_slash_first)
+		*cur_slash_first  = '\0';
+	    *dirname = "";
+	    *basename = pn;
+	}
     } else {
-	*slash = '\0';
+	*base_slash_first = '\0';
+	*cur_slash_first  = '\0';
+
 	*dirname = pn;
-	*basename = slash + 1;
+	*basename = base_slash_last + 1;
 
 	// Corner case: if pn is "/foo", then dirname="/" and basename="foo"
 	if (**dirname == '\0')
