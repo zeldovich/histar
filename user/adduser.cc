@@ -40,11 +40,6 @@ main(int ac, char **av)
 	fs_inode uauth_dir;
 	error_check(fs_namei("/uauth", &uauth_dir));
 
-	int64_t user_ct =
-	    sys_container_alloc(uauth_dir.obj.object, 0,
-				uname, 0, CT_QUOTA_INF);
-	error_check(user_ct);
-
 	fs_inode user_authd;
 	error_check(fs_namei("/bin/auth_user", &user_authd));
 
@@ -57,11 +52,17 @@ main(int ac, char **av)
 	uint64_t ut = start_env->user_taint;
 	start_env->user_grant = start_env->user_taint = 0;
 
-	struct child_process cp =
-	    spawn(user_ct, user_authd, 0, 1, 2,
-		  2, argv, 0, 0,
-		  0, 0, 0, 0, 0,
-		  SPAWN_COPY_MTAB);
+	struct spawn_descriptor sd;
+	sd.ct_ = uauth_dir.obj.object;
+	sd.ctname_ = uname;
+	sd.elf_ino_ = user_authd;
+	sd.fd0_ = 0;
+	sd.fd1_ = 1;
+	sd.fd2_ = 2;
+	sd.ac_ = 2;
+	sd.av_ = argv;
+	sd.spawn_flags_ = SPAWN_COPY_MTAB;
+	struct child_process cp = spawn(&sd);
 
 	start_env->user_grant = ug;
 	start_env->user_taint = ut;

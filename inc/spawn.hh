@@ -14,7 +14,7 @@ extern "C" {
 struct spawn_descriptor {
  public:
     spawn_descriptor() : 
-	ct_(0), elf_ino_(),
+	ct_(0), ctname_(0), elf_ino_(),
 	fd0_(0), fd1_(0), fd2_(0),
 	ac_(0), av_(0), envc_(0), envv_(0),
 	cs_(0), ds_(0), cr_(0), dr_(0), co_(0),
@@ -28,6 +28,7 @@ struct spawn_descriptor {
     }
 
     uint64_t ct_;
+    const char *ctname_;
     struct fs_inode elf_ino_;
 
     int fd0_;

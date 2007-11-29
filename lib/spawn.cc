@@ -116,7 +116,8 @@ spawn(spawn_descriptor *sd)
 
     int64_t c_top = sys_container_alloc(sd->ct_,
 					integrity_object_label.to_ulabel(),
-					&name[0], 0, CT_QUOTA_INF);
+					sd->ctname_ ? : &name[0],
+					0, CT_QUOTA_INF);
     error_check(c_top);
 
     struct cobj_ref c_top_ref = COBJ(sd->ct_, c_top);
