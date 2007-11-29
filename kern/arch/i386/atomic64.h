@@ -32,9 +32,12 @@ jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old, uint64_t newv)
     uint32_t new_hi = newv >> 32;
 
     __asm__ __volatile__(
-	ATOMIC_LOCK "cmpxchg8b %1"
+	"pushl %%ebx\n"
+	"movl %3, %%ebx\n"
+	ATOMIC_LOCK "cmpxchg8b %1\n"
+	"popl %%ebx\n"
 	: "+A" (old), "+m" (v->counter)
-	: "c" (new_hi), "b" (new_lo)
+	: "c" (new_hi), "g" (new_lo)
 	: "cc");
     return old;
 }
