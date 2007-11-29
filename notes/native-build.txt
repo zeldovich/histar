@@ -1,8 +1,16 @@
 autoconf-based:
 
     apr		http://www.pangex.com/pub/apache/apr/apr-1.2.12.tar.gz
+	./configure --prefix=/usr/local
+
     apr-util	http://www.pangex.com/pub/apache/apr/apr-util-1.2.12.tar.gz
+	./configure --prefix=/usr/local --with-apr=/usr/local
+
+    zlib	http://www.zlib.net/zlib-1.2.3.tar.gz
+	./configure --shared
+
     subversion	http://subversion.tigris.org/downloads/subversion-1.4.5.tar.gz
+	./configure --disable-shared
 
 perl:
 
