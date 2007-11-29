@@ -203,6 +203,12 @@ cons_statsync(struct Fd *fd, dev_probe_t probe,
     return 1;
 }
 
+static int
+cons_sync(struct Fd *fd)
+{
+    return 0;
+}
+
 struct Dev devcons =
 {
     .dev_id = 'c',
@@ -214,4 +220,5 @@ struct Dev devcons =
     .dev_probe = cons_probe,
     .dev_ioctl = cons_ioctl,
     .dev_statsync = cons_statsync,
+    .dev_sync = cons_sync,
 };

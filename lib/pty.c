@@ -481,6 +481,12 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 }
 
 static int
+pty_sync(struct Fd *fd)
+{
+    return 0;
+}
+
+static int
 tty_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 {
     if (!start_env->ctty) {
@@ -547,6 +553,7 @@ struct Dev devptm = {
     .dev_ioctl = pty_ioctl,
     .dev_addref = &pty_addref,
     .dev_unref = &pty_unref,
+    .dev_sync = &pty_sync,
 };
 
 struct Dev devpts = {
@@ -563,4 +570,5 @@ struct Dev devpts = {
     .dev_ioctl = pty_ioctl,
     .dev_addref = &pty_addref,
     .dev_unref = &pty_unref,
+    .dev_sync = &pty_sync,
 };
