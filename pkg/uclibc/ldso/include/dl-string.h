@@ -297,7 +297,7 @@ static __always_inline char * _dl_simple_ltoahex(char * local, unsigned long i)
 { \
 	const char *tmp1 = (X); \
 	CONSTANT_STRING_GOT_FIXUP(tmp1); \
-	_dl_write(2, tmp1, _dl_strlen(tmp1)); \
+	_dl_write_early(tmp1, _dl_strlen(tmp1)); \
 }
 
 #define SEND_ADDRESS_STDERR(ADR, add_a_newline) \
@@ -318,7 +318,7 @@ static __always_inline char * _dl_simple_ltoahex(char * local, unsigned long i)
 	} while ((X) > 0); \
 	*--tmp2 = 'x'; \
 	*--tmp2 = '0'; \
-	_dl_write(2, tmp2, tmp1 - tmp2 + sizeof(tmp) - 1); \
+	_dl_write_early(tmp2, tmp1 - tmp2 + sizeof(tmp) - 1); \
 }
 
 #define SEND_NUMBER_STDERR(NUM, add_a_newline) \
@@ -334,7 +334,7 @@ static __always_inline char * _dl_simple_ltoahex(char * local, unsigned long i)
 		*--tmp2 = '0' + v; \
 		do_div_10((X), v); \
 	} while ((X) > 0); \
-	_dl_write(2, tmp2, tmp1 - tmp2 + sizeof(tmp) - 1); \
+	_dl_write_early(tmp2, tmp1 - tmp2 + sizeof(tmp) - 1); \
 }
 #endif
 
