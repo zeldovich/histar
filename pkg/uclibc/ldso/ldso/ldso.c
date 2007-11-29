@@ -831,18 +831,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, DL_LOADADDR_TYPE load_addr,
 
 char *_dl_getenv(const char *symbol, char **envp)
 {
-	char *pnt;
-	const char *pnt1;
-
-	while ((pnt = *envp++)) {
-		pnt1 = symbol;
-		while (*pnt && *pnt == *pnt1)
-			pnt1++, pnt++;
-		if (!*pnt || *pnt != '=' || *pnt1)
-			continue;
-		return pnt + 1;
-	}
-	return 0;
+	return getenv(symbol);
 }
 
 void _dl_unsetenv(const char *symbol, char **envp)
