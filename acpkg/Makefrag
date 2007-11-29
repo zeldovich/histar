@@ -523,7 +523,7 @@ $(ACPKG_BUILDDIR)/ncurses-5.5/__build: $(ACPKG_BUILDDIR)/ncurses-5.5/Makefile | 
 	( cd $(OBJDIR)/acpkg/include/ && ln -fs ncurses/curses.h curses.h )
 	touch $@
 
-$(OBJDIR)/acpkg/lib/libncurses.a: $(ACPKG_BUILDDIR)/ncurses-5.5/__build
+$(OBJDIR)/acpkg/lib/libncurses.a $(OBJDIR)/acpkg/bin/$(TARGET)-reset: $(ACPKG_BUILDDIR)/ncurses-5.5/__build
 	@
 
 $(OBJDIR)/acpkg/lib/libgmp.a $(OBJDIR)/acpkg/include/gmp.h: $(ACPKG_BUILDDIR)/gmp-4.2.1/__build
