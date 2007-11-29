@@ -75,6 +75,7 @@ DISTURL_make-3.81	    := ftp://ftp.gnu.org/gnu/make/make-3.81.tar.gz
 DISTURL_coreutils-5.94	    := ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
 DISTURL_gdb-6.5		    := ftp://ftp.gnu.org/gnu/gdb/gdb-6.5.tar.gz
 DISTURL_wget-1.9.1	    := ftp://ftp.gnu.org/gnu/wget/wget-1.9.1.tar.gz
+DISTURL_diffutils-2.8.1	    := ftp://ftp.gnu.org/gnu/diffutils/diffutils-2.8.1.tar.gz
 
 DISTURL_openssl-0.9.8a	    := ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
 DISTURL_openssh-4.3p2	    := ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
@@ -341,6 +342,9 @@ $(OBJDIR)/acpkg/bin/perl: $(ACPKG_BUILDDIR)/perl-5.8.8/__build
 	@
 
 $(OBJDIR)/acpkg/bin/find $(OBJDIR)/acpkg/bin/xargs: $(ACPKG_BUILDDIR)/findutils-4.2.31/__build
+	@
+
+$(OBJDIR)/acpkg/bin/diff: $(ACPKG_BUILDDIR)/diffutils-2.8.1/__build
 	@
 
 $(OBJDIR)/acpkg/bin/sed: $(ACPKG_BUILDDIR)/sed-4.1.5/__build
