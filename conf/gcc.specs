@@ -2,7 +2,7 @@
 %{static:-ljos -lnetd -llwip -lc -lstdc++} %{!static:LDSOPATH --dynamic-linker /bin/ld.so} --as-needed -lm -lutil --no-as-needed
 
 *libgcc:
-%{!static:LDSOPATH} -lgcc MAYBE_GCC_EH
+%{!static:LDSOPATH} %{static:-lgcc MAYBE_GCC_EH}
 
 *linker:
 collect2 -E ARCH_SPECS_LDFLAGS
