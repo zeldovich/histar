@@ -14,11 +14,12 @@ socket(int domain, int type, int protocol)
     switch(domain) {
     case PF_INET:
 	return netd_socket(domain, type, protocol);
+
     case PF_UNIX:
 	return uds_socket(domain, type, protocol);
+
     default:
-	cprintf("socket: unimplemented domain: %d\n", domain);
-	errno = ENOSYS;
+	__set_errno(EAFNOSUPPORT);
 	return -1;
     }
 }
