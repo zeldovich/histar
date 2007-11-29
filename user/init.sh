@@ -6,6 +6,7 @@ ln -s /bin/*.so /lib
 if [ -f /bin/gcc.tar.gz ]; then
     echo "$0: unpacking gcc.."
     tar -C /usr -xzmf /bin/gcc.tar.gz
+    ln -s gcc /usr/bin/cc
 fi
 
 if [ -f /bin/include.tar.gz ]; then

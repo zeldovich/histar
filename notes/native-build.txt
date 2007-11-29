@@ -1,0 +1,13 @@
+autoconf-based:
+
+    apr		http://www.pangex.com/pub/apache/apr/apr-1.2.12.tar.gz
+    apr-util	http://www.pangex.com/pub/apache/apr/apr-util-1.2.12.tar.gz
+    subversion	http://subversion.tigris.org/downloads/subversion-1.4.5.tar.gz
+
+perl:
+
+    http://www.perl.com/CPAN/src/perl-5.8.8.tar.gz
+
+    % sh Configure -de -Alibnames=/bin/ld.so 
+    % make miniperl
+
