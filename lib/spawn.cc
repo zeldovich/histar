@@ -29,6 +29,7 @@ spawn(spawn_descriptor *sd)
     label tmp, out;
     bool autogrant = !(sd->spawn_flags_ & SPAWN_NO_AUTOGRANT);
     bool uinit_style = (sd->spawn_flags_ & SPAWN_UINIT_STYLE);
+    bool copy_mtab = (sd->spawn_flags_ & SPAWN_COPY_MTAB);
 
     // Compute receive label for new process
     label thread_clear(2);
@@ -185,6 +186,15 @@ spawn(spawn_descriptor *sd)
 	spawn_env->fs_root = sd->fs_root_;
     if (sd->fs_cwd_.obj.object)
 	spawn_env->fs_cwd = sd->fs_cwd_;
+
+    if (copy_mtab) {
+	int64_t new_mtab_id =
+	    sys_segment_copy(spawn_env->fs_mtab_seg,
+			     spawn_env->shared_container,
+			     0, "mtab");
+	error_check(new_mtab_id);
+	spawn_env->fs_mtab_seg = COBJ(spawn_env->shared_container, new_mtab_id);
+    }
 
     if (!uinit_style) {
 	uint64_t *child_pgid = 0;

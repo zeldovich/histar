@@ -60,7 +60,8 @@ main(int ac, char **av)
 	struct child_process cp =
 	    spawn(user_ct, user_authd, 0, 1, 2,
 		  2, argv, 0, 0,
-		  0, 0, 0, 0, 0);
+		  0, 0, 0, 0, 0,
+		  SPAWN_COPY_MTAB);
 
 	start_env->user_grant = ug;
 	start_env->user_taint = ut;

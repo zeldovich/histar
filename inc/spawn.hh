@@ -9,6 +9,7 @@ extern "C" {
 
 #define SPAWN_NO_AUTOGRANT	0x01	/* user_grant & user_taint */
 #define SPAWN_UINIT_STYLE	0x02
+#define SPAWN_COPY_MTAB		0x04
 
 struct spawn_descriptor {
  public:
