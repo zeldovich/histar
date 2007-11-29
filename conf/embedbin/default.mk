@@ -19,7 +19,7 @@ KERN_BINFILES	+= user/jrm user/jcp user/jecho user/mount user/umount
 KERN_BINFILES	+= user/jsync user/jmkdir user/reboot user/ureboot
 KERN_BINFILES	+= user/jenv user/ps user/wrap user/newpty
 KERN_BINFILES	+= user/auth_log user/auth_dir user/auth_user
-KERN_BINFILES	+= user/login user/adduser user/passwd
+KERN_BINFILES	+= user/login user/adduser user/passwd user/spawn
 
 ## Common Unix tools
 KERN_BINFILES	+= user/ln user/tr user/expr user/chmod user/touch user/sort
@@ -30,10 +30,12 @@ KERN_BINFILES	+= user/links user/od user/du user/head user/tail user/sync
 KERN_BINFILES	+= user/md5sum user/sha1sum user/mkdir user/stty user/printf
 KERN_BINFILES	+= user/vim user/echo user/dirname user/basename user/file
 KERN_BINFILES	+= user/sleep user/env user/strings user/tty user/xargs
-KERN_BINFILES	+= user/rmdir user/diff user/reset user/hostname
+KERN_BINFILES	+= user/rmdir user/diff user/reset user/hostname user/id
+KERN_BINFILES	+= user/less
 
 ## SSH
 KERN_BINFILES	+= user/sshd user/ssh.tar user/scp user/sshdi
+KERN_BINFILES	+= user/ssh user/ssh-agent user/ssh-add
 
 ## Development
 KERN_BINFILES	+= user/gcc.tar.gz user/include.tar.gz

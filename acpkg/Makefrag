@@ -443,10 +443,9 @@ $(ACPKG_BUILDDIR)/openssh-4.3p2/__build: $(ACPKG_BUILDDIR)/openssh-4.3p2/Makefil
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) install-nokeys" )
 	touch $@
 
-$(OBJDIR)/acpkg/bin/scp: $(ACPKG_BUILDDIR)/openssh-4.3p2/__build
+$(OBJDIR)/acpkg/bin/scp $(OBJDIR)/acpkg/sbin/sshd $(OBJDIR)/acpkg/bin/ssh $(OBJDIR)/acpkg/bin/ssh-agent $(OBJDIR)/acpkg/bin/ssh-add: $(ACPKG_BUILDDIR)/openssh-4.3p2/__build
 	@
-$(OBJDIR)/acpkg/sbin/sshd: $(ACPKG_BUILDDIR)/openssh-4.3p2/__build
-	@
+
 $(OBJDIR)/user/ssh.tar: $(ACPKG_BUILDDIR)/openssh-4.3p2/__build
 	rm -f $@
 	echo "UsePrivilegeSeparation no" > $(OBJDIR)/acpkg/etc/sshd_config
