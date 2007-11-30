@@ -167,3 +167,6 @@
 #define __UCLIBC_GRP_BUFFER_SIZE__ 256
 #define __UCLIBC_PWD_BUFFER_SIZE__ 256
 
+#define __LDSO_GNU_HASH_SUPPORT__ 1
+#define __LDSO_LDD_SUPPORT__ 1
+
