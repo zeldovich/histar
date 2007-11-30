@@ -108,6 +108,10 @@
 #define EFER_NXE 0x800		/* No-execute enable */
 #define EFER_FFXSR 0x4000	/* Fast FXSAVE/FXRSTOR */
 
+/* FS/GS base registers */
+#define MSR_FS_BASE	0xc0000100
+#define MSR_GS_BASE	0xc0000101
+
 /* Debug registers */
 #define MSR_DEBUG_CTL	0x1d9		/* MSR number */
 #define DEBUG_CTL_LBR	(1 << 0)	/* Last-Branch Record */

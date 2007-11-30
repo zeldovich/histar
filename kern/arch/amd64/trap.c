@@ -267,14 +267,20 @@ thread_arch_run(const struct Thread *t)
 	lcr0(rcr0() | CR0_TS);
     }
 
-#define LOAD_SEGMENT_REG(t, rs) \
-    if (t->th_tf.tf_##rs != read_##rs()) { write_##rs(t->th_tf.tf_##rs); }
+    if (t->th_tf.tf_ds != read_ds())
+	write_ds(t->th_tf.tf_ds);
+    if (t->th_tf.tf_es != read_es())
+	write_es(t->th_tf.tf_es);
 
-    LOAD_SEGMENT_REG(t, ds);
-    LOAD_SEGMENT_REG(t, es);
-    LOAD_SEGMENT_REG(t, fs);
-    LOAD_SEGMENT_REG(t, gs);
-#undef LOAD_SEGMENT_REG
+    if (t->th_tf.tf_fs != read_fs()) {
+	write_fs(t->th_tf.tf_fs);
+	write_msr(MSR_FS_BASE, USTARTENVRO);
+    }
+
+    if (t->th_tf.tf_gs != read_gs()) {
+	write_gs(t->th_tf.tf_gs);
+	write_msr(MSR_GS_BASE, USTARTENVRO);
+    }
 
     trapframe_pop(&t->th_tf);
 }
@@ -357,6 +363,10 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
     t->th_tf.tf_rflags = FL_IF;
     t->th_tf.tf_cs = GD_UT_NMASK | 3;
     t->th_tf.tf_ss = GD_UD | 3;
+    t->th_tf.tf_ds = GD_UD | 3;
+    t->th_tf.tf_es = GD_UD | 3;
+    t->th_tf.tf_fs = GD_UD | 3;
+    t->th_tf.tf_gs = GD_UD | 3;
     t->th_tf.tf_rip = (uintptr_t) te->te_entry;
     t->th_tf.tf_rsp = (uintptr_t) te->te_stack;
     t->th_tf.tf_rdi = te->te_arg[0];
