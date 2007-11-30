@@ -45,7 +45,8 @@ $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDSO_LIBS) $(OBJDIR)/lib/crti
 	$(LD) -o $@ \
 	      $(OBJDIR)/lib/crti.o \
 	      $(shell $(CC) -print-file-name=crtbeginS.o) \
-	      --whole-archive $(LDSO_LIBS) $(GCC_LIB) --no-whole-archive \
+	      --whole-archive $(LDSO_LIBS) \
+	      $(GCC_LIB) $(GCC_EH_LIB) --no-whole-archive \
 	      $(LDSO_OBJFILES) \
 	      $(shell $(CC) -print-file-name=crtendS.o) \
 	      $(OBJDIR)/lib/crtn.o \

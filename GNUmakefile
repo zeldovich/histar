@@ -18,8 +18,9 @@ else
 OBJDIR	:= obj
 endif
 
-GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
 TOP	:= $(shell echo $${PWD-`pwd`})
+GCC_LIB	:= $(shell $(CC) -print-libgcc-file-name)
+GCC_EH_LIB := $(shell $(CC) -dumpspecs | grep -q .lgcc_eh && $(CC) -print-file-name=libgcc_eh.a)
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
