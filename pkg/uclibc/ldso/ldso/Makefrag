@@ -42,6 +42,7 @@ $(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/$(UCLIBC_ARCH)/%.S
 $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDSO_LIBS) $(OBJDIR)/lib/crti.o $(OBJDIR)/lib/crtn.o conf/ldso.dynlist
 	@mkdir -p $(@D)
 	$(LD) -o $@ \
+	      $(LD_EH_FRAME_HDR) \
 	      $(OBJDIR)/lib/crti.o \
 	      $(shell $(CC) -print-file-name=crtbeginS.o) \
 	      --whole-archive $(LDSO_LIBS) \
@@ -56,6 +57,7 @@ $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDSO_LIBS) $(OBJDIR)/lib/crti
 $(OBJDIR)/lib/%.so: $(OBJDIR)/lib/%.a $(OBJDIR)/user/ld.so $(OBJDIR)/lib/crti.o $(OBJDIR)/lib/crtn.o
 	@mkdir -p $(@D)
 	$(LD) -o $@ \
+	      $(LD_EH_FRAME_HDR) \
 	      $(OBJDIR)/lib/crti.o \
 	      $(shell $(CC) -print-file-name=crtbeginS.o) \
 	      --whole-archive $< --no-whole-archive \

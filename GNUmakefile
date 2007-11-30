@@ -21,6 +21,7 @@ endif
 TOP	:= $(shell echo $${PWD-`pwd`})
 GCC_LIB	:= $(shell $(CC) -print-libgcc-file-name)
 GCC_EH_LIB := $(shell $(CC) -dumpspecs | grep -q .lgcc_eh && $(CC) -print-file-name=libgcc_eh.a)
+LD_EH_FRAME_HDR := $(shell $(LD) --help | grep -q eh-frame-hdr && echo --eh-frame-hdr)
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
@@ -83,10 +84,14 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/gcc.specs
 
 # Shared library stuff
+SHARED_ENABLE := no
+
 ifeq ($(K_ARCH),amd64)
 SHARED_ENABLE := yes
-else
-SHARED_ENABLE := no
+endif
+
+ifeq ($(K_ARCH),i386)
+SHARED_ENABLE := yes
 endif
 
 LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
