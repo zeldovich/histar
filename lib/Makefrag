@@ -74,6 +74,10 @@ LIB_SRCFILES :=	\
 	lib/uidgid.c lib/wait.c lib/udsdev.c lib/udsimpl.cc \
 	lib/lfsdev.c lib/lfsimpl.cc lib/fb.c
 
+ifeq ($(SHARED_ENABLE),yes)
+LIB_SRCFILES += lib/$(ARCH)/libgcc_export.S
+endif
+
 include lib/cppsup/Makefrag
 -include lib/$(ARCH)/Makefrag
 
@@ -109,6 +113,10 @@ $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.S $(OBJDIR)/lib/utrapasm.h
 $(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
 	rm -f $@
 	$(AR) r $@ $(LIB_OBJFILES)
+
+$(OBJDIR)/lib/libgcc_wrap.a: obj/lib/libgcc_wrap.o
+	rm -f $@
+	$(AR) r $@ $^
 
 ## Without this symlink, gcc can't find crt1.o on 32-bit machines:
 ##   gcc -m32 -Bjos64/obj/lib -print-file-name=crt1.o
