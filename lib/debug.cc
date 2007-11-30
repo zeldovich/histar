@@ -20,7 +20,7 @@ print_backtrace(int use_cprintf)
 
 	Dl_info dli;
 	int r = dladdr(addr, &dli);
-	if (r >= 0) {
+	if (r > 0) {
 	    fn = dli.dli_fname;
 	    sn = dli.dli_sname;
 	    off = (void *) (((uintptr_t)addr) - ((uintptr_t)dli.dli_saddr));
