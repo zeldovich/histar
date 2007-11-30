@@ -190,8 +190,29 @@ msync(void *start, size_t length, int flags)
 int
 mprotect(void *addr, size_t len, int prot)
 {
-    set_enosys();
-    return -1;
+    struct u_segment_mapping usm;
+    int r = segment_lookup(addr, &usm);
+    if (r <= 0) {
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    if (prot & PROT_EXEC)
+	usm.flags |= SEGMAP_EXEC;
+    if (prot & PROT_READ)
+	usm.flags |= SEGMAP_READ;
+    if (prot & PROT_WRITE)
+	usm.flags |= SEGMAP_WRITE;
+
+    uint64_t nbytes = usm.num_pages * PGSIZE;
+    r = segment_map(usm.segment, usm.start_page * PGSIZE, usm.flags,
+		    &usm.va, &nbytes, SEG_MAPOPT_REPLACE);
+    if (r < 0) {
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    return 0;
 }
 
 int
