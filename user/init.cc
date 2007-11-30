@@ -34,8 +34,13 @@ static int init_debug = 0;
 static const char *env[] = { "USER=root", "HOME=/" };
 static uint64_t time_grant;
 
+/*
+ * Glue to make init link properly as a static binary even though
+ * the rest of the system uses shared libraries.
+ */
 extern "C" void _dl_app_init_array(void) {}
 extern "C" void _dl_app_fini_array(void) {}
+extern "C" int dl_iterate_phdr(void) { return 0; }
 
 static struct child_process
 spawn_fs(int flags, int fd, const char *pn, const char *arg,
