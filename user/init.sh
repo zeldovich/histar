@@ -42,7 +42,7 @@ EOM
 cat > /sample/wrap/compile-and-run.sh <<EOM
 #!/bin/sh
 MACHINE=`uname -m`
-test \$MACHINE == i386 && CFLAGS="\$CFLAGS -m32 -static"
+test \$MACHINE == i386 && CFLAGS="\$CFLAGS -m32"
 gcc \$CFLAGS /sample/wrap/hello.c -o /tmp/hello
 /tmp/hello
 EOM

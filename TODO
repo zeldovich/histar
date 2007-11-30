@@ -1,6 +1,7 @@
 Usability:
 
-* clean up i386: gcc -static -m32 by default, get shared libraries working
+* clean up i386: gcc -m32 by default
+* performance: shared library prelinking
 * standardize on a reasonable FS layout
 * linux compat mode: run vmlinux instead of our unix emulation library
   - catch pagefault, syscall traps, vector them to the vmlinux idt
