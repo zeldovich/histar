@@ -9,13 +9,25 @@ __asm__ (
     "	.globl	_start\n"
     "	.type	_start,@function\n"
     "_start:\n"
+	"   # The auxvt is on the stack\n"
+	"   pushl %esp\n"
+	"   pushl %ecx\n"
+	"   pushl %edx\n"
+	"   pushl %eax\n"
     "	call _dl_start\n"
     "	# Save the user entry point address in %edi.\n"
     "	movl %eax, %edi\n"
+	"   # Restore arguments for libmain and friends.\n"
+	"   popl %eax\n"
+	"   popl %edx\n"
+	"   popl %ecx\n"
+	"   # Pass magic value 2 as arg0, to avoid setup_env.\n"
+	"   movl $2, %eax\n"
     "	# Point %ebx at the GOT.\n"
     "	call 1f\n"
     "1:	popl	%ebx\n"
     "	addl $_GLOBAL_OFFSET_TABLE_+[.-1b], %ebx\n"
+#if 0
     "	# See if we were run as a command with the executable file\n"
     "	# name as an extra leading argument.\n"
     "	movl _dl_skip_args@GOTOFF(%ebx), %eax\n"
@@ -29,16 +41,12 @@ __asm__ (
     "	push %edx\n"
     "	# Pass our FINI ptr() to the user in %edx, as per ELF ABI.\n"
     "	leal _dl_fini@GOTOFF(%ebx), %edx\n"
+#endif
     "	# Jump to the user's entry point.\n"
     "	jmp *%edi\n"
     "	.size	_start,.-_start\n"
     "	.previous\n"
 );
-
-/* Get a pointer to the argv array.  On many platforms this can be just
- * the address if the first argument, on other platforms we need to
- * do something a little more subtle here.  */
-#define GET_ARGV(ARGVP, ARGS) ARGVP = (((unsigned long*) & ARGS)+1)
 
 /* Handle relocation of the symbols in the dynamic loader. */
 static __always_inline
