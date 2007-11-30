@@ -431,6 +431,7 @@ typedef struct
 #define SHT_SYMTAB_SHNDX  18		/* Extended section indeces */
 #define	SHT_NUM		  19		/* Number of defined types.  */
 #define SHT_LOOS	  0x60000000	/* Start OS-specific */
+#define SHT_GNU_HASH      0x6ffffff6    /* GNU-style hash table.  */
 #define SHT_GNU_LIBLIST	  0x6ffffff7	/* Prelink library list */
 #define SHT_CHECKSUM	  0x6ffffff8	/* Checksum for DSO content.  */
 #define SHT_LOSUNW	  0x6ffffffa	/* Sun-specific low bound.  */
@@ -792,6 +793,7 @@ typedef struct
    approach.  */
 #define DT_VALRNGLO	0x6ffffd00
 #define DT_GNU_PRELINKED 0x6ffffdf5	/* Prelinking timestamp */
+#define DT_GNU_HASH     0x6ffffef5      /* GNU-style hash table.  */
 #define DT_GNU_CONFLICTSZ 0x6ffffdf6	/* Size of conflict section */
 #define DT_GNU_LIBLISTSZ 0x6ffffdf7	/* Size of library list */
 #define DT_CHECKSUM	0x6ffffdf8
