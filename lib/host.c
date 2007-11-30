@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <sys/utsname.h>
 
-static char hostname[32] = "histar";
+static char hostname[32] = "histar-box";
 
 libc_hidden_proto(gethostname)
 libc_hidden_proto(uname)
@@ -29,7 +29,7 @@ sethostname(const char *name, size_t len)
 	return -1;
     }
 
-    strcpy(&hostname[0], name);
+    strncpy(&hostname[0], name, sizeof(hostname) - 1);
     return 0;
 }
 
@@ -39,16 +39,10 @@ sethostname(const char *name, size_t len)
 int
 uname (struct utsname *name)
 {
-    name->sysname[0] = '\0';
-    name->nodename[0] = '\0';
-    name->release[0] = '\0';
-    name->version[0] = '\0';
-    name->machine[0] = '\0';
-
     sprintf(&name->sysname[0],  "Linux");
-    sprintf(&name->nodename[0], "histar");
-    sprintf(&name->release[0],  "v0");
-    sprintf(&name->version[0],  "none");
+    sprintf(&name->nodename[0], "%s", &hostname[0]);
+    sprintf(&name->release[0],  "HiStar");
+    sprintf(&name->version[0],  "%s", JOS_BUILD_VERSION);
     sprintf(&name->machine[0],  stringify_eval(__UCLIBC_ARCH__));
 
     return 0;

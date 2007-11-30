@@ -22,6 +22,7 @@ TOP	:= $(shell echo $${PWD-`pwd`})
 GCC_LIB	:= $(shell $(CC) -print-libgcc-file-name)
 GCC_EH_LIB := $(shell $(CC) -dumpspecs | grep -q .lgcc_eh && $(CC) -print-file-name=libgcc_eh.a)
 LD_EH_FRAME_HDR := $(shell $(LD) --help | grep -q eh-frame-hdr && echo --eh-frame-hdr)
+BUILD_VERSION := devel
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
@@ -62,7 +63,8 @@ BASECFLAGS :=
 endif
 
 COMFLAGS    := $(BASECFLAGS) -g $(OPTFLAG) -fno-strict-aliasing \
-	       -Wall -MD -DJOS_ARCH_$(ARCH)
+	       -Wall -MD -DJOS_ARCH_$(ARCH) \
+	       -DJOS_BUILD_VERSION=\"$(BUILD_VERSION)\"
 CSTD	    := -std=c99 -fms-extensions $(shell ./conf/gcc-flags.sh $(CC))
 INCLUDES    := -I$(TOP) -I$(TOP)/kern -I$(TOP)/$(OBJDIR)
 
