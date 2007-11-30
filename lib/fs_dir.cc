@@ -362,11 +362,16 @@ fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct ulabel
 }
 
 int
-fs_link(struct fs_inode dir, const char *fn, struct fs_inode f)
+fs_link(struct fs_inode dir, const char *fn, struct fs_inode f, int remove_old)
 {
     int r = sys_segment_addref(f.obj, dir.obj.object);
     if (r < 0)
 	return r;
+
+    struct fs_inode of;
+    int oldr = fs_lookup_one(dir, fn, &of, 0);
+    if (oldr >= 0 && !remove_old)
+	return -E_BUSY;
 
     struct fs_inode nf;
     nf.obj = COBJ(dir.obj.object, f.obj.object);
@@ -375,6 +380,10 @@ fs_link(struct fs_inode dir, const char *fn, struct fs_inode f)
 	fs_dir *d = fs_dir_open(dir, 1);
 	scope_guard<void, fs_dir *> g(delete_obj, d);
 	d->insert(fn, nf);
+	if (oldr >= 0) {
+	    d->remove(fn, of);
+	    sys_obj_unref(of.obj);
+	}
     } catch (error &e) {
 	sys_obj_unref(nf.obj);
 	return e.err();
@@ -397,30 +406,6 @@ fs_remove(struct fs_inode dir, const char *name, struct fs_inode f)
 	    return r;
     } catch (error &e) {
 	cprintf("fs_remove: %s\n", e.what());
-	return e.err();
-    }
-
-    return 0;
-}
-
-int
-fs_rename(struct fs_inode dir, const char *oldfn, const char *newfn, struct fs_inode f)
-{
-    try {
-	fs_dir *d = fs_dir_open(dir, 1);
-	scope_guard<void, fs_dir *> g(delete_obj, d);
-
-	struct fs_inode newf;
-	int nr = fs_lookup_one(dir, newfn, &newf, 0);
-
-	d->insert(newfn, f);
-	d->remove(oldfn, f);
-
-	if (nr >= 0) {
-	    d->remove(newfn, newf);
-	    sys_obj_unref(newf.obj);
-	}
-    } catch (error &e) {
 	return e.err();
     }
 

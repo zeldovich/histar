@@ -43,6 +43,10 @@ err_jos2libc(int64_t r)
 	__set_errno(ENOENT);
     else if (r == -E_NO_MEM)
 	__set_errno(ENOMEM);
+    else if (r == -E_VAR_QUOTA)
+	__set_errno(EXDEV);
+    else if (r == -E_BUSY)
+	__set_errno(EEXIST);
     
     return -1;
 }
@@ -125,12 +129,7 @@ link(const char *oldpath, const char *newpath)
     if (r < 0)
 	goto err;
 
-    r = fs_link(dir_ino, basenm, ino);
-    if (r < 0 && r != -E_LABEL) {
-	free(pn);
-	__set_errno(EXDEV);
-	return -1;
-    }
+    r = fs_link(dir_ino, basenm, ino, 0);
 
  err:
     free(pn);
@@ -288,19 +287,24 @@ rename(const char *src, const char *dst)
     if (r < 0)
 	goto err;
 
-    if (src_dir_ino.obj.object != dst_dir_ino.obj.object) {
-	free(src2);
-	free(dst2);
-	__set_errno(EXDEV);
-	return -1;
-    }
-
     struct fs_inode f;
     r = fs_namei_flags(src, &f, NAMEI_LEAF_NOEVAL);
     if (r < 0)
 	goto err;
 
-    r = fs_rename(src_dir_ino, src_base, dst_base, f);
+    r = fs_link(dst_dir_ino, dst_base, f, 1);
+    if (r == -E_VAR_QUOTA) {
+	char *fq = getenv("FS_RENAME_FIX_QUOTA");
+	if (fq) {
+	    sys_obj_set_fixedquota(f.obj);
+	    r = fs_link(dst_dir_ino, dst_base, f, 1);
+	}
+    }
+
+    if (r < 0)
+	goto err;
+
+    r = fs_remove(src_dir_ino, src_base, f);
 
  err:
     free(src2);

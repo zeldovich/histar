@@ -157,7 +157,7 @@ init_fs(void)
 	char name[KOBJ_NAME_LEN];
 	error_check(sys_obj_get_name(file_ino.obj, &name[0]));
 	error_check(sys_obj_set_fixedquota(file_ino.obj));
-	error_check(fs_link(bin_dir, name, file_ino));
+	error_check(fs_link(bin_dir, name, file_ino, 0));
     }
 
     // create, mount uauth
