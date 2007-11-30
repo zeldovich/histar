@@ -682,9 +682,14 @@ int _dl_fixup(struct dyn_elf *rpnt, int now_flag)
 	    !(tpnt->init_flag & RELOCS_DONE)) {
 		reloc_addr = tpnt->dynamic_info[DT_RELOC_TABLE_ADDR];
 		relative_count = tpnt->dynamic_info[DT_RELCONT_IDX];
-		if (relative_count) { /* Optimize the XX_RELATIVE relocations if possible */
+		/* Optimize the XX_RELATIVE relocations if possible */
+		if (relative_count) {
 			reloc_size -= relative_count * sizeof(ELF_RELOC);
-			elf_machine_relative(tpnt->loadaddr, reloc_addr, relative_count);
+			if (!(tpnt->init_flag & ELF_MACH_REL_DONE)) {
+				elf_machine_relative(tpnt->loadaddr,
+				                     reloc_addr, relative_count);
+				tpnt->init_flag |= ELF_MACH_REL_DONE;
+			}
 			reloc_addr += relative_count * sizeof(ELF_RELOC);
 		}
 		goof += _dl_parse_relocation_information(rpnt,

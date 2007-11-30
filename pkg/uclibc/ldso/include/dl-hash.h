@@ -91,11 +91,12 @@ struct elf_resolve {
 #endif
 };
 
-#define RELOCS_DONE	    0x000001
+#define RELOCS_DONE	        0x000001
 #define JMP_RELOCS_DONE	    0x000002
 #define INIT_FUNCS_CALLED   0x000004
 #define FINI_FUNCS_CALLED   0x000008
-#define DL_OPENED	    0x000010
+#define DL_OPENED	        0x000010
+#define ELF_MACH_REL_DONE   0x000020
 
 extern struct dyn_elf     * _dl_symbol_tables;
 extern struct elf_resolve * _dl_loaded_modules;
