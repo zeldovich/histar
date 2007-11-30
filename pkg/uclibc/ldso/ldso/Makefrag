@@ -17,6 +17,7 @@ LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
 		-DNOT_IN_libc -DIS_IN_rtld \
 		-D__SUPPORT_LD_DEBUG__ \
 		-D__LDSO_LDD_SUPPORT__ \
+		-D__LDSO_GNU_HASH_SUPPORT__ \
 		-DRERELOCATE_LDSO \
 		-fno-omit-frame-pointer \
 		-Iuinc/ldso \
