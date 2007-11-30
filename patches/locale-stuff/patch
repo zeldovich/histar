@@ -1,0 +1,28 @@
+Index: libc/string/Makefrag
+===================================================================
+--- libc/string/Makefrag	(revision 6916)
++++ libc/string/Makefrag	(working copy)
+@@ -13,7 +13,8 @@
+ 	wcscasecmp.c wcscat.c wcschrnul.c wcschr.c wcscmp.c wcscpy.c wcscspn.c \
+ 	wcsdup.c wcslen.c wcsncasecmp.c wcsncat.c wcsncmp.c wcsncpy.c \
+ 	wcsnlen.c wcspbrk.c wcsrchr.c wcsspn.c wcsstr.c wcstok.c wmemchr.c \
+-	wmemcmp.c wmemcpy.c wmemmove.c wmempcpy.c wmemset.c wcpcpy.c wcpncpy.c
++	wmemcmp.c wmemcpy.c wmemmove.c wmempcpy.c wmemset.c wcpcpy.c wcpncpy.c \
++	wcsxfrm.c wcslcpy.c strxfrm.c
+ 
+ LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/string/%.c, $(STRING_CSRC))
+ 
+Index: libc/misc/Makefrag
+===================================================================
+--- libc/misc/Makefrag	(revision 6916)
++++ libc/misc/Makefrag	(working copy)
+@@ -42,7 +42,8 @@
+         __ctype_assert.c isctype.c
+ 
+ MISC_LOCALE_CSRC := \
+-	setlocale.c localeconv.c _locale_init.c nl_langinfo.c
++	setlocale.c localeconv.c _locale_init.c nl_langinfo.c \
++	newlocale.c __locale_mbrtowc_l.c locale_data.c
+ 
+ MISC_TIME_CSRC := \
+ 	asctime.c asctime_r.c clock.c ctime.c ctime_r.c gmtime.c gmtime_r.c \

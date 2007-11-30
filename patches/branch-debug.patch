@@ -1,0 +1,154 @@
+Index: mmu.h
+===================================================================
+--- mmu.h	(revision 6190)
++++ mmu.h	(working copy)
+@@ -58,6 +58,10 @@
+   uint64_t tf_r10;
+   uint64_t tf_r11;
+ 
++  /* debug registers */
++  uint64_t tf_lbr_to;
++  uint64_t tf_lbr_from;
++
+   /* caller-saved registers */
+   uint64_t tf_rbx;
+   uint64_t tf_rbp;
+Index: utrap.h
+===================================================================
+--- utrap.h	(revision 6190)
++++ utrap.h	(working copy)
+@@ -43,6 +43,9 @@
+     uint32_t utf_trap_src;
+     uint32_t utf_trap_num;
+     uint64_t utf_trap_arg;
++
++    uint64_t utf_lbr_from;
++    uint64_t utf_lbr_to;
+ };
+ 
+ #endif
+Index: locore.S
+===================================================================
+--- locore.S	(revision 6190)
++++ locore.S	(working copy)
+@@ -61,6 +61,13 @@
+ trap_ec_entry_stub:
+ 	// %rsp is pointing at tf_err
+ 	pushq	%rax		// rax into tf_rax
++
++	pushq	%rcx
++	movq	$MSR_DEBUG_CTL, %rcx
++	xorq	%rax, %rax
++	wrmsr
++	popq	%rcx
++
+ 	movq	$trap_entry, %rax
+ 	call	*%rax		// rip into tf__trapentry_rip
+ .globl	trap_entry_stub_end
+@@ -94,6 +101,10 @@
+ trapframe_pop:
+ 	movq	%rdi,%rsp
+ 
++	movq	$MSR_DEBUG_CTL, %rcx
++	movq	$1, %rax
++	wrmsr
++
+ 	movq	tf_rax(%rsp),%rax
+ 	movq	tf_rbx(%rsp),%rbx
+ 	movq	tf_rcx(%rsp),%rcx
+Index: trap.c
+===================================================================
+--- trap.c	(revision 6190)
++++ trap.c	(working copy)
+@@ -19,7 +19,7 @@
+ static int trap_thread_syscall_writeback;
+ 
+ static struct {
+-    char trap_entry_code[16] __attribute__ ((aligned (16)));
++    char trap_entry_code[32] __attribute__ ((aligned (32)));
+ } trap_entry_stubs[256];
+ 
+ void
+@@ -82,6 +82,8 @@
+ 	    tf->tf_rip, tf->tf_rsp, tf->tf_cs, tf->tf_ss);
+     cprintf("rflags %016lx  err %08x\n",
+ 	    tf->tf_rflags, tf->tf_err);
++    cprintf("LBR FROM %016lx TO %016lx\n",
++	    tf->tf_lbr_from, tf->tf_lbr_to);
+ }
+ 
+ static void
+@@ -121,6 +123,12 @@
+ static void
+ trap_dispatch(int trapno, const struct Trapframe *tf)
+ {
++    if (trapno == T_DEBUG) {
++	cprintf("thread debug exception: %s\n",
++		trap_thread ? trap_thread->th_ko.ko_name : "null-thread");
++	trapframe_print(tf);
++    }
++
+     int64_t r;
+ 
+     if (trapno == T_NMI) {
+@@ -169,9 +177,28 @@
+     default:
+ 	r = thread_utrap(trap_thread, UTRAP_SRC_HW, trapno, 0);
+ 	if (r != 0 && r != -E_RESTART) {
+-	    cprintf("Unknown trap %d, cannot utrap: %s.  Trapframe:\n",
+-		    trapno, e2s(r));
++	    cprintf("Unknown trap %d, cannot utrap: %s.\n", trapno, e2s(r));
++	    cprintf("Thread %ld (%s), trapframe:\n",
++		    trap_thread->th_ko.ko_id, trap_thread->th_ko.ko_name);
+ 	    trapframe_print(tf);
++
++	    cprintf("Backtrace:\n");
++	    uint64_t ip = tf->tf_rip;
++	    uint64_t bp = tf->tf_rbp;
++	    for (uint32_t i = 0; i < 8; i++) {
++		cprintf("ip=%lx bp=%lx\n", ip, bp);
++		if (!ip || bp < 0x10000) break;
++		uint64_t *bpp = (uint64_t *) bp;
++		bp = bpp[0];
++		ip = bpp[1];
++	    }
++
++	    if (trapno == T_ILLOP) {
++		uint8_t *ptr = (uint8_t *) tf->tf_rip;
++		for (uint32_t i = 0; i < 16; i++)
++		    cprintf(" %08x", ptr[i]);
++		cprintf("\n");
++	    }
+ 	    thread_halt(trap_thread);
+ 	}
+     }
+@@ -184,6 +211,9 @@
+     uint32_t trapno = (trampoline_rip - trap0rip) /
+ 		      sizeof(trap_entry_stubs[0].trap_entry_code);
+ 
++    tf->tf_lbr_from = read_msr(MSR_LBR_FROM_IP);
++    tf->tf_lbr_to = read_msr(MSR_LBR_TO_IP);
++
+     tf->tf_ds = read_ds();
+     tf->tf_es = read_es();
+     tf->tf_fs = read_fs();
+@@ -276,6 +306,11 @@
+     LOAD_SEGMENT_REG(t, gs);
+ #undef LOAD_SEGMENT_REG
+ 
++    write_dr1(0x8700e);
++    write_dr7(DR7_G(1) | DR7_GE |
++	      (DR7_RW_WRITE << DR7_RW_SHIFT(1)) |
++	      (DR7_LEN_8 << DR7_LEN_SHIFT(1)));
++
+     trapframe_pop(&t->th_tf);
+ }
+ 
+@@ -317,6 +352,7 @@
+     UTF_COPY(r8);   UTF_COPY(r9);   UTF_COPY(r10);  UTF_COPY(r11);
+     UTF_COPY(r12);  UTF_COPY(r13);  UTF_COPY(r14);  UTF_COPY(r15);
+     UTF_COPY(rip);  UTF_COPY(rflags);
++    UTF_COPY(lbr_from); UTF_COPY(lbr_to);
+ #undef UTF_COPY
+ 
+     struct UTrapframe *utf = stacktop - sizeof(*utf);

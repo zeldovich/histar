@@ -1,0 +1,54 @@
+Index: trap.c
+===================================================================
+--- trap.c	(revision 5952)
++++ trap.c	(working copy)
+@@ -13,10 +13,13 @@
+ #include <kern/prof.h>
+ #include <kern/arch.h>
+ #include <inc/error.h>
++#include <inc/setjmp.h>
++#include <inc/safeint.h>
+ 
+ static uint64_t trap_user_iret_tsc;
+ static const struct Thread *trap_thread;
+ static int trap_thread_syscall_writeback;
++static struct jos_jmp_buf *trap_jb;
+ 
+ static struct {
+     char trap_entry_code[16] __attribute__ ((aligned (16)));
+@@ -180,6 +183,9 @@
+     tf->tf_fs = read_fs();
+     tf->tf_gs = read_gs();
+ 
++    if (trap_jb)
++	jos_longjmp(trap_jb, 1);
++
+     cyg_profile_free_stack(read_rsp());
+ 
+     if (trap_thread) {
+@@ -393,3 +399,25 @@
+   TF_DEF (tf_gs);
+   TF_DEF (tf__trapentry_rip);
+ }
++
++int
++memcpy_from_user(void *dst, const void *src, uint64_t len)
++{
++    int overflow = 0;
++    uintptr_t start = (uintptr_t) src;
++    uintptr_t end   = safe_addptr(&overflow, start, len);
++    if (overflow || end >= ULIM)
++	return -E_INVAL;
++
++    struct jos_jmp_buf jb;
++    if (jos_setjmp(&jb) != 0) {
++	int r = check_user_access((char*) src, len, 0);
++	if (r < 0)
++	    return r;
++    }
++
++    trap_jb = &jb;
++    memcpy(dst, src, len);
++    trap_jb = 0;
++    return 0;
++}
