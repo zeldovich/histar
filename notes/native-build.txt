@@ -10,7 +10,8 @@ autoconf-based:
 	./configure --shared
 
     subversion	http://subversion.tigris.org/downloads/subversion-1.4.5.tar.gz
-	./configure --disable-shared
+	./configure
+	export FS_RENAME_FIX_QUOTA=
 
 perl:
 
