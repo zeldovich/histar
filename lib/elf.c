@@ -31,6 +31,12 @@
 #error What is this architecture?
 #endif
 
+#if defined(JOS_ARCH_i386)
+#define ARCH_ELF_SHLIB_FLAGS	SEGMAP_WRITE
+#else
+#define ARCH_ELF_SHLIB_FLAGS	0
+#endif
+
 enum { elf_debug = 0 };
 
 int
@@ -131,7 +137,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 		    sm_ents[si].segment = ldso_seg;
 		    sm_ents[si].start_page = (ldph->p_offset - va_off) / PGSIZE;
 		    sm_ents[si].num_pages = (va_off + ldph->p_memsz + PGSIZE - 1) / PGSIZE;
-		    sm_ents[si].flags = ldph->p_flags;
+		    sm_ents[si].flags = ldph->p_flags | ARCH_ELF_SHLIB_FLAGS;
 		    sm_ents[si].va = (void*) (ULDSO + ldph->p_vaddr - va_off);
 		    si++;
 		} else {
@@ -140,7 +146,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 		    sm_ents[si].segment = ldso_seg;
 		    sm_ents[si].start_page = (ldph->p_offset - va_off) / PGSIZE;
 		    sm_ents[si].num_pages = shared_pages;
-		    sm_ents[si].flags = ldph->p_flags;
+		    sm_ents[si].flags = ldph->p_flags | ARCH_ELF_SHLIB_FLAGS;
 		    sm_ents[si].va = (void*) (ULDSO + ldph->p_vaddr - va_off);
 		    si++;
 
