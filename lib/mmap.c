@@ -43,7 +43,7 @@ mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 	}
 
 	struct cobj_ref seg = fd->fd_file.ino.obj;
-	if ((prot & PROT_WRITE) && (flags & MAP_PRIVATE)) {
+	if (flags & MAP_PRIVATE) {
 	    int64_t copy_id = sys_segment_copy(seg, start_env->proc_container,
 					       0, "mmap MAP_PRIVATE copy");
 	    if (copy_id < 0) {
