@@ -710,6 +710,31 @@ int dladdr(const void *__address, Dl_info * __info)
 		strtab = (char *) (pelf->dynamic_info[DT_STRTAB]);
 
 		sf = sn = 0;
+#ifdef __LDSO_GNU_HASH_SUPPORT__
+		if (pelf->l_gnu_bitmask) {
+			for (hn = 0; hn < pelf->nbucket; hn++) {
+				si = pelf->l_gnu_buckets[hn];
+				if (!si)
+					continue;
+
+				const Elf32_Word *hasharr = &pelf->l_gnu_chain_zero[si];
+				do {
+					ElfW(Addr) symbol_addr;
+
+					symbol_addr = (ElfW(Addr)) DL_RELOC_ADDR(pelf->loadaddr, symtab[si].st_value);
+					if (symbol_addr <= (ElfW(Addr))__address && (!sf || sa < symbol_addr)) {
+						sa = symbol_addr;
+						sn = si;
+						sf = 1;
+					}
+
+					_dl_if_debug_print("Symbol \"%s\" at %p\n",
+					                   strtab + symtab[si].st_name, symbol_addr);
+					++si;
+				} while ((*hasharr++ & 1u) == 0);
+			}
+		} else
+#endif
 		for (hn = 0; hn < pelf->nbucket; hn++) {
 			for (si = pelf->elf_buckets[hn]; si; si = pelf->chains[si]) {
 				ElfW(Addr) symbol_addr;
