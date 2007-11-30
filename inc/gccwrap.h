@@ -9,4 +9,6 @@
     GCC_WRAP(__umoddi3) \
     GCC_WRAP(__divdi3) \
     GCC_WRAP(__udivdi3)
+#else
+#define GCC_WRAPS_ARCH
 #endif

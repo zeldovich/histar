@@ -97,6 +97,7 @@ LDEPS += $(OBJDIR)/lib/libm.so \
 	 $(OBJDIR)/lib/libutil.so \
 	 $(OBJDIR)/lib/libdl.so \
 	 $(OBJDIR)/lib/libc.so \
+	 $(OBJDIR)/lib/libgcc_wrap.so \
 	 $(OBJDIR)/user/ld.so
 else
 CFLAGS_LIB_SHARED :=
