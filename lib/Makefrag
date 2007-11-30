@@ -114,7 +114,7 @@ $(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
 	rm -f $@
 	$(AR) r $@ $(LIB_OBJFILES)
 
-$(OBJDIR)/lib/libgcc_wrap.a: obj/lib/libgcc_wrap.o
+$(OBJDIR)/lib/libgcc_wrap.a: $(OBJDIR)/lib/libgcc_wrap.o
 	rm -f $@
 	$(AR) r $@ $^
 
