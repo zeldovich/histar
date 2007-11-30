@@ -80,7 +80,7 @@ set_video(void)
     vbe_control_info.sig[3] = '2';
 
     ax = 0x4f00;
-    di = (uint16_t) &vbe_control_info;
+    di = (uint16_t) (uintptr_t) &vbe_control_info;
     __asm volatile("int $0x10; cli"
 		   : "+a" (ax) : "D" (di) : "memory");
     if (ax != 0x4f)
@@ -92,7 +92,7 @@ set_video(void)
 
     ax = 0x4f01;
     cx = vbe_mode;
-    di = (uint16_t) &vbe_mode_info;
+    di = (uint16_t) (uintptr_t) &vbe_mode_info;
     __asm volatile("int $0x10; cli"
 		   : "+a" (ax) : "c" (cx), "D" (di) : "memory");
     if (ax != 0x4f)
@@ -105,8 +105,8 @@ set_video(void)
     if (ax != 0x4f)
 	return;
 
-    sysx_info.vbe_control_info = (es << 4) + (uint16_t) &vbe_control_info;
-    sysx_info.vbe_mode_info = (es << 4) + (uint16_t) &vbe_mode_info;
+    sysx_info.vbe_control_info = (es << 4) + (uint16_t) (uintptr_t) &vbe_control_info;
+    sysx_info.vbe_mode_info = (es << 4) + (uint16_t) (uintptr_t) &vbe_mode_info;
     sysx_info.vbe_mode = vbe_mode;
 
     /* Restore the %es which points to video memory */
