@@ -731,8 +731,10 @@ int dladdr(const void *__address, Dl_info * __info)
 			__info->dli_fbase = (void *) DL_LOADADDR_BASE(pelf->loadaddr);
 			__info->dli_sname = strtab + symtab[sn].st_name;
 			__info->dli_saddr = (void *)sa;
+			return 1;
 		}
-		return 1;
+
+		return 0;
 	}
 }
 #endif
