@@ -1,0 +1,16 @@
+OBJDIRS += pkg/uclibc/libintl
+
+LIBINTL_MOBJ := \
+	gettext.o ngettext.o  dgettext.o dcgettext.o dngettext.o dcngettext.o \
+	textdomain.o bindtextdomain.o bind_textdomain_codeset.o \
+	_nl_expand_alias.o _nl_msg_cat_cntr.o
+LIBINTL_MOBJ := $(patsubst %.o,$(OBJDIR)/pkg/uclibc/libintl/%.o,$(LIBINTL_MOBJ))
+
+$(LIBINTL_MOBJ): pkg/uclibc/libintl/intl.c
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libintl/%.o,%,$@) $< -c -o $@
+
+$(OBJDIR)/lib/libintl.a: $(LIBINTL_MOBJ)
+	@mkdir -p $(@D)
+	rm -f $@
+	$(AR) r $@ $(LIBINTL_MOBJ)

@@ -4,7 +4,8 @@ KERN_BINFILES	+= user/netd_mom user/jntpd
 ## Shared libraries, if enabled
 ifeq ($(SHARED_ENABLE),yes)
 KERN_BINFILES	+= user/ld.so user/libm.so user/libutil.so user/libdl.so
-KERN_BINFILES	+= user/libcrypt.so user/libz.so.1 user/libgcc_wrap.so
+KERN_BINFILES	+= user/libcrypt.so user/libintl.so user/libgcc_wrap.so
+KERN_BINFILES	+= user/libz.so.1
 KERN_BINFILES	+= user/ldd user/ldconfig
 endif
 
@@ -34,7 +35,7 @@ KERN_BINFILES	+= user/vim user/echo user/dirname user/basename user/file
 KERN_BINFILES	+= user/sleep user/env user/strings user/tty user/xargs
 KERN_BINFILES	+= user/rmdir user/diff user/reset user/hostname user/id
 KERN_BINFILES	+= user/less user/dd user/ed user/patch user/comm user/wc
-KERN_BINFILES	+= user/seq
+KERN_BINFILES	+= user/seq user/fgrep
 
 ## SSH
 KERN_BINFILES	+= user/sshd user/ssh.tar user/scp user/sshdi

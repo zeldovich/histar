@@ -83,6 +83,7 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libcrypt.a \
 	   $(OBJDIR)/lib/libutil.a \
 	   $(OBJDIR)/lib/libstdc++.a \
+	   $(OBJDIR)/lib/libintl.a \
 	   $(OBJDIR)/lib/gcc.specs
 
 # Shared library stuff
@@ -106,6 +107,7 @@ LDEPS += $(OBJDIR)/lib/libm.so \
 	 $(OBJDIR)/lib/libdl.so \
 	 $(OBJDIR)/lib/libc.so \
 	 $(OBJDIR)/lib/libgcc_wrap.so \
+	 $(OBJDIR)/lib/libintl.so \
 	 $(OBJDIR)/user/ld.so
 else
 CFLAGS_LIB_SHARED :=

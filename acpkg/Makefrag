@@ -124,6 +124,9 @@ DISTURL_fontconfig-2.5.0    := http://fontconfig.org/release/fontconfig-2.5.0.ta
 DISTURL_expat-2.0.1	    := http://internap.dl.sourceforge.net/sourceforge/expat/expat-2.0.1.tar.gz
 DISTURL_svgalib-1.9.25	    := http://www.arava.co.il/matan/svgalib/svgalib-1.9.25.tar.gz
 
+DISTURL_prelink		    := http://people.redhat.com/jakub/prelink/prelink-20060213.tar.bz2
+DISTURL_elfutils-0.131	    := http://sourceware.mirrors.tds.net/pub/sourceware.org/systemtap/elfutils/elfutils-0.131.tar.gz
+
 ##
 ## ./configure arguments for different packages
 ##
@@ -386,7 +389,7 @@ $(OBJDIR)/acpkg/bin/awk: $(ACPKG_BUILDDIR)/gawk-3.1.5/__build
 $(OBJDIR)/acpkg/bin/less: $(ACPKG_BUILDDIR)/less-382/__build
 	@
 
-$(OBJDIR)/acpkg/bin/grep $(OBJDIR)/acpkg/bin/egrep: $(ACPKG_BUILDDIR)/grep-2.5.3/__build
+$(OBJDIR)/acpkg/bin/grep $(OBJDIR)/acpkg/bin/egrep $(OBJDIR)/acpkg/bin/fgrep: $(ACPKG_BUILDDIR)/grep-2.5.3/__build
 	@
 
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: $(ACPKG_BUILDDIR)/gzip-1.2.4a/__build

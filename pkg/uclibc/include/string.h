@@ -230,11 +230,9 @@ extern void *memmem (__const void *__haystack, size_t __haystacklen,
 
 /* Copy N bytes of SRC to DEST, return pointer to bytes after the
    last written byte.  */
-#if 0 /* uClibc: disabled */
 extern void *__mempcpy (void *__restrict __dest,
 			__const void *__restrict __src, size_t __n)
      __THROW __nonnull ((1, 2));
-#endif
 extern void *mempcpy (void *__restrict __dest,
 		      __const void *__restrict __src, size_t __n)
      __THROW __nonnull ((1, 2));

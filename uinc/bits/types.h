@@ -73,7 +73,7 @@ typedef __uint64_t __ino_t;		/* Type of file serial numbers.  */
 typedef __u_int __mode_t;		/* Type of file attribute bitmasks.  */
 typedef __u_int __nlink_t;		/* Type of file link counts.  */
 typedef long int __off_t;		/* Type of file sizes and offsets.  */
-typedef __quad_t __loff_t;		/* Type of file sizes and offsets.  */
+typedef __int64_t __loff_t;		/* Type of file sizes and offsets.  */
 typedef __int64_t __pid_t;		/* Type of process identifications.  */
 typedef __int64_t __ssize_t;		/* Type of a byte count, or error.  */
 typedef __u_long __rlim_t;		/* Type of resource counts.  */
@@ -130,7 +130,7 @@ typedef __u_long __fsfilcnt_t;
 typedef __u_quad_t __fsfilcnt64_t;
 
 /* Type of file serial numbers.  */
-typedef __u_quad_t __ino64_t;
+typedef __uint64_t __ino64_t;
 
 /* Type of file sizes and offsets.  */
 typedef __loff_t __off64_t;
