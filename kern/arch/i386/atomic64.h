@@ -30,15 +30,16 @@ jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old, uint64_t newv)
 {
     uint32_t new_lo = newv & 0xffffffff;
     uint32_t new_hi = newv >> 32;
+    volatile uint64_t *cptr = &v->counter;
 
     __asm__ __volatile__(
 	"pushl %%ebx\n"
-	"movl %3, %%ebx\n"
-	ATOMIC_LOCK "cmpxchg8b %1\n"
+	"movl %%esi, %%ebx\n"
+	ATOMIC_LOCK "cmpxchg8b (%%edi)\n"
 	"popl %%ebx\n"
-	: "+A" (old), "+m" (v->counter)
-	: "c" (new_hi), "g" (new_lo)
-	: "cc");
+	: "+A" (old)
+	: "c" (new_hi), "S" (new_lo), "D" (cptr)
+	: "cc", "memory");
     return old;
 }
 
