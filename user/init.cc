@@ -442,10 +442,10 @@ init_fbcons(int *consp)
     dr.set(fbc_grant, 3);
     dr.set(fbc_taint, 3);
 
-    const char *argv[] = { "fbconsd", a0, a1 };
+    const char *argv[] = { "fbconsd", a0, a1, "Monospace-20" };
     child_process cp = spawn(start_env->process_pool,
 		   ino, cons, cons, cons,
-		   3, &argv[0],
+		   4, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
 		   0, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
 
