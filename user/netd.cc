@@ -60,7 +60,6 @@ main(int ac, char **av)
 
 	    n = strlen("netdev=");
 	    if (!strncmp(av[i], "netdev=", n)) {
-		    cprintf("netdev arg: %s\n", av[i]);
 		char *ctid = av[i] + n;
 		char *dot = strchr(ctid, '.');
 		if (dot) {
