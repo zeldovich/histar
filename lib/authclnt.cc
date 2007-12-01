@@ -48,9 +48,9 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     auth_uauth_reply  *uauth_reply  = (auth_uauth_reply *)  &gcd.param_buf[0];
     auth_ugrant_reply *ugrant_reply = (auth_ugrant_reply *) &gcd.param_buf[0];
 
-    int64_t dir_ct, dir_gt;
-    error_check(dir_ct = container_find(start_env->root_container, kobj_container, "auth_dir"));
-    error_check(dir_gt = container_find(dir_ct, kobj_gate, "authdir"));
+    fs_inode auth_dir_gt;
+    error_check(fs_namei_flags("/uauth/auth_dir/authdir", &auth_dir_gt,
+			       NAMEI_LEAF_NOEVAL));
 
     strcpy(&dir_req->user[0], user);
     dir_req->op = auth_dir_lookup;
@@ -58,7 +58,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     if (auth_debug)
 	cprintf("auth_login: calling directory gate\n");
 
-    gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd);
+    gate_call(auth_dir_gt.obj, 0, 0, 0).call(&gcd);
     error_check(dir_reply->err);
     cobj_ref user_gate = dir_reply->user_gate;
 
@@ -211,9 +211,9 @@ auth_chpass(const char *user, const char *pass, const char *npass)
     auth_uauth_req    *uauth_req    = (auth_uauth_req *)    &gcd.param_buf[0];
     auth_uauth_reply  *uauth_reply  = (auth_uauth_reply *)  &gcd.param_buf[0];
 
-    int64_t dir_ct, dir_gt;
-    error_check(dir_ct = container_find(start_env->root_container, kobj_container, "auth_dir"));
-    error_check(dir_gt = container_find(dir_ct, kobj_gate, "authdir"));
+    fs_inode auth_dir_gt;
+    error_check(fs_namei_flags("/uauth/auth_dir/authdir", &auth_dir_gt,
+			       NAMEI_LEAF_NOEVAL));
 
     strcpy(&dir_req->user[0], user);
     dir_req->op = auth_dir_lookup;
@@ -221,7 +221,7 @@ auth_chpass(const char *user, const char *pass, const char *npass)
     if (auth_debug)
 	cprintf("auth_chpass: calling directory gate\n");
 
-    gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd);
+    gate_call(auth_dir_gt.obj, 0, 0, 0).call(&gcd);
     error_check(dir_reply->err);
     cobj_ref user_gate = dir_reply->user_gate;
 
@@ -336,9 +336,9 @@ auth_log(const char *msg)
     uint32_t len = MIN(strlen(msg) + 1, sizeof(gcd.param_buf));
     memcpy(&gcd.param_buf[0], msg, len);
 
-    int64_t log_ct, log_gt;
-    error_check(log_ct = container_find(start_env->root_container, kobj_container, "auth_log"));
-    error_check(log_gt = container_find(log_ct, kobj_gate, "authlog"));
+    fs_inode log_gt;
+    error_check(fs_namei_flags("/uauth/auth_log/authlog", &log_gt,
+			       NAMEI_LEAF_NOEVAL));
 
-    gate_call(COBJ(log_ct, log_gt), 0, 0, 0).call(&gcd);
+    gate_call(log_gt.obj, 0, 0, 0).call(&gcd);
 }

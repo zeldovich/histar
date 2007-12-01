@@ -67,7 +67,10 @@ KERN_BINFILES	+= user/fetch user/dnstest
 #KERN_BINFILES	+= user/cpphello user/pftest
 #KERN_BINFILES	+= user/netd_vpn user/openvpn user/vpn_start
 
-## What gets run at startup; flags are "r" for root, "a" for passing args
+## What gets run at startup; flags are:
+##  "r" for root
+##  "a" for passing args
+##  "c" for running in root container
 INITTAB_ENTRIES	:= /bin/netd_mom:ra /bin/sshdi:ra
 
 #include conf/embedbin/httpd.mk

@@ -74,9 +74,9 @@ main(int ac, char **av)
 	error_check(uauth_gate =
 	    container_find(cp.container, kobj_gate, "user login gate"));
 
-	int64_t dir_ct, dir_gt;
-	error_check(dir_ct = container_find(start_env->root_container, kobj_container, "auth_dir"));
-	error_check(dir_gt = container_find(dir_ct, kobj_gate, "authdir"));
+	fs_inode auth_dir_gt;
+	error_check(fs_namei_flags("/uauth/auth_dir/authdir", &auth_dir_gt,
+				   NAMEI_LEAF_NOEVAL));
 
 	gate_call_data gcd;
 	auth_dir_req   *req   = (auth_dir_req *)   &gcd.param_buf[0];
@@ -87,7 +87,7 @@ main(int ac, char **av)
 
 	label verify;
 	thread_cur_label(&verify);
-	gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd, &verify);
+	gate_call(auth_dir_gt.obj, 0, 0, 0).call(&gcd, &verify);
 	error_check(reply->err);
 
 	uint64_t user_grant, user_taint;

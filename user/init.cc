@@ -29,6 +29,7 @@ extern "C" {
 
 #define SPAWN_ROOT_CT		0x01
 #define SPAWN_WAIT_GC		0x02
+#define SPAWN_OTHER_CT		0x04
 
 static int init_debug = 0;
 static const char *env[] = { "USER=root", "HOME=/" };
@@ -44,7 +45,7 @@ extern "C" int dl_iterate_phdr(void) { return 0; }
 
 static struct child_process
 spawn_fs(int flags, int fd, const char *pn, const char *arg,
-	 label *ds, label *dr)
+	 label *ds, label *dr, uint64_t ct = 0)
 {
     struct child_process cp;
     try {
@@ -54,8 +55,9 @@ spawn_fs(int flags, int fd, const char *pn, const char *arg,
 	    throw error(r, "cannot fs_lookup %s", pn);
 
 	const char *argv[] = { pn, arg };
-	uint64_t pct = (flags & SPAWN_ROOT_CT) ? start_env->root_container
-					       : start_env->process_pool;
+	uint64_t pct = (flags & SPAWN_ROOT_CT)  ? start_env->root_container :
+		       (flags & SPAWN_OTHER_CT) ? ct
+						: start_env->process_pool;
 	cp = spawn(pct,
 		   ino, fd, fd, fd,
 	           arg ? 2 : 1, &argv[0],
@@ -250,15 +252,17 @@ init_auth(int cons, const char *shroot)
     struct child_process cp;
     int64_t ec;
 
-    cp = spawn_fs(SPAWN_ROOT_CT, cons, "/bin/auth_log", 0, 0, 0);
-    error_check(process_wait(&cp, &ec));
-
-    cp = spawn_fs(SPAWN_ROOT_CT, cons, "/bin/auth_dir", shroot, 0, 0);
-    error_check(process_wait(&cp, &ec));
-
     // spawn user-auth agent for root
     fs_inode uauth_dir;
     error_check(fs_namei("/uauth", &uauth_dir));
+
+    cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_log", 0, 0, 0,
+		  uauth_dir.obj.object);
+    error_check(process_wait(&cp, &ec));
+
+    cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_dir", shroot, 0, 0,
+		  uauth_dir.obj.object);
+    error_check(process_wait(&cp, &ec));
 
     fs_inode user_authd;
     error_check(fs_namei("/bin/auth_user", &user_authd));
@@ -286,9 +290,9 @@ init_auth(int cons, const char *shroot)
     error_check(uauth_gate =
 	container_find(cp.container, kobj_gate, "user login gate"));
 
-    int64_t dir_ct, dir_gt;
-    error_check(dir_ct = container_find(start_env->root_container, kobj_container, "auth_dir"));
-    error_check(dir_gt = container_find(dir_ct, kobj_gate, "authdir"));
+    fs_inode auth_dir_gt;
+    error_check(fs_namei_flags("/uauth/auth_dir/authdir", &auth_dir_gt,
+			       NAMEI_LEAF_NOEVAL));
 
     gate_call_data gcd;
     auth_dir_req   *req   = (auth_dir_req *)   &gcd.param_buf[0];
@@ -299,7 +303,7 @@ init_auth(int cons, const char *shroot)
 
     label verify(3);
     verify.set(start_env->user_grant, 0);
-    gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd, &verify);
+    gate_call(auth_dir_gt.obj, 0, 0, 0).call(&gcd, &verify);
     error_check(reply->err);
     auth_chpass("root", "", "r");
 }
@@ -341,15 +345,15 @@ init_procs(int cons)
 		cprintf("init_procs: bad entry? %s\n", buf);
 		continue;
 	    }
-	    
-	    if (priv[0] == 'r') {
-		if (priv[1] == 'a')
-		    spawn_fs(SPAWN_ROOT_CT, cons, fn, &root_grant_buf[0], &root_ds, &root_dr);
-		else 
-		    spawn_fs(SPAWN_ROOT_CT, cons, fn, 0, &root_ds, &root_dr);
-	    }
-	    else 
-		spawn_fs(SPAWN_ROOT_CT, cons, fn, 0, 0, 0);
+
+	    char *flag_root = strchr(priv, 'r');
+	    char *flag_args = strchr(priv, 'a');
+	    char *flag_ct   = strchr(priv, 'c');
+
+	    spawn_fs(flag_ct ? SPAWN_ROOT_CT : 0, cons, fn,
+		     flag_args ? &root_grant_buf[0] : 0,
+		     flag_root ? &root_ds : 0,
+		     flag_root ? &root_dr : 0);
 	}
     }
     spawn_fs(SPAWN_WAIT_GC, cons, "/bin/ksh", "/bin/init.sh", &root_ds, &root_dr);

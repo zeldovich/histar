@@ -13,5 +13,6 @@ int jif_open(const char *name, void *data);
 int jif_tx(void *data, void *buf, unsigned int buf_len);
 int jif_rx(void *data, void *buf, unsigned int buf_len);
 void jif_irq_reset(void *data);
+int jif_set_netdev(char *str);
 
 #endif

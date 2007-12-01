@@ -12,10 +12,13 @@
 
 #include <archcall.h>
 #include <os-jos64/lutrap.h>
+#include <inc/string.h>
 
 #include "jif.h"
 
 #define JIF_BUFS	64
+
+static struct cobj_ref the_netdev;
 
 struct jif_data {
     struct cobj_ref ndev;
@@ -52,18 +55,7 @@ jif_unlock(struct jif_data *jif)
 static int
 get_netdev(const char *name, struct cobj_ref *co)
 {
-    int64_t netdev_id;
-    uint64_t ct;
-
-    ct = container_find(start_env->root_container,
-			kobj_container, "netd_mom");
-    if (ct < 0)
-	return -1;
-    
-    netdev_id = container_find(ct, kobj_netdev, name);
-    if (netdev_id < 0)
-	return netdev_id;
-    *co = COBJ(ct, netdev_id);
+    *co = the_netdev;
     return 0;
 }
 
@@ -276,47 +268,18 @@ jif_open(const char *name, void *data)
 int
 jif_list(struct jif_list *list, unsigned int cnt)
 {
-    int r, ret;
-    int64_t i, nslots;
-    int64_t ct;
-    
-    ct = container_find(start_env->root_container,
-			kobj_container, "netd_mom");
-    if (ct < 0)
-	return -1;
+    char name[KOBJ_NAME_LEN];
+    int r = sys_obj_get_name(the_netdev, &name[0]);
+    if (r < 0)
+	return r;
 
-    nslots = sys_container_get_nslots(ct);
-    if (nslots < 0)
-	return nslots;
-    
-    for (i = 0, ret = 0; (i < nslots) && (ret < cnt); i++) {
-	char name[KOBJ_NAME_LEN];
-	int64_t id = sys_container_get_slot_id(ct, i);
-	if (id < 0)
-	    continue;
+    strncpy(list[0].name, name, sizeof(list[0].name));
+    r = sys_net_macaddr(the_netdev, list[0].mac);
+    if (r < 0)
+	return r;
 
-	struct cobj_ref ko = COBJ(ct, id);
-	int type = sys_obj_get_type(ko);
-	if (type < 0)
-	    return type;
-
-	if (type != kobj_netdev)
-	    continue;
-
-	r = sys_obj_get_name(ko, &name[0]);
-	if (r < 0)
-	    continue;
-
-	/* found a net device */
-	strncpy(list[ret].name, name, sizeof(list[ret].name));
-	r = sys_net_macaddr(ko, list[ret].mac);
-	if (r < 0)
-	    return r;
-	list[ret].data_len = sizeof(struct jif_data);
-	
-	ret++;
-    }
-    return ret;
+    list[0].data_len = sizeof(struct jif_data);
+    return 1;
 }
 
 void
@@ -325,4 +288,25 @@ jif_irq_reset(void *data)
     struct jif_data *jif = data;
     jif->irq_flag = 0;
     sys_sync_wakeup(&jif->irq_flag);
+}
+
+int
+jif_set_netdev(char *str)
+{
+    char buf[64];
+    char *dot;
+
+    snprintf(&buf[0], sizeof(buf), "%s", str);
+
+    dot = strchr(buf, '.');
+    if (!dot)
+	panic("set_netdev: bad cobj_ref string %s\n", buf);
+
+    *dot = '\0';
+    int r1 = strtou64(buf, 0, 10, &the_netdev.container);
+    int r2 = strtou64(dot + 1, 0, 10, &the_netdev.object);
+    if (r1 < 0 || r2 < 0)
+	panic("unable to parse netdev %s: %d %d\n", str, r1, r2);
+
+    return 1;
 }

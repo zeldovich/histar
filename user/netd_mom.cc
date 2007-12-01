@@ -16,7 +16,7 @@ extern "C" {
 static int netd_mom_debug = 0;
 
 static void
-netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t inet_taint)
+netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t inet_taint, cobj_ref *ndev)
 {
     int64_t netdev_id = container_find(ct, kobj_netdev, 0);
     if (netdev_id < 0) {
@@ -30,18 +30,20 @@ netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t 
 	if (netd_mom_debug)
 	    printf("netd_mom: netdev %"PRIu64" grant %"PRIu64" taint %"PRIu64" inet %"PRIu64"\n",
 		   netdev_id, netdev_grant, netdev_taint, inet_taint);
+
+	*ndev = COBJ(ct, netdev_id);
     }
 }
 
 static struct child_process
-start_lwip(label *ds, label *dr, label *co, 
+start_lwip(label *ds, label *dr, label *co, const char *netdev,
 	   const char *grant_arg, const char *taint_arg, const char *inet_arg)
 {
     struct fs_inode netd_ino;
     error_check(fs_namei("/bin/netd", &netd_ino));
-    const char *argv[] = { "netd", grant_arg, taint_arg, inet_arg };
+    const char *argv[] = { "netd", netdev, grant_arg, taint_arg, inet_arg };
     return
-	spawn(start_env->root_container, netd_ino,
+	spawn(start_env->process_pool, netd_ino,
 		0, 1, 2,
 		4, argv,
 		0, 0,
@@ -49,19 +51,19 @@ start_lwip(label *ds, label *dr, label *co,
 }
 
 static struct child_process
-start_linux(label *ds, label *dr, label *co, 
+start_linux(label *ds, label *dr, label *co, const char *netdev,
 	   const char *grant_arg, const char *taint_arg, const char *inet_arg)
 {
     struct fs_inode netd_ino;
     const char *vmlinux_pn = "/bin/vmlinux";
     const char *argv[] = { vmlinux_pn,
 			   "ip=dhcp", "initrd=/bin/initrd", "loglevel=4",
-			   grant_arg, taint_arg, inet_arg };
+			   netdev, grant_arg, taint_arg, inet_arg };
     int argc = sizeof(argv) / sizeof(char *);
     error_check(fs_namei(vmlinux_pn, &netd_ino));
 
     return
-	spawn(start_env->root_container, netd_ino,
+	spawn(start_env->process_pool, netd_ino,
 		0, 1, 2,
 		argc, argv,
 		0, 0,
@@ -80,6 +82,7 @@ int
 main(int ac, char **av)
 try
 {
+    cobj_ref ndev_obj = COBJ(0, 0);
     int64_t netdev_grant = handle_alloc();
     int64_t netdev_taint = handle_alloc();
     int64_t inet_taint = handle_alloc();
@@ -88,7 +91,8 @@ try
     error_check(netdev_taint);
     error_check(inet_taint);
 
-    netdev_init(start_env->shared_container, netdev_grant, netdev_taint, inet_taint);
+    netdev_init(start_env->shared_container,
+		netdev_grant, netdev_taint, inet_taint, &ndev_obj);
 
     label ds(3);
     ds.set(netdev_grant, LB_LEVEL_STAR);
@@ -100,10 +104,12 @@ try
     dr.set(netdev_taint, 3);
     dr.set(inet_taint, 3);
 
-    char grant_arg[64], taint_arg[64], inet_arg[64];
+    char grant_arg[64], taint_arg[64], inet_arg[64], netdev[64];
     sprintf(grant_arg, "netdev_grant=%"PRIu64, netdev_grant);
     sprintf(taint_arg, "netdev_taint=%"PRIu64, netdev_taint);
     sprintf(inet_arg,  "inet_taint=%"PRIu64, inet_taint);
+    sprintf(netdev, "netdev=%"PRIu64".%"PRIu64,
+	    ndev_obj.container, ndev_obj.object);
 
     if (netd_mom_debug)
 	printf("netd_mom: decontaminate-send %s\n", ds.to_string());
@@ -118,11 +124,13 @@ try
     co.set(inet_taint, 2);
 
     try {
-	mount_netd(start_lwip(&ds, &dr, &co, grant_arg, taint_arg, inet_arg));
+	mount_netd(start_lwip(&ds, &dr, &co, netdev,
+			      grant_arg, taint_arg, inet_arg));
     } catch (std::exception &e) {
 	if (netd_mom_debug)
 	    printf("netd_mom: unable to start lwip: %s\n", e.what());
-	mount_netd(start_linux(&ds, &dr, &co, grant_arg, taint_arg, inet_arg));
+	mount_netd(start_linux(&ds, &dr, &co, netdev,
+			       grant_arg, taint_arg, inet_arg));
     }
 } catch (std::exception &e) {
     printf("netd_mom: %s\n", e.what());
