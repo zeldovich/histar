@@ -1443,7 +1443,7 @@ lseek64(int fdnum, __off64_t offset, int whence) __THROW
 int
 flock(int fd, int operation) __THROW
 {
-    set_enosys();
+    __set_errno(ENOLCK);
     return -1;
 }
 
