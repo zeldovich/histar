@@ -124,14 +124,14 @@ thread_arch_is_masked(const struct Thread *t)
 void thread_arch_jump(struct Thread *t, const struct thread_entry *te) {}
 
 void
-jos_longjmp(struct jos_jmp_buf *buf, int val)
+jos_longjmp(volatile struct jos_jmp_buf *buf, int val)
 {
     printf("jos_longjmp: not supported\n");
     exit(1);
 }
 
 int
-jos_setjmp(struct jos_jmp_buf *buf)
+jos_setjmp(volatile struct jos_jmp_buf *buf)
 {
     return 0;
 }
