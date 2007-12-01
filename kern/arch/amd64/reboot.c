@@ -6,7 +6,7 @@ void
 machine_reboot(void)
 {
     outb(0x92, 0x3);
-    abort();
+    panic("reboot did not work");
 }
 
 void
