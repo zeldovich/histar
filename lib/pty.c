@@ -183,7 +183,7 @@ pts_close(struct Fd *fd)
     if (!fd->fd_pty.pty_seg)
 	return 0;
 
-    struct jos_jmp_buf *pf_old = tls_data->tls_pgfault;
+    volatile struct jos_jmp_buf *pf_old = tls_data->tls_pgfault;
     struct pty_seg *ps = 0;
 
     struct jos_jmp_buf pf_jb;
@@ -233,7 +233,7 @@ pty_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     const char *ch = ((const char *)buf);
     uint32_t cc = 0;
 
-    struct jos_jmp_buf *pf_old = tls_data->tls_pgfault;
+    volatile struct jos_jmp_buf *pf_old = tls_data->tls_pgfault;
     struct pty_seg *ps = 0;
 
     struct jos_jmp_buf pf_jb;
@@ -370,7 +370,7 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 {
     int ret = -1;
 
-    struct jos_jmp_buf *pf_old = tls_data->tls_pgfault;
+    volatile struct jos_jmp_buf *pf_old = tls_data->tls_pgfault;
     struct pty_seg *ps = 0;
 
     struct jos_jmp_buf pf_jb;

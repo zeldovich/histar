@@ -16,18 +16,18 @@ extern "C" {
 #define JCSEG(jr) (COBJ(jr.container, jr.jc.segment))
 
 static void
-pf_restore(struct jos_jmp_buf *jb)
+pf_restore(volatile struct jos_jmp_buf *jb)
 {
     tls_data->tls_pgfault = jb;
 }
 
-#define PF_CATCH_BLOCK						\
-    scope_guard<void, struct jos_jmp_buf*> __pf_restore		\
-	(pf_restore, tls_data->tls_pgfault);			\
-    struct jos_jmp_buf __pf_jb;					\
-    if (jos_setjmp(&__pf_jb) != 0)				\
-	return -E_INVAL;					\
-    tls_data->tls_pgfault = &__pf_jb;				\
+#define PF_CATCH_BLOCK							\
+    scope_guard<void, volatile struct jos_jmp_buf*> __pf_restore	\
+	(pf_restore, tls_data->tls_pgfault);				\
+    struct jos_jmp_buf __pf_jb;						\
+    if (jos_setjmp(&__pf_jb) != 0)					\
+	return -E_INVAL;						\
+    tls_data->tls_pgfault = &__pf_jb;
 
 
 static char

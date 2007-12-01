@@ -100,8 +100,8 @@ extern const char *jos_progname;
 
 struct tls_layout {
     struct gate_call_data tls_gate_args;
-    struct jos_jmp_buf *tls_pgfault;
-    struct jos_jmp_buf *tls_pgfault_all;
+    volatile struct jos_jmp_buf *tls_pgfault;
+    volatile struct jos_jmp_buf *tls_pgfault_all;
     uint64_t tls_tid;
 
 #ifdef JOS_ARCH_i386

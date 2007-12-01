@@ -331,7 +331,7 @@ process_wait(const struct child_process *child, int64_t *exit_code)
 	    break;
 	}
 
-	struct jos_jmp_buf *old_pf = tls_data->tls_pgfault;
+	volatile struct jos_jmp_buf *old_pf = tls_data->tls_pgfault;
 	tls_data->tls_pgfault = &pferr;
 
 	proc_status = ps->status;
