@@ -36,16 +36,17 @@ segfault_helper(siginfo_t *si, struct sigcontext *sc)
 	name[0] = '\0';
 	sys_obj_get_name(usm.segment, &name[0]);
 
+	fprintf(stderr, "%s: segfault_helper: VA %p, segment %"PRIu64".%"PRIu64" (%s), flags %x\n",
+		jos_progname, va,
+		usm.segment.container, usm.segment.object,
+		&name[0], usm.flags);
+
 	label seg_label;
 	obj_get_label(usm.segment, &seg_label);
 
 	label cur_label;
 	thread_cur_label(&cur_label);
 
-	fprintf(stderr, "%s: segfault_helper: VA %p, segment %"PRIu64".%"PRIu64" (%s), flags %x\n",
-		jos_progname, va,
-		usm.segment.container, usm.segment.object,
-		&name[0], usm.flags);
 	fprintf(stderr, "%s: segfault_helper: segment label %s, thread label %s\n",
 		jos_progname, seg_label.to_string(), cur_label.to_string());
     } catch (std::exception &e) {
