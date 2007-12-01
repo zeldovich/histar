@@ -99,6 +99,7 @@ struct Fd
 	struct {
 	    uint64_t pgid;
 	    struct cobj_ref fbcons_seg;
+	    struct winsize ws;
 	} fd_cons;
 
 	struct {

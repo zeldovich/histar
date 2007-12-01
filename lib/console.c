@@ -41,6 +41,10 @@ opencons(void)
     fd->fd_omode = O_RDWR;
     fd->fd_isatty = 1;
     fd->fd_cons.pgid = getpgrp();
+    fd->fd_cons.ws.ws_row = 25;
+    fd->fd_cons.ws.ws_col = 80;
+    fd->fd_cons.ws.ws_xpixel = 0;
+    fd->fd_cons.ws.ws_ypixel = 0;
     
     r = fd_make_public(fd2num(fd), 0);
     if (r < 0) {
@@ -106,11 +110,15 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     case TCGETS: {
 	struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
-	if (k_termios)
-	    memset(k_termios, 0, sizeof(*k_termios));
-	
+	memset(k_termios, 0, sizeof(*k_termios));
+
 	// XXX 
 	k_termios->c_lflag |= ECHO;
+	return 0;
+    }
+
+    case TIOCGWINSZ: {
+	*(struct winsize *) va_arg(ap, struct winsize*) = fd->fd_cons.ws;
 	return 0;
     }
 
@@ -249,6 +257,8 @@ fbcons_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 
     uint64_t taint = fs->taint;
     uint64_t grant = fs->grant;
+    uint32_t rows = fs->rows;
+    uint32_t cols = fs->cols;
     segment_unmap_delayed(fs, 1);
 
     struct Fd *fd;
@@ -263,6 +273,10 @@ fbcons_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     fd->fd_isatty = 1;
     fd->fd_cons.pgid = getpgrp();
     fd->fd_cons.fbcons_seg = ino.obj;
+    fd->fd_cons.ws.ws_row = rows;
+    fd->fd_cons.ws.ws_col = cols;
+    fd->fd_cons.ws.ws_xpixel = 0;
+    fd->fd_cons.ws.ws_ypixel = 0;
     fd_set_extra_handles(fd, taint, grant);
     return fd2num(fd);
 }
