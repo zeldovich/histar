@@ -2,6 +2,7 @@
 #include <inc/time.h>
 #include <inc/lib.h>
 #include <inc/jthread.h>
+#include <inc/setjmp.h>
 
 #include <errno.h>
 #include <time.h>
@@ -23,14 +24,16 @@ uint64_t
 jos_time_nsec_offset(void)
 {
     static struct time_of_day_seg *tods;
+
+ retry:
     if (!tods) {
 	static jthread_mutex_t mu;
 	jthread_mutex_lock(&mu);
 	if (!tods) {
 	    uint64_t bytes = 0;
 	    int r = segment_map(start_env->time_seg, 0,
-				SEGMAP_READ, (void **) &tods,
-				&bytes, 0);
+				SEGMAP_READ | SEGMAP_VECTOR_PF,
+				(void **) &tods, &bytes, 0);
 	    if (r < 0)
 		cprintf("jos_time_nsec: cannot map time segment "
 			"%"PRIu64".%"PRIu64": %s\n",
@@ -45,7 +48,33 @@ jos_time_nsec_offset(void)
 	jthread_mutex_unlock(&mu);
     }
 
-    return tods ? tods->unix_nsec_offset : 0;
+    if (!tods)
+	return 0;
+
+    uint64_t offset;
+    volatile struct jos_jmp_buf *old_jb = tls_data->tls_pgfault;
+    struct jos_jmp_buf jb;
+    if (jos_setjmp(&jb) != 0) {
+	tls_data->tls_pgfault = old_jb;
+	int64_t init_ct = container_find(start_env->root_container,
+					 kobj_container, "init");
+	if (init_ct < 0)
+	    return 0;
+
+	int64_t tods_sg = container_find(init_ct, kobj_segment, "time-of-day");
+	if (tods_sg < 0)
+	    return 0;
+
+	start_env->time_seg = COBJ(init_ct, tods_sg);
+	segment_unmap(tods);
+	tods = 0;
+	goto retry;
+    }
+    tls_data->tls_pgfault = &jb;
+
+    offset = tods->unix_nsec_offset;
+    tls_data->tls_pgfault = old_jb;
+    return offset;
 }
 
 uint64_t
