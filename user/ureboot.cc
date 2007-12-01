@@ -17,13 +17,6 @@ ureboot_ct(uint64_t ct)
     fs_inode init_bin;
     error_check(fs_namei("/bin/init", &init_bin));
 
-    /* call init from the embedbin container that persists across ureboot */
-    int64_t embedbin_ct;
-    error_check(embedbin_ct = container_find(start_env->root_container,
-					     kobj_container,
-					     "embed_bins"));
-    init_bin.obj.container = embedbin_ct;
-
     cobj_ref ureboot_self;
 
     int64_t nslots;
@@ -102,9 +95,9 @@ main(int ac, char **av)
 
 	    int64_t ec;
 	    error_check(process_wait(&cp, &ec));
+	} else {
+	    ureboot_ct(start_env->root_container);
 	}
-
-	ureboot_ct(start_env->root_container);
     } catch (std::exception &e) {
 	printf("Error: %s\n", e.what());
     }
