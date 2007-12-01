@@ -331,10 +331,25 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 	    continue;
 	}
 
+	/* Check if the process is actually alive */
+	struct process_state *ps = 0;
+	int mr = segment_map(start_env->process_status_seg,
+			     0, SEGMAP_READ, (void **) &ps, 0, 0);
+	if (mr >= 0) {
+	    uint64_t status = ps->status;
+	    segment_unmap(ps);
+
+	    if (status == PROCESS_EXITED) {
+		__set_errno(ESRCH);
+		goto err;
+	    }
+	}
+
 	cprintf("[%"PRIu64"] (%s) signal_trap_thread: "
 		"cannot trap %"PRIu64".%"PRIu64": %s\n",
 		thread_id(), jos_progname, tobj.container, tobj.object, e2s(r));
 	__set_errno(EPERM);
+ err:
 	if (trap_mu_locked)
 	    jthread_mutex_unlock(&trap_mu);
 
