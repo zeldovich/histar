@@ -11,6 +11,7 @@ LDSO_LIBS := \
 	$(OBJDIR)/lib/liblwip.a \
 	$(OBJDIR)/lib/libnetd.a \
 	$(OBJDIR)/lib/libutil.a \
+	$(OBJDIR)/lib/libintl.a \
 	$(OBJDIR)/lib/libdl.a
 
 LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
