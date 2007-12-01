@@ -127,6 +127,7 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 
     switch (trapno) {
     case T_SYSCALL: {
+	kobject_dirty(&trap_thread->th_ko)->th.th_tf.tf_eip -= 2;
 	trap_thread_syscall_writeback = 1;
 
 	uint32_t sysnum = tf->tf_eax;
@@ -139,9 +140,8 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	if (trap_thread_syscall_writeback) {
 	    trap_thread_syscall_writeback = 0;
 	    struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
-	    if (r == -E_RESTART) {
-		t->th_tf.tf_eip -= 2;
-	    } else {
+	    if (r != -E_RESTART) {
+		t->th_tf.tf_eip += 2;
 		t->th_tf.tf_eax = ((uint64_t) r) & 0xffffffff;
 		t->th_tf.tf_edx = ((uint64_t) r) >> 32;
 	    }
@@ -308,6 +308,7 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 
     if (t == trap_thread && trap_thread_syscall_writeback) {
 	trap_thread_syscall_writeback = 0;
+	t_utf.utf_eip += 2;
 	t_utf.utf_eax = 0;
 	t_utf.utf_edx = 0;
     }
@@ -357,6 +358,14 @@ thread_arch_get_entry_args(const struct Thread *t,
 {
     memcpy(targ, &t->th_tfa.tfa_entry_args, sizeof(*targ));
     return 0;
+}
+
+void
+thread_arch_rebooting(struct Thread *t)
+{
+    t->th_tf.tf_eip += 2;
+    t->th_tf.tf_eax = 0;
+    t->th_tf.tf_edx = 0;
 }
 
 static void __attribute__((used))

@@ -40,3 +40,8 @@ thread_arch_is_masked(const struct Thread *t)
     cprintf("%s", __func__);
     return 0;
 }
+
+void
+thread_arch_rebooting(struct Thread *t)
+{
+}

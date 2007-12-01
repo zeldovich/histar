@@ -174,3 +174,8 @@ thread_arch_is_masked(const struct Thread *t)
 {
     return t->th_tf.tf_masked;
 }
+
+void
+thread_arch_rebooting(struct Thread *t)
+{
+}

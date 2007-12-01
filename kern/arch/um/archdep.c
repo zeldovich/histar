@@ -135,3 +135,8 @@ jos_setjmp(struct jos_jmp_buf *buf)
 {
     return 0;
 }
+
+void
+thread_arch_rebooting(struct Thread *t)
+{
+}

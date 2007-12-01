@@ -333,3 +333,12 @@ thread_arch_get_entry_args(const struct Thread *t,
     memcpy(targ, &t->th_tfa.tfa_entry_args, sizeof(*targ));
     return 0;
 }
+
+void
+thread_arch_rebooting(struct Thread *t)
+{
+    t->th_tf.tf_regs.o1 = 0;
+    t->th_tf.tf_regs.o2 = 0;
+    t->th_tf.tf_pc  = t->th_tf.tf_npc;
+    t->th_tf.tf_npc = t->th_tf.tf_npc + 4;
+}

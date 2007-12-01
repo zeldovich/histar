@@ -204,6 +204,7 @@ sys_machine_reboot(void)
     check(label_set(l, user_root_handle, 0));
     check(label_compare(cur_th_label, l, label_leq_starlo, 0));
 
+    thread_arch_rebooting(&kobject_dirty(&cur_thread->th_ko)->th);
     check(pstate_sync_now());
     machine_reboot();
     return 0;

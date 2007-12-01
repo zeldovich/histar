@@ -6,6 +6,10 @@ int
 main (int ac, char **av) 
 {
     int r = sys_machine_reboot();
-    printf("reboot: %s\n", e2s(r));
+    if (r < 0)
+	printf("reboot: %s\n", e2s(r));
+    else
+	printf("reboot: done\n");
+
     return r;
 }

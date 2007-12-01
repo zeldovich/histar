@@ -142,7 +142,9 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 
     switch (trapno) {
     case T_SYSCALL:
+	kobject_dirty(&trap_thread->th_ko)->th.th_tf.tf_rip -= 2;
 	trap_thread_syscall_writeback = 1;
+
 	r = kern_syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx, tf->tf_rcx,
 			 tf->tf_r8,  tf->tf_r9,  tf->tf_r10, tf->tf_r11);
 
@@ -153,10 +155,10 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	     * write the result into the thread's registers.
 	     */
 	    struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
-	    if (r == -E_RESTART)
-		t->th_tf.tf_rip -= 2;
-	    else
+	    if (r != -E_RESTART) {
+		t->th_tf.tf_rip += 2;
 		t->th_tf.tf_rax = r;
+	    }
 	} else {
 	    assert(r == 0);
 	}
@@ -335,6 +337,7 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 
     if (t == trap_thread && trap_thread_syscall_writeback) {
 	trap_thread_syscall_writeback = 0;
+	t_utf.utf_rip += 2;
 	t_utf.utf_rax = 0;
     }
 
@@ -377,6 +380,13 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
     t->th_tf.tf_r9  = te->te_arg[5];
 
     static_assert(thread_entry_narg == 6);
+}
+
+void
+thread_arch_rebooting(struct Thread *t)
+{
+    t->th_tf.tf_rip += 2;
+    t->th_tf.tf_rax = 0;
 }
 
 static void __attribute__((used))
