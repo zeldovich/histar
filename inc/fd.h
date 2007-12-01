@@ -98,6 +98,7 @@ struct Fd
 
 	struct {
 	    uint64_t pgid;
+	    struct cobj_ref fbcons_seg;
 	} fd_cons;
 
 	struct {
@@ -203,6 +204,7 @@ extern struct Dev devuds;	/* type 'u' */
 extern struct Dev devsymlink;	/* type 'l' */
 extern struct Dev devlfs;       /* type 'o' */
 extern struct Dev devfb;	/* type 'F' */
+extern struct Dev devfbcons;	/* type 'C' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);

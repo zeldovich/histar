@@ -31,6 +31,10 @@ $(OBJDIR)/user/fa_clnt.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include/sfslite -I
 $(OBJDIR)/user/fa_clnt.debuginfo: $(OBJDIR)/user/fa.o
 $(OBJDIR)/user/fa_clnt.debuginfo: PER_TARGET_LDFLAGS=-L$(OBJDIR)/acpkg/lib/sfslite $(OBJDIR)/user/fa.o -larpc -lasync
 
+$(OBJDIR)/user/fbconsd.o: $(OBJDIR)/acpkg/include/fontconfig
+$(OBJDIR)/user/fbconsd.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -I$(OBJDIR)/acpkg/include/freetype2
+$(OBJDIR)/user/fbconsd.debuginfo: PER_TARGET_LDFLAGS=-L$(OBJDIR)/acpkg/lib -lfontconfig -lfreetype -lexpat -lz
+
 ## Generic build rules
 
 $(OBJDIR)/user/%.o: user/%.c

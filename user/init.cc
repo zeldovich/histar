@@ -18,6 +18,7 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <fcntl.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -414,6 +415,59 @@ run_shell(int cons)
     }
 }
 
+static void
+init_fbcons(int *consp)
+{
+    int cons = *consp;
+
+    /* Check if we are running in a graphical console */
+    struct jos_fb_mode fb;
+    if (sys_fb_get_mode(&fb) < 0)
+	return;
+
+    int64_t fbc_grant = handle_alloc();
+    int64_t fbc_taint = handle_alloc();
+
+    char a0[64], a1[64];
+    sprintf(a0, "%"PRIu64, fbc_grant);
+    sprintf(a1, "%"PRIu64, fbc_taint);
+
+    fs_inode ino;
+    if (fs_namei("/bin/fbconsd", &ino) < 0)
+	return;
+
+    label ds(3), dr(0);
+    ds.set(fbc_grant, LB_LEVEL_STAR);
+    ds.set(fbc_taint, LB_LEVEL_STAR);
+    dr.set(fbc_grant, 3);
+    dr.set(fbc_taint, 3);
+
+    const char *argv[] = { "fbconsd", a0, a1 };
+    child_process cp = spawn(start_env->process_pool,
+		   ino, cons, cons, cons,
+		   3, &argv[0],
+		   sizeof(env)/sizeof(env[0]), &env[0],
+		   0, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
+
+    int64_t ec;
+    error_check(process_wait(&cp, &ec));
+
+    int64_t fbseg = container_find(cp.container, kobj_segment, "consbuf");
+    if (fbseg < 0)
+	return;
+
+    char pnbuf[64];
+    sprintf(&pnbuf[0], "#%"PRIu64".%"PRIu64, cp.container, fbseg);
+    int fd = open(pnbuf, O_RDWR);
+    if (fd < 0)
+	return;
+
+    const char *msg = "init: graphics console initialized.\n";
+    write(fd, msg, strlen(msg));
+
+    *consp = fd;
+}
+
 int
 main(int ac, char **av)
 try
@@ -452,6 +506,7 @@ try
 
     init_fs(cons);
     init_procs(cons);
+    init_fbcons(&cons);
     run_shell(cons);	// does not return
 } catch (std::exception &e) {
     cprintf("init: %s\n", e.what());

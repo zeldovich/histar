@@ -19,12 +19,6 @@ if [ -f /bin/fonts.tar.gz ]; then
     tar -C / -xzmf /bin/fonts.tar.gz
 fi
 
-if [ -f /bin/fc-cache ]; then
-    echo "$0: generating font cache.."
-    mkdir -p /var/cache/fontconfig
-    fc-cache
-fi
-
 test -f /bin/vim && ln -s vim /bin/vi
 
 mkdir /sample

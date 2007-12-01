@@ -4,6 +4,8 @@
 #include <inc/syscall.h>
 #include <inc/stdio.h>
 #include <inc/assert.h>
+#include <inc/fbcons.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <string.h>
 #include <malloc.h>
@@ -22,7 +24,8 @@ iscons(int fdnum)
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0)
 	return r;
-    return fd->fd_dev_id == devcons.dev_id;
+    return fd->fd_dev_id == devcons.dev_id ||
+	   fd->fd_dev_id == devfbcons.dev_id;
 }
 
 int
@@ -222,3 +225,127 @@ struct Dev devcons =
     .dev_statsync = cons_statsync,
     .dev_sync = cons_sync,
 };
+
+/*
+ * Framebuffer-based console.
+ */
+
+static int
+fbcons_open(struct fs_inode ino, int flags, uint32_t dev_opt)
+{
+    struct fbcons_seg *fs = 0;
+    uint64_t nbytes = 0;
+    int r = segment_map(ino.obj, 0, SEGMAP_READ, (void **) &fs, &nbytes, 0);
+    if (r < 0) {
+	__set_errno(EIO);
+	return -1;
+    }
+
+    if (nbytes < sizeof(*fs)) {
+	segment_unmap(fs);
+	__set_errno(EIO);
+	return -1;
+    }
+
+    uint64_t taint = fs->taint;
+    uint64_t grant = fs->grant;
+    segment_unmap_delayed(fs, 1);
+
+    struct Fd *fd;
+    r = fd_alloc(&fd, "fbcons");
+    if (r < 0) {
+	errno = ENOMEM;
+	return -1;
+    }
+
+    fd->fd_dev_id = devfbcons.dev_id;
+    fd->fd_omode = flags;
+    fd->fd_isatty = 1;
+    fd->fd_cons.pgid = getpgrp();
+    fd->fd_cons.fbcons_seg = ino.obj;
+    fd_set_extra_handles(fd, taint, grant);
+    return fd2num(fd);
+}
+
+static ssize_t
+fbcons_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
+{
+    ssize_t ret = -1;
+    struct fbcons_seg *fs = 0;
+    uint64_t nbytes = 0;
+    int r = segment_map(fd->fd_cons.fbcons_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+			(void **) &fs, &nbytes, 0);
+    if (r < 0) {
+	__set_errno(EIO);
+	goto err;
+    }
+
+    if (nbytes < sizeof(*fs) ||
+	nbytes != sizeof(*fs) + fs->cols * fs->rows ||
+	fs->xpos >= fs->cols || fs->ypos >= fs->rows)
+    {
+	__set_errno(EIO);
+	goto err;
+    }
+
+    jthread_mutex_lock(&fs->mu);
+    ret = 0;
+
+    while (len > 0) {
+	uint8_t c = *(uint8_t*) buf;
+	switch (c) {
+	case '\r':
+	    fs->xpos = 0;
+	    break;
+
+	case '\n':
+	    fs->ypos++;
+	    fs->xpos = 0;
+	    break;
+
+	default:
+	    fs->data[fs->ypos * fs->cols + fs->xpos] = c;
+	    fs->xpos++;
+	}
+
+	if (fs->xpos >= fs->cols) {
+	    fs->ypos++;
+	    fs->xpos = 0;
+	}
+
+	while (fs->ypos >= fs->rows) {
+	    memmove(&fs->data[0], &fs->data[fs->cols],
+		    fs->cols * (fs->rows - 1));
+	    memset(&fs->data[fs->cols * (fs->rows - 1)], ' ', fs->cols);
+	    fs->ypos--;
+	}
+
+	buf++;
+	len--;
+	ret++;
+    }
+
+    fs->updates++;
+    jthread_mutex_unlock(&fs->mu);
+    sys_sync_wakeup(&fs->updates);
+ err:
+    if (fs)
+	segment_unmap_delayed(fs, 1);
+    return ret;
+}
+
+struct Dev devfbcons =
+{
+    .dev_id = 'C',
+    .dev_name = "fbcons",
+    .dev_open = fbcons_open,
+    .dev_write = fbcons_write,
+
+    .dev_read = cons_read,
+    .dev_close = cons_close,
+    .dev_probe = cons_probe,
+    .dev_ioctl = cons_ioctl,
+    .dev_statsync = cons_statsync,
+    .dev_sync = cons_sync,
+};
+
