@@ -320,6 +320,12 @@ auth_user_init(void)
 		"user login gate", &th_ctm, &th_clr, 0,
 		&auth_user_entry, 0);
 
+    int64_t new_mtab_id =
+	sys_segment_copy(start_env->fs_mtab_seg, start_env->shared_container,
+			 0, "private mount table");
+    error_check(new_mtab_id);
+    start_env->fs_mtab_seg = COBJ(start_env->shared_container, new_mtab_id);
+
     printf("auth_user: ready\n");
 }
 
