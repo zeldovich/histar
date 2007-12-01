@@ -46,6 +46,11 @@ ureboot_ct(uint64_t ct)
 	if (type == kobj_container) {
 	    if (!strcmp(name, "embed_bins"))
 		keep = 1;
+	    if (!strcmp(name, "fsroot"))
+		keep = 1;
+	    if (!strcmp(name, "uauth"))
+		keep = 1;
+
 	    if (!strcmp(name, "ureboot")) {
 		ureboot_self = o;
 		keep = 1;

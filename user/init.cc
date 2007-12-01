@@ -111,31 +111,40 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
 			      &start_env->time_seg, (void **) &tods,
 			      time_label.to_ulabel(), "time-of-day"));
     tods->unix_nsec_offset = NSEC_PER_SECOND * UINT64(1000000000);
-
-    // make a separate container for the root directory
-    struct fs_inode root_ct_dir;
-    fs_get_root(c_root, &root_ct_dir);
-    error_check(fs_mkdir(root_ct_dir, "fsroot", &start_env->fs_root, 0));
-
-    // start out in the root directory
-    start_env->fs_cwd = start_env->fs_root;
 }
 
 static void
-init_fs(void)
+init_fs(int cons)
 {
     uint64_t c_root = start_env->root_container;
 
+    int64_t old_fsroot = container_find(c_root, kobj_container, "fsroot");
+    if (old_fsroot >= 0) {
+	start_env->fs_root.obj = COBJ(c_root, old_fsroot);
+    } else {
+	struct fs_inode root_ct_dir;
+	fs_get_root(c_root, &root_ct_dir);
+	error_check(fs_mkdir(root_ct_dir, "fsroot", &start_env->fs_root, 0));
+    }
+
+    // start out in the root directory
+    start_env->fs_cwd = start_env->fs_root;
+
     // mount the root container on /rct
     struct fs_inode xino;
-    fs_get_root(c_root, &xino);
-    error_check(fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "rct", xino));
+    fs_get_root(start_env->root_container, &xino);
+    error_check(fs_mount(start_env->fs_mtab_seg,
+			 start_env->fs_root, "rct", xino));
 
     // create a process pool
     int64_t procpool = sys_container_alloc(start_env->root_container, 0,
 					   "procpool", 0, CT_QUOTA_INF);
     error_check(procpool);
     start_env->process_pool = procpool;
+
+    // no need to initialize everything again if it's already there
+    if (old_fsroot >= 0)
+	return;
 
     // hard-link the binaries over (to have a directory segment)
     int64_t embed_bin_id = container_find(c_root, kobj_container, "embed_bins");
@@ -161,15 +170,6 @@ init_fs(void)
 	error_check(sys_obj_set_fixedquota(file_ino.obj));
 	error_check(fs_link(bin_dir, name, file_ino, 0));
     }
-
-    // create, mount uauth
-    int64_t uauth_id;
-    uauth_id = sys_container_alloc(start_env->root_container, 0, "uauth",
-				   0, CT_QUOTA_INF);
-    error_check(uauth_id);
-
-    fs_get_root(uauth_id, &xino);
-    error_check(fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "uauth", xino));
 
     // symlink "sh" to "ksh"
     unlink("/bin/sh");
@@ -216,7 +216,7 @@ init_fs(void)
     // create a /share directory
     error_check(fs_mkdir(start_env->fs_root, "share", &dummy_ino, 0));
 
-    // create a scratch container
+    // create /tmp
     label ltmp(1);
     error_check(fs_mkdir(start_env->fs_root, "tmp", &dummy_ino, ltmp.to_ulabel()));
 
@@ -244,11 +244,44 @@ init_fs(void)
     const char *group_data =
 	"root:x:0:\n";
     error_check(fs_pwrite(group, group_data, strlen(group_data), 0));
+
+    // finish more FS initialization in a shell script
+    label root_ds(3);
+    root_ds.set(start_env->user_grant, LB_LEVEL_STAR);
+    root_ds.set(start_env->user_taint, LB_LEVEL_STAR);
+
+    label root_dr(0);
+    root_dr.set(start_env->user_grant, 3);
+    root_dr.set(start_env->user_taint, 3);
+
+    spawn_fs(SPAWN_WAIT_GC, cons,
+	     "/bin/ksh", "/bin/init.sh",
+	     &root_ds, &root_dr);
 }
 
 static void
 init_auth(int cons, const char *shroot)
 {
+    // create, mount uauth
+    int64_t uauth_id;
+    int64_t old_uauth = container_find(start_env->root_container,
+				       kobj_container, "uauth");
+    if (old_uauth >= 0) {
+	uauth_id = old_uauth;
+    } else {
+	uauth_id = sys_container_alloc(start_env->root_container, 0, "uauth",
+				       0, CT_QUOTA_INF);
+	error_check(uauth_id);
+    }
+
+    struct fs_inode xino;
+    fs_get_root(uauth_id, &xino);
+    error_check(fs_mount(start_env->fs_mtab_seg,
+			 start_env->fs_root, "uauth", xino));
+
+    if (old_uauth >= 0)
+	return;
+
     struct child_process cp;
     int64_t ec;
 
@@ -356,7 +389,6 @@ init_procs(int cons)
 		     flag_root ? &root_dr : 0);
 	}
     }
-    spawn_fs(SPAWN_WAIT_GC, cons, "/bin/ksh", "/bin/init.sh", &root_ds, &root_dr);
 }
 
 static void __attribute__((noreturn))
@@ -418,7 +450,7 @@ try
     start_arg0 = (uintptr_t) start_env;
     setup_env(0, start_arg0, 0);
 
-    init_fs();
+    init_fs(cons);
     init_procs(cons);
     run_shell(cons);	// does not return
 } catch (std::exception &e) {
