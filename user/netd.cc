@@ -34,6 +34,8 @@ main(int ac, char **av)
 	return -1;
     }
 
+    struct cobj_ref netdev;
+
     try {
 	uint64_t grant, taint, inet_taint;
 
@@ -55,7 +57,19 @@ main(int ac, char **av)
 		error_check(strtou64(av[i] + n, 0, 10, &inet_taint));
 		continue;
 	    }
-	    
+
+	    n = strlen("netdev=");
+	    if (!strncmp(av[i], "netdev=", n)) {
+		    cprintf("netdev arg: %s\n", av[i]);
+		char *ctid = av[i] + n;
+		char *dot = strchr(ctid, '.');
+		if (dot) {
+		    error_check(strtou64(ctid, 0, 10, &netdev.container));
+		    error_check(strtou64(dot+1, 0, 10, &netdev.object));
+		    continue;
+		}
+	    }
+
 	    printf("Unknown argument: %s\n", av[i]);
 	    return -1;
 	}
@@ -85,5 +99,5 @@ main(int ac, char **av)
 	panic("%s", e.what());
     }
 
-    netd_lwip_init(&ready_cb, 0, netd_if_jif, 0, 0, 0, 0);
+    netd_lwip_init(&ready_cb, 0, netd_if_jif, &netdev, 0, 0, 0);
 }

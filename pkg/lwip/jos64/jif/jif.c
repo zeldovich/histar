@@ -69,19 +69,11 @@ struct jif {
 };
 
 static void
-low_level_init(struct netif *netif)
+low_level_init(struct netif *netif, struct cobj_ref netdev)
 {
     struct jif *jif = netif->state;
 
-    int64_t nmom_ct = container_find(start_env->root_container,
-				     kobj_container, "netd_mom");
-    if (nmom_ct < 0)
-	panic("jif: cannot find netd_mom: %s", e2s(nmom_ct));
-
-    int64_t ndev_id = container_find(nmom_ct, kobj_netdev, 0);
-    if (ndev_id < 0)
-	panic("jif: cannot find netdev: %s", e2s(ndev_id));
-    jif->ndev = COBJ(nmom_ct, ndev_id);
+    jif->ndev = netdev;
 
     netif->hwaddr_len = 6;
     netif->mtu = 1500;
@@ -376,6 +368,9 @@ jif_input(struct netif *netif)
 err_t
 jif_init(struct netif *netif)
 {
+    struct cobj_ref *netdev_p = (struct cobj_ref *) netif->state;
+    struct cobj_ref netdev = *netdev_p;
+
     struct jif *jif;
 
     jif = mem_malloc(sizeof(struct jif));
@@ -392,7 +387,7 @@ jif_init(struct netif *netif)
 
     jif->ethaddr = (struct eth_addr *)&(netif->hwaddr[0]);
 
-    low_level_init(netif);
+    low_level_init(netif, netdev);
 
     etharp_init();
 
