@@ -322,6 +322,16 @@ fbcons_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 		fs->xpos--;
 	    break;
 
+	case '\t':
+	    do {
+		fs->xpos++;
+	    } while (fs->xpos % 8);
+	    break;
+
+	case '\a':
+	    /* no alarm */
+	    break;
+
 	default:
 	    fs->data[fs->ypos * fs->cols + fs->xpos] = c;
 	    fs->xpos++;
