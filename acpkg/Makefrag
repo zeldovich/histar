@@ -522,10 +522,15 @@ $(OBJDIR)/user/ssh.tar: $(ACPKG_BUILDDIR)/openssh-4.3p2/__build
 	echo "ListenAddress 0.0.0.0" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "HostKey /etc/ssh_host_rsa_key" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "HostKey /etc/ssh_host_dsa_key" >> $(OBJDIR)/acpkg/etc/sshd_config
+	echo "HostKey /etc/ssh_host_key" >> $(OBJDIR)/acpkg/etc/sshd_config
 	mkdir -p keys
 
 	if [ ! -f keys/id_rsa ]; then \
 	    ssh-keygen -t rsa -f keys/id_rsa -N ""; \
+	fi
+
+	if [ ! -f keys/ssh_host_key ]; then \
+	    ssh-keygen -t rsa1 -f keys/ssh_host_key -N ""; \
 	fi
 
 	if [ ! -f keys/ssh_host_dsa_key ]; then \
@@ -552,6 +557,8 @@ $(OBJDIR)/user/ssh.tar: $(ACPKG_BUILDDIR)/openssh-4.3p2/__build
 					etc/ssh_host_dsa_key.pub \
 					etc/ssh_host_rsa_key \
 					etc/ssh_host_rsa_key.pub \
+					etc/ssh_host_key \
+					etc/ssh_host_key.pub \
 					.ssh/authorized_keys
 
 $(OBJDIR)/acpkg/lib/libz.so.1: $(ACPKG_BUILDDIR)/zlib-1.2.3/__build
