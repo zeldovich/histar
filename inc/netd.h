@@ -155,6 +155,7 @@ struct netd_op_ioctl_args {
 	struct netd_ioctl_gifflags gifflags;
 	struct netd_ioctl_gifbrdaddr gifbrdaddr;
 	struct netd_ioctl_gifhwaddr gifhwaddr;
+        int intval;
     };
 };
 

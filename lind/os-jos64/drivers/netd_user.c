@@ -188,6 +188,9 @@ netd_linux_ioctl(struct sock_slot *ss, struct netd_op_ioctl_args *a)
 		     &a->gifbrdaddr.baddr);
 	return r;
     }
+    case FIONREAD: {
+        return linux_ioctl(ss->sock, FIONREAD, &a->intval) < 0;
+    }
     default:
 	arch_printf("netd_linux_ioctl: unimplemented %d\n", a->libc_ioctl);
 	return -ENOSYS;

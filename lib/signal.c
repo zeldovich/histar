@@ -1042,7 +1042,7 @@ _setjmp(jmp_buf env)
 }
 
 void
-longjmp(jmp_buf env, int val)
+_longjmp(jmp_buf env, int val)
 {
     jos_longjmp(&env->__jmpbuf, val ? : 1);
 }
@@ -1058,5 +1058,6 @@ libc_hidden_def(sigprocmask)
 libc_hidden_def(sigsuspend)
 libc_hidden_def(sigwaitinfo)
 libc_hidden_def(kill)
-strong_alias(longjmp, _longjmp)
+strong_alias(_setjmp, setjmp)
+strong_alias(_longjmp, longjmp)
 

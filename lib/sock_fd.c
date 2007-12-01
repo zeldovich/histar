@@ -517,6 +517,15 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	memcpy(sa->sa_data, ia->gifhwaddr.hwaddr, ia->gifhwaddr.hwlen);
 	return 0;
     }
+    case FIONREAD: {
+	int *r = va_arg(ap, int *);
+        ia->libc_ioctl = FIONREAD;
+        int z = netd_call(fd, &a);
+        if (z < 0)
+            return z;
+        *r = ia->intval;
+        return 0;
+    }
     default:
 	fprintf(stderr, "sock_ioctl: unimplemented 0x%"PRIx64"\n", req);
 	errno = ENOSYS;

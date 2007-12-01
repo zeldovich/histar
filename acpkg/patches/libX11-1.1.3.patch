@@ -1,0 +1,38 @@
+ ---
+ configure.ac         |    6 ++++++
+ src/util/Makefile.am |    3 +--
+ 2 files changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index f49b9ed..3125dc4 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -18,6 +18,12 @@ AC_CONFIG_HEADER([include/X11/XlibConf.h])
+ AC_PROG_LIBTOOL
+ AC_PROG_CC
+
++if test x"$cross_compiling" = xyes; then
++       AC_CHECK_PROGS(CC_FOR_BUILD, gcc cc)
++else
++       CC_FOR_BUILD="$CC"
++fi
++
+ XORG_PROG_RAWCPP
+
+ # Build with XCB support?
+diff --git a/src/util/Makefile.am b/src/util/Makefile.am
+index 3ff421d..c9e81c0 100644
+--- a/src/util/Makefile.am
++++ b/src/util/Makefile.am
+@@ -4,8 +4,7 @@ noinst_PROGRAMS=makekeys
+
+ makekeys_CFLAGS=$(X11_CFLAGS)
+
+-#override CC = gcc
+-LINK = $(CC) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
++CC = @CC_FOR_BUILD@
+
+ EXTRA_DIST = mkks.sh
+
+-- 
+1.5.2.4 

@@ -44,6 +44,7 @@ ACENV += NM=\"$(NM)\"
 ACENV += NM_FOR_TARGET=\"$(NM)\"
 ACENV += RPCC=\"$(RPCC)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
+ACENV += PKG_CONFIG_PATH=\"$(TOP)/$(ACPKG_PREFIX)/lib/pkgconfig\"
 ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 	ac_cv_func_psignal=yes \
 	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no \
@@ -109,6 +110,7 @@ DISTURL_linux-2.6.20.4	    := ftp://ftp.kernel.org/pub/linux/kernel/v2.6/linux-2
 DISTURL_file-4.21	    := ftp://ftp.astron.com/pub/file/file-4.21.tar.gz
 DISTURL_libxml2-2.6.30	    := ftp://xmlsoft.org/libxml2/libxml2-2.6.30.tar.gz
 DISTURL_ImageMagick-6.3.7   := ftp://ftp.imagemagick.org/pub/ImageMagick/ImageMagick-6.3.7-0.tar.gz
+DISTURL_rsync-2.6.9         := http://samba.anu.edu.au/ftp/rsync/rsync-2.6.9.tar.gz
 
 DISTURL_sfslite-1.0.0	    := http://dist.okws.org/dist/sfslite-1.0.0.tar.gz
 DISTURL_zlib-1.2.3	    := http://www.zlib.net/zlib-1.2.3.tar.gz
@@ -126,6 +128,34 @@ DISTURL_svgalib-1.9.25	    := http://www.arava.co.il/matan/svgalib/svgalib-1.9.2
 
 DISTURL_prelink		    := http://people.redhat.com/jakub/prelink/prelink-20060213.tar.bz2
 DISTURL_elfutils-0.131	    := http://sourceware.mirrors.tds.net/pub/sourceware.org/systemtap/elfutils/elfutils-0.131.tar.gz
+DISTURL_xclock-1.0.3        := http://xorg.freedesktop.org/releases/X11R7.3/src/app/xclock-1.0.3.tar.gz
+DISTURL_xlogo-1.0.1         := http://xorg.freedesktop.org/releases/X11R7.3/src/app/xlogo-1.0.1.tar.gz
+DISTURL_xhost-1.0.2         := http://xorg.freedesktop.org/releases/X11R7.3/src/app/xhost-1.0.2.tar.gz
+DISTURL_xauth-1.0.2         := http://xorg.freedesktop.org/releases/X11R7.3/src/app/xauth-1.0.2.tar.gz
+DISTURL_libxkbfile-1.0.4    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libxkbfile-1.0.4.tar.gz
+DISTURL_libXft-2.1.12       := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXft-2.1.12.tar.gz
+DISTURL_libXrender-0.9.4    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXrender-0.9.4.tar.gz
+DISTURL_renderproto-0.9.3   := http://xorg.freedesktop.org/releases/X11R7.3/src/proto/renderproto-0.9.3.tar.gz
+DISTURL_libXaw-1.0.4        := http://xorg.freedesktop.org/releases/X11R7.3/src/lib/libXaw-1.0.4.tar.gz
+DISTURL_libXpm-3.5.7        := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXpm-3.5.7.tar.gz
+DISTURL_libXau-1.0.3        := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXau-1.0.3.tar.gz
+DISTURL_libXmu-1.0.3        := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXmu-1.0.3.tar.gz
+DISTURL_libXt-1.0.4         := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXt-1.0.4.tar.gz
+DISTURL_libSM-1.0.3         := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libSM-1.0.3.tar.gz
+DISTURL_libICE-1.0.4        := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libICE-1.0.4.tar.gz
+DISTURL_libXext-1.0.2       := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXext-1.0.2.tar.gz
+DISTURL_libX11-1.1.3        := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libX11-1.1.3.tar.gz
+DISTURL_libXdmcp-1.0.2      := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXdmcp-1.0.2.tar.gz
+DISTURL_bigreqsproto-1.0.2  := http://xorg.freedesktop.org/releases/X11R7.3/src/proto/bigreqsproto-1.0.2.tar.gz
+DISTURL_xcmiscproto-1.1.2   := http://xorg.freedesktop.org/releases/X11R7.3/src/proto/xcmiscproto-1.1.2.tar.gz
+DISTURL_xextproto-7.0.2     := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/xextproto-7.0.2.tar.gz
+DISTURL_xtrans-1.0.4        := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/xtrans-1.0.4.tar.gz
+DISTURL_inputproto-1.4.2.1  := http://xorg.freedesktop.org/releases/X11R7.3/src/proto/inputproto-1.4.2.1.tar.gz
+DISTURL_kbproto-1.0.3       := http://xorg.freedesktop.org/releases/X11R7.3/src/proto/kbproto-1.0.3.tar.gz
+DISTURL_libxcb-1.1          := http://xcb.freedesktop.org/dist/libxcb-1.1.tar.gz
+DISTURL_libpthread-stubs-0.1 := http://xcb.freedesktop.org/dist/libpthread-stubs-0.1.tar.gz
+DISTURL_xproto-7.0.10       := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/xproto-7.0.10.tar.gz
+DISTURL_xcb-proto-1.1       := http://xcb.freedesktop.org/dist/xcb-proto-1.1.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -149,6 +179,10 @@ AUTOCONF_mutt-1.4.2.3	    := --with-ssl --enable-imap --disable-nls
 AUTOCONF_file-4.21	    := --enable-shared=$(SHARED_ENABLE)
 AUTOCONF_fontconfig-2.5.0   := --with-arch=$(TARGET) --with-freetype-config=$(TOP)/$(ACPKG_PREFIX)/bin/freetype-config --disable-docs
 AUTOCONF_libxml2-2.6.30	    := --without-python
+AUTOCONF_libX11-1.1.3       := --disable-malloc0returnsnull --without-xcb
+AUTOCONF_libXt-1.0.4        := --disable-malloc0returnsnull
+AUTOCONF_libXrender-0.9.4   := --disable-malloc0returnsnull
+AUTOCONF_vnc-4.1.2          := --with-installed-zlib
 
 ##
 ## Patches to apply to various packages
@@ -174,6 +208,7 @@ PATCHFILE_binutils-2.17.50.0.15 := binutils-2.17.50.0.15.patch
 PATCHFILE_zlib-1.2.3	    := zlib-1.2.3.patch
 PATCHFILE_fbida-2.06	    := fbida-2.06.patch
 PATCHFILE_svgalib-1.9.25    := svgalib-1.9.25.patch
+PATCHFILE_libX11-1.1.3      := libX11-1.1.3.patch
 PATCHFILE_default	    := empty.patch
 
 ##
