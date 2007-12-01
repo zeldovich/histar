@@ -108,7 +108,7 @@ get_glyph_bitmap(FT_Face face, uint8_t c)
 }
 
 static void
-render(uint32_t row, uint32_t col, uint8_t c)
+render(uint32_t row, uint32_t col, uint8_t c, uint8_t inverse)
 {
     uint32_t bytes_per_pixel = (kern_fb.vm.bpp + 7) / 8;
     uint8_t *buf = (uint8_t *) malloc(bytes_per_pixel *
@@ -117,7 +117,8 @@ render(uint32_t row, uint32_t col, uint8_t c)
 	fprintf(stderr, "render: cannot allocate bitmap\n");
 	return;
     }
-    memset(buf, 0, bytes_per_pixel * char_width * char_height);
+    memset(buf, inverse ? 255 : 0,
+	   bytes_per_pixel * char_width * char_height);
 
     FT_Bitmap *bitmap;
     uint8_t *src;
@@ -145,6 +146,9 @@ render(uint32_t row, uint32_t col, uint8_t c)
 	    else
 		continue;
 
+	    if (inverse)
+		val = 255 - val;
+
 	    for (uint32_t i = 0; i < bytes_per_pixel; i++)
 		buf[(ypos * char_width + xpos) * bytes_per_pixel + i] = val;
 	}
@@ -163,17 +167,25 @@ render(uint32_t row, uint32_t col, uint8_t c)
 }
 
 static void
-refresh(uint8_t *newbuf, uint8_t *oldbuf)
+refresh(uint8_t *newbuf, uint8_t *oldbuf,
+	uint32_t *oldcurx, uint32_t *oldcury,
+	uint32_t newcurx, uint32_t newcury)
 {
     for (uint32_t r = 0; r < rows; r++) {
 	for (uint32_t c = 0; c < cols; c++) {
 	    uint32_t i = r * cols + c;
-	    if (oldbuf[i] != newbuf[i]) {
-		render(r, c, newbuf[i]);
+	    if ((oldbuf[i] != newbuf[i]) ||
+		(c == *oldcurx && r == *oldcury) ||
+		(c == newcurx && r == newcury))
+	    {
+		render(r, c, newbuf[i], (c == newcurx && r == newcury));
 		oldbuf[i] = newbuf[i];
 	    }
 	}
     }
+
+    *oldcurx = newcurx;
+    *oldcury = newcury;
 }
 
 static void __attribute__((noreturn))
@@ -187,7 +199,9 @@ worker(void *arg)
 	exit(-1);
     }
     memset(screenbuf, 0, rows * cols);
-    refresh(&fs->data[0], screenbuf);
+
+    uint32_t oldx = 0, oldy = 0;
+    refresh(&fs->data[0], screenbuf, &oldx, &oldy, fs->xpos, fs->ypos);
 
     jthread_mutex_lock(&fs->mu);
     uint64_t updates = fs->updates;
@@ -200,7 +214,7 @@ worker(void *arg)
 	}
 
 	updates = fs->updates;
-	refresh(&fs->data[0], screenbuf);
+	refresh(&fs->data[0], screenbuf, &oldx, &oldy, fs->xpos, fs->ypos);
     }
 }
 

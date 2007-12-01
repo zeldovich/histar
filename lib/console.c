@@ -303,6 +303,11 @@ fbcons_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 	    fs->xpos = 0;
 	    break;
 
+	case '\b':
+	    if (fs->xpos > 0)
+		fs->xpos--;
+	    break;
+
 	default:
 	    fs->data[fs->ypos * fs->cols + fs->xpos] = c;
 	    fs->xpos++;
