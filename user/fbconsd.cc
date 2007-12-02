@@ -269,7 +269,9 @@ try
     fs->rows = rows;
 
     memset((uint8_t *) &fs->data[0], ' ', rows * cols);
-    strcpy((char *) &fs->data[0], "fbconsd running.");
+
+    const char *msg = "fbconsd running.";
+    memcpy((char *) &fs->data[0], msg, strlen(msg));
     fs->ypos = 1;
 
     struct fs_object_meta m;
