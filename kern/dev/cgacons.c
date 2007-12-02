@@ -5,6 +5,7 @@
 #include <kern/prof.h>
 #include <dev/cgacons.h>
 #include <dev/kbdreg.h>
+#include <inc/kbdcodes.h>
 #include <inc/intmacro.h>
 
 /***** Text-mode CGA/VGA display output *****/
