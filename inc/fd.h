@@ -100,6 +100,9 @@ struct Fd
 	    uint64_t pgid;
 	    struct cobj_ref fbcons_seg;
 	    struct winsize ws;
+
+	    char pending[16];
+	    uint32_t pending_count;
 	} fd_cons;
 
 	struct {

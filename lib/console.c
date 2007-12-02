@@ -5,6 +5,7 @@
 #include <inc/stdio.h>
 #include <inc/assert.h>
 #include <inc/fbcons.h>
+#include <inc/kbdcodes.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -45,15 +46,7 @@ opencons(void)
     fd->fd_cons.ws.ws_col = 80;
     fd->fd_cons.ws.ws_xpixel = 0;
     fd->fd_cons.ws.ws_ypixel = 0;
-    
-    r = fd_make_public(fd2num(fd), 0);
-    if (r < 0) {
-	cprintf("opencons: cannot make public: %s\n", e2s(r));
-	jos_fd_close(fd);
-	return r;
-    }
-
-    fd->fd_immutable = 1;
+    fd->fd_cons.pending_count = 0;
     return fd2num(fd);
 }
 
@@ -63,20 +56,56 @@ cons_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     return opencons();
 }
 
+static const char esc_codes[256] = {
+    [KEY_INS]  = '2',
+    [KEY_DEL]  = '3',
+    [KEY_PGUP] = '5',
+    [KEY_PGDN] = '6',
+    [KEY_HOME] = '7',
+    [KEY_END]  = '8',
+    [KEY_UP]   = 'A',
+    [KEY_DN]   = 'B',
+    [KEY_RT]   = 'C',
+    [KEY_LF]   = 'D',
+};
+
 static ssize_t
 cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
 {
     int c;
+    char *cbuf = vbuf;
 
     if (n == 0)
 	return 0;
+
+ retry:
+    if (!fd->fd_immutable && fd->fd_cons.pending_count) {
+	ssize_t ncopy = MIN(n, fd->fd_cons.pending_count);
+	memcpy(cbuf, fd->fd_cons.pending, ncopy);
+	memmove(&fd->fd_cons.pending[0],
+		&fd->fd_cons.pending[ncopy],
+		fd->fd_cons.pending_count - ncopy);
+	fd->fd_cons.pending_count -= ncopy;
+	return ncopy;
+    }
 
     c = sys_cons_getc();
     if (c < 0)
 	return c;
     if (c == 0x04)	// ctl-d is eof
 	return 0;
-    *(char*)vbuf = c;
+
+    char esc = esc_codes[(uint8_t) c];
+    if (!fd->fd_immutable && esc) {
+	fd->fd_cons.pending[0] = '\x1b';
+	fd->fd_cons.pending[1] = '[';
+	fd->fd_cons.pending[2] = esc;
+	fd->fd_cons.pending[3] = '~';
+	fd->fd_cons.pending_count = 4;
+	goto retry;
+    }
+
+    cbuf[0] = c;
     return 1;
 }
 
@@ -96,9 +125,13 @@ cons_close(struct Fd *fd)
 static int
 cons_probe(struct Fd *fd, dev_probe_t probe)
 {
-    if (probe == dev_probe_read)
-        return sys_cons_probe();
-    return 1 ;
+    if (probe == dev_probe_read) {
+	if (fd->fd_cons.pending_count)
+	    return 1;
+	return sys_cons_probe();
+    }
+
+    return 1;
 }
 
 static int
@@ -277,6 +310,7 @@ fbcons_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     fd->fd_cons.ws.ws_col = cols;
     fd->fd_cons.ws.ws_xpixel = 0;
     fd->fd_cons.ws.ws_ypixel = 0;
+    fd->fd_cons.pending_count = 0;
     fd_set_extra_handles(fd, taint, grant);
     return fd2num(fd);
 }

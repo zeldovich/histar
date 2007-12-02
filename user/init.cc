@@ -487,9 +487,24 @@ try
 
     int cons = opencons();
     if (cons != 0) {
-	cprintf("cannot opencons: %s", e2s(cons));
+	cprintf("cannot opencons: %s\n", e2s(cons));
 	return -1;
     }
+
+    int r = fd_make_public(cons, 0);
+    if (r < 0) {
+	cprintf("cannot export cons: %s\n", e2s(r));
+	return -1;
+    }
+
+    struct Fd *fd;
+    r = fd_lookup(cons, &fd, 0, 0);
+    if (r < 0) {
+	cprintf("cannot lookup cons: %s\n", e2s(r));
+	return -1;
+    }
+
+    fd->fd_immutable = 1;
 
     assert(1 == dup2(0, 1));
     assert(2 == dup2(0, 2));
@@ -506,6 +521,12 @@ try
 
     init_fs(cons);
     init_procs(cons);
+
+    /* shell gets another console that's mutable */
+    int newcons = opencons();
+    if (newcons >= 0)
+	cons = newcons;
+
     init_fbcons(&cons);
     run_shell(cons);	// does not return
 } catch (std::exception &e) {
