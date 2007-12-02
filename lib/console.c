@@ -377,9 +377,9 @@ fbcons_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 	}
 
 	while (fs->ypos >= fs->rows) {
-	    memmove(&fs->data[0], &fs->data[fs->cols],
+	    memmove((void*) &fs->data[0], (void*) &fs->data[fs->cols],
 		    fs->cols * (fs->rows - 1));
-	    memset(&fs->data[fs->cols * (fs->rows - 1)], ' ', fs->cols);
+	    memset((void*) &fs->data[fs->cols * (fs->rows - 1)], ' ', fs->cols);
 	    fs->ypos--;
 	}
 

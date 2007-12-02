@@ -167,7 +167,7 @@ render(uint32_t row, uint32_t col, uint8_t c, uint8_t inverse)
 }
 
 static void
-refresh(uint8_t *newbuf, uint8_t *oldbuf,
+refresh(volatile uint8_t *newbuf, uint8_t *oldbuf,
 	uint32_t *oldcurx, uint32_t *oldcury,
 	uint32_t newcurx, uint32_t newcury)
 {
@@ -201,20 +201,19 @@ worker(void *arg)
     memset(screenbuf, 0, rows * cols);
 
     uint32_t oldx = 0, oldy = 0;
-    refresh(&fs->data[0], screenbuf, &oldx, &oldy, fs->xpos, fs->ypos);
+    uint64_t updates;
 
     jthread_mutex_lock(&fs->mu);
-    uint64_t updates = fs->updates;
 
     for (;;) {
+	updates = fs->updates;
+	refresh(&fs->data[0], screenbuf, &oldx, &oldy, fs->xpos, fs->ypos);
+
 	while (fs->updates == updates) {
 	    jthread_mutex_unlock(&fs->mu);
 	    sys_sync_wait(&fs->updates, updates, UINT64(~0));
 	    jthread_mutex_lock(&fs->mu);
 	}
-
-	updates = fs->updates;
-	refresh(&fs->data[0], screenbuf, &oldx, &oldy, fs->xpos, fs->ypos);
     }
 }
 
@@ -269,7 +268,7 @@ try
     fs->cols = cols;
     fs->rows = rows;
 
-    memset(&fs->data[0], ' ', rows * cols);
+    memset((uint8_t *) &fs->data[0], ' ', rows * cols);
     strcpy((char *) &fs->data[0], "fbconsd running.");
     fs->ypos = 1;
 

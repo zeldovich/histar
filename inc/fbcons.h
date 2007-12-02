@@ -5,7 +5,7 @@
 
 struct fbcons_seg {
     jthread_mutex_t mu;
-    uint64_t updates;
+    volatile uint64_t updates;
 
     uint64_t grant;
     uint64_t taint;
@@ -13,10 +13,10 @@ struct fbcons_seg {
     uint32_t cols;
     uint32_t rows;
 
-    uint32_t xpos;
-    uint32_t ypos;
+    volatile uint32_t xpos;
+    volatile uint32_t ypos;
 
-    uint8_t  data[];
+    volatile uint8_t  data[];
 };
 
 #endif
