@@ -97,11 +97,11 @@ cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
 
     char esc = esc_codes[(uint8_t) c];
     if (!fd->fd_immutable && esc) {
-	fd->fd_cons.pending[0] = '\x1b';
-	fd->fd_cons.pending[1] = '[';
-	fd->fd_cons.pending[2] = esc;
-	fd->fd_cons.pending[3] = '~';
-	fd->fd_cons.pending_count = 4;
+	fd->fd_cons.pending[fd->fd_cons.pending_count++] = '\x1b';
+	fd->fd_cons.pending[fd->fd_cons.pending_count++] = '[';
+	fd->fd_cons.pending[fd->fd_cons.pending_count++] = esc;
+	if (esc >= '0' && esc <= '9')
+	    fd->fd_cons.pending[fd->fd_cons.pending_count++] = '~';
 	goto retry;
     }
 
