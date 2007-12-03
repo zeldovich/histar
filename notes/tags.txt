@@ -74,3 +74,13 @@ Other exception	NO	YES
    because we cannot handle tag exceptions in kernel window
    exception handling code.
 
+===
+
+Ensure refcount integrity: tag every refcount-holder (kobject_id_t) with
+a special tag value that indicates this is a refcount + whose refcount
+it is.  So, a combination tag that refers to a label + a flag to indicate
+a refcount value.  Monitor does addref/incref and GC on 0.  Containers
+should be changed so the slot is just a uint64_t with no internal refcount.
+
+Make sure page_free() refuses to take a kobject.
+
