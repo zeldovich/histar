@@ -70,25 +70,147 @@ e1000_io_write(struct e1000_card *c, uint32_t reg, uint32_t val)
     *ptr = val;
 }
 
+static void
+e1000_io_write_flush(struct e1000_card *c, uint32_t reg, uint32_t val)
+{
+    e1000_io_write(c, reg, val);
+    e1000_io_read(c, WMREG_STATUS);
+}
+
+static void
+e1000_eeprom_uwire_out(struct e1000_card *c, uint16_t data, uint16_t count)
+{
+    uint32_t mask = 1 << (count - 1);
+    uint32_t eecd = e1000_io_read(c, WMREG_EECD) & ~(EECD_DO | EECD_SK);
+
+    do {
+	if (data & mask)
+	    eecd |= EECD_DI;
+	else
+	    eecd &= ~(EECD_DI);
+
+	e1000_io_write_flush(c, WMREG_EECD, eecd);
+	timer_delay(50000);
+
+	e1000_io_write_flush(c, WMREG_EECD, eecd | EECD_SK);
+	timer_delay(50000);
+
+	e1000_io_write_flush(c, WMREG_EECD, eecd);
+	timer_delay(50000);
+
+	mask = mask >> 1;
+    } while (mask);
+
+    e1000_io_write_flush(c, WMREG_EECD, eecd & ~(EECD_DI));
+}
+
+static uint16_t
+e1000_eeprom_uwire_in(struct e1000_card *c, uint16_t count)
+{
+    uint32_t data = 0;
+    uint32_t eecd = e1000_io_read(c, WMREG_EECD) & ~(EECD_DO | EECD_DI);
+
+    for (uint16_t i = 0; i < count; i++) {
+	data = data << 1;
+
+	e1000_io_write_flush(c, WMREG_EECD, eecd | EECD_SK);
+	timer_delay(50000);
+
+	eecd = e1000_io_read(c, WMREG_EECD) & ~(EECD_DI);
+	if (eecd & EECD_DO)
+	    data |= 1;
+
+	e1000_io_write_flush(c, WMREG_EECD, eecd & ~EECD_SK);
+	timer_delay(50000);
+    }
+
+    return data;
+}
+
+static int32_t
+e1000_eeprom_uwire_read(struct e1000_card *c, uint16_t off)
+{
+    /* Make sure this is microwire */
+    uint32_t eecd = e1000_io_read(c, WMREG_EECD);
+    if (eecd & EECD_EE_TYPE) {
+	cprintf("e1000_eeprom_read: EERD timeout, SPI not supported\n");
+	return -1;
+    }
+
+    uint32_t abits = (eecd & EECD_EE_SIZE) ? 8 : 6;
+
+    /* Get access to the EEPROM */
+    eecd |= EECD_EE_REQ;
+    e1000_io_write_flush(c, WMREG_EECD, eecd);
+    for (uint32_t t = 0; t < 100; t++) {
+	timer_delay(50000);
+	eecd = e1000_io_read(c, WMREG_EECD);
+	if (eecd & EECD_EE_GNT)
+	    break;
+    }
+
+    if (!(eecd & EECD_EE_GNT)) {
+	cprintf("e1000_eeprom_read: cannot get EEPROM access\n");
+	e1000_io_write_flush(c, WMREG_EECD, eecd & ~EECD_EE_REQ);
+	return -1;
+    }
+
+    /* Turn on the EEPROM */
+    eecd &= ~(EECD_DI | EECD_SK);
+    e1000_io_write_flush(c, WMREG_EECD, eecd);
+
+    eecd |= EECD_CS;
+    e1000_io_write_flush(c, WMREG_EECD, eecd);
+
+    /* Read the bits */
+    e1000_eeprom_uwire_out(c, UWIRE_OPC_READ, 3);
+    e1000_eeprom_uwire_out(c, off, abits);
+    uint16_t v = e1000_eeprom_uwire_in(c, 16);
+
+    /* Turn off the EEPROM */
+    eecd &= ~(EECD_CS | EECD_DI | EECD_SK);
+    e1000_io_write_flush(c, WMREG_EECD, eecd);
+
+    e1000_io_write_flush(c, WMREG_EECD, eecd | EECD_SK);
+    timer_delay(50000);
+
+    e1000_io_write_flush(c, WMREG_EECD, eecd & ~EECD_EE_REQ);
+    timer_delay(50000);
+
+    return v;
+}
+
+static int32_t
+e1000_eeprom_eerd_read(struct e1000_card *c, uint16_t off)
+{
+    e1000_io_write(c, WMREG_EERD, (off << EERD_ADDR_SHIFT) | EERD_START);
+
+    uint32_t reg;
+    for (int x = 0; x < 100; x++) {
+	reg = e1000_io_read(c, WMREG_EERD);
+	if (!(reg & EERD_DONE))
+	    timer_delay(5000);
+    }
+
+    if (reg & EERD_DONE)
+	return (reg & EERD_DATA_MASK) >> EERD_DATA_SHIFT;
+    return -1;
+}
+
 static int
 e1000_eeprom_read(struct e1000_card *c, uint16_t *buf, int off, int count)
 {
     for (int i = 0; i < count; i++) {
-	e1000_io_write(c, WMREG_EERD, ((off + i) << EERD_ADDR_SHIFT) | EERD_START);
+	int32_t r = e1000_eeprom_eerd_read(c, off + i);
+	if (r < 0)
+	    r = e1000_eeprom_uwire_read(c, off + i);
 
-	uint32_t reg;
-	for (int x = 0; x < 100; x++) {
-	    reg = e1000_io_read(c, WMREG_EERD);
-	    if (!(reg & EERD_DONE))
-		timer_delay(5000);
-	}
-
-	if (!(reg & EERD_DONE)) {
-	    cprintf("e1000_eeprom_eerd_read: timeout");
+	if (r < 0) {
+	    cprintf("e1000_eeprom_read: cannot read\n");
 	    return -1;
 	}
 
-	buf[i] = (reg & EERD_DATA_MASK) >> EERD_DATA_SHIFT;
+	buf[i] = r;
     }
 
     return 0;
