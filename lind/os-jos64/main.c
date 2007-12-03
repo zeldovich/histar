@@ -94,8 +94,8 @@ main(int ac, char **av)
     struct cobj_ref seg;
     void *va = 0;
     uint64_t phy_bytes = phy_pages * PGSIZE;
-    int r = segment_alloc(start_env->shared_container, phy_bytes,
-			  &seg, &va, 0, "physical-memory");
+    r = segment_alloc(start_env->shared_container, phy_bytes,
+		      &seg, &va, 0, "physical-memory");
     if (r < 0)
 	panic("unable to alloc segment: %s", e2s(r));
     memset(va, 0, phy_bytes);
