@@ -35,7 +35,7 @@ KERN_BINFILES	+= user/vim user/echo user/dirname user/basename user/file
 KERN_BINFILES	+= user/sleep user/env user/strings user/tty user/xargs
 KERN_BINFILES	+= user/rmdir user/diff user/reset user/hostname user/id
 KERN_BINFILES	+= user/less user/dd user/ed user/patch user/comm user/wc
-KERN_BINFILES	+= user/seq user/fgrep
+KERN_BINFILES	+= user/seq user/fgrep user/date
 
 ## SSH
 KERN_BINFILES	+= user/sshd user/ssh.tar user/scp user/sshdi
