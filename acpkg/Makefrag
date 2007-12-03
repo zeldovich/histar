@@ -125,6 +125,7 @@ DISTURL_freetype-2.3.5	    := http://download.savannah.gnu.org/releases/freetype
 DISTURL_fontconfig-2.5.0    := http://fontconfig.org/release/fontconfig-2.5.0.tar.gz
 DISTURL_expat-2.0.1	    := http://internap.dl.sourceforge.net/sourceforge/expat/expat-2.0.1.tar.gz
 DISTURL_svgalib-1.9.25	    := http://www.arava.co.il/matan/svgalib/svgalib-1.9.25.tar.gz
+DISTURL_net-tools-1.60	    := http://www.tazenda.demon.co.uk/phil/net-tools/net-tools-1.60.tar.bz2
 
 DISTURL_prelink		    := http://people.redhat.com/jakub/prelink/prelink-20060213.tar.bz2
 DISTURL_elfutils-0.131	    := http://sourceware.mirrors.tds.net/pub/sourceware.org/systemtap/elfutils/elfutils-0.131.tar.gz
@@ -209,6 +210,7 @@ PATCHFILE_zlib-1.2.3	    := zlib-1.2.3.patch
 PATCHFILE_fbida-2.06	    := fbida-2.06.patch
 PATCHFILE_svgalib-1.9.25    := svgalib-1.9.25.patch
 PATCHFILE_libX11-1.1.3      := libX11-1.1.3.patch
+PATCHFILE_net-tools-1.60    := net-tools-1.60.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -872,4 +874,16 @@ $(ACPKG_BUILDDIR)/fbida-2.06/__build: $(ACPKG_BUILDDIR)/fbida-2.06/__patch \
 		$(OBJDIR)/acpkg/lib/libfontconfig.so.1
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "verbose=yes prefix=$(TOP)/$(ACPKG_PREFIX) CFLAGS=-I$(TOP)/$(ACPKG_PREFIX)/include/freetype2 LDFLAGS='-Wl,-rpath-link -Wl,$(TOP)/$(ACPKG_PREFIX)/lib' $(ACENV) $(MAKE) install" )
 	touch $@
+
+$(ACPKG_BUILDDIR)/net-tools-1.60/Makefile:
+	@
+
+$(ACPKG_BUILDDIR)/net-tools-1.60/__build: | $(ACPKG_BUILDDIR)/net-tools-1.60/__patch
+	( while :; do echo; done ) | ( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) config" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE)" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) BASEDIR=$(TOP)/$(ACPKG_PREFIX) $(MAKE) install" )
+	touch $@
+
+$(OBJDIR)/acpkg/sbin/arp $(OBJDIR)/acpkg/sbin/ifconfig $(OBJDIR)/acpkg/bin/netstat $(OBJDIR)/acpkg/sbin/rarp $(OBJDIR)/acpkg/sbin/route: $(ACPKG_BUILDDIR)/net-tools-1.60/__build
+	@
 

@@ -1,0 +1,137 @@
+--- net-tools-1.60/Makefile	2007/12/03 10:14:23	1.1
++++ net-tools-1.60/Makefile	2007/12/03 10:16:27
+@@ -76,7 +76,7 @@
+ NET_LIB_PATH = lib
+ NET_LIB_NAME = net-tools
+ 
+-PROGS	:= ifconfig hostname arp netstat route rarp slattach plipconfig nameif
++PROGS	:= ifconfig arp netstat route rarp
+ 
+ -include config.make
+ ifeq ($(HAVE_IP_TOOLS),1)
+@@ -224,14 +224,10 @@
+ 	install -m 0755 -d ${BASEDIR}/sbin
+ 	install -m 0755 -d ${BASEDIR}/bin
+ 	install -m 0755 arp        ${BASEDIR}/sbin
+-	install -m 0755 hostname   ${BASEDIR}/bin
+ 	install -m 0755 ifconfig   ${BASEDIR}/sbin
+-	install -m 0755 nameif     ${BASEDIR}/sbin
+ 	install -m 0755 netstat    ${BASEDIR}/bin
+-	install -m 0755 plipconfig $(BASEDIR)/sbin
+ 	install -m 0755 rarp       ${BASEDIR}/sbin
+ 	install -m 0755 route      ${BASEDIR}/sbin
+-	install -m 0755 slattach   $(BASEDIR)/sbin
+ ifeq ($(HAVE_IP_TOOLS),1)
+ 	install -m 0755 ipmaddr    $(BASEDIR)/sbin
+ 	install -m 0755 iptunnel   $(BASEDIR)/sbin
+--- net-tools-1.60/config.in	2007/12/03 10:11:17	1.1
++++ net-tools-1.60/config.in	2007/12/03 10:11:54
+@@ -47,15 +47,15 @@
+ *
+ *             Protocol Families.
+ * 
+-bool 'UNIX protocol family' HAVE_AFUNIX y
++bool 'UNIX protocol family' HAVE_AFUNIX n
+ bool 'INET (TCP/IP) protocol family' HAVE_AFINET y
+ bool 'INET6 (IPv6) protocol family' HAVE_AFINET6 n
+-bool 'Novell IPX/SPX protocol family' HAVE_AFIPX y
+-bool 'Appletalk DDP protocol family' HAVE_AFATALK y
+-bool 'AX25 (packet radio) protocol family' HAVE_AFAX25 y
+-bool 'NET/ROM (packet radio) protocol family' HAVE_AFNETROM y
++bool 'Novell IPX/SPX protocol family' HAVE_AFIPX n
++bool 'Appletalk DDP protocol family' HAVE_AFATALK n
++bool 'AX25 (packet radio) protocol family' HAVE_AFAX25 n
++bool 'NET/ROM (packet radio) protocol family' HAVE_AFNETROM n
+ bool 'Rose (packet radio) protocol family' HAVE_AFROSE n
+-bool 'X.25 (CCITT) protocol family' HAVE_AFX25 y
++bool 'X.25 (CCITT) protocol family' HAVE_AFX25 n
+ bool 'Econet protocol family' HAVE_AFECONET n
+ bool 'DECnet protocol family' HAVE_AFDECnet n
+ bool 'Ash protocol family' HAVE_AFASH n
+@@ -64,23 +64,23 @@
+ *            Device Hardware types.
+ *
+ bool 'Ethernet (generic) support' HAVE_HWETHER y
+-bool 'ARCnet support' HAVE_HWARC y
+-bool 'SLIP (serial line) support' HAVE_HWSLIP y
+-bool 'PPP (serial line) support' HAVE_HWPPP y
+-bool 'IPIP Tunnel support' HAVE_HWTUNNEL y
+-bool 'STRIP (Metricom radio) support' HAVE_HWSTRIP y
+-bool 'Token ring (generic) support' HAVE_HWTR y
+-bool 'AX25 (packet radio) support' HAVE_HWAX25 y
++bool 'ARCnet support' HAVE_HWARC n
++bool 'SLIP (serial line) support' HAVE_HWSLIP n
++bool 'PPP (serial line) support' HAVE_HWPPP n
++bool 'IPIP Tunnel support' HAVE_HWTUNNEL n
++bool 'STRIP (Metricom radio) support' HAVE_HWSTRIP n
++bool 'Token ring (generic) support' HAVE_HWTR n
++bool 'AX25 (packet radio) support' HAVE_HWAX25 n
+ bool 'Rose (packet radio) support' HAVE_HWROSE n
+-bool 'NET/ROM (packet radio) support' HAVE_HWNETROM y
+-bool 'X.25 (generic) support' HAVE_HWX25 y
+-bool 'DLCI/FRAD (frame relay) support' HAVE_HWFR y
++bool 'NET/ROM (packet radio) support' HAVE_HWNETROM n
++bool 'X.25 (generic) support' HAVE_HWX25 n
++bool 'DLCI/FRAD (frame relay) support' HAVE_HWFR n
+ bool 'SIT (IPv6-in-IPv4) support' HAVE_HWSIT n
+ bool 'FDDI (generic) support' HAVE_HWFDDI n
+ bool 'HIPPI (generic) support' HAVE_HWHIPPI n
+ bool 'Ash hardware support' HAVE_HWASH n
+ bool '(Cisco)-HDLC/LAPB support' HAVE_HWHDLCLAPB n
+-bool 'IrDA support' HAVE_HWIRDA y
++bool 'IrDA support' HAVE_HWIRDA n
+ bool 'Econet hardware support' HAVE_HWEC n
+ *
+ *
+--- net-tools-1.60/ifconfig.c	2007/12/03 10:13:58	1.1
++++ net-tools-1.60/ifconfig.c	2007/12/03 10:14:07
+@@ -49,7 +49,7 @@
+ #include <asm/types.h>
+ 
+ 
+-#ifdef HAVE_HWSLIP
++#if HAVE_HWSLIP
+ #include <linux/if_slip.h>
+ #endif
+ 
+--- net-tools-1.60/lib/inet_sr.c	2007/12/03 10:12:15	1.1
++++ net-tools-1.60/lib/inet_sr.c	2007/12/03 10:12:22
+@@ -105,6 +105,7 @@
+     case 2:
+        isnet = 0; break;
+     default:
++       ;
+     }
+ 
+     /* Fill in the other fields. */
+--- net-tools-1.60/lib/interface.c	2007/12/03 10:12:37	1.1
++++ net-tools-1.60/lib/interface.c	2007/12/03 10:13:42
+@@ -36,7 +36,7 @@
+ #include <neteconet/ec.h>
+ #endif
+ 
+-#ifdef HAVE_HWSLIP
++#if HAVE_HWSLIP
+ #include <linux/if_slip.h>
+ #include <net/if_arp.h>
+ #endif
+@@ -419,7 +419,7 @@
+     else
+ 	ife->mtu = ifr.ifr_mtu;
+ 
+-#ifdef HAVE_HWSLIP
++#if HAVE_HWSLIP
+     if (ife->type == ARPHRD_SLIP || ife->type == ARPHRD_CSLIP ||
+ 	ife->type == ARPHRD_SLIP6 || ife->type == ARPHRD_CSLIP6 ||
+ 	ife->type == ARPHRD_ADAPT) {
+@@ -663,8 +663,10 @@
+ 
+     hf = ptr->type;
+ 
++#if HAVE_HWSLIP
+     if (hf == ARPHRD_CSLIP || hf == ARPHRD_CSLIP6)
+ 	can_compress = 1;
++#endif
+ 
+     hw = get_hwntype(hf);
+     if (hw == NULL)

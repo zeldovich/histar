@@ -217,6 +217,10 @@ init_fs(int cons)
     // create a /share directory
     error_check(fs_mkdir(start_env->fs_root, "share", &dummy_ino, 0));
 
+    // create a /proc directory
+    error_check(fs_mkdir(start_env->fs_root, "proc", &dummy_ino, 0));
+    symlink("/netd/proc/net", "/proc/net");
+
     // create /tmp
     label ltmp(1);
     error_check(fs_mkdir(start_env->fs_root, "tmp", &dummy_ino, ltmp.to_ulabel()));

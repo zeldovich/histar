@@ -37,6 +37,9 @@ KERN_BINFILES	+= user/rmdir user/diff user/reset user/hostname user/id
 KERN_BINFILES	+= user/less user/dd user/ed user/patch user/comm user/wc
 KERN_BINFILES	+= user/seq user/fgrep user/date
 
+## Networking tools
+KERN_BINFILES	+= user/arp user/ifconfig user/netstat user/rarp user/route
+
 ## SSH
 KERN_BINFILES	+= user/sshd user/ssh.tar user/scp user/sshdi
 KERN_BINFILES	+= user/ssh user/ssh-agent user/ssh-add
