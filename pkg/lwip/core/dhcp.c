@@ -490,7 +490,7 @@ static void dhcp_handle_ack(struct netif *netif)
   option_ptr = dhcp_get_option_ptr(dhcp, DHCP_OPTION_DNS_SERVER);
   if (option_ptr != NULL) {
     u8_t n;
-    dhcp->dns_count = dhcp_get_option_byte(&option_ptr[1]);
+    dhcp->dns_count = dhcp_get_option_byte(&option_ptr[1]) >> 2;
     /* limit to at most DHCP_MAX_DNS DNS servers */
     if (dhcp->dns_count > DHCP_MAX_DNS) dhcp->dns_count = DHCP_MAX_DNS;
     for (n = 0; n < dhcp->dns_count; n++)
