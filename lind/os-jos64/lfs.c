@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include <linuxsyscall.h>
 #include <archcall.h>
@@ -64,7 +65,7 @@ lfs_handler_stub(struct lfs_op_args *a)
 int
 lfs_init(void)
 {
-    int r;
+    int r, i;
     struct cobj_ref gate;
 
     r = linux_mount("proc", "/proc", "proc", 0, 0);
@@ -105,17 +106,17 @@ lfs_init(void)
 	printk("lfs_init: cannot create proc/net dir\n");
 	return r;
     }
-    
-    r = lfs_create(net, "dev", "/proc/net/dev", gate);
-    if (r < 0) {
-	printk("lfs_init: cannot create proc/net/dev\n");
-	return r;
-    }
 
-    r = lfs_create(net, "pnp", "/proc/net/pnp", gate);
-    if (r < 0) {
-	printk("lfs_init: cannot create proc/net/pnp\n");
-	return r;
+    const char *devs[] = { "arp", "dev", "pnp", "route", "tcp", "udp" };
+    for (i = 0; i < sizeof(devs) / sizeof(devs[0]); i++) {
+	char fullpn[64];
+	sprintf(&fullpn[0], "/proc/net/%s", devs[i]);
+
+	r = lfs_create(net, devs[i], fullpn, gate);
+	if (r < 0) {
+	    printk("lfs_init: cannot create %s\n", fullpn);
+	    return r;
+	}
     }
 
     return 0;

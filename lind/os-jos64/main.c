@@ -43,7 +43,7 @@ kernel_call_stub(void *x)
 static void __attribute__((unused))
 setup_static_ip(void)
 {
-    static char the_if[] = "netdev";
+    static char the_if[] = "jif0";
     
     static char local_ip[]  = "171.66.3.230";
     static char gw_ip[]     = "171.66.3.1";
