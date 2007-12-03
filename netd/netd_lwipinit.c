@@ -9,6 +9,8 @@
 #include <inc/assert.h>
 #include <netd/netdlwip.h>
 #include <string.h>
+#include <stdio.h>
+#include <errno.h>
 
 #include <lwip/sockets.h>
 #include <lwip/netif.h>
@@ -120,6 +122,18 @@ tcpip_init_done(void *arg)
     sys_sem_signal(*sem);
 }
 
+static const char *
+ip_to_string(uint32_t ip)
+{
+    static char buf[32];
+    sprintf(&buf[0], "%u.%u.%u.%u",
+		     (ip & 0xFF000000) >> 24,
+		     (ip & 0x00FF0000) >> 16,
+		     (ip & 0x0000FF00) >> 8,
+		     (ip & 0x000000FF));
+    return &buf[0];
+}
+
 void
 netd_lwip_init(void (*cb)(void *), void *cbarg,
 	       netd_dev_type type, void *if_state,
@@ -183,11 +197,23 @@ netd_lwip_init(void (*cb)(void *), void *cbarg,
 
 	    if (dhcp_state == DHCP_BOUND) {
 		uint32_t ip = ntohl(nif->ip_addr.addr);
-		cprintf("netd: ip %u.%u.%u.%u\n",
-			(ip & 0xFF000000) >> 24,
-			(ip & 0x00FF0000) >> 16,
-			(ip & 0x0000FF00) >> 8,
-			(ip & 0x000000FF));
+		cprintf("netd: ip %s\n", ip_to_string(ip));
+
+		if (nif->dhcp->dns_count) {
+		    const char *fn = "/netd/resolv.conf";
+
+		    FILE *f = fopen(fn, "w");
+		    if (!f) {
+			cprintf("cannot open %s: %s\n", fn, strerror(errno));
+			continue;
+		    }
+
+		    for (uint32_t i = 0; i < nif->dhcp->dns_count; i++) {
+			const char *s = ip_to_string(ntohl(nif->dhcp->offered_dns_addr[i].addr));
+			fprintf(f, "nameserver %s\n", s);
+		    }
+		    fclose(f);
+		}
 	    }
 	}
 

@@ -66,28 +66,57 @@ lfs_init(void)
 {
     int r;
     struct cobj_ref gate;
-    
+
     r = linux_mount("proc", "/proc", "proc", 0, 0);
-    if (r < 0)
+    if (r < 0) {
+	printk("lfs_init: cannot mount /proc\n");
 	return r;
+    }
 
     r = lfs_server_init(&lfs_handler_stub, &gate);
-    if (r < 0)
+    if (r < 0) {
+	printk("lfs_init: cannot init server\n");
 	return r;
+    }
+
+    struct fs_inode netd;
+    r = fs_namei("/netd", &netd);
+    if (r < 0) {
+	printk("lfs_init: cannot lookup /netd\n");
+	return r;
+    }
+
+    r = symlink("proc/net/pnp", "/netd/resolv.conf");
+    if (r < 0) {
+	printk("lfs_init: cannot symlink resolv.conf");
+	return r;
+    }
 
     struct fs_inode proc;
-    r = fs_mkdir(start_env->fs_root, "proc", &proc, 0);
-    if (r < 0)
+    r = fs_mkdir(netd, "proc", &proc, 0);
+    if (r < 0) {
+	printk("lfs_init: cannot create proc dir\n");
 	return r;
+    }
 
     struct fs_inode net;
     r = fs_mkdir(proc, "net", &net, 0);
-    if (r < 0)
+    if (r < 0) {
+	printk("lfs_init: cannot create proc/net dir\n");
 	return r;
+    }
     
     r = lfs_create(net, "dev", "/proc/net/dev", gate);
-    if (r < 0)
+    if (r < 0) {
+	printk("lfs_init: cannot create proc/net/dev\n");
 	return r;
+    }
+
+    r = lfs_create(net, "pnp", "/proc/net/pnp", gate);
+    if (r < 0) {
+	printk("lfs_init: cannot create proc/net/pnp\n");
+	return r;
+    }
 
     return 0;
 }

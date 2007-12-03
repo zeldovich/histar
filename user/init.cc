@@ -224,14 +224,12 @@ init_fs(int cons)
     struct fs_inode etc;
     error_check(fs_mkdir(start_env->fs_root, "etc", &etc, 0));
 
-    struct fs_inode hosts, resolv, passwd, group;
+    symlink("/netd/resolv.conf", "/etc/resolv.conf");
+
+    struct fs_inode hosts, passwd, group;
     error_check(fs_create(etc, "hosts", &hosts, 0));
-    error_check(fs_create(etc, "resolv.conf", &resolv, 0));
     error_check(fs_create(etc, "passwd", &passwd, 0));
     error_check(fs_create(etc, "group", &group, 0));
-
-    const char *resolv_conf = "nameserver 171.66.3.11\nnameserver 171.66.3.10\n";
-    error_check(fs_pwrite(resolv, resolv_conf, strlen(resolv_conf), 0));
 
     const char *hosts_data = "171.66.3.9 www.scs.stanford.edu www\n";
     error_check(fs_pwrite(hosts, hosts_data, strlen(hosts_data), 0));
