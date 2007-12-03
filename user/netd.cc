@@ -37,6 +37,14 @@ main(int ac, char **av)
     struct cobj_ref netdev;
 
     try {
+	error_check(fs_clone_mtab(start_env->shared_container));
+
+	fs_inode self;
+	fs_get_root(start_env->shared_container, &self);
+	fs_unmount(start_env->fs_mtab_seg, start_env->fs_root, "netd");
+	error_check(fs_mount(start_env->fs_mtab_seg, start_env->fs_root,
+			     "netd", self));
+
 	uint64_t grant, taint, inet_taint;
 
 	for (int i = 1; i < 4; i++) {

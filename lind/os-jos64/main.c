@@ -1,5 +1,6 @@
 #include <inc/lib.h>
 #include <inc/assert.h>
+#include <inc/fs.h>
 #include <machine/memlayout.h>
 #include <machine/x86.h>
 
@@ -78,6 +79,18 @@ main_loop(void)
 int
 main(int ac, char **av)
 {
+    int r = fs_clone_mtab(start_env->shared_container);
+    if (r < 0)
+	panic("unable to clone mtab: %s", e2s(r));
+
+    struct fs_inode self;
+    fs_get_root(start_env->shared_container, &self);
+    fs_unmount(start_env->fs_mtab_seg, start_env->fs_root, "netd");
+    r = fs_mount(start_env->fs_mtab_seg, start_env->fs_root,
+		 "netd", self);
+    if (r < 0)
+	panic("unable to mount /netd: %s", e2s(r));
+
     struct cobj_ref seg;
     void *va = 0;
     uint64_t phy_bytes = phy_pages * PGSIZE;
