@@ -176,18 +176,32 @@ netd_linux_ioctl(struct sock_slot *ss, struct netd_op_ioctl_args *a)
 	memcpy(a->gifhwaddr.hwaddr, ifrp.ifr_hwaddr.sa_data, len);
 	return r;
     }
-    case SIOCGIFBRDADDR: {
+
+    case SIOCGIFBRDADDR: case SIOCGIFADDR:
+    case SIOCGIFNETMASK: case SIOCGIFDSTADDR: {
 	struct ifreq ifrp;
-	strncpy(ifrp.ifr_name, a->gifbrdaddr.name, sizeof(ifrp.ifr_name));
+	strncpy(ifrp.ifr_name, a->gifaddr.name, sizeof(ifrp.ifr_name));
 	ifrp.ifr_name[sizeof(ifrp.ifr_name) - 1] = '\0';
 
-	if ((r = linux_ioctl(ss->sock, SIOCGIFBRDADDR, &ifrp)) < 0)
+	if ((r = linux_ioctl(ss->sock, a->libc_ioctl, &ifrp)) < 0)
 	    return r;
 
-	libc_to_netd((struct sockaddr_in *)&ifrp.ifr_addr,
-		     &a->gifbrdaddr.baddr);
+	libc_to_netd((struct sockaddr_in *)&ifrp.ifr_addr, &a->gifaddr.addr);
 	return r;
     }
+
+    case SIOCGIFMTU: case SIOCGIFMETRIC: case SIOCGIFTXQLEN: {
+	struct ifreq ifrp;
+	strncpy(ifrp.ifr_name, a->gifint.name, sizeof(ifrp.ifr_name));
+	ifrp.ifr_name[sizeof(ifrp.ifr_name) - 1] = '\0';
+
+	if ((r = linux_ioctl(ss->sock, a->libc_ioctl, &ifrp)) < 0)
+	    return r;
+
+	a->gifint.val = ifrp.ifr_mtu;	/* all the same in a union */
+	return r;
+    }
+
     case FIONREAD: {
         return linux_ioctl(ss->sock, FIONREAD, &a->intval) < 0;
     }

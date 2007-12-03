@@ -7,6 +7,7 @@
 #include <inc/fd.h>
 #include <inc/bipipe.h>
 #include <inc/labelutil.h>
+#include <inc/assert.h>
 #include <inttypes.h>
 #include <fcntl.h>
 #include <string.h>
@@ -482,10 +483,11 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	ifc->ifc_len = sizeof(struct ifreq) * ifcount;
 	return 0;
     }
+
     case SIOCGIFFLAGS: {
 	struct ifreq *r = va_arg(ap, struct ifreq *);
 	ia->libc_ioctl = SIOCGIFFLAGS;
-	strncpy(ia->gifflags.name, r->ifr_name, sizeof(ia->gifbrdaddr.name));
+	strncpy(ia->gifflags.name, r->ifr_name, sizeof(ia->gifflags.name));
 	int z = netd_call(fd, &a);
 	if (z < 0)
 	    return z;
@@ -493,17 +495,20 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	r->ifr_flags = ia->gifflags.flags;
 	return 0;
     }
-    case SIOCGIFBRDADDR: {
+
+    case SIOCGIFBRDADDR: case SIOCGIFADDR:
+    case SIOCGIFNETMASK: case SIOCGIFDSTADDR: {
 	struct ifreq *r = va_arg(ap, struct ifreq *);
-	ia->libc_ioctl = SIOCGIFBRDADDR;
-	strncpy(ia->gifbrdaddr.name, r->ifr_name, sizeof(ia->gifbrdaddr.name));
+	ia->libc_ioctl = req;
+	strncpy(ia->gifaddr.name, r->ifr_name, sizeof(ia->gifaddr.name));
 	int z = netd_call(fd, &a);
 	if (z < 0)
 	    return z;
-	
-	netd_to_libc(&ia->gifbrdaddr.baddr, (struct sockaddr_in *) &r->ifr_broadaddr);
+
+	netd_to_libc(&ia->gifaddr.addr, (struct sockaddr_in *) &r->ifr_addr);
 	return 0;
     }
+
     case SIOCGIFHWADDR: {
 	struct ifreq *r = va_arg(ap, struct ifreq *);
 	ia->libc_ioctl = SIOCGIFHWADDR;
@@ -517,6 +522,23 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	memcpy(sa->sa_data, ia->gifhwaddr.hwaddr, ia->gifhwaddr.hwlen);
 	return 0;
     }
+
+    case SIOCGIFMTU: case SIOCGIFMETRIC: case SIOCGIFTXQLEN: {
+	struct ifreq *r = va_arg(ap, struct ifreq *);
+	ia->libc_ioctl = req;
+	strncpy(ia->gifint.name, r->ifr_name, sizeof(ia->gifint.name));
+	int z = netd_call(fd, &a);
+	if (z < 0)
+	    return z;
+
+	r->ifr_mtu = ia->gifint.val;	/* all the same in a union */
+	return 0;
+    }
+
+    case SIOCGIFMAP: case SIOCSIFMAP:
+	__set_errno(EACCES);
+	return -1;
+
     case FIONREAD: {
 	int *r = va_arg(ap, int *);
         ia->libc_ioctl = FIONREAD;

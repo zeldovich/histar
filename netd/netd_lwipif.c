@@ -169,7 +169,7 @@ netd_lwip_ioctl(struct netd_op_ioctl_args *a)
 	r = netd_netmask(&s2);
 	if (r < 0)
 	    break;
-	a->gifbrdaddr.baddr.sin_addr = s1.sin_addr | ~s2.sin_addr;
+	a->gifaddr.addr.sin_addr = s1.sin_addr | ~s2.sin_addr;
 	break;
     }
     default:

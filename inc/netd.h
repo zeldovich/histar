@@ -136,9 +136,9 @@ struct netd_ioctl_gifflags {
     int16_t flags;
 };
 
-struct netd_ioctl_gifbrdaddr {
+struct netd_ioctl_gifaddr {
     char name[16];
-    struct netd_sockaddr_in baddr;
+    struct netd_sockaddr_in addr;
 };
 
 struct netd_ioctl_gifhwaddr {
@@ -148,14 +148,20 @@ struct netd_ioctl_gifhwaddr {
     char hwaddr[16];
 };
 
+struct netd_ioctl_gifint {
+    char name[16];
+    int val;
+};
+
 struct netd_op_ioctl_args {
     uint64_t libc_ioctl;
     union {
 	struct netd_ioctl_gifconf gifconf;
 	struct netd_ioctl_gifflags gifflags;
-	struct netd_ioctl_gifbrdaddr gifbrdaddr;
+	struct netd_ioctl_gifaddr gifaddr;
 	struct netd_ioctl_gifhwaddr gifhwaddr;
-        int intval;
+	struct netd_ioctl_gifint gifint;
+	int intval;
     };
 };
 
