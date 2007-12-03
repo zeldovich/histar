@@ -15,6 +15,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+enum { verbose = 0 };
+enum { ntp_debug = 0 };
 enum { poll_time = 300 };
 static int cur_delay;
 
@@ -66,7 +68,8 @@ receiver(void *arg)
 	uint64_t t2 = ntp_ts_to_nsec(u.pkt.ntp_receive_ts);
 	uint64_t t1 = ntp_ts_to_nsec(u.pkt.ntp_originate_ts);
 	uint64_t delay = ((t4 - t1) - (t3 - t2))/2;
-	//printf("reply: t1=%ld, t2=%ld, t3=%ld, t4=%ld\n", t1, t2, t3, t4);
+	if (ntp_debug)
+	    printf("reply: t1=%ld, t2=%ld, t3=%ld, t4=%ld\n", t1, t2, t3, t4);
 
 	uint64_t unix_nsec_at_t4 = (t2 + t3) / 2 + delay -
 				   NSEC_PER_SECOND * UINT64(2208988800);
@@ -75,7 +78,8 @@ receiver(void *arg)
 
 	static int synced;
 	if (!synced) {
-	    printf("jntpd: synchronized local time\n");
+	    if (verbose)
+		printf("jntpd: synchronized local time\n");
 	    synced = 1;
 	}
     }
@@ -100,7 +104,8 @@ main(int ac, char **av)
     for (;;) {
 	struct hostent *he = gethostbyname(av[1]);
 	if (!he) {
-	    printf("jntpd: cannot lookup %s, retrying\n", av[1]);
+	    if (verbose)
+		printf("jntpd: cannot lookup %s, retrying\n", av[1]);
 	    sleep(dns_delay);
 	    dns_delay *= 2;
 	    if (dns_delay > poll_time)
@@ -113,8 +118,9 @@ main(int ac, char **av)
 	memcpy(&sin.sin_addr, he->h_addr, sizeof(sin.sin_addr));
 	sin.sin_port = htons(123);
 
-	printf("jntpd: server %s, address %s\n",
-	       av[1], inet_ntoa(sin.sin_addr));
+	if (verbose)
+	    printf("jntpd: server %s, address %s\n",
+		   av[1], inet_ntoa(sin.sin_addr));
 	break;
     }
 
@@ -146,7 +152,8 @@ main(int ac, char **av)
 	ntp.ntp_transmit_ts.ts_sec = htonl(ts_sec);
 	ntp.ntp_transmit_ts.ts_frac = htonl(ts_nsec * one_second_frac / NSEC_PER_SECOND);
 
-	//printf("Sending a request: ts=%ld\n", ts);
+	if (ntp_debug)
+	    printf("Sending a request: ts=%ld\n", ts);
 	send(fd, &ntp, sizeof(ntp), 0);
 
 	sleep(cur_delay);
