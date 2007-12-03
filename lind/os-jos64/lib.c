@@ -17,8 +17,6 @@
 #include <archcall.h>
 #include <longjmp.h>
 #include <archenv.h>
-#include <os-jos64/lutrap.h>
-#include <os-jos64/netdev.h>
 
 void main_loop(void);
 
