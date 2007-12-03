@@ -1,0 +1,17 @@
+# Disk DescriptorFile
+version=1
+CID=12345678
+parentCID=ffffffff
+createType="monolithicFlat"
+
+# Extent description
+RW 131072 FLAT "obj/boot/bochs.img" 0
+
+# The Disk Data Base
+#DDB
+ddb.adapterType = "ide"
+ddb.geometry.sectors = "63"
+ddb.geometry.heads = "16"
+ddb.geometry.cylinders = "16383"
+ddb.virtualHWVersion = "3"
+

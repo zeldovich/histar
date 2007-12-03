@@ -1,0 +1,18 @@
+config.version = "8"
+virtualHW.version = "6"
+displayName = "HiStar VM"
+
+floppy0.present = FALSE
+usb.present = FALSE
+
+ethernet0.present = TRUE
+ethernet0.connectionType = nat
+ethernet0.virtualdev = e1000
+
+memsize = 256
+guestOS = other
+
+ide0:0.present = TRUE
+ide0:0.fileName = "obj/boot/boot.iso"
+ide0:0.deviceType = "cdrom-image"
+
