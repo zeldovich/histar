@@ -35,11 +35,7 @@ int
 main(int ac, char **av)
 {
     try {
-	int64_t new_mtab_id =
-	    sys_segment_copy(start_env->fs_mtab_seg, start_env->shared_container,
-			     0, "private mount table");
-	error_check(new_mtab_id);
-	start_env->fs_mtab_seg = COBJ(start_env->shared_container, new_mtab_id);
+	error_check(fs_clone_mtab(start_env->shared_container));
 
 	fs_inode shared_ct;
 	fs_get_root(start_env->shared_container, &shared_ct);

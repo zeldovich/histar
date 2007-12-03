@@ -2,6 +2,7 @@
 #include <inc/lib.h>
 #include <inc/error.h>
 #include <inc/stdio.h>
+#include <inc/syscall.h>
 
 #include <string.h>
 
@@ -58,4 +59,16 @@ fs_unmount(struct cobj_ref fs_mtab_seg, struct fs_inode dir, const char *mnt_nam
     }
 
     segment_unmap(mtab);
+}
+
+int
+fs_clone_mtab(uint64_t ct)
+{
+    int64_t new_mtab_id =
+	sys_segment_copy(start_env->fs_mtab_seg, ct, 0, "mtab");
+    if (new_mtab_id < 0)
+	return new_mtab_id;
+
+    start_env->fs_mtab_seg = COBJ(ct, new_mtab_id);
+    return 0;
 }

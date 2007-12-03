@@ -166,11 +166,7 @@ auth_dir_init(void)
     thread_cur_clearance(&th_clr);
     th_ctm.set(start_env->process_grant, 1);
 
-    int64_t new_mtab_id =
-	sys_segment_copy(start_env->fs_mtab_seg, start_env->shared_container,
-			 0, "private mount table");
-    error_check(new_mtab_id);
-    start_env->fs_mtab_seg = COBJ(start_env->shared_container, new_mtab_id);
+    error_check(fs_clone_mtab(start_env->shared_container));
 
     gate_create(start_env->shared_container,
 		"authdir", &th_ctm, &th_clr, 0,

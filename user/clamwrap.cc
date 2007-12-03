@@ -71,11 +71,7 @@ try
     error_check(fs_mkdir(self_dir, "tmp", &tmp_dir, tmp_label.to_ulabel()));
 
     // Copy the mount table and mount our /tmp there
-    int64_t new_mtab_id;
-    error_check(new_mtab_id =
-	sys_segment_copy(start_env->fs_mtab_seg, start_env->shared_container,
-			 0, "clamwrap mtab"));
-    start_env->fs_mtab_seg = COBJ(start_env->shared_container, new_mtab_id);
+    error_check(fs_clone_mtab(start_env->shared_container));
     fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "tmp", tmp_dir);
 
     // Run clamscan

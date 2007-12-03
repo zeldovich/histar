@@ -86,5 +86,6 @@ int  fs_resize(struct fs_inode f, uint64_t len);
 int  fs_getsize(struct fs_inode f, uint64_t *len);
 
 int  fs_taint_self(struct fs_inode f);
+int  fs_clone_mtab(uint64_t ct);
 
 #endif
