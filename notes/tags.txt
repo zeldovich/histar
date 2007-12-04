@@ -84,3 +84,14 @@ should be changed so the slot is just a uint64_t with no internal refcount.
 
 Make sure page_free() refuses to take a kobject.
 
+Disk: two alternatives:
+
+ - Object integrity but not integrity of lookup mechanism.
+   Requires tagging sectors but btree is untrusted and malicious
+   kernel code can make an object ID unreachable.
+
+ - Use flash to implement a much simpler object ID to disk address
+   mapping mechanism using a simple hash table much like in memory.
+   Trusted (but simple) hash table code.  Must still keep sector
+   tags to manage free list and data labels.
+
