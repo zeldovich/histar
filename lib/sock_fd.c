@@ -478,6 +478,7 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 
 	    netd_to_libc(&ia->gifconf.ifs[i].addr,
 			 (struct sockaddr_in *)&r->ifr_addr);
+	    r++;
 	}
 
 	ifc->ifc_len = sizeof(struct ifreq) * ifcount;
