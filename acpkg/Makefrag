@@ -166,6 +166,7 @@ DISTURL_xcb-proto-1.1       := http://xcb.freedesktop.org/dist/xcb-proto-1.1.tar
 DISTURL_xf86bigfontproto-1.1.2 := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/xf86bigfontproto-1.1.2.tar.gz
 DISTURL_printproto-1.0.3    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/printproto-1.0.3.tar.gz
 DISTURL_libXp-1.0.0	    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXp-1.0.0.tar.gz
+DISTURL_libXprintUtil-1.0.1 := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXprintUtil-1.0.1.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -930,7 +931,8 @@ $(ACPKG_BUILDDIR)/xlogo-1.0.1/Makefile: | \
 				$(ACPKG_BUILDDIR)/libXext-1.0.2/__build \
 				$(ACPKG_BUILDDIR)/libICE-1.0.4/__build \
 				$(ACPKG_BUILDDIR)/libSM-1.0.3/__build \
-				$(ACPKG_BUILDDIR)/libXt-1.0.4/__build
+				$(ACPKG_BUILDDIR)/libXt-1.0.4/__build \
+				$(ACPKG_BUILDDIR)/libXprintUtil-1.0.1/__build
 
 $(OBJDIR)/acpkg/bin/xeyes: $(ACPKG_BUILDDIR)/xeyes-1.0.1/__build
 	@
