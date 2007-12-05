@@ -5,5 +5,5 @@
 %{!static:LDSOPATH --as-needed -lgcc_wrap --no-as-needed} %{static:-lgcc MAYBE_GCC_EH}
 
 *linker:
-collect2 -E ARCH_SPECS_LDFLAGS
+collect2 -E ARCH_SPECS_LDFLAGS BUILD_SPECS_LDFLAGS
 

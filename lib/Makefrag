@@ -130,7 +130,7 @@ $(OBJDIR)/lib/utrapasm.h: $(OBJDIR)/lib/utrapasm.S
 
 ## Generate specs file
 $(OBJDIR)/lib/gcc.specs: conf/gcc.specs GNUmakefile
-	cat conf/gcc.specs | sed -e "s,LDSOPATH,$(TOP)/$(OBJDIR)/user/ld.so," -e s,MAYBE_GCC_EH,$(shell $(CC) -dumpspecs | grep -q .lgcc_eh && echo -lgcc_eh), -e s,ARCH_SPECS_LDFLAGS,"$(ARCH_SPECS_LDFLAGS)", > $@
+	cat conf/gcc.specs | sed -e "s,LDSOPATH,$(TOP)/$(OBJDIR)/user/ld.so," -e s,MAYBE_GCC_EH,$(shell $(CC) -dumpspecs | grep -q .lgcc_eh && echo -lgcc_eh), -e s,ARCH_SPECS_LDFLAGS,"$(ARCH_SPECS_LDFLAGS)", -e s,BUILD_SPECS_LDFLAGS,"$(BUILD_SPECS_LDFLAGS)", > $@
 
 $(OBJDIR)/lib/libc.so: GNUmakefile
 	@mkdir -p $(@D)
