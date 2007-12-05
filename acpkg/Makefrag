@@ -164,6 +164,8 @@ DISTURL_libpthread-stubs-0.1 := http://xcb.freedesktop.org/dist/libpthread-stubs
 DISTURL_xproto-7.0.10       := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/xproto-7.0.10.tar.gz
 DISTURL_xcb-proto-1.1       := http://xcb.freedesktop.org/dist/xcb-proto-1.1.tar.gz
 DISTURL_xf86bigfontproto-1.1.2 := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/xf86bigfontproto-1.1.2.tar.gz
+DISTURL_printproto-1.0.3    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/printproto-1.0.3.tar.gz
+DISTURL_libXp-1.0.0	    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXp-1.0.0.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -191,6 +193,7 @@ AUTOCONF_libX11-1.1.3       := --disable-malloc0returnsnull --without-xcb
 AUTOCONF_libXt-1.0.4        := --disable-malloc0returnsnull
 AUTOCONF_libXrender-0.9.4   := --disable-malloc0returnsnull
 AUTOCONF_libXext-1.0.2      := --disable-malloc0returnsnull
+AUTOCONF_libXp-1.0.0	    := --disable-malloc0returnsnull
 AUTOCONF_vnc-4.1.2          := --with-installed-zlib
 
 ##
@@ -903,7 +906,7 @@ $(OBJDIR)/acpkg/sbin/arp $(OBJDIR)/acpkg/sbin/ifconfig $(OBJDIR)/acpkg/bin/netst
 $(OBJDIR)/acpkg/bin/xclock: $(ACPKG_BUILDDIR)/xclock-1.0.3/__build
 	@
 
-$(ACPKG_BUILDDIR)/xclock-1.0.3/Makefile: \
+$(ACPKG_BUILDDIR)/xclock-1.0.3/Makefile: | \
 				$(ACPKG_BUILDDIR)/libXaw-1.0.4/__build \
 				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build \
 				$(ACPKG_BUILDDIR)/libXft-2.1.12/__build \
@@ -918,7 +921,7 @@ $(ACPKG_BUILDDIR)/xclock-1.0.3/Makefile: \
 $(OBJDIR)/acpkg/bin/xlogo: $(ACPKG_BUILDDIR)/xlogo-1.0.1/__build
 	@
 
-$(ACPKG_BUILDDIR)/xlogo-1.0.1/Makefile: \
+$(ACPKG_BUILDDIR)/xlogo-1.0.1/Makefile: | \
 				$(ACPKG_BUILDDIR)/libXaw-1.0.4/__build \
 				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build \
 				$(ACPKG_BUILDDIR)/libXft-2.1.12/__build \
@@ -932,7 +935,7 @@ $(ACPKG_BUILDDIR)/xlogo-1.0.1/Makefile: \
 $(OBJDIR)/acpkg/bin/xeyes: $(ACPKG_BUILDDIR)/xeyes-1.0.1/__build
 	@
 
-$(ACPKG_BUILDDIR)/xeyes-1.0.1/Makefile: \
+$(ACPKG_BUILDDIR)/xeyes-1.0.1/Makefile: | \
 				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build \
 				$(ACPKG_BUILDDIR)/libXmu-1.0.3/__build \
 				$(ACPKG_BUILDDIR)/libXext-1.0.2/__build \
@@ -940,17 +943,20 @@ $(ACPKG_BUILDDIR)/xeyes-1.0.1/Makefile: \
 				$(ACPKG_BUILDDIR)/libSM-1.0.3/__build \
 				$(ACPKG_BUILDDIR)/libXt-1.0.4/__build
 
-$(ACPKG_BUILDDIR)/libXaw-1.0.4/Makefile: \
+$(ACPKG_BUILDDIR)/libXp-1.0.0/Makefile: | \
+				$(ACPKG_BUILDDIR)/printproto-1.0.3/__build
+
+$(ACPKG_BUILDDIR)/libXaw-1.0.4/Makefile: | \
 				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build \
 				$(ACPKG_BUILDDIR)/libXmu-1.0.3/__build \
 				$(ACPKG_BUILDDIR)/libXpm-3.5.7/__build \
 				$(ACPKG_BUILDDIR)/libXext-1.0.2/__build \
 				$(ACPKG_BUILDDIR)/libICE-1.0.4/__build \
 				$(ACPKG_BUILDDIR)/libSM-1.0.3/__build \
-				$(ACPKG_BUILDDIR)/libXt-1.0.4/__build
+				$(ACPKG_BUILDDIR)/libXt-1.0.4/__build \
+				$(ACPKG_BUILDDIR)/libXp-1.0.0/__build
 
-
-$(ACPKG_BUILDDIR)/libX11-1.1.3/Makefile: \
+$(ACPKG_BUILDDIR)/libX11-1.1.3/Makefile: | \
 				$(ACPKG_BUILDDIR)/xproto-7.0.10/__build \
 				$(ACPKG_BUILDDIR)/xextproto-7.0.2/__build \
 				$(ACPKG_BUILDDIR)/xtrans-1.0.4/__build \
@@ -962,42 +968,44 @@ $(ACPKG_BUILDDIR)/libX11-1.1.3/Makefile: \
 				$(ACPKG_BUILDDIR)/libXdmcp-1.0.2/__build \
 				$(ACPKG_BUILDDIR)/xf86bigfontproto-1.1.2/__build
 
-$(ACPKG_BUILDDIR)/libXau-1.0.3/Makefile: \
+$(ACPKG_BUILDDIR)/libXau-1.0.3/Makefile: | \
 				$(ACPKG_BUILDDIR)/xproto-7.0.10/__build
 
-$(ACPKG_BUILDDIR)/libXmu-1.0.3/Makefile: \
+$(ACPKG_BUILDDIR)/libXmu-1.0.3/Makefile: | \
 				$(ACPKG_BUILDDIR)/libXt-1.0.4/__build \
 				$(ACPKG_BUILDDIR)/libICE-1.0.4/__build \
 				$(ACPKG_BUILDDIR)/libSM-1.0.3/__build \
 				$(ACPKG_BUILDDIR)/libXext-1.0.2/__build \
 				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build
 
-$(ACPKG_BUILDDIR)/libXt-1.0.4/Makefile: $(ACPKG_BUILDDIR)/libSM-1.0.3/__build \
+$(ACPKG_BUILDDIR)/libXt-1.0.4/Makefile: | \
+				$(ACPKG_BUILDDIR)/libSM-1.0.3/__build \
 				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build \
 				$(ACPKG_BUILDDIR)/libICE-1.0.4/__build
 
-$(ACPKG_BUILDDIR)/libSM-1.0.3/Makefile: $(ACPKG_BUILDDIR)/libICE-1.0.4/__build
+$(ACPKG_BUILDDIR)/libSM-1.0.3/Makefile: | $(ACPKG_BUILDDIR)/libICE-1.0.4/__build
 
-$(ACPKG_BUILDDIR)/libxkbfile-1.0.4/Makefile: $(ACPKG_BUILDDIR)/libX11-1.1.3/__build
+$(ACPKG_BUILDDIR)/libxkbfile-1.0.4/Makefile: | \
+				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build
 
-$(ACPKG_BUILDDIR)/libXft-2.1.12/Makefile: \
+$(ACPKG_BUILDDIR)/libXft-2.1.12/Makefile: | \
 				$(ACPKG_BUILDDIR)/fontconfig-2.5.0/__build \
 				$(OBJDIR)/acpkg/lib/libfreetype.so.6 \
 				$(ACPKG_BUILDDIR)/libXrender-0.9.4/__build \
 
-$(ACPKG_BUILDDIR)/libXrender-0.9.4/Makefile: \
+$(ACPKG_BUILDDIR)/libXrender-0.9.4/Makefile: | \
 				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build \
 				$(ACPKG_BUILDDIR)/renderproto-0.9.3/__build \
 
-$(ACPKG_BUILDDIR)/libXpm-3.5.7/Makefile: $(ACPKG_BUILDDIR)/libX11-1.1.3/__build
+$(ACPKG_BUILDDIR)/libXpm-3.5.7/Makefile: | $(ACPKG_BUILDDIR)/libX11-1.1.3/__build
 
-$(ACPKG_BUILDDIR)/libXext-1.0.2/Makefile: \
+$(ACPKG_BUILDDIR)/libXext-1.0.2/Makefile: | \
 				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build \
 				$(ACPKG_BUILDDIR)/libXau-1.0.3/__build
 
-$(ACPKG_BUILDDIR)/libSM-1.0.3/Makefile: $(ACPKG_BUILDDIR)/libICE-1.0.4/__build
+$(ACPKG_BUILDDIR)/libSM-1.0.3/Makefile: | $(ACPKG_BUILDDIR)/libICE-1.0.4/__build
 
-$(ACPKG_BUILDDIR)/libXt-1.0.4/Makefile: \
+$(ACPKG_BUILDDIR)/libXt-1.0.4/Makefile: | \
 				$(ACPKG_BUILDDIR)/libICE-1.0.4/__build \
 				$(ACPKG_BUILDDIR)/libSM-1.0.3/__build \
 				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build
