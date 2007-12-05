@@ -843,10 +843,10 @@ $(ACPKG_BUILDDIR)/svgalib-1.9.25/__build: $(ACPKG_BUILDDIR)/svgalib-1.9.25/__pat
 $(OBJDIR)/acpkg/lib/libexif.so.12: $(ACPKG_BUILDDIR)/libexif-0.6.16/__build
 	@
 
-$(OBJDIR)/acpkg/include/fontconfig $(OBJDIR)/acpkg/lib/libfontconfig.so.1 $(OBJDIR)/acpkg/bin/fc-cache $(OBJDIR)/acpkg/bin/fc-list: $(ACPKG_BUILDDIR)/fontconfig-2.5.0/__build $(OBJDIR)/acpkg/lib/libz.so.1 $(OBJDIR)/acpkg/lib/libexpat.so.1
+$(OBJDIR)/acpkg/include/fontconfig $(OBJDIR)/acpkg/lib/libfontconfig.so.1 $(OBJDIR)/acpkg/bin/fc-cache $(OBJDIR)/acpkg/bin/fc-list: $(ACPKG_BUILDDIR)/fontconfig-2.5.0/__build
 	@
 
-$(OBJDIR)/acpkg/lib/libfreetype.so.6: $(ACPKG_BUILDDIR)/freetype-2.3.5/__build $(OBJDIR)/acpkg/lib/libz.so.1
+$(OBJDIR)/acpkg/lib/libfreetype.so.6: $(ACPKG_BUILDDIR)/freetype-2.3.5/__build
 	@
 
 $(OBJDIR)/acpkg/lib/libexpat.so.1: $(ACPKG_BUILDDIR)/expat-2.0.1/__build
@@ -855,7 +855,11 @@ $(OBJDIR)/acpkg/lib/libexpat.so.1: $(ACPKG_BUILDDIR)/expat-2.0.1/__build
 $(OBJDIR)/acpkg/lib/libjpeg.a: $(ACPKG_BUILDDIR)/jpeg-6b/__build
 	@
 
+$(ACPKG_BUILDDIR)/freetype-2.3.5/Makefile: \
+	$(OBJDIR)/acpkg/lib/libz.so.1
+
 $(ACPKG_BUILDDIR)/fontconfig-2.5.0/Makefile: \
+	$(OBJDIR)/acpkg/lib/libz.so.1 \
 	$(OBJDIR)/acpkg/lib/libexpat.so.1 \
 	$(OBJDIR)/acpkg/lib/libfreetype.so.6
 
