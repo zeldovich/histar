@@ -923,27 +923,27 @@ acpkg-xlibs: | \
 $(OBJDIR)/acpkg/bin/xhost: $(ACPKG_BUILDDIR)/xhost-1.0.2/__build
 	@
 
-$(ACPKG_BUILDDIR)/xhost-1.0.2/Makefile: acpkg-xlibs
+$(ACPKG_BUILDDIR)/xhost-1.0.2/Makefile: | acpkg-xlibs
 
 $(OBJDIR)/acpkg/bin/xclock: $(ACPKG_BUILDDIR)/xclock-1.0.3/__build
 	@
 
-$(ACPKG_BUILDDIR)/xclock-1.0.3/Makefile: acpkg-xlibs
+$(ACPKG_BUILDDIR)/xclock-1.0.3/Makefile: | acpkg-xlibs
 
 $(OBJDIR)/acpkg/bin/xlogo: $(ACPKG_BUILDDIR)/xlogo-1.0.1/__build
 	@
 
-$(ACPKG_BUILDDIR)/xlogo-1.0.1/Makefile: acpkg-xlibs
+$(ACPKG_BUILDDIR)/xlogo-1.0.1/Makefile: | acpkg-xlibs
 
 $(OBJDIR)/acpkg/bin/xeyes: $(ACPKG_BUILDDIR)/xeyes-1.0.1/__build
 	@
 
-$(ACPKG_BUILDDIR)/xeyes-1.0.1/Makefile: acpkg-xlibs
+$(ACPKG_BUILDDIR)/xeyes-1.0.1/Makefile: | acpkg-xlibs
 
 $(OBJDIR)/acpkg/bin/xauth: $(ACPKG_BUILDDIR)/xauth-1.0.2/__build
 	@
 
-$(ACPKG_BUILDDIR)/xauth-1.0.2/Makefile: acpkg-xlibs
+$(ACPKG_BUILDDIR)/xauth-1.0.2/Makefile: | acpkg-xlibs
 
 $(ACPKG_BUILDDIR)/libXp-1.0.0/Makefile: | \
 				$(ACPKG_BUILDDIR)/printproto-1.0.3/__build
