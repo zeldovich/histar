@@ -193,8 +193,15 @@ jos64_socket_thread(struct socket_conn *sc)
 	}
     } else {
 	ss = slot_alloc();
-	if (ss == 0)
-	    panic("no slots");
+	if (ss == 0) {
+	    debug_print(1, "(j%ld) out of slots\n", thread_id());
+	    status = -E_NO_MEM;
+	    z = jcomm_write(sc->ctrl_comm, &status, sizeof(status), 1);
+	    debug_print(z < 0, "(j%ld) error writing status: %s",
+			thread_id(), e2s(z));
+	    goto as_out;
+	}
+
 	ss->dgram = sc->dgram;
 	ss->linuxthread_needed = 1;
 	lutrap_kill(SIGNAL_NETD);
