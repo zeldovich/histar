@@ -6,6 +6,8 @@
 struct fbcons_seg {
     jthread_mutex_t mu;
     volatile uint64_t updates;
+    volatile uint64_t stopped;
+    volatile uint64_t redraw;
 
     uint64_t grant;
     uint64_t taint;

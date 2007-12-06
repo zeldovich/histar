@@ -168,6 +168,7 @@ render(uint32_t row, uint32_t col, uint8_t c, uint8_t inverse)
 
 static void
 refresh(volatile uint8_t *newbuf, uint8_t *oldbuf,
+	uint64_t *oldredraw, uint64_t curredraw,
 	uint32_t *oldcurx, uint32_t *oldcury,
 	uint32_t newcurx, uint32_t newcury)
 {
@@ -176,7 +177,8 @@ refresh(volatile uint8_t *newbuf, uint8_t *oldbuf,
 	    uint32_t i = r * cols + c;
 	    if ((oldbuf[i] != newbuf[i]) ||
 		(c == *oldcurx && r == *oldcury) ||
-		(c == newcurx && r == newcury))
+		(c == newcurx && r == newcury) ||
+		(curredraw != *oldredraw))
 	    {
 		render(r, c, newbuf[i], (c == newcurx && r == newcury));
 		oldbuf[i] = newbuf[i];
@@ -186,6 +188,7 @@ refresh(volatile uint8_t *newbuf, uint8_t *oldbuf,
 
     *oldcurx = newcurx;
     *oldcury = newcury;
+    *oldredraw = curredraw;
 }
 
 static void __attribute__((noreturn))
@@ -201,13 +204,17 @@ worker(void *arg)
     memset(screenbuf, 0, rows * cols);
 
     uint32_t oldx = 0, oldy = 0;
-    uint64_t updates;
+    uint64_t updates = 0;
+    uint64_t redraw = 0;
 
     jthread_mutex_lock(&fs->mu);
 
     for (;;) {
 	updates = fs->updates;
-	refresh(&fs->data[0], screenbuf, &oldx, &oldy, fs->xpos, fs->ypos);
+	if (!fs->stopped)
+	    refresh(&fs->data[0], screenbuf,
+		    &redraw, fs->redraw,
+		    &oldx, &oldy, fs->xpos, fs->ypos);
 
 	while (fs->updates == updates) {
 	    jthread_mutex_unlock(&fs->mu);

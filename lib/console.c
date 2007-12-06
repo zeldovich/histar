@@ -171,8 +171,40 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     case VT_GETSTATE:
     case VT_ACTIVATE:  case VT_WAITACTIVE:
     case VT_GETMODE:   case VT_SETMODE:
-    case KDGETMODE:    case KDSETMODE:
 	return 0;
+
+    case KDGETMODE:    case KDSETMODE: {
+	if (fd->fd_dev_id != devfbcons.dev_id)
+	    return 0;
+
+	struct fbcons_seg *fs = 0;
+	uint64_t nbytes = sizeof(*fs);
+	int r = segment_map(fd->fd_cons.fbcons_seg, 0,
+			    SEGMAP_READ | SEGMAP_WRITE,
+			    (void **) &fs, &nbytes, 0);
+	if (r < 0) {
+	    __set_errno(EINVAL);
+	    return -1;
+	}
+
+	jthread_mutex_lock(&fs->mu);
+
+	if (req == KDGETMODE) {
+	    int *modep = va_arg(ap, int*);
+	    *modep = fs->stopped ? KD_GRAPHICS : KD_TEXT;
+	} else if (req == KDSETMODE) {
+	    int mode = va_arg(ap, int);
+	    fs->stopped = (mode == KD_GRAPHICS) ? 1 : 0;
+	    fs->redraw++;
+	}
+
+	fs->updates++;
+	jthread_mutex_unlock(&fs->mu);
+	sys_sync_wakeup(&fs->updates);
+
+	segment_unmap_delayed(fs, 1);
+	return 0;
+    }
 
     default:
 	return -1;
