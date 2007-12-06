@@ -53,6 +53,7 @@ ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 	bash_cv_job_control_missing=no ac_cv_func_fnmatch_works=yes \
 	ac_cv_file__dev_zero=yes apr_cv_tcp_nodelay_with_cork=no \
 	ac_cv_header_dlfcn_h=$(SHARED_ENABLE) \
+	path_utmp=/var/run/utmp \
 	gcc_cv_as_balign_and_p2align=yes \
 	gcc_cv_as_max_skip_p2align=yes \
 	gcc_cv_as_subsection_m1=yes \
@@ -128,6 +129,7 @@ DISTURL_fontconfig-2.5.0    := http://fontconfig.org/release/fontconfig-2.5.0.ta
 DISTURL_expat-2.0.1	    := http://internap.dl.sourceforge.net/sourceforge/expat/expat-2.0.1.tar.gz
 DISTURL_svgalib-1.9.25	    := http://www.arava.co.il/matan/svgalib/svgalib-1.9.25.tar.gz
 DISTURL_net-tools-1.60	    := http://www.tazenda.demon.co.uk/phil/net-tools/net-tools-1.60.tar.bz2
+DISTURL_rxvt-unicode-8.7    := http://dist.schmorp.de/rxvt-unicode/rxvt-unicode-8.7.tar.bz2
 
 DISTURL_prelink		    := http://people.redhat.com/jakub/prelink/prelink-20060213.tar.bz2
 DISTURL_elfutils-0.131	    := http://sourceware.mirrors.tds.net/pub/sourceware.org/systemtap/elfutils/elfutils-0.131.tar.gz
@@ -196,6 +198,7 @@ AUTOCONF_libXrender-0.9.4   := --disable-malloc0returnsnull
 AUTOCONF_libXext-1.0.2      := --disable-malloc0returnsnull
 AUTOCONF_libXp-1.0.0	    := --disable-malloc0returnsnull
 AUTOCONF_vnc-4.1.2          := --with-installed-zlib
+AUTOCONF_rxvt-unicode-8.7   := --disable-perl
 
 ##
 ## Patches to apply to various packages
@@ -944,6 +947,11 @@ $(OBJDIR)/acpkg/bin/xauth: $(ACPKG_BUILDDIR)/xauth-1.0.2/__build
 	@
 
 $(ACPKG_BUILDDIR)/xauth-1.0.2/Makefile: | acpkg-xlibs
+
+$(OBJDIR)/acpkg/bin/urxvt: $(ACPKG_BUILDDIR)/rxvt-unicode-8.7/__build
+	@
+
+$(ACPKG_BUILDDIR)/rxvt-unicode-8.7/Makefile: | acpkg-xlibs
 
 $(ACPKG_BUILDDIR)/libXp-1.0.0/Makefile: | \
 				$(ACPKG_BUILDDIR)/printproto-1.0.3/__build

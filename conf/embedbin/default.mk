@@ -55,19 +55,20 @@ KERN_BINFILES	+= user/strip user/readelf
 KERN_BINFILES	+= user/clamscan user/clamav_main.cvd user/clamav_daily.cvd
 
 ## X11
-#KERN_BINFILES	+= user/xlogo user/xeyes user/xhost user/xclock user/xauth
-#KERN_BINFILES	+= user/libXext.so.6 user/libXmu.so.6 user/libXt.so.6
-#KERN_BINFILES	+= user/libX11.so.6 user/libSM.so.6 user/libICE.so.6
-#KERN_BINFILES	+= user/libXau.so.6 user/libXdmcp.so.6 user/libXaw.so.8
-#KERN_BINFILES	+= user/libXp.so.6 user/libXprintUtil.so.1 user/libXrender.so.1
-#KERN_BINFILES	+= user/libXft.so.2 user/libXpm.so.4 user/libXmuu.so.1
-#KERN_BINFILES	+= user/libxkbfile.so.1
+KERN_BINFILES	+= user/xlogo user/xeyes user/xhost user/xclock user/xauth
+KERN_BINFILES	+= user/libXext.so.6 user/libXmu.so.6 user/libXt.so.6
+KERN_BINFILES	+= user/libX11.so.6 user/libSM.so.6 user/libICE.so.6
+KERN_BINFILES	+= user/libXau.so.6 user/libXdmcp.so.6 user/libXaw.so.8
+KERN_BINFILES	+= user/libXp.so.6 user/libXprintUtil.so.1 user/libXrender.so.1
+KERN_BINFILES	+= user/libXft.so.2 user/libXpm.so.4 user/libXmuu.so.1
+KERN_BINFILES	+= user/libxkbfile.so.1
+KERN_BINFILES	+= user/urxvt
 
 ## Graphics stuff
-#KERN_BINFILES	+= user/libfreetype.so.6 user/libfontconfig.so.1
-#KERN_BINFILES	+= user/fc-cache user/fc-list user/libexpat.so.1
-#KERN_BINFILES	+= user/fbconsd user/fonts.tar.gz
-#KERN_BINFILES	+= user/fbi user/libexif.so.12
+KERN_BINFILES	+= user/libfreetype.so.6 user/libfontconfig.so.1
+KERN_BINFILES	+= user/fc-cache user/fc-list user/libexpat.so.1
+KERN_BINFILES	+= user/fbconsd user/fonts.tar.gz
+KERN_BINFILES	+= user/fbi user/libexif.so.12
 
 ## Miscellaneous stuff: testing, benchmarking, experimental..
 KERN_BINFILES	+= user/fetch user/dnstest
