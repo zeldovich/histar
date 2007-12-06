@@ -1,3 +1,6 @@
 AMD: Nested Page Tables, "Barcelona" chip, mid-2007
+    Opteron 23xx series (2-chip SMP) and Opteron 83xx series (8-chip SMP).
+    All quad-core chips, low-end is Opteron 2347 (1.9GHz), Socket F.
+
 Intel: Extended Page Tables, ???
 
