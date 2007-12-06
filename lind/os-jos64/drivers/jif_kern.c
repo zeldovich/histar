@@ -28,6 +28,7 @@ register_jif(void)
 	trans.data_len = list[i].data_len;
 	trans.mtu = MTU;
 	trans.open = &jif_open;
+	trans.close = &jif_close;
 	trans.tx = &jif_tx;
 	trans.rx = &jif_rx;
 	trans.irq_reset = &jif_irq_reset;

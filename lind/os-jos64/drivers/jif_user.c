@@ -33,6 +33,8 @@ struct jif_data {
     int rx_tail;	/* last buffer we gave to the kernel */
     int tx_next;	/* next slot to use for TX */
 
+    uint64_t shutdown;
+
     struct cobj_ref buf_seg;
     void *buf_base;
 
@@ -101,9 +103,9 @@ jif_rx_thread(void *a)
     sys_self_set_as(COBJ(start_env->proc_container, rx_asid));
     segment_as_switched();
 
-    for (;;) {
+    while (!jif->shutdown) {
 	jif_lock(jif);
-	while (jif->rx_head < 0 || !(jif->rx[jif->rx_head]->actual_count & NETHDR_COUNT_DONE)) {
+	while (!jif->shutdown && (jif->rx_head < 0 || !(jif->rx[jif->rx_head]->actual_count & NETHDR_COUNT_DONE))) {
 	    jif_rxbuf_feed(jif);
 
 	    jif_unlock(jif);
@@ -122,9 +124,12 @@ jif_rx_thread(void *a)
 	jif_unlock(jif);
 	jif->irq_flag = 1;
 	lutrap_kill(SIGNAL_ETH);
-	while (jif->irq_flag)
+	while (!jif->shutdown && jif->irq_flag)
 	    sys_sync_wait(&jif->irq_flag, 1, UINT64(~0));
     }
+
+    jif->shutdown = 2;
+    sys_sync_wakeup(&jif->shutdown);
 }
 
 int
@@ -216,6 +221,8 @@ jif_open(const char *name, void *data)
     struct cobj_ref to;
     struct jif_data *jif = data;
 
+    jif->shutdown = 0;
+
     r = get_netdev(name, &jif->ndev);
     if (r < 0) {
 	arch_printf("jif_open: get_netdev failed: %s\n", e2s(r));
@@ -224,7 +231,7 @@ jif_open(const char *name, void *data)
     
     // Allocate transmit/receive pages
     jif->waitgen = -1;
-    jif->waiter_id = thread_id();
+    jif->waiter_id = sys_pstate_timestamp();
     if (jif->waiter_id < 0)
 	panic("jif: cannot get thread id: %s", e2s(jif->waiter_id));
 
@@ -262,6 +269,21 @@ jif_open(const char *name, void *data)
 	return -1;
     }
     
+    return 0;
+}
+
+int
+jif_close(void *data)
+{
+    struct jif_data *jif = data;
+    jif->shutdown = 1;
+
+    while (jif->shutdown == 1) {
+	sys_net_wait(jif->ndev, sys_pstate_timestamp(), 0);
+	sys_sync_wakeup(&jif->irq_flag);
+	sys_sync_wait(&jif->shutdown, 1, sys_clock_nsec() + 100000000);
+    }
+
     return 0;
 }
 

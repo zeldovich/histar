@@ -10,6 +10,7 @@ struct jif_list {
 /* jif_user.c */
 int jif_list(struct jif_list *list, unsigned int cnt);
 int jif_open(const char *name, void *data);
+int jif_close(void *data);
 int jif_tx(void *data, void *buf, unsigned int buf_len);
 int jif_rx(void *data, void *buf, unsigned int buf_len);
 void jif_irq_reset(void *data);
