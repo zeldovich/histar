@@ -74,12 +74,19 @@ netd_socket(int domain, int type, int protocol)
 static int
 sock_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 {
+    if (addr && addr->sa_family != AF_INET) {
+	__set_errno(EAFNOSUPPORT);
+	return -1;
+    }
+
     struct netd_op_args a;
     a.size = offsetof(struct netd_op_args, bind) + sizeof(a.bind);
 
     struct sockaddr_in sin;
-    if (addrlen < sizeof(sin))
-	   return -E_INVAL;
+    if (addrlen < sizeof(sin)) {
+	__set_errno(E2BIG);
+	return -1;
+    }
 
     memcpy(&sin, addr, sizeof(sin));
 
@@ -92,12 +99,19 @@ sock_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 static int
 sock_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 {
+    if (addr && addr->sa_family != AF_INET) {
+	__set_errno(EAFNOSUPPORT);
+	return -1;
+    }
+
     struct netd_op_args a;
     a.size = offsetof(struct netd_op_args, connect) + sizeof(a.connect);
 
     struct sockaddr_in sin;
-    if (addrlen < sizeof(sin))
-	   return -E_INVAL;
+    if (addrlen < sizeof(sin)) {
+	__set_errno(E2BIG);
+	return -1;
+    }
 
     a.op_type = netd_op_connect;
     a.connect.fd = fd->fd_sock.s;
@@ -124,13 +138,15 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     a.size = offsetof(struct netd_op_args, accept) + sizeof(a.accept);
 
     struct sockaddr_in sin;
-    if (addrlen && *addrlen < sizeof(sin))
-	return -E_INVAL;
+    if (addrlen && *addrlen < sizeof(sin)) {
+	__set_errno(E2BIG);
+	return -1;
+    }
 
     struct Fd *nfd;
     int r = fd_alloc(&nfd, "socket fd -- accept");
     if (r < 0)
-	return r;
+	return err_jos2libc(r);
 
     a.op_type = netd_op_accept;
     a.accept.fd = fd->fd_sock.s;
@@ -219,6 +235,11 @@ static ssize_t
 sock_sendto(struct Fd *fd, const void *buf, size_t count, int flags,
 	    const struct sockaddr *to, socklen_t tolen)
 {
+    if (to && to->sa_family != AF_INET) {
+	__set_errno(EAFNOSUPPORT);
+	return -1;
+    }
+
     if (fd->fd_omode & O_NONBLOCK)
 	flags |= MSG_DONTWAIT;
 
@@ -337,8 +358,10 @@ sock_getsockname(struct Fd *fd, struct sockaddr *addr,
 
     struct sockaddr_in sin;
 
-    if (*addrlen < sizeof(sin))
-	   return -E_INVAL;
+    if (*addrlen < sizeof(sin)) {
+	__set_errno(E2BIG);
+	return -1;
+    }
 
     a.op_type = netd_op_getsockname;
     a.getsockname.fd = fd->fd_sock.s;
@@ -357,8 +380,10 @@ sock_getpeername(struct Fd *fd, struct sockaddr *addr,
     a.size = offsetof(struct netd_op_args, getpeername) + sizeof(a.getpeername);
     struct sockaddr_in sin;
 
-    if (*addrlen < sizeof(sin))
-	   return -E_INVAL;
+    if (*addrlen < sizeof(sin)) {
+	__set_errno(E2BIG);
+	return -1;
+    }
 
     a.op_type = netd_op_getpeername;
     a.getpeername.fd = fd->fd_sock.s;
@@ -375,8 +400,10 @@ sock_setsockopt(struct Fd *fd, int level, int optname,
     struct netd_op_args a;
     a.size = offsetof(struct netd_op_args, setsockopt) + sizeof(a.setsockopt);
 
-    if (optlen > sizeof(a.setsockopt.optval))
-	return -E_INVAL;
+    if (optlen > sizeof(a.setsockopt.optval)) {
+	__set_errno(E2BIG);
+	return -1;
+    }
 
     a.op_type = netd_op_setsockopt;
     a.setsockopt.level = level;
@@ -400,8 +427,10 @@ sock_getsockopt(struct Fd *fd, int level, int optname,
     a.getsockopt.fd = fd->fd_sock.s;
     int r = netd_call(fd, &a);
 
-    if (a.getsockopt.optlen > *optlen)
-	return -E_INVAL;
+    if (a.getsockopt.optlen > *optlen) {
+	__set_errno(E2BIG);
+	return -1;
+    }
     *optlen = a.getsockopt.optlen;
     memcpy(optval, &a.getsockopt.optval[0], a.getsockopt.optlen);
     return r;
