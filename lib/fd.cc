@@ -865,17 +865,14 @@ pwrite(int fdnum, const void *buf, size_t n, off_t off)
 ssize_t 
 readv(int fd, const struct iovec *vector, int count)
 {
-    int ret = 0;
+    ssize_t ret = 0;
     for (int i = 0; i < count; i++) {
-	int r = read(fd, vector[i].iov_base, vector[i].iov_len);
-	if (r < 0) {
-	    if (i == 0)
-		return r;
-	    printf("readv: read error: %s\n", e2s(r));
-	    return ret;
-	}
+	ssize_t r = read(fd, vector[i].iov_base, vector[i].iov_len);
+	if (r <= 0)
+	    return (i == 0) ? r : ret;
+
 	ret += r;
-	if ((uint32_t)r < vector[i].iov_len)
+	if ((uint64_t) r < vector[i].iov_len)
 	    return ret;
     }
     return ret;
@@ -887,16 +884,8 @@ writev(int fd, const struct iovec *vector, int count)
     ssize_t ret = 0;
     for (int i = 0; i < count; i++) {
 	ssize_t cc = write(fd, vector[i].iov_base, vector[i].iov_len);
-	if (cc <= 0) {
-	    if (debug)
-		printf("writev: write error: %"PRId64" %s\n",
-		       cc, strerror(errno));
-
-	    if (i == 0)
-		return cc;
-	    else
-		return ret;
-	}
+	if (cc <= 0)
+	    return (i == 0) ? cc : ret;
 
 	ret += cc;
 
