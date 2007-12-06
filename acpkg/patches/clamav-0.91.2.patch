@@ -1,8 +1,8 @@
---- clamav-0.88/configure	2006/03/31 01:31:18	1.1
-+++ clamav-0.88/configure	2006/04/03 20:59:46
-@@ -10082,11 +10082,9 @@
-         echo "$as_me:$LINENO: checking whether snprintf correctly terminates long strings" >&5
- echo $ECHO_N "checking whether snprintf correctly terminates long strings... $ECHO_C" >&6
+--- clamav-0.91.2/configure	2007/12/06 09:21:00	1.1
++++ clamav-0.91.2/configure	2007/12/06 09:24:10
+@@ -21474,11 +21474,9 @@
+         { echo "$as_me:$LINENO: checking whether snprintf correctly terminates long strings" >&5
+ echo $ECHO_N "checking whether snprintf correctly terminates long strings... $ECHO_C" >&6; }
          if test "$cross_compiling" = yes; then
 -  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
 -See \`config.log' for more details." >&5
@@ -15,7 +15,7 @@
  else
    cat >conftest.$ac_ext <<_ACEOF
  /* confdefs.h.  */
-@@ -11606,100 +11604,14 @@
+@@ -23058,122 +23056,14 @@
  _ACEOF
  
  
@@ -39,13 +39,22 @@
 -
 -_ACEOF
 -rm -f conftest$ac_exeext
--if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
--  (eval $ac_link) 2>&5
+-if { (ac_try="$ac_link"
+-case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+-  (eval "$ac_link") 2>&5
 -  ac_status=$?
 -  echo "$as_me:$LINENO: \$? = $ac_status" >&5
 -  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
--  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
--  (eval $ac_try) 2>&5
+-  { (case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+-  (eval "$ac_try") 2>&5
 -  ac_status=$?
 -  echo "$as_me:$LINENO: \$? = $ac_status" >&5
 -  (exit $ac_status); }; }; then
@@ -60,11 +69,13 @@
 -sed 's/^/| /' conftest.$ac_ext >&5
 -
 -( exit $ac_status )
--echo "$as_me:$LINENO: result: in_port_t is not defined" >&5
--echo "${ECHO_T}in_port_t is not defined" >&6
+-{ echo "$as_me:$LINENO: result: in_port_t is not defined" >&5
+-echo "${ECHO_T}in_port_t is not defined" >&6; }
 -fi
--rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 -fi
+-
+-
 -
 -if test "$cross_compiling" = yes; then
 -  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
@@ -86,13 +97,22 @@
 -
 -_ACEOF
 -rm -f conftest$ac_exeext
--if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
--  (eval $ac_link) 2>&5
+-if { (ac_try="$ac_link"
+-case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+-  (eval "$ac_link") 2>&5
 -  ac_status=$?
 -  echo "$as_me:$LINENO: \$? = $ac_status" >&5
 -  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
--  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
--  (eval $ac_try) 2>&5
+-  { (case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+-  (eval "$ac_try") 2>&5
 -  ac_status=$?
 -  echo "$as_me:$LINENO: \$? = $ac_status" >&5
 -  (exit $ac_status); }; }; then
@@ -107,16 +127,18 @@
 -sed 's/^/| /' conftest.$ac_ext >&5
 -
 -( exit $ac_status )
--echo "$as_me:$LINENO: result: in_addr_t is not defined" >&5
--echo "${ECHO_T}in_addr_t is not defined" >&6
+-{ echo "$as_me:$LINENO: result: in_addr_t is not defined" >&5
+-echo "${ECHO_T}in_addr_t is not defined" >&6; }
 -fi
--rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 -fi
+-
+-
 -
  case "$target_os" in
  linux*)
  
-@@ -12695,58 +12607,9 @@
+@@ -24192,69 +24082,10 @@
    echo $ECHO_N "(cached) $ECHO_C" >&6
  else
  
@@ -148,13 +170,22 @@
 -
 -_ACEOF
 -rm -f conftest$ac_exeext
--if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
--  (eval $ac_link) 2>&5
+-if { (ac_try="$ac_link"
+-case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+-  (eval "$ac_link") 2>&5
 -  ac_status=$?
 -  echo "$as_me:$LINENO: \$? = $ac_status" >&5
 -  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
--  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
--  (eval $ac_try) 2>&5
+-  { (case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+-  (eval "$ac_try") 2>&5
 -  ac_status=$?
 -  echo "$as_me:$LINENO: \$? = $ac_status" >&5
 -  (exit $ac_status); }; }; then
@@ -168,14 +199,16 @@
   ac_cv_have_accrights_in_msghdr="no"
  
  fi
--rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 -fi
 -
+ 
+-
 -fi
- echo "$as_me:$LINENO: result: $ac_cv_have_accrights_in_msghdr" >&5
- echo "${ECHO_T}$ac_cv_have_accrights_in_msghdr" >&6
+ { echo "$as_me:$LINENO: result: $ac_cv_have_accrights_in_msghdr" >&5
+ echo "${ECHO_T}$ac_cv_have_accrights_in_msghdr" >&6; }
  if test "x$ac_cv_have_accrights_in_msghdr" = "xyes" ; then
-@@ -12763,58 +12626,9 @@
+@@ -24271,69 +24102,9 @@
    echo $ECHO_N "(cached) $ECHO_C" >&6
  else
  
@@ -207,13 +240,22 @@
 -
 -_ACEOF
 -rm -f conftest$ac_exeext
--if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
--  (eval $ac_link) 2>&5
+-if { (ac_try="$ac_link"
+-case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+-  (eval "$ac_link") 2>&5
 -  ac_status=$?
 -  echo "$as_me:$LINENO: \$? = $ac_status" >&5
 -  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
--  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
--  (eval $ac_try) 2>&5
+-  { (case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+-  (eval "$ac_try") 2>&5
 -  ac_status=$?
 -  echo "$as_me:$LINENO: \$? = $ac_status" >&5
 -  (exit $ac_status); }; }; then
@@ -227,29 +269,20 @@
   ac_cv_have_control_in_msghdr="no"
  
  fi
--rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 -fi
 -
+-
+-
 -fi
- echo "$as_me:$LINENO: result: $ac_cv_have_control_in_msghdr" >&5
- echo "${ECHO_T}$ac_cv_have_control_in_msghdr" >&6
+ { echo "$as_me:$LINENO: result: $ac_cv_have_control_in_msghdr" >&5
+ echo "${ECHO_T}$ac_cv_have_control_in_msghdr" >&6; }
  if test "x$ac_cv_have_control_in_msghdr" = "xyes" ; then
---- clamav-0.88/libclamav/Makefile.in	2007/10/31 18:15:59	1.1
-+++ clamav-0.88/libclamav/Makefile.in	2007/10/31 18:16:14
-@@ -79,7 +79,7 @@
- am_libclamav_la_OBJECTS = matcher-ac.lo matcher-bm.lo matcher.lo \
- 	md5.lo others.lo readdb.lo cvd.lo dsig.lo str.lo scanners.lo \
- 	filetypes.lo unrarlib.lo zzip-dir.lo zzip-err.lo zzip-file.lo \
--	zzip-info.lo zzip-io.lo zzip-stat.lo zzip-zip.lo strc.lo \
-+	zzip-info.lo zzip-io.lo zzip-stat.lo zzip-zip.lo \
- 	blob.lo mbox.lo message.lo snprintf.lo strrcpy.lo table.lo \
- 	text.lo ole2_extract.lo vba_extract.lo msexpand.lo pe.lo \
- 	cabd.lo lzxd.lo mszipd.lo qtmd.lo system.lo upx.lo htmlnorm.lo \
---- clamav-0.88/clamscan/manager.c	2007/12/06 09:03:35	1.1
-+++ clamav-0.88/clamscan/manager.c	2007/12/06 09:03:41
-@@ -203,12 +203,6 @@
- #endif
-     }
+--- clamav-0.91.2/clamscan/manager.c	2007/12/06 09:19:55	1.1
++++ clamav-0.91.2/clamscan/manager.c	2007/12/06 09:20:02
+@@ -307,12 +307,6 @@
+     else
+ 	options |= CL_SCAN_ALGORITHMIC;
  
 -#ifdef C_LINUX
 -    procdev = (dev_t) 0;

@@ -120,6 +120,7 @@ DISTURL_zlib-1.2.3	    := http://www.zlib.net/zlib-1.2.3.tar.gz
 DISTURL_openvpn-2.0.5	    := http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 DISTURL_perl-5.8.8	    := http://www.perl.com/CPAN/src/perl-5.8.8.tar.gz
 DISTURL_clamav-0.88	    := http://easynews.dl.sourceforge.net/sourceforge/clamav/clamav-0.88.tar.gz
+DISTURL_clamav-0.91.2	    := http://easynews.dl.sourceforge.net/sourceforge/clamav/clamav-0.91.2.tar.gz
 DISTURL_ghostscript-8.54-gpl := http://internap.dl.sourceforge.net/sourceforge/ghostscript/ghostscript-8.54-gpl.tar.gz
 DISTURL_fbida-2.06	    := http://dl.bytesex.org/releases/fbida/fbida-2.06.tar.gz
 DISTURL_libexif-0.6.16	    := http://easynews.dl.sourceforge.net/sourceforge/libexif/libexif-0.6.16.tar.gz
@@ -178,6 +179,7 @@ AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared
 AUTOCONF_binutils-2.17.50.0.15 := --disable-nls --enable-64-bit-bfd --enable-shared=no
 AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --disable-threads --disable-shared --enable-languages=c,c++
 AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
+AUTOCONF_clamav-0.91.2	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep --disable-strip
 AUTOCONF_ncurses-5.5	    := --without-cxx-binding
 AUTOCONF_vim70		    := --with-tlib=ncurses
@@ -218,6 +220,7 @@ PATCHFILE_dmalloc-5.5.0	    := dmalloc-5.5.0.patch
 PATCHFILE_make-3.81	    := make-3.81.patch
 PATCHFILE_dhcp-3.0.5	    := dhcp-3.0.5.patch
 PATCHFILE_clamav-0.88	    := clamav-0.88.patch
+PATCHFILE_clamav-0.91.2	    := clamav-0.91.2.patch
 PATCHFILE_grep-2.5.3	    := grep-2.5.3.patch
 PATCHFILE_python-svn        := python-svn.patch
 PATCHFILE_binutils-2.17.50.0.15 := binutils-2.17.50.0.15.patch
@@ -592,7 +595,8 @@ $(ACPKG_BUILDDIR)/zlib-1.2.3/__build: | $(ACPKG_WRAPS) $(ACPKG_BUILDDIR)/zlib-1.
 	touch $@
 
 $(ACPKG_BUILDDIR)/clamav-0.88/Makefile: | $(ACPKG_BUILDDIR)/zlib-1.2.3/__build
-$(OBJDIR)/acpkg/bin/$(TARGET)-clamscan $(OBJDIR)/acpkg/share/clamav/main.cvd $(OBJDIR)/acpkg/share/clamav/daily.cvd: $(ACPKG_BUILDDIR)/clamav-0.88/__build
+$(ACPKG_BUILDDIR)/clamav-0.91.2/Makefile: | $(ACPKG_BUILDDIR)/zlib-1.2.3/__build
+$(OBJDIR)/acpkg/bin/$(TARGET)-clamscan $(OBJDIR)/acpkg/share/clamav/main.cvd $(OBJDIR)/acpkg/share/clamav/daily.cvd: $(ACPKG_BUILDDIR)/clamav-0.91.2/__build
 	@
 $(OBJDIR)/user/clamav_%.cvd: $(OBJDIR)/acpkg/share/clamav/%.cvd
 	cp $< $@
