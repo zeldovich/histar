@@ -22,7 +22,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopedprof.hh>
 
-static int fs_debug = 0;
+enum { fs_debug = 0 };
 
 enum { type_cache_size = 32 };
 static int type_cache_next;
@@ -73,10 +73,12 @@ fs_readdir_init(struct fs_readdir_state *s, struct fs_inode dir)
 	s->fs_dir_iterator_obj = new fs_dir_iterator();
 	s->dir = dir;
     } catch (error &e) {
-	cprintf("fs_readdir_init: %s\n", e.what());
+        if (fs_debug)
+	    cprintf("fs_readdir_init: %s\n", e.what());
 	return e.err();
     } catch (std::exception &e) {
-	cprintf("fs_readdir_init: %s\n", e.what());
+        if (fs_debug)
+	    cprintf("fs_readdir_init: %s\n", e.what());
 	return -E_INVAL;
     }
 
@@ -150,10 +152,12 @@ fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de,
     try {
 	r = d->list(p, de);
     } catch (error &e) {
-	cprintf("fs_readdir_dent: %s\n", e.what());
+        if (fs_debug)
+	    cprintf("fs_readdir_dent: %s\n", e.what());
 	r = e.err();
     } catch (std::exception &e) {
-	cprintf("fs_readdir_dent: %s\n", e.what());
+        if (fs_debug)
+	    cprintf("fs_readdir_dent: %s\n", e.what());
 	r = -E_INVAL;
     }
 
@@ -211,10 +215,12 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o,
     } catch (not_a_directory &e) {
 	return -E_NOT_DIR;
     } catch (error &e) {
-	cprintf("fs_lookup_one: %s\n", e.what());
+        if (fs_debug)
+	    cprintf("fs_lookup_one: %s\n", e.what());
 	return e.err();
     } catch (std::exception &e) {
-	cprintf("fs_lookup_one: %s\n", e.what());
+        if (fs_debug)
+	    cprintf("fs_lookup_one: %s\n", e.what());
 	return -E_INVAL;
     }
 }
@@ -346,7 +352,8 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel 
     try {
 	fs_dir_dseg::init(*o);
     } catch (error &e) {
-	cprintf("fs_mkdir: %s\n", e.what());
+        if (fs_debug)
+	    cprintf("fs_mkdir: %s\n", e.what());
 	return e.err();
     }
 
@@ -412,7 +419,8 @@ fs_remove(struct fs_inode dir, const char *name, struct fs_inode f)
 	if (r < 0)
 	    return r;
     } catch (error &e) {
-	cprintf("fs_remove: %s\n", e.what());
+        if (fs_debug)
+	    cprintf("fs_remove: %s\n", e.what());
 	return e.err();
     }
 

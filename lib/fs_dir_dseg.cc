@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/stdio.h>
 #include <inc/assert.h>
 #include <inc/time.h>
+#include <inc/setjmp.h>
 
 #include <string.h>
 }
@@ -17,6 +18,21 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/jthread.hh>
+
+static void
+pf_restore(volatile struct jos_jmp_buf *jb)
+{
+    tls_data->tls_pgfault = jb;
+}
+
+#define PF_CATCH_BLOCK                                                  \
+    scope_guard<void, volatile struct jos_jmp_buf*> __pf_restore        \
+        (pf_restore, tls_data->tls_pgfault);                            \
+    struct jos_jmp_buf __pf_jb;                                         \
+    if (jos_setjmp(&__pf_jb) != 0)                                      \
+        throw error(-E_LABEL, "Access denied");                         \
+    tls_data->tls_pgfault = &__pf_jb;
+
 
 #define DIR_GEN_BUSY	(UINT64(~0))
 
@@ -37,6 +53,7 @@ fs_dir_dseg::fs_dir_dseg(fs_inode dir, bool writable)
     : writable_(writable), locked_(false), ino_(dir),
       dseg_(COBJ(0, 0)), dir_(0), dir_end_(0)
 {
+    PF_CATCH_BLOCK;
     struct fs_object_meta meta;
     error_check(sys_obj_get_meta(ino_.obj, &meta));
     
@@ -46,7 +63,7 @@ fs_dir_dseg::fs_dir_dseg(fs_inode dir, bool writable)
     dseg_ = COBJ(ino_.obj.object, meta.dseg_id);
 
     dir_ = 0;
-    uint64_t perm = SEGMAP_READ;
+    uint64_t perm = SEGMAP_READ | SEGMAP_VECTOR_PF;
     if (writable_)
 	perm |= SEGMAP_WRITE;
 
@@ -67,6 +84,7 @@ fs_dir_dseg::~fs_dir_dseg()
 void
 fs_dir_dseg::remove(const char *name, fs_inode ino)
 {
+    PF_CATCH_BLOCK;
     check_writable();
     fs_dirslot *slot;
 
@@ -106,6 +124,7 @@ fs_dir_dseg::lookup(const char *name, fs_readdir_pos *i, fs_inode *ino)
 void
 fs_dir_dseg::insert(const char *name, fs_inode ino)
 {
+    PF_CATCH_BLOCK;
     check_writable();
 
     if (strlen(name) > FS_NAME_LEN - 1)
@@ -170,6 +189,7 @@ fs_dir_dseg::check_writable()
 void
 fs_dir_dseg::grow()
 {
+    PF_CATCH_BLOCK;
     check_writable();
 
     uint64_t pages = dir_->extra_pages + 1;
