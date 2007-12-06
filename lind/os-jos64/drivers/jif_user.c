@@ -103,6 +103,9 @@ jif_rx_thread(void *a)
     sys_self_set_as(COBJ(start_env->proc_container, rx_asid));
     segment_as_switched();
 
+    // set waiter_id, reset any previous buffers
+    jif->waitgen = sys_net_wait(jif->ndev, jif->waiter_id, 0);
+
     while (!jif->shutdown) {
 	jif_lock(jif);
 	while (!jif->shutdown && (jif->rx_head < 0 || !(jif->rx[jif->rx_head]->actual_count & NETHDR_COUNT_DONE))) {
