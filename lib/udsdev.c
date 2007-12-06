@@ -12,5 +12,6 @@ struct Dev devuds = {
     .dev_listen = &uds_listen,
     .dev_accept = &uds_accept,
     .dev_addref = &uds_addref,
+    .dev_setsockopt = &uds_setsockopt,
     .dev_unref = &uds_unref,
 };

@@ -590,3 +590,17 @@ uds_unref(struct Fd *fd)
     }
     return r;
 }
+
+int
+uds_setsockopt(struct Fd *fd, int level, int optname,
+	       const void *optval, socklen_t optlen)
+{
+    if (level == SOL_SOCKET) {
+	if (optname == SO_REUSEADDR) {
+	    return 0;
+	}
+    }
+
+    __set_errno(ENOPROTOOPT);
+    return -1;
+}
