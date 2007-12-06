@@ -601,28 +601,25 @@ gaih_inet (const char *name, const struct gaih_service *service,
 	atr = at = alloca (sizeof (struct gaih_addrtuple));
 	memset (at, '\0', sizeof (struct gaih_addrtuple));
 
-	if (req->ai_family == 0)
-	{
-	    at->next = alloca (sizeof (struct gaih_addrtuple));
-	    memset (at->next, '\0', sizeof (struct gaih_addrtuple));
-	}
-
-#if __UCLIBC_HAS_IPV6__
-	if (req->ai_family == 0 || req->ai_family == AF_INET6)
-	{
-	    at->family = AF_INET6;
-	    if ((req->ai_flags & AI_PASSIVE) == 0)
-		memcpy (at->addr, &in6addr_loopback, sizeof (struct in6_addr));
-	    atr = at->next;
-	}
-#endif
-
 	if (req->ai_family == 0 || req->ai_family == AF_INET)
 	{
 	    atr->family = AF_INET;
 	    if ((req->ai_flags & AI_PASSIVE) == 0)
 		*(uint32_t *) atr->addr = htonl (INADDR_LOOPBACK);
 	}
+
+#if __UCLIBC_HAS_IPV6__
+	if (req->ai_family == 0 || req->ai_family == AF_INET6)
+	{
+	    atr->next = alloca (sizeof (struct gaih_addrtuple));
+	    memset (atr->next, '\0', sizeof (struct gaih_addrtuple));
+	    atr = atr->next;
+
+	    atr->family = AF_INET6;
+	    if ((req->ai_flags & AI_PASSIVE) == 0)
+		memcpy (atr->addr, &in6addr_loopback, sizeof (struct in6_addr));
+	}
+#endif
     }
 
     if (pai == NULL)
