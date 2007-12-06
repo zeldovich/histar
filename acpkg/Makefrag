@@ -428,7 +428,7 @@ $(OBJDIR)/acpkg/bin/perl: $(ACPKG_BUILDDIR)/perl-5.8.8/__build
 $(OBJDIR)/acpkg/bin/find $(OBJDIR)/acpkg/bin/xargs: $(ACPKG_BUILDDIR)/findutils-4.2.31/__build
 	@
 
-$(OBJDIR)/acpkg/bin/diff: $(ACPKG_BUILDDIR)/diffutils-2.8.1/__build
+$(OBJDIR)/acpkg/bin/diff $(OBJDIR)/acpkg/bin/cmp: $(ACPKG_BUILDDIR)/diffutils-2.8.1/__build
 	@
 
 $(OBJDIR)/acpkg/bin/patch: $(ACPKG_BUILDDIR)/patch-2.5.4/__build
@@ -793,6 +793,10 @@ $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
 
 	rm -rf $(OBJDIR)/acpkg/.include-build/include
 	ln -s $(TOP)/uinc $(OBJDIR)/acpkg/.include-build/include
+	$(INCLUDE_BUILD_TAR_CMD)
+
+	rm -rf $(OBJDIR)/acpkg/.include-build/include
+	ln -s $(TOP)/pkg/uclibc++/include $(OBJDIR)/acpkg/.include-build/include
 	$(INCLUDE_BUILD_TAR_CMD)
 
 	rm -rf $(OBJDIR)/acpkg/.include-build/include
