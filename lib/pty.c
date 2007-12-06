@@ -21,6 +21,7 @@
 
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/stropts.h>
 
 #include <linux/vt.h>
 #include <linux/kd.h>
@@ -461,6 +462,11 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     case TIOCSPTLCK:
 	/* the pts associated with fd is always unlocked */
 	ret = 0;
+	break;
+
+    case I_PUSH:
+	__set_errno(EINVAL);
+	ret = -1;
 	break;
 
     default:
