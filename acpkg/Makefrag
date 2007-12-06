@@ -113,7 +113,7 @@ DISTURL_linux-2.6.20.4	    := ftp://ftp.kernel.org/pub/linux/kernel/v2.6/linux-2
 DISTURL_file-4.21	    := ftp://ftp.astron.com/pub/file/file-4.21.tar.gz
 DISTURL_libxml2-2.6.30	    := ftp://xmlsoft.org/libxml2/libxml2-2.6.30.tar.gz
 DISTURL_ImageMagick-6.3.7   := ftp://ftp.imagemagick.org/pub/ImageMagick/ImageMagick-6.3.7-0.tar.gz
-DISTURL_rsync-2.6.9         := http://samba.anu.edu.au/ftp/rsync/rsync-2.6.9.tar.gz
+DISTURL_xpdf-3.02	    := ftp://ftp.foolabs.com/pub/xpdf/xpdf-3.02.tar.gz
 
 DISTURL_sfslite-1.0.0	    := http://dist.okws.org/dist/sfslite-1.0.0.tar.gz
 DISTURL_zlib-1.2.3	    := http://www.zlib.net/zlib-1.2.3.tar.gz
@@ -132,6 +132,7 @@ DISTURL_svgalib-1.9.25	    := http://www.arava.co.il/matan/svgalib/svgalib-1.9.2
 DISTURL_net-tools-1.60	    := http://www.tazenda.demon.co.uk/phil/net-tools/net-tools-1.60.tar.bz2
 DISTURL_rxvt-unicode-8.7    := http://dist.schmorp.de/rxvt-unicode/rxvt-unicode-8.7.tar.bz2
 DISTURL_bzip2-1.0.4	    := http://www.bzip.org/1.0.4/bzip2-1.0.4.tar.gz
+DISTURL_rsync-2.6.9         := http://samba.anu.edu.au/ftp/rsync/rsync-2.6.9.tar.gz
 
 DISTURL_prelink		    := http://people.redhat.com/jakub/prelink/prelink-20060213.tar.bz2
 DISTURL_elfutils-0.131	    := http://sourceware.mirrors.tds.net/pub/sourceware.org/systemtap/elfutils/elfutils-0.131.tar.gz
@@ -171,6 +172,8 @@ DISTURL_xf86bigfontproto-1.1.2 := http://xorg.freedesktop.org/releases/X11R7.3/s
 DISTURL_printproto-1.0.3    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/printproto-1.0.3.tar.gz
 DISTURL_libXp-1.0.0	    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXp-1.0.0.tar.gz
 DISTURL_libXprintUtil-1.0.1 := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXprintUtil-1.0.1.tar.gz
+DISTURL_openmotif-2.3.0	    := ftp://ftp.ics.com/openmotif/2.3/2.3.0/openmotif-2.3.0.tar.gz
+DISTURL_lesstif-0.95.0	    := http://easynews.dl.sourceforge.net/sourceforge/lesstif/lesstif-0.95.0.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -202,6 +205,7 @@ AUTOCONF_libXext-1.0.2      := --disable-malloc0returnsnull
 AUTOCONF_libXp-1.0.0	    := --disable-malloc0returnsnull
 AUTOCONF_vnc-4.1.2          := --with-installed-zlib
 AUTOCONF_rxvt-unicode-8.7   := --disable-perl
+AUTOCONF_xpdf-3.02	    := --with-freetype2-includes=$(TOP)/$(ACPKG_PREFIX)/include/freetype2
 
 ##
 ## Patches to apply to various packages
@@ -231,6 +235,8 @@ PATCHFILE_svgalib-1.9.25    := svgalib-1.9.25.patch
 PATCHFILE_libX11-1.1.3      := libX11-1.1.3.patch
 PATCHFILE_libXt-1.0.4       := libXt-1.0.4.patch
 PATCHFILE_net-tools-1.60    := net-tools-1.60.patch
+PATCHFILE_lesstif-0.95.0    := lesstif-0.95.0.patch
+PATCHFILE_xpdf-3.02	    := xpdf-3.02.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -938,7 +944,8 @@ acpkg-xlibs: | \
 		$(ACPKG_BUILDDIR)/libICE-1.0.4/__build \
 		$(ACPKG_BUILDDIR)/libSM-1.0.3/__build \
 		$(ACPKG_BUILDDIR)/libXt-1.0.4/__build \
-		$(ACPKG_BUILDDIR)/libXprintUtil-1.0.1/__build
+		$(ACPKG_BUILDDIR)/libXprintUtil-1.0.1/__build \
+		$(ACPKG_BUILDDIR)/lesstif-0.95.0/__build
 	@
 
 $(OBJDIR)/acpkg/bin/xhost: $(ACPKG_BUILDDIR)/xhost-1.0.2/__build
@@ -970,6 +977,11 @@ $(OBJDIR)/acpkg/bin/urxvt: $(ACPKG_BUILDDIR)/rxvt-unicode-8.7/__build
 	@
 
 $(ACPKG_BUILDDIR)/rxvt-unicode-8.7/Makefile: | acpkg-xlibs
+
+$(OBJDIR)/acpkg/bin/xpdf: $(ACPKG_BUILDDIR)/xpdf-3.02/__build
+	@
+
+$(ACPKG_BUILDDIR)/xpdf-3.02/Makefile: | acpkg-xlibs
 
 $(ACPKG_BUILDDIR)/libXp-1.0.0/Makefile: | \
 				$(ACPKG_BUILDDIR)/printproto-1.0.3/__build
@@ -1037,4 +1049,17 @@ $(ACPKG_BUILDDIR)/libXt-1.0.4/Makefile: | \
 				$(ACPKG_BUILDDIR)/libICE-1.0.4/__build \
 				$(ACPKG_BUILDDIR)/libSM-1.0.3/__build \
 				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build
+
+$(ACPKG_BUILDDIR)/lesstif-0.95.0/Makefile: | \
+				$(ACPKG_BUILDDIR)/libXaw-1.0.4/__build \
+				$(ACPKG_BUILDDIR)/libX11-1.1.3/__build \
+				$(ACPKG_BUILDDIR)/libXft-2.1.12/__build \
+				$(ACPKG_BUILDDIR)/libXrender-0.9.4/__build \
+				$(ACPKG_BUILDDIR)/libxkbfile-1.0.4/__build \
+				$(ACPKG_BUILDDIR)/libXmu-1.0.3/__build \
+				$(ACPKG_BUILDDIR)/libXext-1.0.2/__build \
+				$(ACPKG_BUILDDIR)/libICE-1.0.4/__build \
+				$(ACPKG_BUILDDIR)/libSM-1.0.3/__build \
+				$(ACPKG_BUILDDIR)/libXt-1.0.4/__build \
+				$(ACPKG_BUILDDIR)/libXprintUtil-1.0.1/__build
 

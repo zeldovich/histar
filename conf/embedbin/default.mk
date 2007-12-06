@@ -62,8 +62,8 @@ KERN_BINFILES	+= user/libX11.so.6 user/libSM.so.6 user/libICE.so.6
 KERN_BINFILES	+= user/libXau.so.6 user/libXdmcp.so.6 user/libXaw.so.8
 KERN_BINFILES	+= user/libXp.so.6 user/libXprintUtil.so.1 user/libXrender.so.1
 KERN_BINFILES	+= user/libXft.so.2 user/libXpm.so.4 user/libXmuu.so.1
-KERN_BINFILES	+= user/libxkbfile.so.1
-KERN_BINFILES	+= user/urxvt
+KERN_BINFILES	+= user/libxkbfile.so.1 user/libXm.so.2
+KERN_BINFILES	+= user/urxvt user/xpdf
 
 ## Graphics stuff
 KERN_BINFILES	+= user/libfreetype.so.6 user/libfontconfig.so.1

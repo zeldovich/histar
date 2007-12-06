@@ -1,0 +1,48 @@
+--- xpdf-3.02/xpdf/XPDFApp.h	2007/12/06 11:14:52	1.1
++++ xpdf-3.02/xpdf/XPDFApp.h	2007/12/06 11:14:59
+@@ -16,7 +16,9 @@
+ #endif
+ 
+ #define Object XtObject
++extern "C" {
+ #include <Xm/XmAll.h>
++}
+ #undef Object
+ #include "gtypes.h"
+ #include "SplashTypes.h"
+--- xpdf-3.02/xpdf/XPDFCore.h	2007/12/06 11:13:35	1.1
++++ xpdf-3.02/xpdf/XPDFCore.h	2007/12/06 11:13:56
+@@ -16,7 +16,9 @@
+ #endif
+ 
+ #define Object XtObject
++extern "C" {
+ #include <Xm/XmAll.h>
++}
+ #undef Object
+ #include "gtypes.h"
+ #include "gfile.h" // for time_t
+--- xpdf-3.02/xpdf/XPDFTreeP.h	2007/12/06 11:15:28	1.1
++++ xpdf-3.02/xpdf/XPDFTreeP.h	2007/12/06 11:15:35
+@@ -9,7 +9,9 @@
+ #ifndef XPDFTREEP_H
+ #define XPDFTREEP_H
+ 
++extern "C" {
+ #include <Xm/ManagerP.h>
++}
+ #include "XPDFTree.h"
+ 
+ extern "C" {
+--- xpdf-3.02/xpdf/XPDFViewer.h	2007/12/06 11:14:23	1.1
++++ xpdf-3.02/xpdf/XPDFViewer.h	2007/12/06 11:14:29
+@@ -16,7 +16,9 @@
+ #endif
+ 
+ #define Object XtObject
++extern "C" {
+ #include <Xm/XmAll.h>
++}
+ #undef Object
+ #include "gtypes.h"
+ #include "XPDFCore.h"

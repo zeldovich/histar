@@ -1,0 +1,55 @@
+--- lesstif-0.95.0/Makefile.in	2007/12/06 11:05:45	1.1
++++ lesstif-0.95.0/Makefile.in	2007/12/06 11:07:00
+@@ -72,10 +72,10 @@
+     *) f=$$p;; \
+   esac;
+ am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
+-am__installdirs = "$(DESTDIR)$(rootdir)" "$(DESTDIR)$(docdir)"
++am__installdirs = "$(DESTDIR)$(rootdir)"
+ dist_rootDATA_INSTALL = $(INSTALL_DATA)
+ docDATA_INSTALL = $(INSTALL_DATA)
+-DATA = $(dist_root_DATA) $(doc_DATA)
++DATA = $(dist_root_DATA)
+ ETAGS = etags
+ CTAGS = ctags
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+@@ -273,8 +273,8 @@
+ 		     missing mkinstalldirs \
+ 		     BUG-REPORTING INSTALL.txt ReleaseNotes.txt
+ 
+-SUBDIRS = . scripts include lib clients doc @BuildTestDir@ autopackage
+-DIST_SUBDIRS = scripts include lib clients doc test autopackage
++SUBDIRS = . scripts include lib clients @BuildTestDir@ autopackage
++DIST_SUBDIRS = scripts include lib clients test autopackage
+ 
+ #
+ # Install some information files
+@@ -647,7 +647,7 @@
+ all-am: Makefile $(DATA) all-local
+ installdirs: installdirs-recursive
+ installdirs-am:
+-	for dir in "$(DESTDIR)$(rootdir)" "$(DESTDIR)$(docdir)"; do \
++	for dir in "$(DESTDIR)$(rootdir)"; do \
+ 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
+ 	done
+ install: install-recursive
+@@ -695,7 +695,7 @@
+ 
+ info-am:
+ 
+-install-data-am: install-dist_rootDATA install-docDATA
++install-data-am: install-dist_rootDATA
+ 
+ install-exec-am:
+ 
+--- lesstif-0.95.0/scripts/Makefile.in	2007/12/06 11:09:57	1.1
++++ lesstif-0.95.0/scripts/Makefile.in	2007/12/06 11:10:05
+@@ -281,7 +281,7 @@
+ xmVERSION = @xmVERSION@
+ xmVer = @xmVer@
+ MAINTAINERCLEANFILES = Makefile.in typedefs.c
+-SUBDIRS = . FreeBSD RedHat Slackware autoconf OS2
++SUBDIRS = . FreeBSD RedHat Slackware OS2
+ EXTRA_DIST = LTsysinfo
+ dist_bin_SCRIPTS = motif-config
+ typedefs_SOURCES = typedefs.l

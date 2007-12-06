@@ -62,4 +62,15 @@ backtrace(void **tracebuf, int maxents)
     return s.idx;
 }
 
+char **
+backtrace_symbols(void *const *buffer, int size)
+{
+    return 0;
+}
+
+void
+backtrace_symbols_fd(void *const *buffer, int size, int fd)
+{
+}
+
 #endif
