@@ -362,14 +362,24 @@ linux_handle_socket(struct sock_slot *ss)
 	struct sock_slot *nss;
 	struct sockaddr_in sin;
 	int addrlen = sizeof(sin);
-	
+
 	debug_print(dbg, "(l%ld) accepting conn", ss->linuxpid);
 	r = linux_accept(ss->sock, (struct sockaddr *)&sin, &addrlen);
-	if (r < 0) 
-	    panic("linux_accept error: %d\n", r);
+	if (r < 0) {
+	    ss->lnx2jos_buf.op_type = jos64_op_shutdown;
+	    ss->lnx2jos_full = 1;
+	    sys_sync_wakeup(&ss->lnx2jos_full);
+	    debug_print(dbg, "(l%ld) shutdown err %d", ss->linuxpid, r);
+	    return;
+	}
+
 	nss = slot_alloc();
-	if (nss == 0)
-	    panic("no slots");
+	if (nss == 0) {
+	    debug_print(1, "(l%ld) accept: out of slots", ss->linuxpid);
+	    linux_close(r);
+	    return;
+	}
+
 	nss->sock = r;
 	nss->dgram = 0;
 	linux_thread_run(linux_socket_thread, nss, "socket-thread");
