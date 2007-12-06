@@ -606,7 +606,7 @@ $(ACPKG_BUILDDIR)/bzip2-1.0.4/__build: | $(ACPKG_WRAPS) $(ACPKG_BUILDDIR)/bzip2-
 
 $(ACPKG_BUILDDIR)/clamav-0.88/Makefile: | $(ACPKG_BUILDDIR)/zlib-1.2.3/__build
 $(ACPKG_BUILDDIR)/clamav-0.91.2/Makefile: | $(ACPKG_BUILDDIR)/zlib-1.2.3/__build
-$(OBJDIR)/acpkg/bin/$(TARGET)-clamscan $(OBJDIR)/acpkg/share/clamav/main.cvd $(OBJDIR)/acpkg/share/clamav/daily.cvd: $(ACPKG_BUILDDIR)/clamav-0.91.2/__build
+$(OBJDIR)/acpkg/bin/$(TARGET)-clamscan $(OBJDIR)/acpkg/bin/$(TARGET)-freshclam $(OBJDIR)/acpkg/share/clamav/main.cvd $(OBJDIR)/acpkg/share/clamav/daily.cvd: $(ACPKG_BUILDDIR)/clamav-0.91.2/__build
 	@
 $(OBJDIR)/user/clamav_%.cvd: $(OBJDIR)/acpkg/share/clamav/%.cvd
 	cp $< $@
