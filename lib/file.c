@@ -31,23 +31,41 @@ libc_hidden_proto(chdir)
 libc_hidden_proto(unlink)
 libc_hidden_proto(utime)
 
-static int
+int
 err_jos2libc(int64_t r)
 {
     if (r >= 0)
 	return 0;
 
-    if (r == -E_LABEL)
+    switch (r) {
+    case -E_LABEL:
 	__set_errno(EACCES);
-    else if (r == -E_NOT_FOUND)
+	break;
+
+    case -E_NOT_FOUND:
 	__set_errno(ENOENT);
-    else if (r == -E_NO_MEM)
+	break;
+
+    case -E_NO_MEM:
 	__set_errno(ENOMEM);
-    else if (r == -E_VAR_QUOTA)
+	break;
+
+    case -E_VAR_QUOTA:
 	__set_errno(EXDEV);
-    else if (r == -E_BUSY)
+	break;
+
+    case -E_BUSY:
 	__set_errno(EEXIST);
-    
+	break;
+
+    case -E_NOT_DIR:
+	__set_errno(ENOTDIR);
+	break;
+
+    default:
+	__set_errno(EINVAL);
+    }
+
     return -1;
 }
 

@@ -203,4 +203,7 @@ void print_backtrace(int use_cprintf);
 extern int signal_grow_stack;
 void signal_init(void);
 
+/* file.c */
+int err_jos2libc(int64_t r);
+
 #endif

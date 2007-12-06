@@ -29,7 +29,12 @@ static int type_cache_next;
 static struct {
     uint64_t obj;
     int type;
-} type_cache[type_cache_size];;
+} type_cache[type_cache_size];
+
+class not_a_directory : public basic_exception {
+ public:
+    not_a_directory(int type) : basic_exception("not a dir: type %d", type) {}
+};
 
 static fs_dir *
 fs_dir_open(fs_inode dir, bool writable)
@@ -56,7 +61,7 @@ fs_dir_open(fs_inode dir, bool writable)
 	    return new fs_dir_ct(dir);
 	}
     } else {
-	throw basic_exception("unknown directory type %d", type);
+	throw not_a_directory(type);
     }
 }
 
@@ -203,6 +208,8 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o,
 	if (found)
 	    return 0;
 	return -E_NOT_FOUND;
+    } catch (not_a_directory &e) {
+	return -E_NOT_DIR;
     } catch (error &e) {
 	cprintf("fs_lookup_one: %s\n", e.what());
 	return e.err();

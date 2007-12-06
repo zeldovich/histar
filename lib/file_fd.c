@@ -78,8 +78,7 @@ __libc_open(const char *pn, int flags, ...)
 
 	just_created = 1;
     } else {
-	__set_errno(EPERM);
-	return -1;
+	return err_jos2libc(r);
     }
 
     if ((flags & O_TRUNC) && !just_created) {

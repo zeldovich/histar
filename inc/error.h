@@ -27,6 +27,7 @@ enum {
     E_MAX_OPEN,		// out of file descriptors
     E_BAD_OP,		// operation not supported
     E_EXISTS,		// already exists
+    E_NOT_DIR,		// not a directory
     E_MAXERROR
 };
 
