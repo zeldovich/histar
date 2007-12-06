@@ -1,4 +1,7 @@
 {
     optind;
     optarg;
+    environ;
+    _environ;
+    __environ;
 };

@@ -121,6 +121,7 @@ strong_alias (__progname_full, program_invocation_name)
  */
 char **__environ = 0;
 weak_alias(__environ, environ)
+weak_alias(__environ, _environ)
 
 /* TODO: don't export __pagesize; we cant now because libpthread uses it */
 size_t __pagesize = 0;
