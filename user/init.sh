@@ -1,5 +1,6 @@
 #!/bin/ksh
 mkdir /usr
+mkdir /usr/bin
 mkdir /lib
 ln -s /bin/*.so /lib
 
@@ -26,6 +27,7 @@ if [ -f /bin/fc-cache ]; then
 fi
 
 test -f /bin/vim && ln -s vim /bin/vi
+test -f /bin/xauth && ln -s /bin/xauth /usr/bin/xauth
 
 mkdir /sample
 mkdir /sample/wrap
