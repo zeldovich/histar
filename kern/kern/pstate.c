@@ -810,6 +810,9 @@ pstate_sync_schedule(int gc)
 void
 pstate_sync(int gc)
 {
+    if (!pstate_part)
+	return;
+
     thread_suspend_cur(&pstate_waiting);
     pstate_sync_schedule(gc);
 }
