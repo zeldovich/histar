@@ -33,6 +33,11 @@ Usability:
   which also specifies the privilege object used to fill in the page table.
 * optimize container entry lookups by hashing containers?
 
+HW support:
+
+* AHCI performance problems
+* e1000 autoneg -- 10mbps works, 100mbps does not?
+
 Compatibility issues:
 
 * implement libc-tsd for correct multi-threaded libc-rpc
