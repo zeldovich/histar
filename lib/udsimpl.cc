@@ -449,7 +449,7 @@ uds_listen(struct Fd *fd, int backlog)
 	return errno_val(EOPNOTSUPP);
 
     if ((uint32_t)backlog > max_slots(fd))
-	return errno_val(EINVAL);
+	backlog = max_slots(fd);
 
     fd->fd_uds.s.backlog = backlog;
     fd->fd_uds.s.listen = 1;
