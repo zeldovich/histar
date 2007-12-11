@@ -120,10 +120,8 @@ sys_net_create(uint64_t container, uint64_t card_idx,
 	       struct ulabel *ul, const char *name)
 {
     // Must have PCL <= { root_handle 0 } to create a netdev
-    struct Label *cl;
-    check(label_alloc(&cl, 1));
-    check(label_set(cl, user_root_handle, 0));
-    check(label_compare(cur_th_label, cl, label_leq_starlo, 0));
+    const struct kobject *root_ct;
+    check(kobject_get(user_root_ct, &root_ct, kobj_container, iflow_rw));
 
     const struct Label *l;
     check(alloc_ulabel(ul, &l, 0));
@@ -199,10 +197,8 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
 static int64_t __attribute__ ((warn_unused_result))
 sys_machine_reboot(void)
 {
-    struct Label *l;
-    check(label_alloc(&l, 1));
-    check(label_set(l, user_root_handle, 0));
-    check(label_compare(cur_th_label, l, label_leq_starlo, 0));
+    const struct kobject *root_ct;
+    check(kobject_get(user_root_ct, &root_ct, kobj_container, iflow_rw));
 
     thread_arch_rebooting(&kobject_dirty(&cur_thread->th_ko)->th);
     check(pstate_sync_now());

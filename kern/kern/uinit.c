@@ -35,7 +35,7 @@
 #error Unknown arch
 #endif
 
-uint64_t user_root_handle;
+uint64_t user_root_ct;
 
 #define assert_check(expr)			\
     do {					\
@@ -290,7 +290,7 @@ user_bootstrap(void)
     key_generate();
 
     // root handle and a label
-    user_root_handle = handle_alloc();
+    uint64_t user_root_handle = handle_alloc();
 
     struct Label *obj_label;
     assert_check(label_alloc(&obj_label, 1));
@@ -311,6 +311,7 @@ user_bootstrap(void)
     rc->ct_ko.ko_quota_total = CT_QUOTA_INF;
     assert_check(container_put(root_parent, &rc->ct_ko));
     strncpy(&rc->ct_ko.ko_name[0], "root container", KOBJ_NAME_LEN - 1);
+    user_root_ct = rc->ct_ko.ko_id;
 
     // filesystem
     struct Container *fsc;

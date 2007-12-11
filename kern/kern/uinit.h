@@ -3,6 +3,6 @@
 
 void user_init(void);
 
-extern uint64_t user_root_handle;
+extern uint64_t user_root_ct;
 
 #endif

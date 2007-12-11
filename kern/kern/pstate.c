@@ -456,17 +456,17 @@ pstate_load2(void)
     memcpy(&system_key[0], &stable_hdr.ph_system_key, SYSTEM_KEY_SIZE);
     key_derive();
 
-    handle_counter   = stable_hdr.ph_handle_counter;
-    user_root_handle = stable_hdr.ph_user_root_handle;
-    pstate_counter   = pstate_ts_decrypt(stable_hdr.ph_sync_ts);
+    handle_counter = stable_hdr.ph_handle_counter;
+    user_root_ct   = stable_hdr.ph_user_root_ct;
+    pstate_counter = pstate_ts_decrypt(stable_hdr.ph_sync_ts);
 
     uint64_t now = timer_user_nsec();
     if (now < stable_hdr.ph_user_nsec)
 	timer_user_nsec_offset = stable_hdr.ph_user_nsec - now;
 
     if (pstate_load_debug)
-	cprintf("pstate_load2: handle_ctr %"PRIu64" root_handle %"PRIu64" nsec %"PRIu64"\n",
-		handle_counter, user_root_handle, now);
+	cprintf("pstate_load2: handle_ctr %"PRIu64" root_ct %"PRIu64" nsec %"PRIu64"\n",
+		handle_counter, user_root_ct, now);
 
     return 1;
 }
@@ -722,7 +722,7 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
     hdr->ph_version = PSTATE_VERSION;
     hdr->ph_sync_ts = pstate_ts_alloc();
     hdr->ph_handle_counter = handle_counter;
-    hdr->ph_user_root_handle = user_root_handle;
+    hdr->ph_user_root_ct = user_root_ct;
     hdr->ph_user_nsec = timer_user_nsec();
     memcpy(&hdr->ph_system_key[0], &system_key[0], SYSTEM_KEY_SIZE);
 
