@@ -1,7 +1,20 @@
-Index: libc/string/Makefrag
+Index: uinc/bits/uClibc_config.h
 ===================================================================
---- libc/string/Makefrag	(revision 6916)
-+++ libc/string/Makefrag	(working copy)
+--- uinc/bits/uClibc_config.h	(revision 7124)
++++ uinc/bits/uClibc_config.h	(working copy)
+@@ -104,7 +104,7 @@
+ #undef __UCLIBC_HAS_CTYPE_CHECKED__
+ #undef __UCLIBC_HAS_CTYPE_ENFORCED__
+ #define __UCLIBC_HAS_WCHAR__ 1
+-#undef __UCLIBC_HAS_LOCALE__
++#define __UCLIBC_HAS_LOCALE__ 1
+ #undef __UCLIBC_HAS_GLIBC_CUSTOM_PRINTF__
+ #undef __USE_OLD_VFPRINTF__
+ #define __UCLIBC_PRINTF_SCANF_POSITIONAL_ARGS__ 9
+Index: pkg/uclibc/libc/string/Makefrag
+===================================================================
+--- pkg/uclibc/libc/string/Makefrag	(revision 7124)
++++ pkg/uclibc/libc/string/Makefrag	(working copy)
 @@ -13,7 +13,8 @@
  	wcscasecmp.c wcscat.c wcschrnul.c wcschr.c wcscmp.c wcscpy.c wcscspn.c \
  	wcsdup.c wcslen.c wcsncasecmp.c wcsncat.c wcsncmp.c wcsncpy.c \
@@ -12,11 +25,11 @@ Index: libc/string/Makefrag
  
  LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/string/%.c, $(STRING_CSRC))
  
-Index: libc/misc/Makefrag
+Index: pkg/uclibc/libc/misc/Makefrag
 ===================================================================
---- libc/misc/Makefrag	(revision 6916)
-+++ libc/misc/Makefrag	(working copy)
-@@ -42,7 +42,8 @@
+--- pkg/uclibc/libc/misc/Makefrag	(revision 7124)
++++ pkg/uclibc/libc/misc/Makefrag	(working copy)
+@@ -44,7 +44,8 @@
          __ctype_assert.c isctype.c
  
  MISC_LOCALE_CSRC := \
