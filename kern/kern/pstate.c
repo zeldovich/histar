@@ -380,7 +380,7 @@ pstate_swapin(kobject_id_t id)
 static int
 pstate_apply_disk_log(void)
 {
-    log_init();
+    log_init(stable_hdr.ph_log_max);
 
     int r = log_apply_disk(stable_hdr.ph_log_blocks);
     if (r < 0) {
@@ -482,7 +482,8 @@ static void
 pstate_reset(void)
 {
     memset(&stable_hdr, 0, sizeof(stable_hdr));
-    log_init();
+    if (pstate_part)
+	log_init(JMIN(pstate_part->pd_size / 65536, MAX_LOG_PAGES));
 }
 
 int
@@ -661,7 +662,7 @@ pstate_sync_loop(struct pstate_header *hdr,
     if (commit_panic && ++commit_count == commit_panic)
 	panic("commit test");
 
-    if (hdr->ph_log_blocks > LOG_PAGES / 2 || log_must_apply()) {
+    if (hdr->ph_log_blocks > hdr->ph_log_max / 2 || log_must_apply()) {
 	if (pstate_swapout_debug)
 	    cprintf("pstate_sync_loop: applying on-disk log\n");
 
@@ -698,15 +699,28 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
     if (arg0)
 	rvalp = (int *) (uintptr_t) arg0;
 
+    uint64_t log_max = stable_hdr.ph_log_max;
+
     // If we don't have a valid header on disk, init the freelist
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
+	log_max = JMIN(pstate_part->pd_size / 65536, MAX_LOG_PAGES);
+
 	uint64_t part_pages = pstate_part->pd_size / PGSIZE;
-	uint64_t reserved_pages = RESERVED_PAGES;
-	assert(part_pages > reserved_pages);
+	uint64_t reserved_pages = HEADER_PAGES + log_max;
+
+	if (part_pages <= reserved_pages) {
+	    cprintf("pstate_sync_stackwrap: %"PRIu64" disk pages "
+		    "is too small, need %"PRIu64"\n",
+		    part_pages, reserved_pages);
+	    if (rvalp)
+		*rvalp = -E_NO_MEM;
+	    return;
+	}
 
 	if (pstate_swapout_debug)
 	    cprintf("pstate_sync: %"PRIu64" disk pages\n", part_pages);
 
+	log_init(log_max);
 	btree_manager_init();
 	freelist_init(&freelist, reserved_pages * PGSIZE,
 		      (part_pages - reserved_pages) * PGSIZE);
@@ -724,6 +738,7 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
     hdr->ph_handle_counter = handle_counter;
     hdr->ph_user_root_ct = user_root_ct;
     hdr->ph_user_nsec = timer_user_nsec();
+    hdr->ph_log_max = log_max;
     memcpy(&hdr->ph_system_key[0], &system_key[0], SYSTEM_KEY_SIZE);
 
     struct swapout_stats stats;

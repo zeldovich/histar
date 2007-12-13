@@ -27,6 +27,7 @@ struct pstate_header {
 
 	    uint64_t ph_sync_ts;
 	    uint64_t ph_log_blocks;
+	    uint64_t ph_log_max;
 
 	    uint8_t ph_free[sizeof(struct freelist)];
 	    uint8_t ph_btrees[BTREE_COUNT * sizeof(struct btree)];

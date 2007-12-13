@@ -6,8 +6,12 @@
 #define HEADER_PAGES        1
 
 #define LOG_OFFSET          (HEADER_OFFSET + HEADER_PAGES)
-#define LOG_PAGES           3000
+#define MAX_LOG_PAGES       131072
 
-#define RESERVED_PAGES      (HEADER_PAGES + LOG_PAGES)
+/*
+ * Conservatively, log_pages = disk_bytes / 65536, but in reality we can
+ * only write to the log what we have in memory, so 131072 log pages is
+ * enough for ~8GB dirty memory.
+ */
 
 #endif /*DISKLAYOUT_H_*/

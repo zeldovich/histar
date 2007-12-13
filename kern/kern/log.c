@@ -22,7 +22,7 @@ static struct {
 
     uint64_t on_disk;
     struct hashtable disk_map;
-    struct hashentry map_back[LOG_PAGES];
+    struct hashentry *map_back[MAX_LOG_PAGES / (PGSIZE / sizeof(struct hashentry)) + 1];
 } the_log;
 
 static int __attribute__((warn_unused_result))
@@ -267,7 +267,7 @@ log_apply_disk(uint64_t n_nodes)
 	off += n * PGSIZE;
     }
 
-    log_init();
+    log_init(the_log.npages);
     return 0;
 }
 
@@ -304,7 +304,7 @@ log_apply_mem(void)
 	log_free_list(&in_log);
     }
 
-    log_init();
+    log_init(the_log.npages);
     return 0;
 }
 
@@ -315,7 +315,7 @@ log_must_apply()
 }
 
 void
-log_init(void)
+log_init(uint64_t log_pages)
 {
     if (!the_log.tailq_inited) {
 	TAILQ_INIT(&the_log.nodes);
@@ -331,13 +331,25 @@ log_init(void)
 	}
     }
 
+    for (uint32_t i = 0;
+	 i < log_pages / (PGSIZE / sizeof(struct hashentry)) + 1; i++)
+    {
+	if (i >= sizeof(the_log.map_back) / sizeof(the_log.map_back[0]))
+	    panic("log size exceeds MAX_LOG_PAGES");
+	if (!the_log.map_back[i]) {
+	    int r = page_alloc((void **) &the_log.map_back[i]);
+	    if (r < 0)
+		panic("cannot allocate log: %s", e2s(r));
+	}
+	memset(the_log.map_back[i], 0, PGSIZE);
+    }
+
     log_free_list(&the_log.nodes);
-    memset(&the_log.map_back[0], 0, sizeof(the_log.map_back));
-    hash_init(&the_log.disk_map, the_log.map_back, LOG_PAGES);
+    hash_init2(&the_log.disk_map, the_log.map_back, log_pages, PGSIZE);
     the_log.in_mem = 0;
     the_log.on_disk = 0;
     the_log.byteoff = LOG_OFFSET * PGSIZE;
-    the_log.npages = LOG_PAGES;
+    the_log.npages = log_pages;
     the_log.max_mem = LOG_MEMORY;
     the_log.must_apply = 0;
 }
