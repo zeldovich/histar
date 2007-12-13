@@ -53,11 +53,15 @@ main(int ac, char **av)
 
     struct termios term;
     memset(&term, 0, sizeof(term));
-    term.c_cc[VINTR] = 3;	/* ^C */
-    term.c_cc[VSUSP] = 26;	/* ^Z */
+    if (ioctl(0, TCGETS, &term) < 0)
+	perror("TCGETS");
+
+    struct winsize ws = { 0, 0, 0, 0 };
+    if (ioctl(0, TIOCGWINSZ, &ws) < 0)
+	perror("TIOCGWINSZ");
 
     int fdm, fds;
-    if (openpty(&fdm, &fds, 0, &term, 0) < 0) {
+    if (openpty(&fdm, &fds, 0, &term, &ws) < 0) {
 	perror("openpty");
 	exit(-1);
     }
