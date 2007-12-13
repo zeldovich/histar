@@ -94,6 +94,11 @@ hash2(register uint64_t * k, register uint64_t length,
     return c;
 }
 
+static struct hashentry *
+hash_ent(struct hashtable *table, uint64_t idx)
+{
+    return &table->entry[idx];
+}
 
 int
 hash_put(struct hashtable *table, uint64_t key, uint64_t val)
@@ -101,6 +106,7 @@ hash_put(struct hashtable *table, uint64_t key, uint64_t val)
     uint64_t len = 1;
     uint64_t lev = 0xDEADBEEF;
     uint64_t probe = 0;
+    struct hashentry *e;
 
     if (key == 0 || key == TOMB)
 	return -E_INVAL;
@@ -111,20 +117,20 @@ hash_put(struct hashtable *table, uint64_t key, uint64_t val)
     int i;
     for (i = 0; i < table->capacity; i++) {
 	probe = (hash2(&key, len, lev) + i) % table->capacity;
-	if (table->entry[probe].key == 0 ||
-	    table->entry[probe].key == TOMB ||
-	    table->entry[probe].key == key)
+	e = hash_ent(table, probe);
+	if (e->key == 0 || e->key == TOMB || e->key == key)
 	    break;
     }
 
-    uint64_t oldkey = table->entry[probe].key;
+    e = hash_ent(table, probe);
+    uint64_t oldkey = e->key;
     if (oldkey != key) {
 	assert(oldkey == 0 || oldkey == TOMB);
 	table->size++;
     }
 
-    table->entry[probe].key = key;
-    table->entry[probe].val = val;
+    e->key = key;
+    e->val = val;
     return 0;
 }
 
@@ -140,10 +146,11 @@ hash_get(struct hashtable *table, uint64_t key, uint64_t * val)
 
     for (int i = 0; i < table->capacity; i++) {
 	probe = (hash2(&key, len, lev) + i) % table->capacity;
-	if (table->entry[probe].key == key) {
-	    *val = table->entry[probe].val;
+	struct hashentry *e = hash_ent(table, probe);
+	if (e->key == key) {
+	    *val = e->val;
 	    return 0;
-	} else if (table->entry[probe].key == 0)
+	} else if (e->key == 0)
 	    break;
     }
     return -E_NOT_FOUND;
@@ -162,12 +169,13 @@ hash_del(struct hashtable *table, uint64_t key)
 
     for (int i = 0; i < table->capacity; i++) {
 	probe = (hash2(&key, len, lev) + i) % table->capacity;
-	if (table->entry[probe].key == key) {
-	    table->entry[probe].key = TOMB;
-	    table->entry[probe].val = 0;
+	struct hashentry *e = hash_ent(table, probe);
+	if (e->key == key) {
+	    e->key = TOMB;
+	    e->val = 0;
 	    table->size--;
 	    return 0;
-	} else if (table->entry[probe].key == 0)
+	} else if (e->key == 0)
 	    break;
     }
 
@@ -187,10 +195,10 @@ void
 hash_print(struct hashtable *table)
 {
     for (int i = 0; i < table->capacity; i++) {
-	if (table->entry[i].key == 0 && table->entry[i].val == 0)
+	struct hashentry *e = hash_ent(table, i);
+	if (e->key == 0 && e->val == 0)
 	    continue;
-	cprintf("i %d key %"PRIu64" val %"PRIu64"\n", i,
-		table->entry[i].key, table->entry[i].val);
+	cprintf("i %d key %"PRIu64" val %"PRIu64"\n", i, e->key, e->val);
     }
 }
 
@@ -210,10 +218,11 @@ hashiter_next(struct hashiter *iter)
 
     int i = iter->hi_index;
     for (; i < t->capacity; i++) {
-	if (t->entry[i].key != 0 && t->entry[i].key != TOMB) {
+	struct hashentry *e = hash_ent(t, i);
+	if (e->key != 0 && e->key != TOMB) {
 	    iter->hi_index = i + 1;
-	    iter->hi_val = t->entry[i].val;
-	    iter->hi_key = t->entry[i].key;
+	    iter->hi_val = e->val;
+	    iter->hi_key = e->key;
 	    return 1;
 	}
     }
