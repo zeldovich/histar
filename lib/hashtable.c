@@ -199,11 +199,13 @@ hash_init(struct hashtable *table, struct hashentry *back, int n)
 void
 hash_init2(struct hashtable *table, struct hashentry **back, int n, int pgsize)
 {
-    memset(back, 0, sizeof(struct hashentry) * n);
     table->entry2 = back;
     table->capacity = n;
     table->size = 0;
     table->pgents = pgsize / sizeof(struct hashentry);
+
+    for (int i = 0; i < n; i++)
+	memset(hash_ent(table, i), 0, sizeof(struct hashentry));
 }
 
 void
