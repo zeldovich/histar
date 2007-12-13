@@ -6,7 +6,7 @@
 #define HEADER_PAGES        1
 
 #define LOG_OFFSET          (HEADER_OFFSET + HEADER_PAGES)
-#define MAX_LOG_PAGES       131072
+#define MAX_LOG_PAGES       131072U
 
 /*
  * Conservatively, log_pages = disk_bytes / 65536, but in reality we can
