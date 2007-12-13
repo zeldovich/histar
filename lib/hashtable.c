@@ -98,7 +98,7 @@ static struct hashentry *
 hash_ent(struct hashtable *table, uint64_t idx)
 {
     if (table->pgents) {
-	return &table->entry2[idx / table->pgents][idx & table->pgents];
+	return &table->entry2[idx / table->pgents][idx % table->pgents];
     } else {
 	return &table->entry[idx];
     }
@@ -110,7 +110,7 @@ hash_put(struct hashtable *table, uint64_t key, uint64_t val)
     uint64_t len = 1;
     uint64_t lev = 0xDEADBEEF;
     uint64_t probe = 0;
-    struct hashentry *e;
+    struct hashentry *e = 0;
 
     if (key == 0 || key == TOMB)
 	return -E_INVAL;
@@ -126,7 +126,6 @@ hash_put(struct hashtable *table, uint64_t key, uint64_t val)
 	    break;
     }
 
-    e = hash_ent(table, probe);
     uint64_t oldkey = e->key;
     if (oldkey != key) {
 	assert(oldkey == 0 || oldkey == TOMB);
