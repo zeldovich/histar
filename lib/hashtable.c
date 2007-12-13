@@ -97,7 +97,11 @@ hash2(register uint64_t * k, register uint64_t length,
 static struct hashentry *
 hash_ent(struct hashtable *table, uint64_t idx)
 {
-    return &table->entry[idx];
+    if (table->pgents) {
+	return &table->entry2[idx / table->pgents][idx & table->pgents];
+    } else {
+	return &table->entry[idx];
+    }
 }
 
 int
@@ -189,6 +193,17 @@ hash_init(struct hashtable *table, struct hashentry *back, int n)
     table->entry = back;
     table->capacity = n;
     table->size = 0;
+    table->pgents = 0;
+}
+
+void
+hash_init2(struct hashtable *table, struct hashentry **back, int n, int pgsize)
+{
+    memset(back, 0, sizeof(struct hashentry) * n);
+    table->entry2 = back;
+    table->capacity = n;
+    table->size = 0;
+    table->pgents = pgsize / sizeof(struct hashentry);
 }
 
 void

@@ -9,9 +9,14 @@ struct hashentry {
 };
 
 struct hashtable {
-    struct hashentry *entry;
+    union {
+	struct hashentry *entry;
+	struct hashentry **entry2;
+    };
+
     int capacity;
     int size;
+    int pgents;
 };
 
 struct hashiter {
@@ -22,6 +27,7 @@ struct hashiter {
 };
 
 void hash_init(struct hashtable *table, struct hashentry *back, int n);
+void hash_init2(struct hashtable *table, struct hashentry **back, int n, int pgsize);
 int hash_put(struct hashtable *table, uint64_t key, uint64_t val);
 int hash_get(struct hashtable *table, uint64_t key, uint64_t *val);
 int hash_del(struct hashtable *table, uint64_t key);
