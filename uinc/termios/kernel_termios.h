@@ -35,6 +35,8 @@ struct __kernel_termios
     cc_t c_cc[__JOS64_KERNEL_NCCS];	/* control characters */
 };
 
+extern struct __kernel_termios __kernel_std_termios;
+
 
 #endif /* kernel_termios.h */
 

@@ -16,6 +16,7 @@
 #include <dirent.h>
 #include <arpa/inet.h>
 #include <stdarg.h>
+#include <termios/kernel_termios.h>
 
 struct stat64;
 
@@ -99,6 +100,7 @@ struct Fd
 	struct {
 	    uint64_t pgid;
 	    struct cobj_ref fbcons_seg;
+	    struct __kernel_termios ios;
 	    struct winsize ws;
 
 	    char pending[16];

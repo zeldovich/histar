@@ -17,6 +17,22 @@
 #include <linux/vt.h>
 #include <linux/kd.h>
 
+struct __kernel_termios __kernel_std_termios = {
+    .c_iflag = ICRNL | IXON,
+    .c_oflag = OPOST | ONLCR,
+    .c_cflag = B38400 | CS8 | CREAD | HUPCL,
+    .c_lflag = ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN,
+
+    /*
+     *  intr=^C         quit=^\         erase=del       kill=^U
+     *  eof=^D          vtime=\0        vmin=\1         sxtc=\0
+     *  start=^Q        stop=^S         susp=^Z         eol=\0
+     *  reprint=^R      discard=^U      werase=^W       lnext=^V
+     *  eol2=\0
+     */
+    .c_cc = "\003\034\177\025\004\0\1\0\021\023\032\0\022\017\027\026\0",
+};
+
 int
 iscons(int fdnum)
 {
@@ -42,6 +58,7 @@ opencons(void)
     fd->fd_omode = O_RDWR;
     fd->fd_isatty = 1;
     fd->fd_cons.pgid = getpgrp();
+    fd->fd_cons.ios = __kernel_std_termios;
     fd->fd_cons.ws.ws_row = 25;
     fd->fd_cons.ws.ws_col = 80;
     fd->fd_cons.ws.ws_xpixel = 0;
@@ -143,10 +160,7 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     case TCGETS: {
 	struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
-	memset(k_termios, 0, sizeof(*k_termios));
-
-	// XXX 
-	k_termios->c_lflag |= ECHO;
+	memcpy(k_termios, &fd->fd_cons.ios, sizeof(*k_termios));
 	return 0;
     }
 
@@ -338,6 +352,7 @@ fbcons_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     fd->fd_isatty = 1;
     fd->fd_cons.pgid = getpgrp();
     fd->fd_cons.fbcons_seg = ino.obj;
+    fd->fd_cons.ios = __kernel_std_termios;
     fd->fd_cons.ws.ws_row = rows;
     fd->fd_cons.ws.ws_col = cols;
     fd->fd_cons.ws.ws_xpixel = 0;

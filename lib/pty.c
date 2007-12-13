@@ -115,6 +115,7 @@ ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     ps->slave_jc = slave_jr.jc;
     ps->grant = grant;
     ps->taint = taint;
+    ps->ios = __kernel_std_termios;
 
     fd->fd_pty.pty_jc = master_jr.jc;
     fd->fd_pty.pty_seg = pty_seg_cobj.object;
