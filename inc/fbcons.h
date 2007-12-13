@@ -18,7 +18,7 @@ struct fbcons_seg {
     volatile uint32_t xpos;
     volatile uint32_t ypos;
 
-    volatile uint8_t  data[];
+    volatile uint32_t data[];
 };
 
 #endif

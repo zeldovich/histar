@@ -361,7 +361,7 @@ fbcons_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
     }
 
     if (nbytes < sizeof(*fs) ||
-	nbytes != sizeof(*fs) + fs->cols * fs->rows ||
+	nbytes != sizeof(*fs) + fs->cols * fs->rows * sizeof(fs->data[0]) ||
 	fs->xpos >= fs->cols || fs->ypos >= fs->rows)
     {
 	__set_errno(EIO);
@@ -410,8 +410,9 @@ fbcons_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 
 	while (fs->ypos >= fs->rows) {
 	    memmove((void*) &fs->data[0], (void*) &fs->data[fs->cols],
-		    fs->cols * (fs->rows - 1));
-	    memset((void*) &fs->data[fs->cols * (fs->rows - 1)], ' ', fs->cols);
+		    fs->cols * (fs->rows - 1) * sizeof(fs->data[0]));
+	    for (uint32_t i = 0; i < fs->cols; i++)
+		fs->data[fs->cols * (fs->rows - 1) + i] = ' ';
 	    fs->ypos--;
 	}
 

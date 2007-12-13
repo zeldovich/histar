@@ -84,7 +84,7 @@ get_font(const char *name)
 }
 
 static FT_BitmapGlyph
-get_glyph_bitmap(FT_Face face, uint8_t c)
+get_glyph_bitmap(FT_Face face, uint32_t c)
 {
     if (FT_Load_Char(face, c, FT_LOAD_DEFAULT))
 	return 0;
@@ -108,7 +108,7 @@ get_glyph_bitmap(FT_Face face, uint8_t c)
 }
 
 static void
-render(uint32_t row, uint32_t col, uint8_t c, uint8_t inverse)
+render(uint32_t row, uint32_t col, uint32_t c, uint8_t inverse)
 {
     uint32_t bytes_per_pixel = (kern_fb.vm.bpp + 7) / 8;
     uint8_t *buf = (uint8_t *) malloc(bytes_per_pixel *
@@ -167,7 +167,7 @@ render(uint32_t row, uint32_t col, uint8_t c, uint8_t inverse)
 }
 
 static void
-refresh(volatile uint8_t *newbuf, uint8_t *oldbuf,
+refresh(volatile uint32_t *newbuf, uint32_t *oldbuf,
 	uint64_t *oldredraw, uint64_t curredraw,
 	uint32_t *oldcurx, uint32_t *oldcury,
 	uint32_t newcurx, uint32_t newcury)
@@ -196,12 +196,12 @@ worker(void *arg)
 {
     fbcons_seg *fs = (fbcons_seg *) arg;
 
-    uint8_t *screenbuf = (uint8_t *) malloc(rows * cols);
+    uint32_t *screenbuf = (uint32_t *) malloc(rows * cols * sizeof(fs->data[0]));
     if (!screenbuf) {
 	fprintf(stderr, "cannot allocate screen buffer\n");
 	exit(-1);
     }
-    memset(screenbuf, 0, rows * cols);
+    memset(screenbuf, 0, rows * cols * sizeof(fs->data[0]));
 
     uint32_t oldx = 0, oldy = 0;
     uint64_t updates = 0;
@@ -266,7 +266,7 @@ try
     cobj_ref fs_seg;
     fbcons_seg *fs = 0;
     error_check(segment_alloc(start_env->shared_container,
-			      sizeof(*fs) + rows * cols,
+			      sizeof(*fs) + rows * cols * sizeof(fs->data[0]),
 			      &fs_seg, (void **) &fs,
 			      fsl.to_ulabel(), "consbuf"));
 
@@ -275,10 +275,12 @@ try
     fs->cols = cols;
     fs->rows = rows;
 
-    memset((uint8_t *) &fs->data[0], ' ', rows * cols);
+    for (uint32_t i = 0; i < rows * cols; i++)
+	fs->data[i] = ' ';
 
     const char *msg = "fbconsd running.";
-    memcpy((char *) &fs->data[0], msg, strlen(msg));
+    for (uint32_t i = 0; i < strlen(msg); i++)
+	fs->data[i] = msg[i];
     fs->ypos = 1;
 
     struct fs_object_meta m;
