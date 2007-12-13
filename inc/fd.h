@@ -103,6 +103,9 @@ struct Fd
 
 	    char pending[16];
 	    uint32_t pending_count;
+
+	    char outbuf[16];
+	    uint32_t outbuf_count;
 	} fd_cons;
 
 	struct {

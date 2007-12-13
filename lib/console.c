@@ -343,8 +343,57 @@ fbcons_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     fd->fd_cons.ws.ws_xpixel = 0;
     fd->fd_cons.ws.ws_ypixel = 0;
     fd->fd_cons.pending_count = 0;
+    fd->fd_cons.outbuf_count = 0;
+
     fd_set_extra_handles(fd, taint, grant);
     return fd2num(fd);
+}
+
+static void
+fbcons_write_wc(struct fbcons_seg *fs, uint32_t wc)
+{
+    switch (wc) {
+    case '\r':
+	fs->xpos = 0;
+	break;
+
+    case '\n':
+	fs->ypos++;
+	fs->xpos = 0;
+	break;
+
+    case '\b':
+	if (fs->xpos > 0)
+	    fs->xpos--;
+	break;
+
+    case '\t':
+	do {
+	    fs->xpos++;
+	} while (fs->xpos % 8);
+	break;
+
+    case '\a':
+	/* no alarm */
+	break;
+
+    default:
+	fs->data[fs->ypos * fs->cols + fs->xpos] = wc;
+	fs->xpos++;
+    }
+
+    if (fs->xpos >= fs->cols) {
+	fs->ypos++;
+	fs->xpos = 0;
+    }
+
+    while (fs->ypos >= fs->rows) {
+	memmove((void*) &fs->data[0], (void*) &fs->data[fs->cols],
+		fs->cols * (fs->rows - 1) * sizeof(fs->data[0]));
+	for (uint32_t i = 0; i < fs->cols; i++)
+	    fs->data[fs->cols * (fs->rows - 1) + i] = ' ';
+	fs->ypos--;
+    }
 }
 
 static ssize_t
@@ -372,53 +421,66 @@ fbcons_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
     ret = 0;
 
     while (len > 0) {
-	uint8_t c = *(uint8_t*) buf;
-	switch (c) {
-	case '\r':
-	    fs->xpos = 0;
-	    break;
-
-	case '\n':
-	    fs->ypos++;
-	    fs->xpos = 0;
-	    break;
-
-	case '\b':
-	    if (fs->xpos > 0)
-		fs->xpos--;
-	    break;
-
-	case '\t':
-	    do {
-		fs->xpos++;
-	    } while (fs->xpos % 8);
-	    break;
-
-	case '\a':
-	    /* no alarm */
-	    break;
-
-	default:
-	    fs->data[fs->ypos * fs->cols + fs->xpos] = c;
-	    fs->xpos++;
-	}
-
-	if (fs->xpos >= fs->cols) {
-	    fs->ypos++;
-	    fs->xpos = 0;
-	}
-
-	while (fs->ypos >= fs->rows) {
-	    memmove((void*) &fs->data[0], (void*) &fs->data[fs->cols],
-		    fs->cols * (fs->rows - 1) * sizeof(fs->data[0]));
-	    for (uint32_t i = 0; i < fs->cols; i++)
-		fs->data[fs->cols * (fs->rows - 1) + i] = ' ';
-	    fs->ypos--;
-	}
+	if (fd->fd_cons.outbuf_count < sizeof(fd->fd_cons.outbuf))
+	    fd->fd_cons.outbuf[fd->fd_cons.outbuf_count++] = *(uint8_t*) buf;
 
 	buf++;
 	len--;
 	ret++;
+
+	while (fd->fd_cons.outbuf_count > 0) {
+	    uint32_t wc = 0;
+	    uint32_t cc = 0;
+
+	    if ((fd->fd_cons.outbuf[0] & 0x80) == 0x00) {
+		wc = fd->fd_cons.outbuf[0];
+		cc = 1;
+	    } else if ((fd->fd_cons.outbuf[0] & 0xe0) == 0xc0) {
+		if (fd->fd_cons.outbuf_count < 2)
+		    break;
+		if ((fd->fd_cons.outbuf[1] & 0xc0) == 0x80) {
+		    wc = (((uint32_t) fd->fd_cons.outbuf[0] & 0x1f) << 6) |
+			  ((uint32_t) fd->fd_cons.outbuf[1] & 0x3f);
+		    cc = 2;
+		}
+	    } else if ((fd->fd_cons.outbuf[0] & 0xf0) == 0xe0) {
+		if (fd->fd_cons.outbuf_count < 3)
+		    break;
+		if (((fd->fd_cons.outbuf[1] & 0xc0) == 0x80) &&
+		    ((fd->fd_cons.outbuf[2] & 0xc0) == 0x80))
+		{
+		    wc = (((uint32_t) fd->fd_cons.outbuf[0] & 0x0f) << 12) |
+			 (((uint32_t) fd->fd_cons.outbuf[1] & 0x3f) << 6)  |
+			  ((uint32_t) fd->fd_cons.outbuf[2] & 0x3f);
+		    cc = 3;
+		}
+	    } else if ((fd->fd_cons.outbuf[0] & 0xf8) == 0xf0) {
+		if (fd->fd_cons.outbuf_count < 4)
+		    break;
+		if (((fd->fd_cons.outbuf[1] & 0xc0) == 0x80) &&
+		    ((fd->fd_cons.outbuf[2] & 0xc0) == 0x80) &&
+		    ((fd->fd_cons.outbuf[3] & 0xc0) == 0x80))
+		{
+		    wc = (((uint32_t) fd->fd_cons.outbuf[0] & 0x07) << 18) |
+			 (((uint32_t) fd->fd_cons.outbuf[1] & 0x3f) << 12) |
+			 (((uint32_t) fd->fd_cons.outbuf[2] & 0x3f) << 6)  |
+			  ((uint32_t) fd->fd_cons.outbuf[3] & 0x3f);
+		    cc = 4;
+		}
+	    }
+
+	    if (cc > 0) {
+		memmove(&fd->fd_cons.outbuf[0], &fd->fd_cons.outbuf[cc],
+			fd->fd_cons.outbuf_count - cc);
+		fd->fd_cons.outbuf_count -= cc;
+		fbcons_write_wc(fs, wc);
+	    } else {
+		/* Fallback: we display all bytes as-is */
+		for (uint32_t i = 0; i < fd->fd_cons.outbuf_count; i++)
+		    fbcons_write_wc(fs, fd->fd_cons.outbuf[i]);
+		fd->fd_cons.outbuf_count = 0;
+	    }
+	}
     }
 
     fs->updates++;
