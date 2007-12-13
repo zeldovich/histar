@@ -230,10 +230,11 @@ init_fs(int cons)
 
     symlink("/netd/resolv.conf", "/etc/resolv.conf");
 
-    struct fs_inode hosts, passwd, group;
+    struct fs_inode hosts, passwd, group, consfont;
     error_check(fs_create(etc, "hosts", &hosts, 0));
     error_check(fs_create(etc, "passwd", &passwd, 0));
     error_check(fs_create(etc, "group", &group, 0));
+    error_check(fs_create(etc, "consfont", &consfont, 0));
 
     const char *hosts_data = "171.66.3.9 www.scs.stanford.edu www\n";
     error_check(fs_pwrite(hosts, hosts_data, strlen(hosts_data), 0));
@@ -247,6 +248,9 @@ init_fs(int cons)
     const char *group_data =
 	"root:x:0:\n";
     error_check(fs_pwrite(group, group_data, strlen(group_data), 0));
+
+    const char *consfont_data = "Monospace-20\n";
+    error_check(fs_pwrite(consfont, consfont_data, strlen(consfont_data), 0));
 
     // finish more FS initialization in a shell script
     label root_ds(3);
@@ -444,7 +448,25 @@ init_fbcons(int *consp)
     dr.set(fbc_grant, 3);
     dr.set(fbc_taint, 3);
 
-    const char *argv[] = { "fbconsd", a0, a1, "Monospace-20" };
+    char fontname[256];
+    fontname[0] = '\0';
+
+    fs_inode consfont;
+    if (fs_namei("/etc/consfont", &consfont) >= 0) {
+	ssize_t cc = fs_pread(consfont, &fontname[0], sizeof(fontname), 0);
+	if (cc >= 0) {
+	    fontname[cc] = '\0';
+
+	    char *nl = strchr(fontname, '\n');
+	    if (nl)
+		*nl = '\0';
+	}
+    }
+
+    if (!fontname[0])
+	sprintf(&fontname[0], "Monospace-20");
+
+    const char *argv[] = { "fbconsd", a0, a1, fontname };
     child_process cp = spawn(start_env->process_pool,
 		   ino, cons, cons, cons,
 		   4, &argv[0],
