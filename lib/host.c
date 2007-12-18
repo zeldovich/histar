@@ -3,8 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/utsname.h>
-
-static char hostname[32] = "histar-box";
+#include <inc/fs.h>
 
 libc_hidden_proto(gethostname)
 libc_hidden_proto(uname)
@@ -12,24 +11,40 @@ libc_hidden_proto(uname)
 int
 gethostname(char *name, size_t len)
 {
-    if (len <= strlen(hostname)) {
-	__set_errno(EINVAL);
+    struct fs_inode f;
+    int r = fs_namei("/etc/hostname", &f);
+    if (r < 0) {
+	__set_errno(EIO);
 	return -1;
     }
 
-    strcpy(name, &hostname[0]);
+    ssize_t cc = fs_pread(f, name, len - 1, 0);
+    if (cc < 0) {
+	__set_errno(EIO);
+	return -1;
+    }
+
+    name[cc] = '\0';
     return 0;
 }
 
 int
 sethostname(const char *name, size_t len)
 {
-    if (len >= sizeof(hostname)) {
-	__set_errno(EINVAL);
+    struct fs_inode f;
+    int r = fs_namei("/etc/hostname", &f);
+    if (r < 0) {
+	__set_errno(EPERM);
 	return -1;
     }
 
-    strncpy(&hostname[0], name, sizeof(hostname) - 1);
+    ssize_t cc = fs_pwrite(f, name, len, 0);
+    if (cc < 0) {
+	__set_errno(EPERM);
+	return -1;
+    }
+
+    fs_resize(f, len);
     return 0;
 }
 
@@ -39,6 +54,9 @@ sethostname(const char *name, size_t len)
 int
 uname (struct utsname *name)
 {
+    static char hostname[128];
+    gethostname(&hostname[0], sizeof(hostname));
+
     sprintf(&name->sysname[0],  "Linux");
     sprintf(&name->nodename[0], "%s", &hostname[0]);
     sprintf(&name->release[0],  "HiStar");

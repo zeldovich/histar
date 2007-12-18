@@ -1,4 +1,6 @@
 #!/bin/ksh
+echo -n histar-box > /etc/hostname
+
 mkdir /usr
 mkdir /usr/bin
 mkdir /lib
