@@ -148,6 +148,13 @@ link(const char *oldpath, const char *newpath)
 	goto err;
 
     r = fs_link(dir_ino, basenm, ino, 0);
+    if (r == -E_VAR_QUOTA) {
+	char *fq = getenv("FS_LINK_FIX_QUOTA");
+	if (fq) {
+	    sys_obj_set_fixedquota(ino.obj);
+	    r = fs_link(dir_ino, basenm, ino, 0);
+	}
+    }
 
  err:
     free(pn);
@@ -312,7 +319,7 @@ rename(const char *src, const char *dst)
 
     r = fs_link(dst_dir_ino, dst_base, f, 1);
     if (r == -E_VAR_QUOTA) {
-	char *fq = getenv("FS_RENAME_FIX_QUOTA");
+	char *fq = getenv("FS_LINK_FIX_QUOTA");
 	if (fq) {
 	    sys_obj_set_fixedquota(f.obj);
 	    r = fs_link(dst_dir_ino, dst_base, f, 1);
