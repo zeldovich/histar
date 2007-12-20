@@ -104,6 +104,7 @@ DISTURL_wget-1.9.1	    := ftp://ftp.gnu.org/gnu/wget/wget-1.9.1.tar.gz
 DISTURL_diffutils-2.8.1	    := ftp://ftp.gnu.org/gnu/diffutils/diffutils-2.8.1.tar.gz
 DISTURL_patch-2.5.4	    := ftp://ftp.gnu.org/gnu/patch/patch-2.5.4.tar.gz
 DISTURL_ed-0.8		    := ftp://ftp.gnu.org/gnu/ed/ed-0.8.tar.bz2
+DISTURL_termcap-1.3.1	    := ftp://ftp.gnu.org/gnu/termcap/termcap-1.3.1.tar.gz
 
 DISTURL_openssl-0.9.8a	    := ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
 DISTURL_openssh-4.3p2	    := ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
@@ -185,7 +186,7 @@ AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --disable-threads --di
 AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_clamav-0.91.2	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep --disable-strip
-AUTOCONF_ncurses-5.5	    := --without-cxx-binding
+AUTOCONF_ncurses-5.5	    := --without-cxx-binding --with-terminfo-dirs=/usr/share/terminfo --with-default-terminfo-dir=/usr/share/terminfo
 AUTOCONF_vim70		    := --with-tlib=ncurses
 AUTOCONF_gmp-4.2.1	    := --enable-shared=$(SHARED_ENABLE)
 AUTOCONF_sfslite-1.0.0	    := --enable-shared=$(SHARED_ENABLE) --without-x --enable-sfsmisc
@@ -478,6 +479,8 @@ $(OBJDIR)/acpkg/bin/ar $(OBJDIR)/acpkg/bin/nm $(OBJDIR)/acpkg/bin/objdump $(OBJD
 $(OBJDIR)/acpkg/bin/file: $(ACPKG_BUILDDIR)/file-4.21/__build
 	@
 
+$(ACPKG_BUILDDIR)/less-382/Makefile: $(OBJDIR)/acpkg/lib/libncurses.a
+
 $(ACPKG_BUILDDIR)/dhcp-3.0.5/__build: $(ACPKG_BUILDDIR)/dhcp-3.0.5/__patch | $(LDEPS) $(ACPKG_WRAPS)
 	( cd $(ACPKG_BUILDDIR)/dhcp-3.0.5 && sh -c "$(ACENV) ./configure" )
 	( cd $(ACPKG_BUILDDIR)/dhcp-3.0.5 && sh -c "$(ACENV) $(MAKE)" )
@@ -628,11 +631,14 @@ $(ACPKG_BUILDDIR)/openssl-0.9.8a/__build: $(ACPKG_BUILDDIR)/zlib-1.2.3/__build $
 $(OBJDIR)/acpkg/lib/libssl.a $(OBJDIR)/acpkg/lib/libcrypto.a: $(ACPKG_BUILDDIR)/openssl-0.9.8a/__build
 	@
 
+$(OBJDIR)/user/terminfo.tar: $(ACPKG_BUILDDIR)/ncurses-5.5/__build
+	tar -C $(OBJDIR)/acpkg -cf $@ share/terminfo
+
 $(ACPKG_BUILDDIR)/ncurses-5.5/__build: $(ACPKG_BUILDDIR)/ncurses-5.5/Makefile | $(ACPKG_WRAPS) $(LDEPS)
 	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) $(MAKE)" )
 	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) $(MAKE) install.progs" )
 	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) $(MAKE) install.libs" )
-	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) $(MAKE) install.data" )
+	( cd $(ACPKG_BUILDDIR)/ncurses-5.5 && sh -c "$(ACENV) $(MAKE) ticdir=$(TOP)/$(OBJDIR)/acpkg/share/terminfo install.data" )
 	( cd $(OBJDIR)/acpkg/include/ && ln -fs ncurses/curses.h curses.h )
 	touch $@
 

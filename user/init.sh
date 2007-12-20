@@ -29,6 +29,11 @@ if [ -f /bin/fc-cache ]; then
     fc-cache
 fi
 
+if [ -f /bin/terminfo.tar.gz ]; then
+    echo "$0: unpacking terminfo.."
+    FS_LINK_FIX_QUOTA= tar -C /usr -xzmf /bin/terminfo.tar.gz
+fi
+
 test -f /bin/vim && ln -s vim /bin/vi
 test -f /bin/xauth && ln -s /bin/xauth /usr/bin/xauth
 
