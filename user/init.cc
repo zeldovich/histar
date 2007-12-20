@@ -411,7 +411,7 @@ run_shell(int cons)
     dr.set(start_env->user_taint, 3);
 
     for (;;) {
-        struct child_process shell_proc = spawn_fs(0, cons, "/bin/ksh", 0, &ds, &dr);
+        struct child_process shell_proc = spawn_fs(0, cons, "/bin/ksh", "-l", &ds, &dr);
         int64_t exit_code = 0;
         if ((r = process_wait(&shell_proc, &exit_code)) < 0)
             cprintf("run_shell: process_wait error: %s\n", e2s(r));
