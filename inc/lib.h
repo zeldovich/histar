@@ -83,7 +83,8 @@ typedef struct {
     struct fs_inode fs_cwd;
 
     uint64_t ppid;
-    char trace_on;
+    char trace_on;	/* debugging */
+    char jos_trace_on;	/* library call tracing, kind-of like strace */
     int ruid, euid;
 
     uint64_t ctty;	/* controlling tty's pty_seg */

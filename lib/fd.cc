@@ -8,6 +8,7 @@ extern "C" {
 #include <inc/assert.h>
 #include <inc/sigio.h>
 #include <inc/stat.h>
+#include <inc/debug.h>
 
 #include <termios/kernel_termios.h>
 #include <bits/unimpl.h>
@@ -125,8 +126,7 @@ static struct {
     uint64_t flags;
 } fd_map_cache[MAXFD];
 
-static int debug = 0;
-
+enum { debug = 0 };
 
 /********************************
  * FILE DESCRIPTOR MANIPULATORS *
@@ -600,6 +600,8 @@ dev_lookup(uint8_t dev_id, struct Dev **dev)
 int
 close(int fdnum)
 {
+    jos_trace("%d", fdnum);
+
     struct Fd *fd;
     int r;
 
@@ -630,6 +632,8 @@ close_all(void)
 int
 dup2(int oldfdnum, int newfdnum) __THROW
 {
+    jos_trace("%d, %d", oldfdnum, newfdnum);
+
     struct Fd *oldfd;
     struct cobj_ref fd_seg;
     uint64_t fd_flags;
@@ -684,6 +688,8 @@ dup2(int oldfdnum, int newfdnum) __THROW
 int
 dup(int fdnum) __THROW
 {
+    jos_trace("%d", fdnum);
+
     for (int i = 0; i < MAXFD; i++) {
 	int r = fd_lookup(i, 0, 0, 0);
 	if (r < 0)
@@ -758,6 +764,8 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
 ssize_t
 read(int fdnum, void *buf, size_t n)
 {
+    jos_trace("%d, %p, %zu", fdnum, buf, n);
+
     int64_t r;
     struct Dev *dev;
     struct Fd *fd;
@@ -786,6 +794,8 @@ read(int fdnum, void *buf, size_t n)
 ssize_t
 write(int fdnum, const void *buf, size_t n)
 {
+    jos_trace("%d, %p, %zu", fdnum, buf, n);
+
     int64_t r;
     struct Dev *dev;
     struct Fd *fd;
@@ -816,6 +826,8 @@ write(int fdnum, const void *buf, size_t n)
 ssize_t
 pread(int fdnum, void *buf, size_t n, off_t off)
 {
+    jos_trace("%d, %p, %zu, %zu", fdnum, buf, n, off);
+
     int64_t r;
     struct Dev *dev;
     struct Fd *fd;
@@ -842,6 +854,8 @@ pread(int fdnum, void *buf, size_t n, off_t off)
 ssize_t
 pwrite(int fdnum, const void *buf, size_t n, off_t off)
 {
+    jos_trace("%d, %p, %zu, %zd", fdnum, buf, n, off);
+
     int64_t r;
     struct Dev *dev;
     struct Fd *fd;
@@ -865,6 +879,8 @@ pwrite(int fdnum, const void *buf, size_t n, off_t off)
 ssize_t 
 readv(int fd, const struct iovec *vector, int count)
 {
+    jos_trace("%d, %p, %d", fd, vector, count);
+
     ssize_t ret = 0;
     for (int i = 0; i < count; i++) {
 	ssize_t r = read(fd, vector[i].iov_base, vector[i].iov_len);
@@ -881,6 +897,8 @@ readv(int fd, const struct iovec *vector, int count)
 ssize_t 
 writev(int fd, const struct iovec *vector, int count)
 {
+    jos_trace("%d, %p, %d", fd, vector, count);
+
     ssize_t ret = 0;
     for (int i = 0; i < count; i++) {
 	ssize_t cc = write(fd, vector[i].iov_base, vector[i].iov_len);
@@ -899,36 +917,42 @@ writev(int fd, const struct iovec *vector, int count)
 int
 bind(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
 {
+    jos_trace("%d, %p, %d", fdnum, addr, addrlen);
     return FD_CALL(fdnum, bind, addr, addrlen);
 }
 
 int
 connect(int fdnum, const struct sockaddr *addr, socklen_t addrlen)
 {
+    jos_trace("%d, %p, %d", fdnum, addr, addrlen);
     return FD_CALL(fdnum, connect, addr, addrlen);
 }
 
 int
 listen(int fdnum, int backlog) __THROW
 {
+    jos_trace("%d, %d", fdnum, backlog);
     return FD_CALL(fdnum, listen, backlog);
 }
 
 int
 accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen)
 {
+    jos_trace("%d, %p, %p", fdnum, addr, addrlen);
     return FD_CALL(fdnum, accept, addr, addrlen);
 }
 
 int 
 getsockname(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
 {
+    jos_trace("%d, %p, %p", fdnum, addr, addrlen);
     return FD_CALL(fdnum, getsockname, addr, addrlen);
 }
 
 int 
 getpeername(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
 {
+    jos_trace("%d, %p, %p", fdnum, addr, addrlen);
     return FD_CALL(fdnum, getpeername, addr, addrlen);
 }
 
@@ -937,6 +961,7 @@ int
 setsockopt(int fdnum, int level, int optname, const void *optval, 
            socklen_t optlen) __THROW
 {
+    jos_trace("%d, %d, %d, %p, %d", fdnum, level, optname, optval, optlen);
     return FD_CALL(fdnum, setsockopt, level, optname, optval, optlen);
 }
                
@@ -944,6 +969,7 @@ int
 getsockopt(int fdnum, int level, int optname, void *optval,
            socklen_t *optlen) __THROW
 {
+    jos_trace("%d, %d, %d, %p, %p", fdnum, level, optname, optval, optlen);
     return FD_CALL(fdnum, getsockopt, level, optname, optval, optlen);
 }
 
@@ -978,6 +1004,9 @@ int
 select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout)
 {
+    jos_trace("%d, %p, %p, %p, %p",
+	      maxfd, readset, writeset, exceptset, timeout);
+
     // for debugging
     char select_debug = 0;
     static char timeout_last = 0;
@@ -1111,6 +1140,8 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 int 
 poll(struct pollfd *ufds, nfds_t nfds, int timeout)
 {
+    jos_trace("%p, %d, %d", ufds, nfds, timeout);
+
     fd_set readset, writeset;
     struct timeval tv;
 
@@ -1170,6 +1201,7 @@ poll(struct pollfd *ufds, nfds_t nfds, int timeout)
 ssize_t
 send(int fdnum, const void *dataptr, size_t size, int flags)
 {
+    jos_trace("%d, %p, %zu, %d", fdnum, dataptr, size, flags);
     return sendto(fdnum, dataptr, size, flags, 0, 0);
 }
 
@@ -1177,18 +1209,21 @@ ssize_t
 sendto(int fdnum, const void *dataptr, size_t len, int flags, 
        const struct sockaddr *to, socklen_t tolen)
 {
+    jos_trace("%d, %p, %zu, %d, %p, %d", fdnum, dataptr, len, flags, to, tolen);
     return FD_CALL(fdnum, sendto, dataptr, len, flags, to, tolen);
 }
 
 ssize_t
 sendmsg(int fdnum, const struct msghdr *msg, int flags)
 {
+    jos_trace("%d, %p, %d", fdnum, msg, flags);
     return FD_CALL(fdnum, sendmsg, msg, flags);
 }
 
 ssize_t
 recv(int fdnum, void *mem, size_t len, int flags)
 {
+    jos_trace("%d, %p, %zu, %d", fdnum, mem, len, flags);
     return FD_CALL(fdnum, recvfrom, mem, len, flags, 0, 0);
 }
 
@@ -1196,12 +1231,14 @@ ssize_t
 recvfrom(int fdnum, void *mem, size_t len, int flags, 
          struct sockaddr *from, socklen_t *fromlen)
 {
+    jos_trace("%d, %p, %zu, %d, %p, %p", fdnum, mem, len, flags, from, fromlen);
     return FD_CALL(fdnum, recvfrom, mem, len, flags, from, fromlen);
 }
 
 ssize_t 
 recvmsg(int fdnum, struct msghdr *msg, int flags)
 {
+    jos_trace("%d, %p, %d", fdnum, msg, flags);
     set_enosys();
     return -1;
 }
@@ -1209,6 +1246,8 @@ recvmsg(int fdnum, struct msghdr *msg, int flags)
 int 
 fchdir(int fdnum) __THROW
 {
+    jos_trace("%d", fdnum);
+
     struct Fd *fd;
     int r;
     
@@ -1230,6 +1269,8 @@ fchdir(int fdnum) __THROW
 int
 fstat(int fdnum, struct stat *buf) __THROW
 {
+    jos_trace("%d, %p", fdnum, buf);
+
     struct stat64 s64;
     int r = fstat64(fdnum, &s64);
     if (r < 0)
@@ -1241,6 +1282,8 @@ fstat(int fdnum, struct stat *buf) __THROW
 int
 fstat64(int fdnum, struct stat64 *buf) __THROW
 {
+    jos_trace("%d, %p", fdnum, buf);
+
     int r;
     struct Fd *fd;
     struct Dev *dev;
@@ -1263,7 +1306,8 @@ fstat64(int fdnum, struct stat64 *buf) __THROW
 int 
 fstatfs(int fdnum, struct statfs *buf) __THROW
 {
-    
+    jos_trace("%d, %p", fdnum, buf);
+
     struct Fd *fd;
     struct cobj_ref fd_obj;
     uint64_t fd_flags;
@@ -1294,6 +1338,8 @@ fstatfs(int fdnum, struct statfs *buf) __THROW
 int
 statfs(const char *path, struct statfs *buf) __THROW
 {
+    jos_trace("%s, %p", path, buf);
+
     int fd = open(path, O_RDONLY);
     if (fd < 0)
 	return fd;
@@ -1307,6 +1353,8 @@ statfs(const char *path, struct statfs *buf) __THROW
 int
 __libc_fcntl(int fdnum, int cmd, ...)
 {
+    jos_trace("%d, %d", fdnum, cmd);
+
     int r;
     va_list ap;
     long arg = 0 ;
@@ -1393,12 +1441,15 @@ __libc_fcntl(int fdnum, int cmd, ...)
 off_t
 lseek(int fdnum, off_t offset, int whence) __THROW
 {
+    jos_trace("%d, %zd, %d", fdnum, offset, whence);
     return lseek64(fdnum, offset, whence);
 }
 
 __off64_t
 lseek64(int fdnum, __off64_t offset, int whence) __THROW
 {
+    jos_trace("%d, %zd, %d", fdnum, offset, whence);
+
     int r;
     struct Fd *fd;
 
@@ -1433,6 +1484,7 @@ lseek64(int fdnum, __off64_t offset, int whence) __THROW
 int
 flock(int fd, int operation) __THROW
 {
+    jos_trace("%d, %d", fd, operation);
     __set_errno(ENOLCK);
     return -1;
 }
@@ -1440,6 +1492,7 @@ flock(int fd, int operation) __THROW
 int
 fchown(int fd, uid_t owner, gid_t group) __THROW
 {
+    jos_trace("%d, %d, %d", fd, owner, group);
     return 0;
 }
 
@@ -1459,6 +1512,8 @@ fd_set_isatty(int fdnum, int isit)
 int
 ioctl(int fdnum, unsigned long int req, ...) __THROW
 {
+    jos_trace("%d, %ld", fdnum, req);
+
     int r;
     va_list ap;
     struct Fd *fd;
@@ -1482,41 +1537,48 @@ extern "C" ssize_t __getdents64(int fdnum, struct dirent64 *buf, size_t nbytes)
 ssize_t
 __getdents(int fdnum, struct dirent *buf, size_t nbytes)
 {
+    jos_trace("%d, %p, %zu", fdnum, buf, nbytes);
     return FD_CALL(fdnum, getdents, buf, nbytes);
 }
 
 ssize_t
 __getdents64(int fdnum, struct dirent64 *buf, size_t nbytes)
 {
+    jos_trace("%d, %p, %zu", fdnum, buf, nbytes);
     return FD_CALL(fdnum, getdents64, buf, nbytes);
 }
 
 int
 ftruncate(int fdnum, off_t length) __THROW
 {
+    jos_trace("%d, %zu", fdnum, length);
     return FD_CALL(fdnum, trunc, length);
 }
 
 int ftruncate64 (int fdnum, off64_t length) __THROW
 {
+    jos_trace("%d, %zu", fdnum, length);
     return FD_CALL(fdnum, trunc, length);
 }
 
 int
 fsync(int fdnum)
 {
+    jos_trace("%d", fdnum);
     return FD_CALL(fdnum, sync);
 }
 
 int 
 fdatasync(int fdnum) __THROW
 {
+    jos_trace("%d", fdnum);
     return fsync(fdnum);
 }
 
 int
 shutdown(int s, int how) __THROW
 {
+    jos_trace("%d, %d", s, how);
     return FD_CALL(s, shutdown, how);
 }
 

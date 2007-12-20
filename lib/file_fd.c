@@ -8,6 +8,7 @@
 #include <inc/syscall.h>
 #include <inc/stat.h>
 #include <inc/time.h>
+#include <inc/debug.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -26,6 +27,8 @@ libc_hidden_proto(__libc_open)
 int
 __libc_open(const char *pn, int flags, ...)
 {
+    jos_trace("%s, %d", pn, flags);
+
     if (!strcmp(pn, "")) {
 	__set_errno(ENOENT);
 	return -1;

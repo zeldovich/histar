@@ -22,7 +22,7 @@ KERN_BINFILES	+= user/jrm user/jcp user/jecho user/mount user/umount
 KERN_BINFILES	+= user/jsync user/jmkdir user/reboot user/ureboot
 KERN_BINFILES	+= user/jenv user/ps user/wrap user/newpty user/jtrue
 KERN_BINFILES	+= user/auth_log user/auth_dir user/auth_user
-KERN_BINFILES	+= user/login user/adduser user/passwd user/spawn
+KERN_BINFILES	+= user/login user/adduser user/passwd user/spawn user/jtrace
 
 ## Common Unix tools
 KERN_BINFILES	+= user/ln user/tr user/expr user/chmod user/touch user/sort
