@@ -1,5 +1,6 @@
 #!/bin/ksh
 echo -n histar-box > /etc/hostname
+echo PS1=\''[\\\\u@\\\\h \\\\W]\\\\$ '\' > /etc/profile
 
 mkdir /usr
 mkdir /usr/bin
