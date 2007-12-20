@@ -1,5 +1,9 @@
 Usability:
 
+* change bootstrap mechanism: generate pstate image instead of using embedbins
+  - removes uinit from kernel
+  - use same process to install HiStar onto a disk
+  - demand-page initial binaries from install CD/USB drive
 * clean up i386: gcc -m32 by default
 * performance: shared library prelinking
 * standardize on a reasonable FS layout
