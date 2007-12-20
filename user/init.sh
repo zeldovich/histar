@@ -2,6 +2,8 @@
 echo -n histar-box > /etc/hostname
 echo PS1=\''[\\\\u@\\\\h \\\\W]\\\\$ '\' > /etc/profile
 
+rm /rct/embed_bins
+
 mkdir /usr
 mkdir /usr/bin
 mkdir /lib
@@ -11,16 +13,19 @@ if [ -f /bin/gcc.tar.gz ]; then
     echo "$0: unpacking gcc.."
     tar -C /usr -xzmf /bin/gcc.tar.gz
     ln -s gcc /usr/bin/cc
+    rm /bin/gcc.tar.gz
 fi
 
 if [ -f /bin/include.tar.gz ]; then
     echo "$0: unpacking headers.."
     tar -C /usr -xzmf /bin/include.tar.gz
+    rm /bin/include.tar.gz
 fi
 
 if [ -f /bin/fonts.tar.gz ]; then
     echo "$0: unpacking fonts.."
     tar -C / -xzmf /bin/fonts.tar.gz
+    rm /bin/fonts.tar.gz
 fi
 
 if [ -f /bin/fc-cache ]; then
@@ -32,6 +37,7 @@ fi
 if [ -f /bin/terminfo.tar.gz ]; then
     echo "$0: unpacking terminfo.."
     FS_LINK_FIX_QUOTA= tar -C /usr -xzmf /bin/terminfo.tar.gz
+    rm /bin/terminfo.tar.gz
 fi
 
 test -f /bin/vim && ln -s vim /bin/vi
