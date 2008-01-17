@@ -270,6 +270,8 @@ pty_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
                 continue;
             }
 	    /* if master->slave but none above match just fall through */
+            if (ps->ios.c_lflag & ECHO)
+                jcomm_write(JCOMM(PTY_CT, ps->slave_jc), &ch[i], 1, 1);
         }
         bf[cc] = ch[i];
         cc++;
