@@ -609,8 +609,10 @@ uds_setsockopt(struct Fd *fd, int level, int optname,
 int
 uds_probe(struct Fd *fd, dev_probe_t probe)
 {
-    if (fd->fd_uds.uds_type == SOCK_DGRAM)
+    if (fd->fd_uds.uds_type == SOCK_DGRAM) {
         set_enosys();
+	return -1;
+    }
     return jcomm_probe(UDS_JCOMM(fd), probe);
 }
 
@@ -618,16 +620,20 @@ int
 uds_statsync(struct Fd *fd, dev_probe_t probe,
               struct wait_stat *wstat, int wslot_avail)
 {
-    if (fd->fd_uds.uds_type == SOCK_DGRAM)
+    if (fd->fd_uds.uds_type == SOCK_DGRAM) {
         set_enosys();
+	return -1;
+    }
     return jcomm_multisync(UDS_JCOMM(fd), probe, wstat, wslot_avail);
 }
 
 int
 uds_shutdown(struct Fd *fd, int how)
 {
-    if (fd->fd_uds.uds_type == SOCK_DGRAM)
+    if (fd->fd_uds.uds_type == SOCK_DGRAM) {
         set_enosys();
+	return -1;
+    }
     int16_t h = 0;
     if (how & SHUT_RD)
         h |= JCOMM_SHUT_RD;
