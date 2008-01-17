@@ -139,6 +139,7 @@ DISTURL_prelink		    := http://people.redhat.com/jakub/prelink/prelink-20060213.
 DISTURL_elfutils-0.131	    := http://sourceware.mirrors.tds.net/pub/sourceware.org/systemtap/elfutils/elfutils-0.131.tar.gz
 
 DISTURL_xorg-server-1.4     := http://xorg.freedesktop.org/releases/X11R7.3/src/xserver/xorg-server-1.4.tar.gz
+DISTURL_font-misc-misc-1.0.0 := http://xorg.freedesktop.org/releases/X11R7.3/src/font/font-misc-misc-1.0.0.tar.gz
 DISTURL_xf86miscproto-0.9.2 := http://xorg.freedesktop.org/releases/X11R7.3/src/proto/xf86miscproto-0.9.2.tar.gz
 DISTURL_xf86vidmodeproto-2.2.2 := http://xorg.freedesktop.org/releases/X11R7.3/src/proto/xf86vidmodeproto-2.2.2.tar.gz
 DISTURL_libXxf86dga-1.0.2   := http://xorg.freedesktop.org/releases/X11R7.3/src/lib/libXxf86dga-1.0.2.tar.gz

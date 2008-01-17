@@ -14,4 +14,8 @@ int uds_setsockopt(struct Fd *fd, int level, int optname, const void *optval, so
 int uds_addref(struct Fd *fd, uint64_t ct);
 int uds_unref(struct Fd *fd);
 
+int uds_probe(struct Fd *fd, dev_probe_t probe);
+int uds_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat, int wslot_avail);
+int uds_shutdown(struct Fd *fd, int how);
+
 #endif

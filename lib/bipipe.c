@@ -198,7 +198,7 @@ bipipe_shutdown(struct Fd *fd, int how)
 	h |= JCOMM_SHUT_RD | JCOMM_SHUT_WR;
     int r = jcomm_shut(BIPIPE_JCOMM(fd), h);
     if (r < 0)
-	cprintf("pty_shutdown: jcomm_shut error: %s\n", e2s(r));
+	cprintf("bipipe_shutdown: jcomm_shut error: %s\n", e2s(r));
     return r;    
 }
 

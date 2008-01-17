@@ -14,4 +14,7 @@ struct Dev devuds = {
     .dev_addref = &uds_addref,
     .dev_setsockopt = &uds_setsockopt,
     .dev_unref = &uds_unref,
+    .dev_statsync = &uds_statsync,
+    .dev_probe = &uds_probe,
+    .dev_shutdown = &uds_shutdown,
 };

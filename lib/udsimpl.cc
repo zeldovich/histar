@@ -13,6 +13,7 @@ extern "C" {
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <uinc/bits/unimpl.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -604,3 +605,39 @@ uds_setsockopt(struct Fd *fd, int level, int optname,
     __set_errno(ENOPROTOOPT);
     return -1;
 }
+
+int
+uds_probe(struct Fd *fd, dev_probe_t probe)
+{
+    if (fd->fd_uds.uds_type == SOCK_DGRAM)
+        set_enosys();
+    return jcomm_probe(UDS_JCOMM(fd), probe);
+}
+
+int
+uds_statsync(struct Fd *fd, dev_probe_t probe,
+              struct wait_stat *wstat, int wslot_avail)
+{
+    if (fd->fd_uds.uds_type == SOCK_DGRAM)
+        set_enosys();
+    return jcomm_multisync(UDS_JCOMM(fd), probe, wstat, wslot_avail);
+}
+
+int
+uds_shutdown(struct Fd *fd, int how)
+{
+    if (fd->fd_uds.uds_type == SOCK_DGRAM)
+        set_enosys();
+    int16_t h = 0;
+    if (how & SHUT_RD)
+        h |= JCOMM_SHUT_RD;
+    if (how & SHUT_WR)
+        h |= JCOMM_SHUT_WR;
+    if (how & SHUT_RDWR)
+        h |= JCOMM_SHUT_RD | JCOMM_SHUT_WR;
+    int r = jcomm_shut(UDS_JCOMM(fd), h);
+    if (r < 0)
+        cprintf("uds_shutdown: jcomm_shut error: %s\n", e2s(r));
+    return r;
+}
+
