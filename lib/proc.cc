@@ -141,4 +141,4 @@ libc_hidden_def(setsid)
 libc_hidden_def(getsid)
 libc_hidden_def(setpgid)
 libc_hidden_def(nice)
-
+weak_alias(__getpgid, getpgid)
