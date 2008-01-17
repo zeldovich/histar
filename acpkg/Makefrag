@@ -870,7 +870,7 @@ $(OBJDIR)/user/python.tar.gz: $(ACPKG_BUILDDIR)/python-svn/__build
 $(ACPKG_BUILDDIR)/python-svn/__unpack:
 	@mkdir -p acpkg/distcache
 	@mkdir -p $(ACPKG_BUILDDIR)
-	svn co http://svn.python.org/projects/python/trunk $(ACPKG_BUILDDIR)/$(PKGNAME)
+	svn co -r 58887 http://svn.python.org/projects/python/trunk $(ACPKG_BUILDDIR)/$(PKGNAME)
 	touch $(ACPKG_BUILDDIR)/$(PKGNAME)/__unpack
 
 $(ACPKG_BUILDDIR)/python-svn/Makefile: $(ACPKG_BUILDDIR)/python-svn/__patch | $(ACPKG_WRAPS)
