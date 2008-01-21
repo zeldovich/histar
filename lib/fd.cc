@@ -767,8 +767,8 @@ read(int fdnum, void *buf, size_t n)
     jos_trace("%d, %p, %zu", fdnum, buf, n);
 
     int64_t r;
-    struct Dev *dev;
-    struct Fd *fd;
+    struct Dev *dev = 0;
+    struct Fd *fd = 0;
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
@@ -797,8 +797,8 @@ write(int fdnum, const void *buf, size_t n)
     jos_trace("%d, %p, %zu", fdnum, buf, n);
 
     int64_t r;
-    struct Dev *dev;
-    struct Fd *fd;
+    struct Dev *dev = 0;
+    struct Fd *fd = 0;
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
@@ -829,8 +829,8 @@ pread(int fdnum, void *buf, size_t n, off_t off)
     jos_trace("%d, %p, %zu, %zu", fdnum, buf, n, off);
 
     int64_t r;
-    struct Dev *dev;
-    struct Fd *fd;
+    struct Dev *dev = 0;
+    struct Fd *fd = 0;
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
@@ -857,8 +857,8 @@ pwrite(int fdnum, const void *buf, size_t n, off_t off)
     jos_trace("%d, %p, %zu, %zd", fdnum, buf, n, off);
 
     int64_t r;
-    struct Dev *dev;
-    struct Fd *fd;
+    struct Dev *dev = 0;
+    struct Fd *fd = 0;
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
@@ -976,8 +976,8 @@ getsockopt(int fdnum, int level, int optname, void *optval,
 static void
 print_fd_sets(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset)
 {
-    struct Fd *fd;
-    struct Dev *dev;
+    struct Fd *fd = 0;
+    struct Dev *dev = 0;
 
     for (int i = 0; i < maxfd; i++) {
 	if (readset && FD_ISSET(i, readset)) {
