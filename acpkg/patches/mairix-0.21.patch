@@ -1,0 +1,15 @@
+--- mairix-0.21/dfasyn/Makefile	2008/01/22 08:33:36	1.1
++++ mairix-0.21/dfasyn/Makefile	2008/01/22 08:33:59
+@@ -15,10 +15,10 @@
+ # 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ #
+ 
+-CC=gcc
++override CC=gcc
+ #CFLAGS=-g -Wall
+ #CFLAGS=-O2 -pg
+-CFLAGS=-Wall
++override CFLAGS=-Wall
+ prefix?=/usr/local
+ bindir=$(prefix)/bin
+ mandir?=$(prefix)/man

@@ -134,6 +134,7 @@ DISTURL_net-tools-1.60	    := http://www.tazenda.demon.co.uk/phil/net-tools/net-
 DISTURL_rxvt-unicode-8.7    := http://dist.schmorp.de/rxvt-unicode/rxvt-unicode-8.7.tar.bz2
 DISTURL_bzip2-1.0.4	    := http://www.bzip.org/1.0.4/bzip2-1.0.4.tar.gz
 DISTURL_rsync-2.6.9         := http://samba.anu.edu.au/ftp/rsync/rsync-2.6.9.tar.gz
+DISTURL_mairix-0.21	    := http://superb-east.dl.sourceforge.net/sourceforge/mairix/mairix-0.21.tar.gz
 
 DISTURL_prelink		    := http://people.redhat.com/jakub/prelink/prelink-20060213.tar.bz2
 DISTURL_elfutils-0.131	    := http://sourceware.mirrors.tds.net/pub/sourceware.org/systemtap/elfutils/elfutils-0.131.tar.gz
@@ -263,6 +264,7 @@ PATCHFILE_libXt-1.0.4       := libXt-1.0.4.patch
 PATCHFILE_net-tools-1.60    := net-tools-1.60.patch
 PATCHFILE_lesstif-0.95.0    := lesstif-0.95.0.patch
 PATCHFILE_xpdf-3.02	    := xpdf-3.02.patch
+PATCHFILE_mairix-0.21	    := mairix-0.21.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -1124,3 +1126,13 @@ $(ACPKG_BUILDDIR)/libXxf86dga-1.0.2/Makefile: $(ACPKG_BUILDDIR)/xf86dgaproto-2.0
 $(ACPKG_BUILDDIR)/libXfont-1.3.1/Makefile: $(ACPKG_BUILDDIR)/libfontenc-1.0.4/__build \
                                 $(ACPKG_BUILDDIR)/fontcacheproto-0.1.2/__build \
                                 $(ACPKG_BUILDDIR)/fontsproto-2.0.2/__build
+
+$(ACPKG_BUILDDIR)/mairix-0.21/Makefile: $(ACPKG_BUILDDIR)/mairix-0.21/__patch | $(ACPKG_WRAPS)
+	@mkdir -p $(ACPKG_PREFIX)
+	-( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) distclean" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) ./configure \
+		--prefix=$(TOP)/$(ACPKG_PREFIX)" )
+	touch $@
+
+$(OBJDIR)/acpkg/bin/mairix: $(ACPKG_BUILDDIR)/mairix-0.21/__build
+
