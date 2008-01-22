@@ -118,6 +118,19 @@ munmap(void *start, size_t length)
     }
 
     if (!(omap.flags & SEGMAP_ANON_MMAP)) {
+	if (omap.va == start &&
+	    omap.num_pages == ROUNDUP(length, PGSIZE) / PGSIZE)
+	{
+	    r = segment_unmap(start);
+	    if (r < 0) {
+		cprintf("munmap: segment_unmap: %s\n", e2s(r));
+		__set_errno(EINVAL);
+		return -1;
+	    }
+
+	    return 0;
+	}
+
 	set_enosys();
 	return -1;
     }
