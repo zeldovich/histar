@@ -78,18 +78,43 @@ try
     error_check(fs_clone_mtab(start_env->shared_container));
     fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "tmp", tmp_dir);
 
-    // Run clamscan
+    // Run wrapped program
     fs_inode wrapped;
-    error_check(fs_namei(av[1], &wrapped));
+    error_check(fs_namei("/bin/sh", &wrapped));
 
     int envc = 0;
     while (environ[envc])
 	envc++;
 
+    int cmdargslen = 4096;
+    int cmdargsused = 0;
+    char *cmdargs = (char*) malloc(cmdargslen);
+    if (!cmdargs)
+	throw basic_exception("out of memory");
+    cmdargs[0] = '\0';
+
+    for (int i = 1; i < ac; i++) {
+	int len = strlen(av[i]);
+	if (cmdargsused + len + 2 > cmdargslen) {
+	    cmdargslen = (cmdargslen + len + 2) * 2;
+	    cmdargs = (char*) realloc(cmdargs, cmdargslen);
+	    if (!cmdargs)
+		throw basic_exception("out of memory");
+	}
+
+	strcpy(&cmdargs[cmdargsused], av[i]);
+	cmdargsused += len;
+
+	strcpy(&cmdargs[cmdargsused], " ");
+	cmdargsused += 1;
+    }
+
+    const char *nav[] = { "sh", "-c", cmdargs };
+
     child_process cp =
 	spawn(start_env->shared_container, wrapped,
 	      nullfd, fds[1], fds[1],
-	      ac - 1, &av[1],
+	      3, &nav[0],
 	      envc, (const char **) environ,
 	      &taint_star, 0, 0, &taint_zero, 0);
     close(fds[1]);

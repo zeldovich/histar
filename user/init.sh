@@ -68,6 +68,12 @@ cat > /sample/wrap/clamscan.sh <<EOM
 exec /bin/clamscan -d /bin/clamav_main.cvd -d /bin/clamav_daily.cvd "\$@"
 EOM
 
+cat > /sample/wrap/mairix.sh <<EOM
+#!/bin/sh
+/bin/mairix
+exec /bin/mairix "\$@"
+EOM
+
 cat > /sample/wrap/malicious.sh <<EOM
 #!/bin/sh
 mkdir /public
