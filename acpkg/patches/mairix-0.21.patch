@@ -13,3 +13,16 @@
  prefix?=/usr/local
  bindir=$(prefix)/bin
  mandir?=$(prefix)/man
+--- mairix-0.21/writer.c	2008/01/28 06:43:03	1.1
++++ mairix-0.21/writer.c	2008/01/28 06:43:08
+@@ -602,10 +602,6 @@
+     report_error("munmap", filename);
+     unlock_and_exit(2);
+   }
+-  if (fsync(fd) < 0) {
+-    report_error("fsync", filename);
+-    unlock_and_exit(2);
+-  }
+   if (close(fd) < 0) {
+     report_error("close", filename);
+     unlock_and_exit(2);
