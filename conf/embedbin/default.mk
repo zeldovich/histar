@@ -53,8 +53,9 @@ KERN_BINFILES	+= user/strip user/readelf
 #KERN_BINFILES	+= user/gdb user/gdbserver
 #KERN_BINFILES	+= user/python.tar.gz
 
-## ClamAV
+## Demo apps: ClamAV, mairix
 KERN_BINFILES	+= user/clamscan user/clamav_main.cvd user/clamav_daily.cvd
+KERN_BINFILES	+= user/mairix
 
 ## X11
 KERN_BINFILES	+= user/xlogo user/xeyes user/xhost user/xclock user/xauth
