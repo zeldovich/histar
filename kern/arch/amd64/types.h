@@ -36,9 +36,10 @@ typedef uint64_t __uint64_t;
 // We use pointer types to represent virtual addresses,
 // uintptr_t to represent the numerical values of virtual addresses,
 // and physaddr_t to represent physical addresses.
-typedef int64_t intptr_t;
-typedef uint64_t uintptr_t;
-typedef uint64_t physaddr_t;
+// Use __PTRDIFF_TYPE__ so that -m32 works out properly.
+typedef __PTRDIFF_TYPE__ intptr_t;
+typedef unsigned __PTRDIFF_TYPE__ uintptr_t;
+typedef unsigned __PTRDIFF_TYPE__ physaddr_t;
 
 // Page numbers are 64 bits long.
 typedef uint64_t ppn_t;
