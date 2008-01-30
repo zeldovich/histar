@@ -166,3 +166,13 @@ Did not roll back in-memory data structures reflecting disk state
 (freelist, btrees) when we failed in checkpointing to disk (e.g.
 did not have enough space on disk).
 
+***
+
+AHCI driver did not convert bytes to sectors, resulting in access
+to disk addresses 512 times the size of the actual disk.
+
+***
+
+Partition table code truncated partition sizes to 32 bits, multiplying
+a uint32_t by a constant without casting it to uint64_t.
+
