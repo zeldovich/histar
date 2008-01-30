@@ -140,6 +140,9 @@ static int
 ahci_issue(struct disk *dk, disk_op op, struct kiovec *iov_buf, int iov_cnt,
 	   uint64_t offset, disk_callback cb, void *cbarg)
 {
+    assert(!(offset % 512));
+    uint64_t sector_off = offset / 512;
+
     struct ahci_hba *a = dk->dk_arg;
     uint32_t port = dk->dk_id;
     if (a->port[port]->cb)
@@ -162,12 +165,12 @@ ahci_issue(struct disk *dk, disk_op op, struct kiovec *iov_buf, int iov_cnt,
 	fis.control = IDE_CTL_LBA48;
 
 	fis.sector_count = len / 512;
-	fis.lba_0 = (offset >>  0) & 0xff;
-	fis.lba_1 = (offset >>  8) & 0xff;
-	fis.lba_2 = (offset >> 16) & 0xff;
-	fis.lba_3 = (offset >> 24) & 0xff;
-	fis.lba_4 = (offset >> 32) & 0xff;
-	fis.lba_5 = (offset >> 40) & 0xff;
+	fis.lba_0 = (sector_off >>  0) & 0xff;
+	fis.lba_1 = (sector_off >>  8) & 0xff;
+	fis.lba_2 = (sector_off >> 16) & 0xff;
+	fis.lba_3 = (sector_off >> 24) & 0xff;
+	fis.lba_4 = (sector_off >> 32) & 0xff;
+	fis.lba_5 = (sector_off >> 40) & 0xff;
 	ahci_fill_fis(a, port, &fis, sizeof(fis));
 
 	if (SAFE_EQUAL(op, op_read)) {
