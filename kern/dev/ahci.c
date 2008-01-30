@@ -10,6 +10,8 @@
 #include <kern/intr.h>
 #include <inc/error.h>
 
+enum { fis_debug = 0 };
+
 struct ahci_port_page {
     volatile struct ahci_recv_fis rfis;		/* 256-byte alignment */
     uint8_t pad[0x300];
@@ -56,10 +58,33 @@ ahci_fill_prd(struct ahci_hba *a, uint32_t port,
 }
 
 static void
+ahci_fis_debug(struct sata_fis_reg *r)
+{
+    cprintf("SATA FIS Reg\n");
+    cprintf("type:              0x%x\n", r->type);
+    cprintf("cflag:             0x%x\n", r->cflag);
+    cprintf("command/status:    0x%x\n", r->command);
+    cprintf("features/error:    0x%x\n", r->features);
+    cprintf("lba_0:             0x%x\n", r->lba_0);
+    cprintf("lba_1:             0x%x\n", r->lba_1);
+    cprintf("lba_2:             0x%x\n", r->lba_2);
+    cprintf("dev_head:          0x%x\n", r->dev_head);
+    cprintf("lba_3:             0x%x\n", r->lba_3);
+    cprintf("lba_4:             0x%x\n", r->lba_4);
+    cprintf("lba_5:             0x%x\n", r->lba_5);
+    cprintf("features_ex:       0x%x\n", r->features_ex);
+    cprintf("sector_count:      0x%x\n", r->sector_count);
+    cprintf("sector_count_ex:   0x%x\n", r->sector_count_ex);
+    cprintf("control:           0x%x\n", r->control);
+}
+
+static void
 ahci_fill_fis(struct ahci_hba *a, uint32_t port, void *fis, uint32_t fislen)
 {
     memcpy((void *) &a->port[port]->cmdt.cfis[0], fis, fislen);
     a->port[port]->cmdh.flags = fislen / sizeof(uint32_t);
+    if (fis_debug)
+        ahci_fis_debug((struct sata_fis_reg *) fis);
 }
 
 static void
