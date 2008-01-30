@@ -59,7 +59,7 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
 	reply.dset = reqmsg.m.dset;
 	reply.catmap = reqmsg.m.catmap;
 
-	reply.msg.to = reqmsg.m.from;
+	reply.msg.to = cm.return_host;
 	reply.msg.target = cm.return_ep;
 	reply.msg.taint = reqmsg.m.taint;
 	reply.msg.catmap = cm.return_cm;

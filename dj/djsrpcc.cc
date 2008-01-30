@@ -59,11 +59,6 @@ dj_rpc_reply_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *r)
     dj_outgoing_gate_msg m;
     djgate_incoming(gcd, vl, vc, &m, r);
 
-    if (m.m.from != s->server) {
-	printf("dj_rpc_reply_entry: reply from unexpected node\n");
-	return;
-    }
-
     if (jos_atomic_compare_exchange64(&s->reply,
 	    reply_none, reply_copying) != reply_none) {
 	printf("dj_rpc_reply_entry: duplicate reply, dropping\n");
@@ -136,6 +131,7 @@ dj_rpc_call_gate(gate_sender *gs, time_t timeout,
     cobj_ref return_gate = gate_create(&gd);
 
     dj_call_msg callmsg;
+    callmsg.return_host = gs->hostkey();
     callmsg.return_ep.set_type(EP_GATE);
     callmsg.return_ep.ep_gate->msg_ct = call_ct;
     callmsg.return_ep.ep_gate->gate.gate_ct = call_ct;

@@ -168,7 +168,6 @@ strbuf_cat(const strbuf &sb, const dj_slot &ep)
 inline const strbuf &
 strbuf_cat(const strbuf &sb, const dj_message &a)
 {
-    sb << "from:         " << a.from << "\n";
     sb << "to:           " << a.to << "\n";
     sb << "target ep:    " << a.target << "\n";
     sb << "taint:        " << a.taint << "\n";

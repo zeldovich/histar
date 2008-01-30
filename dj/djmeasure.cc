@@ -16,6 +16,11 @@ extern "C" {
 int
 main (int ac, char **av)
 {
+    printf("generating randomness.. ");
+    fflush(stdout);
+    random_init();
+    printf("done.\n");
+
     int64_t start;
 
     ptr<sfspriv> sk0(sfscrypt.gen(SFS_RABIN, 0, SFS_SIGN | SFS_VERIFY |
@@ -77,7 +82,6 @@ main (int ac, char **av)
 
     struct dj_message empty_msg;
     memset(&empty_msg, 0, sizeof(empty_msg));
-    empty_msg.from = pk0;
     empty_msg.to = pk1;
     empty_msg.target.set_type(EP_DELEGATOR);
     empty_msg.taint.ents.setsize(0);
@@ -87,21 +91,12 @@ main (int ac, char **av)
     empty_msg.dset.ents.setsize(0);
     empty_msg.msg.setsize(0);
 
-    struct dj_stmt_signed signed_empty_msg;
-    signed_empty_msg.stmt.set_type(STMT_MSG);
-    *signed_empty_msg.stmt.msg = empty_msg;
-    goo = xdr2str(empty_msg);
-    start = sys_clock_nsec();
-    sk1->sign(&signed_empty_msg.sign, goo);
-    int64_t sign_empty_msg_time = sys_clock_nsec() - start;
-    
     struct dj_ep_segment seg;
     seg.seg_ct = handle_alloc();
     seg.seg_id = handle_alloc();
 
     struct dj_message simple_msg0;
     memset(&simple_msg0, 0, sizeof(simple_msg0));
-    simple_msg0.from = pk0;
     simple_msg0.to = pk1;
     simple_msg0.target.set_type(EP_SEGMENT);
     *simple_msg0.target.ep_segment = seg;
@@ -116,54 +111,32 @@ main (int ac, char **av)
     simple_msg0.dset.ents.push_back(s);
     simple_msg0.msg.setsize(0);
     
-    struct dj_stmt_signed signed_simple_msg0;
-    signed_simple_msg0.stmt.set_type(STMT_MSG);
-    *signed_simple_msg0.stmt.msg = simple_msg0;
-    goo = xdr2str(simple_msg0);
-    start = sys_clock_nsec();
-    sk1->sign(&signed_simple_msg0.sign, goo);
-    int64_t sign_simple_msg_time = sys_clock_nsec() - start;
-    
-    cprintf("size:\n");
-    cprintf(" dj_delegation (pk1 says pk0 speaks for gcat) %lu\n", 
+    printf("size:\n");
+    printf(" dj_pubkey %lu\n",
+	    xdr2str(pk0).len());
+    printf(" dj_delegation (pk1 says pk0 speaks for gcat) %lu\n", 
 	    xdr2str(cat_delegation).len());
-    cprintf("  signed %lu\n", xdr2str(signed_cat_delegation).len());
-    cprintf(" dj_delegation (pk0 says addr speaks for pk0) %lu\n", 
+    printf("  signed %lu\n", xdr2str(signed_cat_delegation).len());
+    printf(" dj_delegation (pk0 says addr speaks for pk0) %lu\n", 
 	    xdr2str(addr_delegation).len());
-    cprintf("  signed %lu\n", xdr2str(signed_addr_delegation).len());
-    cprintf(" dj_cat_mapping %lu\n", xdr2str(mapping).len());
-    cprintf(" dj_gcat %lu\n", xdr2str(meow).len());
-    cprintf(" dj_message (from, to) %lu\n", xdr2str(empty_msg).len());
-    cprintf("  signed %lu\n", xdr2str(signed_empty_msg).len());
-    cprintf(" dj_message (from, to, seg slot, 1 taint, 1 delegation) %lu\n", 
+    printf("  signed %lu\n", xdr2str(signed_addr_delegation).len());
+    printf(" dj_cat_mapping %lu\n", xdr2str(mapping).len());
+    printf(" dj_gcat %lu\n", xdr2str(meow).len());
+    printf(" dj_message (from, to) %lu\n", xdr2str(empty_msg).len());
+    printf(" dj_message (from, to, seg slot, 1 taint, 1 delegation) %lu\n", 
 	    xdr2str(simple_msg0).len());
-    cprintf("  signed %lu\n", xdr2str(signed_simple_msg0).len());
 
     start = sys_clock_nsec();
     verify_stmt(signed_cat_delegation);
     int64_t verify_cat_time = sys_clock_nsec() - start;
 
-    start = sys_clock_nsec();
-    verify_stmt(signed_empty_msg);
-    int64_t verify_empty_msg_time = sys_clock_nsec() - start;
-
-    start = sys_clock_nsec();
-    verify_stmt(signed_simple_msg0);
-    int64_t verify_simple_msg_time = sys_clock_nsec() - start;
-
-    cprintf("\ntime:\n");
-    cprintf(" sign:\n");
-    cprintf("  dj_delegation (pk1 says pk0 speaks for gcat) %lu\n", 
+    printf("\ntime:\n");
+    printf(" sign:\n");
+    printf("  dj_delegation (pk1 says pk0 speaks for gcat) %lu\n", 
 	    sign_cat_time);
-    cprintf("  dj_message (from, to) %lu\n", sign_empty_msg_time);
-    cprintf("  dj_message (from, to, seg slot, 1 taint, 1 delegation) %lu\n",
-	    sign_simple_msg_time);
-    cprintf(" verify:\n");
-    cprintf("  dj_delegation (pk1 says pk0 speaks for gcat) %lu\n", 
+    printf(" verify:\n");
+    printf("  dj_delegation (pk1 says pk0 speaks for gcat) %lu\n", 
 	    verify_cat_time);
-    cprintf("  dj_message (from, to) %lu\n", verify_empty_msg_time);
-    cprintf("  dj_message (from, to, seg slot, 1 taint, 1 delegation) %lu\n",
-	    verify_simple_msg_time);
     
     return 0;
 }

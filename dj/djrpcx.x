@@ -5,6 +5,7 @@
 %#include <dj/djprotx.h>
 
 struct dj_call_msg {
+    dj_pubkey return_host;
     dj_slot return_ep;
     dj_catmap return_cm;
     dj_delegation_set return_ds;

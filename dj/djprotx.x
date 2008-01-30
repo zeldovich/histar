@@ -115,7 +115,7 @@ union dj_slot switch (dj_slot_type type) {
 };
 
 struct dj_message {
-    dj_pubkey from;
+    // sender is implied by the authenticated TCP session
     dj_pubkey to;
 
     dj_slot target;		/* gate or segment to call on delivery */
@@ -178,7 +178,6 @@ struct dj_hostinfo {
 
 enum dj_stmt_type {
     STMT_DELEGATION = 1,
-    STMT_MSG,
     STMT_KEY_SETUP,
     STMT_HOSTINFO
 };
@@ -186,8 +185,6 @@ enum dj_stmt_type {
 union dj_stmt switch (dj_stmt_type type) {
  case STMT_DELEGATION:
     dj_delegation delegation;
- case STMT_MSG:
-    dj_message msg;
  case STMT_KEY_SETUP:
     dj_key_setup keysetup;
  case STMT_HOSTINFO:

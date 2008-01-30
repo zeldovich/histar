@@ -46,7 +46,7 @@ struct pk_addr {	/* d.a.addr speaks-for pk */
 struct msg_client {
     itree_entry<msg_client> link;
     dj_pubkey to;
-    dj_stmt_signed ss;
+    dj_message m;
     delivery_status_cb cb;
     void *local_deliver_arg;
 
@@ -61,6 +61,8 @@ class djprot_impl : public djprot {
 					SFS_ENCRYPT | SFS_DECRYPT)),
 	  exp_cb_(0)
     {
+	assert(k_->export_pubkey(&djpubkey_));
+
 	bc_port_ = htons(port);
 
 	int listenfd = inetsocket(SOCK_STREAM);
@@ -106,10 +108,8 @@ class djprot_impl : public djprot {
 	warn << "djprot_impl dead\n";
     }
 
-    virtual dj_pubkey pubkey() const {
-	dj_pubkey dpk;
-	assert(k_->export_pubkey(&dpk));
-	return dpk;
+    virtual const dj_pubkey &pubkey() const {
+	return djpubkey_;
     }
 
     virtual ptr<sfspriv> privkey() {
@@ -133,9 +133,7 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	cc->ss.stmt.set_type(STMT_MSG);
-	*cc->ss.stmt.msg = msg;
-	cc->ss.stmt.msg->from = pubkey();
+	cc->m = msg;
 	clnt_transmit(cc);
     }
 
@@ -182,10 +180,10 @@ class djprot_impl : public djprot {
     }
 
     bool labelcheck_recv(const dj_message &a,
-			 const dj_delegation_set &dset)
+			 const dj_delegation_set &dset,
+			 const dj_pubkey &src)
     {
 	PERF_COUNTER(labelcheck_recv);
-	const dj_pubkey &src = a.from;
 
 	if (!check_local_msgs && src == pubkey())
 	    return true;
@@ -237,16 +235,16 @@ class djprot_impl : public djprot {
 	PERF_COUNTER(clnt_transmit);
 
 	if (cc->to == pubkey() && direct_local_msgs) {
-	    process_msg(*cc->ss.stmt.msg, cc->local_deliver_arg);
+	    process_msg(cc->m, cc->local_deliver_arg, pubkey());
 	    clnt_done(cc, DELIVERY_DONE);
 	    return;
 	}
 
 	crypt_conn *cxn = tcpconn_[cc->to];
 	if (cxn) {
-	    str msg = xdr2str(cc->ss.stmt);
+	    str msg = xdr2str(cc->m);
 	    if (!msg) {
-		warn << "clnt_transmit: cannot encode statement\n";
+		warn << "clnt_transmit: cannot encode message\n";
 		clnt_done(cc, DELIVERY_LOCAL_ERR);
 		return;
 	    }
@@ -334,7 +332,8 @@ class djprot_impl : public djprot {
     void srvr_send_no_status(dj_delivery_code code) {
     }
 
-    void process_msg(const dj_message &m, void *local_deliver_arg) {
+    void process_msg(const dj_message &m, void *local_deliver_arg,
+		     const dj_pubkey &src) {
 	PERF_COUNTER(process_msg);
 
 	if (m.to != pubkey()) {
@@ -347,7 +346,7 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	if (!labelcheck_recv(m, m.dset)) {
+	if (!labelcheck_recv(m, m.dset, src)) {
 	    warn << "process_msg: bad delegations\n";
 	    return;
 	}
@@ -528,23 +527,13 @@ class djprot_impl : public djprot {
     }
 
     void tcp_receive(const dj_pubkey &sender, const str &msg) {
-	dj_stmt stmt;
-	if (!str2xdr(stmt, msg)) {
+	dj_message m;
+	if (!str2xdr(m, msg)) {
 	    warn << "tcp_receive: cannot decode incoming message\n";
 	    return;
 	}
 
-	if (stmt.type != STMT_MSG) {
-	    warn << "tcp_receive: unexpected statement type\n";
-	    return;
-	}
-
-	if (stmt.msg->from != sender) {
-	    warn << "tcp_receive: sender vs envelope mismatch\n";
-	    return;
-	}
-
-	process_msg(*stmt.msg, 0);
+	process_msg(m, 0, sender);
     }
 
     bool hinfo_set_;
@@ -554,6 +543,7 @@ class djprot_impl : public djprot {
     uint16_t my_port_;	/* network byte order */
     ptr<axprt> bx_;
     ptr<sfspriv> k_;
+    dj_pubkey djpubkey_;
 
     ihash<dj_pubkey, pk_addr, &pk_addr::pk, &pk_addr::pk_link> addr_key_;
     itree<dj_timestamp, pk_addr, &pk_addr::expires, &pk_addr::exp_link> addr_exp_;

@@ -22,7 +22,7 @@ dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
     r.r.dset = m.dset;
     r.r.catmap = m.catmap;
 
-    r.r.msg.to = m.from;
+    r.r.msg.to = cm.return_host;
     r.r.msg.target = cm.return_ep;
     r.r.msg.taint = m.taint;
     r.r.msg.catmap = cm.return_cm;
@@ -54,6 +54,7 @@ dj_arpc_call::call(time_t tmo, const dj_delegation_set &dset,
     rep_created_ = true;
 
     dj_call_msg cm;
+    cm.return_host = s_->pubkey();
     cm.return_ep = rep_;
     if (return_cm)
 	cm.return_cm = *return_cm;
@@ -106,11 +107,6 @@ dj_arpc_call::reply_sink(const dj_message &a)
 {
     if (done_)
 	return;
-
-    if (a.from != a_.to) {
-	warn << "dj_arpc_call::reply_sink: reply from wrong node\n";
-	return;
-    }
 
     done_ = true;
     cb_(DELIVERY_DONE, &a);

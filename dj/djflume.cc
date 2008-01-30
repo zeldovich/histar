@@ -81,7 +81,7 @@ flume_mapcreate::exec(const dj_message &m, const delivery_args &da)
     }
 
     dj_message replym;
-    replym.to = m.from;
+    replym.to = callmsg.return_host;
     replym.target = callmsg.return_ep;
     replym.taint = m.taint;
     replym.catmap = callmsg.return_cm;

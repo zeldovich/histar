@@ -15,6 +15,7 @@ struct delivery_args {
 class message_sender {
  public:
     virtual ~message_sender() {}
+    virtual const dj_pubkey &pubkey() const = 0;
     virtual void send(const dj_message &msg,
 		      const dj_delegation_set &dset,
 		      delivery_status_cb cb,
@@ -26,7 +27,6 @@ class djprot : public message_sender {
     typedef callback<void, const dj_message&,
 			   const delivery_args&>::ptr local_delivery_cb;
 
-    virtual dj_pubkey pubkey() const = 0;
     virtual ptr<sfspriv> privkey() = 0;
     virtual void set_delivery_cb(local_delivery_cb cb) = 0;
     virtual void set_hostinfo(const dj_hostinfo&) = 0;

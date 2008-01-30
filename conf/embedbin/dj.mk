@@ -1,7 +1,7 @@
 KERN_BINFILES   += user/bootstrapd user/djwebappd user/eprocd-launch
 KERN_BINFILES   += user/djd user/djc user/ctallocd user/djechod user/djfsd
 KERN_BINFILES   += user/djperld user/djauthproxy user/djlogin
-KERN_BINFILES	+= user/djguardcall user/remote-run
+KERN_BINFILES	+= user/djguardcall user/remote-run user/djmeasure
 KERN_BINFILES   += user/bootstrapc user/zhelper.sh
 
 ifeq ($(SHARED_ENABLE),yes)
