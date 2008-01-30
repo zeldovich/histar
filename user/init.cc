@@ -372,7 +372,7 @@ init_procs(int cons)
     label time_ds(3), time_dr(0);
     time_ds.set(time_grant, LB_LEVEL_STAR);
     time_dr.set(time_grant, 3);
-    spawn_fs(0, cons, "/bin/jntpd", "ntp.stanford.edu", &time_ds, &time_dr);
+    spawn_fs(0, cons, "/bin/jntpd", "pool.ntp.org", &time_ds, &time_dr);
 
     FILE *inittab = fopen("/bin/inittab", "r");
     if (inittab) {
