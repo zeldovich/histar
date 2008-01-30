@@ -149,6 +149,15 @@ part_init_disk(struct disk *dk)
     } else {
 	for (uint32_t i = 0; i < 4; i++) {
 	    if (table.pt_entry[i].pe_type == JOS64_PART_ID) {
+		uint64_t off = table.pt_entry[i].pe_lbastart;
+		uint64_t size = table.pt_entry[i].pe_nsectors;
+		if (off * 512 + size * 512 > dk->dk_bytes) {
+		    cprintf("partition exceeds disk: LBA "
+			    "offset %"PRIu64", sectors %"PRIu64"\n",
+			    off, size);
+		    continue;
+		}
+
 		e = &table.pt_entry[i];
 		break;
 	    }
@@ -160,14 +169,14 @@ part_init_disk(struct disk *dk)
 	return 0;
     }
 
-    the_part.pd_offset = e->pe_lbastart * 512;
-    the_part.pd_size = e->pe_nsectors * 512;
+    the_part.pd_offset = UINT64(512) * e->pe_lbastart;
+    the_part.pd_size = UINT64(512) * e->pe_nsectors;
     the_part.pd_dk = dk;
+
     pstate_part = &the_part;
     cprintf("partition LBA offset %d, sectors %d\n",
 	    e->pe_lbastart, e->pe_nsectors);
     return 1;
-
 }
 
 void
