@@ -620,7 +620,7 @@ $(OBJDIR)/user/ssh.tar: $(ACPKG_BUILDDIR)/openssh-4.3p2/__build
 					etc/ssh_host_key.pub \
 					.ssh/authorized_keys
 
-$(OBJDIR)/acpkg/lib/libz.so.1: $(ACPKG_BUILDDIR)/zlib-1.2.3/__build
+$(OBJDIR)/acpkg/lib/libz.so.1 $(OBJDIR)/acpkg/lib/libz.a: $(ACPKG_BUILDDIR)/zlib-1.2.3/__build
 	@
 
 $(ACPKG_BUILDDIR)/zlib-1.2.3/__build: | $(ACPKG_WRAPS) $(ACPKG_BUILDDIR)/zlib-1.2.3/__patch

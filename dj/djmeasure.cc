@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/stdio.h>
 #include <inc/bipipe.h>
 #include <inc/labelutil.h>
+#include <zlib.h>
 }
 
 #include <inc/errno.hh>
@@ -12,6 +13,26 @@ extern "C" {
 #include <sfscrypt.h>
 #include <dj/djprotx.h>
 #include <dj/djkey.hh>
+
+static int
+compressed_size(str m)
+{
+    unsigned long buflen = m.len() * 2 + 12;
+    void *buf = malloc(buflen);
+    if (!buf)
+	printf("compressed_size: cannot malloc\n");
+    int r = compress((Bytef*) buf, &buflen, (Bytef*) m.cstr(), m.len());
+    if (r != Z_OK)
+	printf("compressed_size: cannot compress: %d\n", r);
+    free(buf);
+    return buflen;
+}
+
+static void
+print_size(const char *descr, str m)
+{
+    printf("  %4d %4d %s\n", m.len(), compressed_size(m), descr);
+}
 
 int
 main (int ac, char **av)
@@ -46,10 +67,10 @@ main (int ac, char **av)
 
     struct dj_delegation cat_delegation;
     cat_delegation.a.set_type(ENT_PUBKEY);
-    *cat_delegation.a.key = pk0;
+    *cat_delegation.a.key = pk1;
     cat_delegation.b.set_type(ENT_GCAT);
     *cat_delegation.b.gcat = meow;    
-    *cat_delegation.via.alloc() = pk1;
+    *cat_delegation.via.alloc() = pk0;
     cat_delegation.from_ts = rand();
     cat_delegation.until_ts = rand();
 
@@ -70,7 +91,6 @@ main (int ac, char **av)
     *addr_delegation.a.addr = addr;
     addr_delegation.b.set_type(ENT_PUBKEY);
     *addr_delegation.b.key = pk0;    
-    *addr_delegation.via.alloc() = pk0;
     cat_delegation.from_ts = rand();
     cat_delegation.until_ts = rand();
     
@@ -105,26 +125,29 @@ main (int ac, char **av)
     simple_msg0.glabel.ents.setsize(0);
     simple_msg0.gclear.ents.setsize(0);
     simple_msg0.catmap.ents.setsize(0);
-    simple_msg0.dset.ents.setsize(1);
+    simple_msg0.catmap.ents.push_back(mapping);
+    simple_msg0.dset.ents.setsize(0);
     rpc_bytes<2147483647ul> s;
     xdr2bytes(s, signed_cat_delegation);
     simple_msg0.dset.ents.push_back(s);
     simple_msg0.msg.setsize(0);
     
     printf("size:\n");
-    printf(" dj_pubkey %lu\n",
-	    xdr2str(pk0).len());
-    printf(" dj_delegation (pk1 says pk0 speaks for gcat) %lu\n", 
-	    xdr2str(cat_delegation).len());
-    printf("  signed %lu\n", xdr2str(signed_cat_delegation).len());
-    printf(" dj_delegation (pk0 says addr speaks for pk0) %lu\n", 
-	    xdr2str(addr_delegation).len());
-    printf("  signed %lu\n", xdr2str(signed_addr_delegation).len());
-    printf(" dj_cat_mapping %lu\n", xdr2str(mapping).len());
-    printf(" dj_gcat %lu\n", xdr2str(meow).len());
-    printf(" dj_message (from, to) %lu\n", xdr2str(empty_msg).len());
-    printf(" dj_message (from, to, seg slot, 1 taint, 1 delegation) %lu\n", 
-	    xdr2str(simple_msg0).len());
+    printf(" plain zlib what\n");
+    print_size("dj_pubkey", xdr2str(pk0));
+    print_size("dj_gcat (pk0)", xdr2str(meow));
+    print_size("dj_delegation (pk0 says pk1 speaks for gcat)",
+		xdr2str(cat_delegation));
+    print_size("dj_delegation (pk0 says pk1 speaks for gcat) signed",
+		xdr2str(signed_cat_delegation));
+    print_size("dj_delegation (pk0 says addr speaks for pk0)",
+		xdr2str(addr_delegation));
+    print_size("dj_delegation (pk0 says addr speaks for pk0) signed",
+		xdr2str(signed_addr_delegation));
+    print_size("dj_cat_mapping", xdr2str(mapping));
+    print_size("dj_message (to pk1)", xdr2str(empty_msg));
+    print_size("dj_message (to pk1, seg slot, 1 taint, 1 delegation, 1 map)",
+		xdr2str(simple_msg0));
 
     start = sys_clock_nsec();
     verify_stmt(signed_cat_delegation);
