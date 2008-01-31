@@ -829,6 +829,11 @@ $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
 	rm -rf $(OBJDIR)/acpkg/.include-build/include
 	ln -s $(TOP)/pkg/uclibc/libpthread/linuxthreads/sysdeps/pthread $(OBJDIR)/acpkg/.include-build/include
 	$(INCLUDE_BUILD_TAR_CMD)
+        
+	rm -rf $(OBJDIR)/acpkg/.include-build/include
+	mkdir -p $(OBJDIR)/acpkg/.include-build/include/linuxthreads
+	ln -s $(TOP)/pkg/uclibc/libpthread/linuxthreads/semaphore.h $(OBJDIR)/acpkg/.include-build/include/linuxthreads/semaphore.h
+	$(INCLUDE_BUILD_TAR_CMD)
 
 	rm -rf $(OBJDIR)/acpkg/.include-build/include
 	ln -s $(TOP)/uinc $(OBJDIR)/acpkg/.include-build/include

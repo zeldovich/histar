@@ -17,7 +17,8 @@ UCLIBC_INCLUDES := \
 	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/$(UCLIBC_ARCH) \
 	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/common \
 	-I$(TOP)/pkg/uclibc/include \
-	-I$(TOP)/pkg/uclibc/libpthread/linuxthreads/sysdeps/pthread
+	-I$(TOP)/pkg/uclibc/libpthread/linuxthreads/sysdeps/pthread \
+	-I$(TOP)/pkg/uclibc/libpthread
 
 USER_INC := $(UCLIBC_INCLUDES) $(USER_INC)
 

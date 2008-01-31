@@ -72,7 +72,7 @@ LIB_SRCFILES :=	\
 	lib/resolv.c lib/rlim.c lib/sbrk.c lib/segvhelper.cc lib/signal.c \
 	lib/signalgate.cc lib/socket.c lib/stat.c lib/sysinfo.c lib/time.c \
 	lib/uidgid.c lib/wait.c lib/udsdev.c lib/udsimpl.cc \
-	lib/lfsdev.c lib/lfsimpl.cc lib/fb.c lib/shm.c
+	lib/lfsdev.c lib/lfsimpl.cc lib/fb.c lib/shm.c lib/semaphore.c
 
 ifeq ($(SHARED_ENABLE),yes)
 LIB_SRCFILES += lib/$(ARCH)/libgcc_export.S
