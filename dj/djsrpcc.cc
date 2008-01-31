@@ -221,6 +221,7 @@ dj_rpc_call_seg(gate_sender *gs, time_t timeout,
 					 seg_id, 10 * 1024 * 1024));
 
     dj_call_msg callmsg;
+    callmsg.return_host = gs->hostkey();
     callmsg.return_ep.set_type(EP_SEGMENT);
     callmsg.return_ep.ep_segment->seg_ct = reply_seg.container;
     callmsg.return_ep.ep_segment->seg_id = reply_seg.object;
