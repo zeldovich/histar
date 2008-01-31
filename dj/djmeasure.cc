@@ -14,6 +14,8 @@ extern "C" {
 #include <dj/djprotx.h>
 #include <dj/djkey.hh>
 
+enum { crypto_rounds = 100 };
+
 static int
 compressed_size(str m)
 {
@@ -79,7 +81,8 @@ main (int ac, char **av)
     *signed_cat_delegation.stmt.delegation = cat_delegation;
     str goo = xdr2str(cat_delegation);
     start = sys_clock_nsec();
-    sk1->sign(&signed_cat_delegation.sign, goo);
+    for (int i = 0; i < crypto_rounds; i++)
+	sk1->sign(&signed_cat_delegation.sign, goo);
     int64_t sign_cat_time = sys_clock_nsec() - start;
     
     struct dj_address addr;
@@ -98,7 +101,10 @@ main (int ac, char **av)
     signed_addr_delegation.stmt.set_type(STMT_DELEGATION);
     *signed_addr_delegation.stmt.delegation = addr_delegation;
     goo = xdr2str(addr_delegation);
-    sk0->sign(&signed_addr_delegation.sign, goo);
+    start = sys_clock_nsec();
+    for (int i = 0; i < crypto_rounds; i++)
+	sk0->sign(&signed_addr_delegation.sign, goo);
+    int64_t sign_addr_time = sys_clock_nsec() - start;
 
     struct dj_message empty_msg;
     memset(&empty_msg, 0, sizeof(empty_msg));
@@ -150,16 +156,26 @@ main (int ac, char **av)
 		xdr2str(simple_msg0));
 
     start = sys_clock_nsec();
-    verify_stmt(signed_cat_delegation);
+    for (int i = 0; i < crypto_rounds; i++)
+	verify_stmt(signed_cat_delegation);
     int64_t verify_cat_time = sys_clock_nsec() - start;
 
-    printf("\ntime:\n");
+    start = sys_clock_nsec();
+    for (int i = 0; i < crypto_rounds; i++)
+	verify_stmt(signed_addr_delegation);
+    int64_t verify_addr_time = sys_clock_nsec() - start;
+
+    printf("\ntime [%d rounds of everything]:\n", crypto_rounds);
     printf(" sign:\n");
-    printf("  dj_delegation (pk1 says pk0 speaks for gcat) %lu\n", 
+    printf("  dj_delegation (pk0 says pk1 speaks for gcat) %lu\n", 
 	    sign_cat_time);
+    printf("  dj_delegation (pk0 says addr speaks for pk0) %lu\n",
+	    sign_addr_time);
     printf(" verify:\n");
-    printf("  dj_delegation (pk1 says pk0 speaks for gcat) %lu\n", 
+    printf("  dj_delegation (pk0 says pk1 speaks for gcat) %lu\n", 
 	    verify_cat_time);
+    printf("  dj_delegation (pk0 says addr speaks for pk0) %lu\n",
+	    verify_addr_time);
     
     return 0;
 }
