@@ -13,8 +13,11 @@ extern "C" {
 #include <sfscrypt.h>
 #include <dj/djprotx.h>
 #include <dj/djkey.hh>
+#include <dj/gatesender.hh>
+#include <dj/djsrpc.hh>
 
 enum { crypto_rounds = 100 };
+enum { echo_rounds   = 100 };
 
 static int
 compressed_size(str m)
@@ -176,6 +179,42 @@ main (int ac, char **av)
 	    verify_cat_time);
     printf("  dj_delegation (pk0 says addr speaks for pk0) %lu\n",
 	    verify_addr_time);
-    
+
+    if (ac == 4) {
+	// usage: djmeasure host-pk call-ct djechod-gate
+        ptr<sfspub> sfspub = sfscrypt.alloc(av[1], SFS_VERIFY | SFS_ENCRYPT);
+	assert(sfspub);
+	
+	dj_message m;
+	m.to = sfspub2dj(sfspub);
+	m.target.set_type(EP_GATE);
+	m.target.ep_gate->msg_ct = strtoll(av[2], 0, 0);
+	m.target.ep_gate->gate <<= av[3];
+	m.dset.ents.setsize(0);
+	m.catmap.ents.setsize(0);
+	m.taint.ents.setsize(0);
+	m.glabel.ents.setsize(0);
+	m.gclear.ents.setsize(0);
+	m.msg.setsize(0);
+	
+	gate_sender gs;
+	struct dj_delegation_set dset;
+	dset.ents.setsize(0);
+	struct dj_catmap cm;
+	cm.ents.setsize(0);
+	str calldata = "";
+	struct dj_message dm;
+	
+	dj_delivery_code c = DELIVERY_DONE;
+	start = sys_clock_nsec();
+	for (int i = 0; i < echo_rounds && c == DELIVERY_DONE; i++)
+	    c = dj_rpc_call(&gs, 2, dset, cm, m, calldata, &dm, 0, 0, 0);
+	if (c != DELIVERY_DONE)
+	    printf("\nunable to measure echo rpc: %d\n", c);
+	else
+	    printf("\ntime for %u djechos: %lu\n", echo_rounds, 
+		   sys_clock_nsec() - start);
+    }	
+
     return 0;
 }
