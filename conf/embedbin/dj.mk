@@ -9,7 +9,6 @@ KERN_BINFILES	+= user/libgmp.so.3 user/libasync.so.0 user/libarpc.so.0
 KERN_BINFILES	+= user/libsfscrypt.so.0 user/libsvc.so.0 user/libsfsmisc.so.0
 endif
 
-INITTAB_ENTRIES += /bin/djd:r /bin/ctallocd: /bin/djfsd:
+INITTAB_ENTRIES += /bin/djd:rc /bin/ctallocd: /bin/djfsd:
 INITTAB_ENTRIES += /bin/djechod: /bin/djauthproxy: /bin/djwebappd:
 INITTAB_ENTRIES += /bin/djguardcall: /bin/bootstrapd:r
-
