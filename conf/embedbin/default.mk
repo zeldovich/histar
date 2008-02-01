@@ -36,7 +36,7 @@ KERN_BINFILES	+= user/sleep user/env user/strings user/tty user/xargs
 KERN_BINFILES	+= user/rmdir user/diff user/reset user/hostname user/id
 KERN_BINFILES	+= user/less user/dd user/ed user/patch user/comm user/wc
 KERN_BINFILES	+= user/seq user/fgrep user/date user/tee user/pwd
-KERN_BINFILES	+= user/bzip2 user/bunzip2 user/cmp user/cut
+KERN_BINFILES	+= user/bzip2 user/bunzip2 user/cmp user/cut user/true
 KERN_BINFILES	+= user/terminfo.tar.gz
 
 ## Networking tools
@@ -52,6 +52,7 @@ KERN_BINFILES	+= user/make user/ar user/nm user/objdump user/objcopy
 KERN_BINFILES	+= user/strip user/readelf
 #KERN_BINFILES	+= user/gdb user/gdbserver
 #KERN_BINFILES	+= user/python.tar.gz
+#KERN_BINFILES	+= user/distcc user/distccd user/distccmon-text
 
 ## Demo apps: ClamAV, mairix
 KERN_BINFILES	+= user/clamscan user/clamav_main.cvd user/clamav_daily.cvd

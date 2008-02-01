@@ -98,6 +98,7 @@ DISTURL_gcc-3.4.5	    := ftp://ftp.gnu.org/gnu/gcc/gcc-3.4.5/gcc-3.4.5.tar.gz
 DISTURL_gmp-4.2.1	    := ftp://ftp.gnu.org/gnu/gmp/gmp-4.2.1.tar.gz
 DISTURL_ncurses-5.5	    := ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
 DISTURL_make-3.81	    := ftp://ftp.gnu.org/gnu/make/make-3.81.tar.gz
+DISTURL_distcc-2.18.3       := http://distcc.samba.org/ftp/distcc/distcc-2.18.3.tar.bz2
 DISTURL_coreutils-5.94	    := ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
 DISTURL_gdb-6.5		    := ftp://ftp.gnu.org/gnu/gdb/gdb-6.5.tar.gz
 DISTURL_wget-1.9.1	    := ftp://ftp.gnu.org/gnu/wget/wget-1.9.1.tar.gz
