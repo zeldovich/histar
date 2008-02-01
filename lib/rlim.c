@@ -28,5 +28,17 @@ setrlimit(__rlimit_resource_t resource, const struct rlimit *rlim)
     return 0;
 }
 
+int
+getrlimit64 (__rlimit_resource_t __resource, struct rlimit64 *__rlimits)
+{
+    return 0;
+}
+
+int
+setrlimit64 (__rlimit_resource_t __resource, const struct rlimit64 *__rlimits)
+{
+    return 0;
+}
+
 libc_hidden_def(getrlimit)
 libc_hidden_def(setrlimit)
