@@ -50,7 +50,7 @@ MISC_TIME_CSRC := \
 	asctime.c asctime_r.c clock.c ctime.c ctime_r.c gmtime.c gmtime_r.c \
         localtime.c localtime_r.c mktime.c strftime.c strptime.c tzset.c \
         _time_t2tm.c __time_tm.c _time_mktime.c dysize.c timegm.c \
-        _time_mktime_tzi.c _time_localtime_tzi.c
+        _time_mktime_tzi.c _time_localtime_tzi.c difftime.c
 
 MISC_WCHAR_CSRC := \
 	btowc.c wctob.c mbsinit.c mbrlen.c mbrtowc.c wcrtomb.c mbsrtowcs.c \
