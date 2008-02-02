@@ -51,7 +51,7 @@ main(int ac, char **av)
 	exit(-1);
     }
 
-    struct termios term;
+    struct termios term, origterm;
     memset(&term, 0, sizeof(term));
     if (ioctl(0, TCGETS, &term) < 0)
 	perror("TCGETS");
@@ -65,6 +65,12 @@ main(int ac, char **av)
 	perror("openpty");
 	exit(-1);
     }
+
+    memcpy(&origterm, &term, sizeof(term));
+    term.c_iflag &= ~(IGNCR | ICRNL | INLCR);
+    term.c_oflag &= ~(ONLCR);
+    term.c_lflag &= ~(ECHO | ISIG | ICANON);
+    ioctl(0, TCSETS, &term);
 
     fcntl(fdm, F_SETFD, FD_CLOEXEC);
     child_pid = fork();
@@ -89,5 +95,6 @@ main(int ac, char **av)
 
     int wstat;
     waitpid(child_pid, &wstat, 0);
+    ioctl(0, TCSETS, &origterm);
     return 0;
 }

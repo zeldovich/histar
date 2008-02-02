@@ -251,30 +251,45 @@ pty_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 	goto err;
     }
 
+    int do_eof = 0;
     uint32_t i = 0;
     for (; i < count; i++) {
 	if (fd->fd_dev_id == devpts.dev_id) {
-	    if ((ps->ios.c_oflag & ONLCR) && ch[i] == '\n') {
-		bf[cc] = '\r';
-		cc++;
-	    }
-	}
+	    if ((ps->ios.c_oflag & ONLCR) && ch[i] == '\n')
+		bf[cc++] = '\r';
 
-        if (fd->fd_dev_id == devptm.dev_id) {
-            if (ps->ios.c_cc[VINTR] == ch[i]) {
-                killpg(ps->pgrp, SIGINT);
-                continue;
-            }
-	    if (ps->ios.c_cc[VSUSP] == ch[i]) {
-                killpg(ps->pgrp, SIGTSTP);
-                continue;
-            }
-	    /* if master->slave but none above match just fall through */
-            if (ps->ios.c_lflag & ECHO)
-                jcomm_write(JCOMM(PTY_CT, ps->slave_jc), &ch[i], 1, 1);
+	    bf[cc++] = ch[i];
+	} else if (fd->fd_dev_id == devptm.dev_id) {
+	    char xc = ch[i];
+	    if ((ps->ios.c_iflag & IGNCR) && ch[i] == '\r')
+		continue;
+
+	    if ((ps->ios.c_iflag & ICRNL) && ch[i] == '\r')
+		xc = '\n';
+
+	    if ((ps->ios.c_iflag & INLCR) && ch[i] == '\n')
+		xc = '\r';
+
+	    if ((ps->ios.c_lflag & ISIG) && ps->ios.c_cc[VINTR] == ch[i]) {
+		killpg(ps->pgrp, SIGINT);
+		continue;
+	    }
+
+	    if ((ps->ios.c_lflag & ISIG) && ps->ios.c_cc[VSUSP] == ch[i]) {
+		killpg(ps->pgrp, SIGTSTP);
+		continue;
+	    }
+
+	    if ((ps->ios.c_lflag & ICANON) && ps->ios.c_cc[VEOF] == ch[i]) {
+		do_eof = 1;
+		break;
+	    }
+
+	    if (ps->ios.c_lflag & ECHO)
+		jcomm_write(JCOMM(PTY_CT, ps->slave_jc), &xc, 1, 1);
+
+	    bf[cc++] = xc;
         }
-        bf[cc] = ch[i];
-        cc++;
     }
     
     r = jcomm_write(PTY_JCOMM(fd), bf, cc, 1);
@@ -292,6 +307,10 @@ pty_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 	}
 	r += rr;
     }
+
+    if (do_eof)
+	jcomm_shut(PTY_JCOMM(fd), JCOMM_SHUT_WR);
+
     assert((uint32_t)r == cc);
     ret = count;
     goto out;
