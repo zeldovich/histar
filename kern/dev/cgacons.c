@@ -214,8 +214,8 @@ static uint8_t normalmap[256] = {
     'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',	// 0x20
     '\'', '`', NO, '\\', 'z', 'x', 'c', 'v',
     'b', 'n', 'm', ',', '.', '/', NO, '*',	// 0x30
-    NO, ' ', NO, NO, NO, NO, NO, NO,
-    NO, NO, NO, NO, NO, NO, NO, '7',	// 0x40
+    NO, ' ', NO, KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5,
+    KEY_F6, NO, NO, NO, NO, NO, NO, '7',	// 0x40
     '8', '9', '-', '4', '5', '6', '+', '1',
     '2', '3', '0', '.', NO, NO, NO, NO,	// 0x50
     [0xC7] KEY_HOME,[0x9C] '\n' /*KP_Enter */ ,
@@ -234,8 +234,8 @@ static uint8_t shiftmap[256] = {
     'D', 'F', 'G', 'H', 'J', 'K', 'L', ':',	// 0x20
     '"', '~', NO, '|', 'Z', 'X', 'C', 'V',
     'B', 'N', 'M', '<', '>', '?', NO, '*',	// 0x30
-    NO, ' ', NO, NO, NO, NO, NO, NO,
-    NO, NO, NO, NO, NO, NO, NO, '7',	// 0x40
+    NO, ' ', NO, KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5,
+    KEY_F6, NO, NO, NO, NO, NO, NO, '7',	// 0x40
     '8', '9', '-', '4', '5', '6', '+', '1',
     '2', '3', '0', '.', NO, NO, NO, NO,	// 0x50
     [0xC7] KEY_HOME,[0x9C] '\n' /*KP_Enter */ ,
@@ -256,6 +256,8 @@ static uint8_t ctlmap[256] = {
     C('D'), C('F'), C('G'), C('H'), C('J'), C('K'), C('L'), NO,
     NO, NO, NO, C('\\'), C('Z'), C('X'), C('C'), C('V'),
     C('B'), C('N'), C('M'), NO, NO, C('/'), NO, NO,
+    NO, ' ', NO, KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5,
+    KEY_F6, NO, NO, NO, NO, NO, NO, NO,
     [0xC7] KEY_HOME,
     [0xB5] C('/'),[0xC8] KEY_UP,
     [0xC9] KEY_PGUP,[0xCB] KEY_LF,
