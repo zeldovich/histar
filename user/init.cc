@@ -421,15 +421,22 @@ run_shell(int cons)
     }
 }
 
-static void
-init_fbcons(int *consp)
+static void __attribute__((noreturn))
+run_shell_entry(void *arg)
 {
-    int cons = *consp;
+    int cons = (uintptr_t) arg;
+    run_shell(cons);
+}
+
+static int
+init_fbcons(int basecons, int *consp, int maxvt)
+{
+    consp[0] = basecons;
 
     /* Check if we are running in a graphical console */
     struct jos_fb_mode fb;
     if (sys_fb_get_mode(&fb) < 0)
-	return;
+	return 1;
 
     int64_t fbc_grant = handle_alloc();
     int64_t fbc_taint = handle_alloc();
@@ -440,7 +447,7 @@ init_fbcons(int *consp)
 
     fs_inode ino;
     if (fs_namei("/bin/fbconsd", &ino) < 0)
-	return;
+	return 1;
 
     label ds(3), dr(0);
     ds.set(fbc_grant, LB_LEVEL_STAR);
@@ -468,7 +475,7 @@ init_fbcons(int *consp)
 
     const char *argv[] = { "fbconsd", a0, a1, fontname };
     child_process cp = spawn(start_env->process_pool,
-		   ino, cons, cons, cons,
+		   ino, basecons, basecons, basecons,
 		   4, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
 		   0, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
@@ -476,20 +483,25 @@ init_fbcons(int *consp)
     int64_t ec;
     error_check(process_wait(&cp, &ec));
 
-    int64_t fbseg = container_find(cp.container, kobj_segment, "consbuf");
-    if (fbseg < 0)
-	return;
+    for (int vt = 0; vt < maxvt; vt++) {
+	char namebuf[KOBJ_NAME_LEN];
+	sprintf(&namebuf[0], "consbuf%d", vt);
+	int64_t fbseg = container_find(cp.container, kobj_segment, namebuf);
+	if (fbseg < 0)
+	    return 1;
 
-    char pnbuf[64];
-    sprintf(&pnbuf[0], "#%"PRIu64".%"PRIu64, cp.container, fbseg);
-    int fd = open(pnbuf, O_RDWR);
-    if (fd < 0)
-	return;
+	char pnbuf[64];
+	sprintf(&pnbuf[0], "#%"PRIu64".%"PRIu64, cp.container, fbseg);
+	int fd = open(pnbuf, O_RDWR);
+	if (fd < 0)
+	    return 1;
 
-    const char *msg = "init: graphics console initialized.\n";
-    write(fd, msg, strlen(msg));
+	const char *msg = "init: graphics console initialized.\n";
+	write(fd, msg, strlen(msg));
+	consp[vt] = fd;
+    }
 
-    *consp = fd;
+    return maxvt;
 }
 
 int
@@ -551,8 +563,15 @@ try
     if (newcons >= 0)
 	cons = newcons;
 
-    init_fbcons(&cons);
-    run_shell(cons);	// does not return
+    int cons_fds[6];
+    int ncons = init_fbcons(cons, &cons_fds[0], 6);
+    for (int i = 1; i < ncons; i++) {
+	cobj_ref tid;
+	thread_create(start_env->proc_container, &run_shell_entry,
+		      (void *) (uintptr_t) cons_fds[i], &tid, "runshell");
+    }
+
+    run_shell(cons_fds[0]);
 } catch (std::exception &e) {
     cprintf("init: %s\n", e.what());
     return -1;

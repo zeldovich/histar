@@ -12,6 +12,7 @@ extern "C" {
 #include <inc/fd.h>
 #include <inc/fb.h>
 #include <inc/string.h>
+#include <inc/kbdcodes.h>
 
 #include <ft2build.h>
 #include <freetype/freetype.h>
@@ -22,6 +23,12 @@ extern "C" {
 
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
+
+enum { vt_count = 6 };
+
+static fbcons_seg *all_fs[vt_count];
+static uint64_t cur_vt;
+static jthread_mutex_t vt_mu;
 
 static FT_Face the_face;
 static uint32_t cols, rows;
@@ -192,15 +199,57 @@ refresh(volatile uint32_t *newbuf, uint32_t *oldbuf,
 }
 
 static void __attribute__((noreturn))
+input_worker(void *arg)
+{
+    for (;;) {
+	unsigned char c;
+	ssize_t cc = read(0, &c, 1);
+	if (cc <= 0)
+	    continue;
+
+	if (c >= KEY_F1 && c <= KEY_F6) {
+	    jthread_mutex_lock(&vt_mu);
+	    cur_vt = (c - KEY_F1);
+	    sys_sync_wakeup(&cur_vt);
+	    jthread_mutex_unlock(&vt_mu);
+	    continue;
+	}
+
+	fbcons_seg *fs = all_fs[cur_vt];
+	jthread_mutex_lock(&fs->mu);
+
+	if (fs->incount < sizeof(fs->inbuf)) {
+	    uint64_t npos = (fs->inpos + fs->incount) % sizeof(fs->inbuf);
+	    fs->inbuf[npos] = c;
+	    fs->incount++;
+	    sys_sync_wakeup(&fs->incount);
+	}
+	jthread_mutex_unlock(&fs->mu);
+    }
+}
+
+static void __attribute__((noreturn))
 worker(void *arg)
 {
-    fbcons_seg *fs = (fbcons_seg *) arg;
+    int r = sys_self_set_waitslots(2);
+    if (r < 0) {
+	fprintf(stderr, "cannot set waitslots\n");
+	exit(-1);
+    }
 
+    fbcons_seg *fs;
     uint32_t *screenbuf = (uint32_t *) malloc(rows * cols * sizeof(fs->data[0]));
     if (!screenbuf) {
 	fprintf(stderr, "cannot allocate screen buffer\n");
 	exit(-1);
     }
+
+ new_vt:
+    jthread_mutex_lock(&vt_mu);
+    uint64_t worker_vt = cur_vt;
+    jthread_mutex_unlock(&vt_mu);
+
+    fs = all_fs[worker_vt];
     memset(screenbuf, 0, rows * cols * sizeof(fs->data[0]));
 
     uint32_t oldx = 0, oldy = 0;
@@ -216,10 +265,22 @@ worker(void *arg)
 		    &redraw, fs->redraw,
 		    &oldx, &oldy, fs->xpos, fs->ypos);
 
-	while (fs->updates == updates) {
+	while (fs->updates == updates && worker_vt == cur_vt) {
 	    jthread_mutex_unlock(&fs->mu);
-	    sys_sync_wait(&fs->updates, updates, UINT64(~0));
+
+	    volatile uint64_t *addrs[2] = { &fs->updates, &cur_vt };
+	    uint64_t vals[2] = { updates, worker_vt };
+	    uint64_t refcts[2] = { 0, 0 };
+
+	    sys_sync_wait_multi(&addrs[0], &vals[0], &refcts[0],
+				2, UINT64(~0));
+
 	    jthread_mutex_lock(&fs->mu);
+	}
+
+	if (worker_vt != cur_vt) {
+	    jthread_mutex_unlock(&fs->mu);
+	    goto new_vt;
 	}
     }
 }
@@ -263,33 +324,43 @@ try
     fsl.set(taint, 3);
     fsl.set(grant, 0);
 
-    cobj_ref fs_seg;
-    fbcons_seg *fs = 0;
-    error_check(segment_alloc(start_env->shared_container,
-			      sizeof(*fs) + rows * cols * sizeof(fs->data[0]),
-			      &fs_seg, (void **) &fs,
-			      fsl.to_ulabel(), "consbuf"));
+    for (uint32_t vt = 0; vt < vt_count; vt++) {
+	char buf[16];
+	sprintf(&buf[0], "consbuf%d", vt);
 
-    fs->taint = taint;
-    fs->grant = grant;
-    fs->cols = cols;
-    fs->rows = rows;
+	cobj_ref fs_seg;
+	fbcons_seg *fs = 0;
+	error_check(segment_alloc(start_env->shared_container,
+				  sizeof(*fs) +
+				  rows * cols * sizeof(fs->data[0]),
+				  &fs_seg, (void **) &fs,
+				  fsl.to_ulabel(), &buf[0]));
+	all_fs[vt] = fs;
 
-    for (uint32_t i = 0; i < rows * cols; i++)
-	fs->data[i] = ' ';
+	fs->taint = taint;
+	fs->grant = grant;
+	fs->cols = cols;
+	fs->rows = rows;
 
-    const char *msg = "fbconsd running.";
-    for (uint32_t i = 0; i < strlen(msg); i++)
-	fs->data[i] = msg[i];
-    fs->ypos = 1;
+	for (uint32_t i = 0; i < rows * cols; i++)
+	    fs->data[i] = ' ';
 
-    struct fs_object_meta m;
-    m.dev_id = devfbcons.dev_id;
-    error_check(sys_obj_set_meta(fs_seg, 0, &m));
+	char msgbuf[64];
+	sprintf(&msgbuf[0], "fbconsd running, vt%d.", vt);
+	for (uint32_t i = 0; i < strlen(msgbuf); i++)
+	    fs->data[i] = msgbuf[i];
+	fs->ypos = 1;
+
+	struct fs_object_meta m;
+	m.dev_id = devfbcons.dev_id;
+	error_check(sys_obj_set_meta(fs_seg, 0, &m));
+    }
 
     cobj_ref tid;
     error_check(thread_create(start_env->proc_container,
-			      &worker, fs, &tid, "worker"));
+			      &worker, 0, &tid, "worker"));
+    error_check(thread_create(start_env->proc_container,
+			      &input_worker, 0, &tid, "input-worker"));
 
     process_report_exit(0, 0);
     for (;;) {

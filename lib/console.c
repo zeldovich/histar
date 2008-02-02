@@ -109,8 +109,6 @@ cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
     c = sys_cons_getc();
     if (c < 0)
 	return c;
-    if (c == 0x04)	// ctl-d is eof
-	return 0;
 
     char esc = esc_codes[(uint8_t) c];
     if (!fd->fd_immutable && esc) {
@@ -507,18 +505,110 @@ fbcons_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
     return ret;
 }
 
+static ssize_t
+fbcons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
+{
+    ssize_t ret = -1;
+    struct fbcons_seg *fs = 0;
+    uint64_t nbytes = 0;
+    int r = segment_map(fd->fd_cons.fbcons_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+			(void **) &fs, &nbytes, 0);
+    if (r < 0) {
+	__set_errno(EIO);
+	goto err;
+    }
+
+    if (nbytes < sizeof(*fs)) {
+	__set_errno(EIO);
+	goto err;
+    }
+
+    jthread_mutex_lock(&fs->mu);
+    ret = 0;
+
+    uint8_t *buf = vbuf;
+    while (n > (size_t) ret) {
+	if (!fs->incount) {
+	    if (ret)
+		break;
+
+	    jthread_mutex_unlock(&fs->mu);
+	    sys_sync_wait(&fs->incount, 0, UINT64(~0));
+	    jthread_mutex_lock(&fs->mu);
+	    continue;
+	}
+
+	uint64_t inpos = fs->inpos;
+	if (inpos >= sizeof(fs->inbuf))
+	    break;
+
+	buf[ret++] = fs->inbuf[inpos];
+	fs->inpos = (inpos + 1) % sizeof(fs->inbuf);
+	fs->incount--;
+    }
+
+    jthread_mutex_unlock(&fs->mu);
+ err:
+    if (fs)
+	segment_unmap_delayed(fs, 1);
+    return ret;
+}
+
+static int
+fbcons_statsync(struct Fd *fd, dev_probe_t probe,
+	      struct wait_stat *wstat, int wslot_avail)
+{
+    if (probe == dev_probe_write)
+	return -1;
+
+    if (wslot_avail < 1)
+	return -1;
+
+    memset(wstat, 0, sizeof(*wstat));
+    WS_SETOBJ(wstat, fd->fd_cons.fbcons_seg,
+	      offsetof(struct fbcons_seg, incount));
+    WS_SETVAL(wstat, 0);
+    wstat->ws_probe = probe;
+    return 1;
+}
+
+static int
+fbcons_probe(struct Fd *fd, dev_probe_t probe)
+{
+    if (probe == dev_probe_write)
+	return 1;
+
+    int ret = -1;
+    struct fbcons_seg *fs = 0;
+    uint64_t nbytes = 0;
+    int r = segment_map(fd->fd_cons.fbcons_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+			(void **) &fs, &nbytes, 0);
+    if (r < 0) {
+	__set_errno(EIO);
+	return -1;
+    }
+    
+    if (nbytes < sizeof(*fs)) {
+	__set_errno(EIO);
+    } else {
+	ret = fs->incount ? 1 : 0;
+    }
+ 
+    segment_unmap_delayed(fs, 1);
+    return ret;
+}
+
 struct Dev devfbcons =
 {
     .dev_id = 'C',
     .dev_name = "fbcons",
     .dev_open = fbcons_open,
     .dev_write = fbcons_write,
+    .dev_read = fbcons_read,
+    .dev_statsync = fbcons_statsync,
+    .dev_probe = fbcons_probe,
 
-    .dev_read = cons_read,
     .dev_close = cons_close,
-    .dev_probe = cons_probe,
     .dev_ioctl = cons_ioctl,
-    .dev_statsync = cons_statsync,
     .dev_sync = cons_sync,
 };
-
