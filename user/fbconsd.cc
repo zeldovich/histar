@@ -33,17 +33,11 @@ get_font(const char *name)
 {
     FcInit();
 
-    FT_Library freetype;
-    if (FT_Init_FreeType(&freetype)) {
-	fprintf(stderr, "get_font: FT_Init_FreeType failed\n");
-	return 0;
-    }
-
     FcPattern *p = FcNameParse((const FcChar8 *) name);
     FcConfigSubstitute(0, p, FcMatchPattern);
     FcDefaultSubstitute(p);
 
-    FcResult r;
+    FcResult r = FcResultMatch;
     FcPattern *m = FcFontMatch(0, p, &r);
     FcPatternDestroy(p);
     if (r != FcResultMatch) {
@@ -56,6 +50,12 @@ get_font(const char *name)
     if (colon)
 	*colon = '\0';
     printf("Found font %s\n", fontname);
+
+    FT_Library freetype;
+    if (FT_Init_FreeType(&freetype)) {
+	fprintf(stderr, "get_font: FT_Init_FreeType failed\n");
+	return 0;
+    }
 
     FT_Face f = 0;
     r = FcPatternGetFTFace(m, FC_FT_FACE, 0, &f);
