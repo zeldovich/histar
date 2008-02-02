@@ -45,23 +45,25 @@ extern "C" void _dl_app_fini_array(void) {}
 extern "C" int dl_iterate_phdr(void) { return 0; }
 
 static struct child_process
-spawn_fs(int flags, int fd, const char *pn, const char *arg,
+spawn_fs(int flags, int fd, const char *pn, const char *a1, const char *a2,
 	 label *ds, label *dr, uint64_t ct = 0)
 {
     struct child_process cp;
+    cp.container = 0;
+
     try {
 	struct fs_inode ino;
 	int r = fs_namei(pn, &ino);
 	if (r < 0)
 	    throw error(r, "cannot fs_lookup %s", pn);
 
-	const char *argv[] = { pn, arg };
+	const char *argv[] = { pn, a1, a2 };
 	uint64_t pct = (flags & SPAWN_ROOT_CT)  ? start_env->root_container :
 		       (flags & SPAWN_OTHER_CT) ? ct
 						: start_env->process_pool;
 	cp = spawn(pct,
 		   ino, fd, fd, fd,
-	           arg ? 2 : 1, &argv[0],
+	           a1 ? a2 ? 3 : 2 : 1, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
 	           0, ds, 0, dr, 0, SPAWN_NO_AUTOGRANT);
 
@@ -262,7 +264,7 @@ init_fs(int cons)
     root_dr.set(start_env->user_taint, 3);
 
     spawn_fs(SPAWN_WAIT_GC, cons,
-	     "/bin/ksh", "/bin/init.sh",
+	     "/bin/ksh", "/bin/init.sh", 0,
 	     &root_ds, &root_dr);
 }
 
@@ -296,11 +298,11 @@ init_auth(int cons, const char *shroot)
     fs_inode uauth_dir;
     error_check(fs_namei("/uauth", &uauth_dir));
 
-    cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_log", 0, 0, 0,
+    cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_log", 0, 0, 0, 0,
 		  uauth_dir.obj.object);
     error_check(process_wait(&cp, &ec));
 
-    cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_dir", shroot, 0, 0,
+    cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_dir", shroot, 0, 0, 0,
 		  uauth_dir.obj.object);
     error_check(process_wait(&cp, &ec));
 
@@ -372,7 +374,7 @@ init_procs(int cons)
     label time_ds(3), time_dr(0);
     time_ds.set(time_grant, LB_LEVEL_STAR);
     time_dr.set(time_grant, 3);
-    spawn_fs(0, cons, "/bin/jntpd", "pool.ntp.org", &time_ds, &time_dr);
+    spawn_fs(0, cons, "/bin/jntpd", "pool.ntp.org", 0, &time_ds, &time_dr);
 
     FILE *inittab = fopen("/bin/inittab", "r");
     if (inittab) {
@@ -391,7 +393,7 @@ init_procs(int cons)
 	    char *flag_ct   = strchr(priv, 'c');
 
 	    spawn_fs(flag_ct ? SPAWN_ROOT_CT : 0, cons, fn,
-		     flag_args ? &root_grant_buf[0] : 0,
+		     flag_args ? &root_grant_buf[0] : 0, 0,
 		     flag_root ? &root_ds : 0,
 		     flag_root ? &root_dr : 0);
 	}
@@ -411,7 +413,19 @@ run_shell(int cons)
     dr.set(start_env->user_taint, 3);
 
     for (;;) {
-        struct child_process shell_proc = spawn_fs(0, cons, "/bin/ksh", "-l", &ds, &dr);
+        struct child_process shell_proc;
+	try {
+	    shell_proc = spawn_fs(0, cons,
+				  "/bin/newpty", "/bin/ksh", "-l",
+				  &ds, &dr);
+	    if (!shell_proc.container)
+		throw basic_exception("newpty did not work");
+	} catch (...) {
+	    shell_proc = spawn_fs(0, cons,
+				  "/bin/ksh", "-l", 0,
+				  &ds, &dr);
+	}
+
         int64_t exit_code = 0;
         if ((r = process_wait(&shell_proc, &exit_code)) < 0)
             cprintf("run_shell: process_wait error: %s\n", e2s(r));
