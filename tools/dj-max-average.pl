@@ -14,10 +14,10 @@ my $clientmax = $ARGV[2];
 my $numruns = 3;
 my $duration = 20;
 if ($ac >= 4) {
-    my $numruns = $ARGV[3];
+    $numruns = $ARGV[3];
 }
 if ($ac >= 5) {
-    my $duration = $ARGV[4];
+    $duration = $ARGV[4];
 }
 
 my $best_ave = 0;
