@@ -29,6 +29,7 @@ enum { vt_count = 6 };
 static fbcons_seg *all_fs[vt_count];
 static uint64_t cur_vt;
 static jthread_mutex_t vt_mu;
+static uint64_t reboots;
 
 static FT_Face the_face;
 static uint32_t cols, rows;
@@ -229,9 +230,25 @@ input_worker(void *arg)
 }
 
 static void __attribute__((noreturn))
+reboot_watcher(void *arg)
+{
+    /*
+     * This thread abuses the sys_sync_wait() behavior of waking up
+     * every waiting thread after machine reboot.
+     */
+    uint64_t zero = 0;
+
+    for (;;) {
+	sys_sync_wait(&zero, 0, UINT64(~0));
+	reboots++;
+	sys_sync_wakeup(&reboots);
+    }
+}
+
+static void __attribute__((noreturn))
 worker(void *arg)
 {
-    int r = sys_self_set_waitslots(2);
+    int r = sys_self_set_waitslots(3);
     if (r < 0) {
 	fprintf(stderr, "cannot set waitslots\n");
 	exit(-1);
@@ -249,6 +266,8 @@ worker(void *arg)
     uint64_t worker_vt = cur_vt;
     jthread_mutex_unlock(&vt_mu);
 
+    uint64_t curboot = reboots;
+
     fs = all_fs[worker_vt];
     memset(screenbuf, 0, rows * cols * sizeof(fs->data[0]));
 
@@ -265,20 +284,23 @@ worker(void *arg)
 		    &redraw, fs->redraw,
 		    &oldx, &oldy, fs->xpos, fs->ypos);
 
-	while (fs->updates == updates && worker_vt == cur_vt) {
+	while (fs->updates == updates &&
+	       worker_vt == cur_vt &&
+	       reboots == curboot)
+	{
 	    jthread_mutex_unlock(&fs->mu);
 
-	    volatile uint64_t *addrs[2] = { &fs->updates, &cur_vt };
-	    uint64_t vals[2] = { updates, worker_vt };
-	    uint64_t refcts[2] = { 0, 0 };
+	    volatile uint64_t *addrs[] = { &fs->updates, &cur_vt, &reboots };
+	    uint64_t vals[] = { updates, worker_vt, curboot };
+	    uint64_t refcts[] = { 0, 0, 0 };
 
 	    sys_sync_wait_multi(&addrs[0], &vals[0], &refcts[0],
-				2, UINT64(~0));
+				3, UINT64(~0));
 
 	    jthread_mutex_lock(&fs->mu);
 	}
 
-	if (worker_vt != cur_vt) {
+	if (worker_vt != cur_vt || reboots != curboot) {
 	    jthread_mutex_unlock(&fs->mu);
 	    goto new_vt;
 	}
@@ -361,6 +383,8 @@ try
 			      &worker, 0, &tid, "worker"));
     error_check(thread_create(start_env->proc_container,
 			      &input_worker, 0, &tid, "input-worker"));
+    error_check(thread_create(start_env->proc_container,
+			      &reboot_watcher, 0, &tid, "reboot-watcher"));
 
     process_report_exit(0, 0);
     for (;;) {
