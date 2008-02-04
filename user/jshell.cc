@@ -11,6 +11,9 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <termios.h>
+#include <stdlib.h>
+#include <fcntl.h>
 }
 
 #include <inc/spawn.hh>
@@ -356,11 +359,20 @@ main(int ac, char **av)
     if (r < 0)
 	printf("shell: cannot mount /self: %s\n", e2s(r));
 
+    struct termios term, origterm;
+    memset(&term, 0, sizeof(term));
+    ioctl(0, TCGETS, &term);
+    memcpy(&origterm, &term, sizeof(term));
+
+    term.c_oflag |= ONLCR;
+    term.c_lflag &= ~ECHO;
+    ioctl(0, TCSETS, &term);
+
     for (;;) {
 	char prompt[64];
 	snprintf(prompt, sizeof(prompt), "[jos:%"PRIu64"]> ",
 		 start_env->fs_cwd.obj.object);
-	char *cmd = readline(prompt, 0);
+	char *cmd = readline(prompt, 1);
 	if (cmd == 0) {
 	    printf("EOF\n");
 	    break;
@@ -369,4 +381,6 @@ main(int ac, char **av)
 	parse_cmd(cmd);
 	run_cmd(cmd_argc, cmd_argv);
     }
+
+    ioctl(0, TCSETS, &origterm);
 }
