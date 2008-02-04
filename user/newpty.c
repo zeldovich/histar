@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <inc/lib.h>
 #include <inc/jthread.h>
+#include <inc/fd.h>
 
 static int64_t child_pid;
 
@@ -71,6 +72,17 @@ main(int ac, char **av)
     term.c_oflag &= ~(ONLCR);
     term.c_lflag &= ~(ECHO | ISIG | ICANON);
     ioctl(0, TCSETS, &term);
+
+    struct Fd *fdseg_0, *fdseg_s;
+    if ((fd_lookup(0,   &fdseg_0, 0, 0) >= 0) &&
+	(fd_lookup(fds, &fdseg_s, 0, 0) >= 0) &&
+	(fdseg_s->fd_dev_id == devpts.dev_id))
+    {
+	if (fdseg_0->fd_dev_id == devcons.dev_id)
+	    fdseg_s->fd_pty.pty_cons_obj = fdseg_0->fd_cons.fbcons_seg;
+	if (fdseg_0->fd_dev_id == devpts.dev_id)
+	    fdseg_s->fd_pty.pty_cons_obj = fdseg_0->fd_pty.pty_cons_obj;
+    }
 
     fcntl(fdm, F_SETFD, FD_CLOEXEC);
     child_pid = fork();

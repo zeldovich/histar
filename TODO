@@ -36,9 +36,6 @@ Usability:
   in the page table.  page table has container entry of address space object,
   which also specifies the privilege object used to fill in the page table.
 * optimize container entry lookups by hashing containers?
-* KDSETMODE (blocking text output while in graphics mode) does not reach
-  the actual console device, since it is dropped by the pty device that
-  is inserted by newpty..
 
 HW support:
 

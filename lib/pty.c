@@ -411,7 +411,24 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     case VT_GETSTATE:
     case VT_ACTIVATE:  case VT_WAITACTIVE:
     case VT_GETMODE:   case VT_SETMODE:
+	return 0;
+
     case KDGETMODE:    case KDSETMODE:
+	if (fd->fd_pty.pty_cons_obj.object) {
+	    char pnbuf[64];
+	    sprintf(&pnbuf[0], "#%"PRIu64".%"PRIu64,
+		    fd->fd_pty.pty_cons_obj.container,
+		    fd->fd_pty.pty_cons_obj.object);
+	    int cons_fd = open(pnbuf, O_RDWR);
+	    if (cons_fd >= 0) {
+		if (req == KDGETMODE)
+		    ret = ioctl(cons_fd, KDGETMODE, va_arg(ap, int*));
+		else
+		    ret = ioctl(cons_fd, KDSETMODE, va_arg(ap, int));
+		close(cons_fd);
+		return ret;
+	    }
+	}
 	return 0;
 
     case TCGETS: {

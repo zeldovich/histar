@@ -140,6 +140,7 @@ struct Fd
 	struct {
 	    struct jcomm pty_jc;
 	    uint64_t pty_seg;
+	    struct cobj_ref pty_cons_obj; /* if connected to console */
 	} fd_pty;
 
 	struct {
