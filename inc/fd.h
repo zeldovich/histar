@@ -140,7 +140,10 @@ struct Fd
 	struct {
 	    struct jcomm pty_jc;
 	    uint64_t pty_seg;
-	    struct cobj_ref pty_cons_obj; /* if connected to console */
+
+	    /* for KDGETMODE/KDSETMODE */
+	    int64_t pty_cons_mode_req;
+	    int64_t pty_cons_mode_cur;
 	} fd_pty;
 
 	struct {

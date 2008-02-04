@@ -119,6 +119,8 @@ ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 
     fd->fd_pty.pty_jc = master_jr.jc;
     fd->fd_pty.pty_seg = pty_seg_cobj.object;
+    fd->fd_pty.pty_cons_mode_req = -1;
+    fd->fd_pty.pty_cons_mode_cur = -1;
     segment_unmap_delayed(ps, 1);
 
     /* For another thread to use the slave, it must have grant and taint.
@@ -154,6 +156,8 @@ pts_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 
     fd->fd_pty.pty_jc = ps->slave_jc;
     fd->fd_pty.pty_seg = ino.obj.object;
+    fd->fd_pty.pty_cons_mode_req = -1;
+    fd->fd_pty.pty_cons_mode_cur = -1;
     fd_set_extra_handles(fd, ps->taint, ps->grant);
 
     r = pty_addref(fd, PTY_CT);
@@ -413,23 +417,38 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     case VT_GETMODE:   case VT_SETMODE:
 	return 0;
 
-    case KDGETMODE:    case KDSETMODE:
-	if (fd->fd_pty.pty_cons_obj.object) {
-	    char pnbuf[64];
-	    sprintf(&pnbuf[0], "#%"PRIu64".%"PRIu64,
-		    fd->fd_pty.pty_cons_obj.container,
-		    fd->fd_pty.pty_cons_obj.object);
-	    int cons_fd = open(pnbuf, O_RDWR);
-	    if (cons_fd >= 0) {
-		if (req == KDGETMODE)
-		    ret = ioctl(cons_fd, KDGETMODE, va_arg(ap, int*));
-		else
-		    ret = ioctl(cons_fd, KDSETMODE, va_arg(ap, int));
-		close(cons_fd);
-		return ret;
-	    }
+    case KDGETMODE: {
+	int *modep = va_arg(ap, int*);
+	if (fd->fd_pty.pty_cons_mode_cur < 0) {
+	    __set_errno(EINVAL);
+	    return -1;
 	}
+
+	*modep = fd->fd_pty.pty_cons_mode_cur;
 	return 0;
+    }
+
+    case KDSETMODE: {
+	int mode = va_arg(ap, int);
+
+	if (fd->fd_pty.pty_cons_mode_req < 0) {
+	    __set_errno(EINVAL);
+	    return -1;
+	}
+
+	for (;;) {
+	    int64_t curval = fd->fd_pty.pty_cons_mode_cur;
+	    if (curval == mode)
+		break;
+
+	    fd->fd_pty.pty_cons_mode_req = mode;
+	    sys_sync_wakeup((uint64_t*) &fd->fd_pty.pty_cons_mode_req);
+	    sys_sync_wait((uint64_t*) &fd->fd_pty.pty_cons_mode_cur,
+			  curval, UINT64(~0));
+	}
+
+	return 0;
+    }
 
     case TCGETS: {
     	if (!fd->fd_isatty) {

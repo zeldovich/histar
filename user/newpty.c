@@ -11,6 +11,8 @@
 #include <inc/lib.h>
 #include <inc/jthread.h>
 #include <inc/fd.h>
+#include <inc/syscall.h>
+#include <linux/kd.h>
 
 static int64_t child_pid;
 
@@ -44,6 +46,23 @@ worker(void *arg)
     }
 }
 
+static void __attribute__((noreturn))
+ioctlw(void *arg)
+{
+    struct Fd *fd = (struct Fd *) arg;
+
+    for (;;) {
+	while (fd->fd_pty.pty_cons_mode_cur == fd->fd_pty.pty_cons_mode_req)
+	    sys_sync_wait((uint64_t*) &fd->fd_pty.pty_cons_mode_req,
+			  fd->fd_pty.pty_cons_mode_cur, UINT64(~0));
+
+	int64_t modereq = fd->fd_pty.pty_cons_mode_req;
+	ioctl(0, KDSETMODE, modereq);
+	fd->fd_pty.pty_cons_mode_cur = modereq;
+	sys_sync_wakeup((uint64_t*) &fd->fd_pty.pty_cons_mode_cur);
+    }
+}
+
 int
 main(int ac, char **av)
 {
@@ -73,15 +92,12 @@ main(int ac, char **av)
     term.c_lflag &= ~(ECHO | ISIG | ICANON);
     ioctl(0, TCSETS, &term);
 
-    struct Fd *fdseg_0, *fdseg_s;
-    if ((fd_lookup(0,   &fdseg_0, 0, 0) >= 0) &&
-	(fd_lookup(fds, &fdseg_s, 0, 0) >= 0) &&
-	(fdseg_s->fd_dev_id == devpts.dev_id))
+    struct Fd *slavefd;
+    if ((fd_lookup(fds, &slavefd, 0, 0) < 0) ||
+	(slavefd->fd_dev_id != devpts.dev_id))
     {
-	if (fdseg_0->fd_dev_id == devcons.dev_id)
-	    fdseg_s->fd_pty.pty_cons_obj = fdseg_0->fd_cons.fbcons_seg;
-	if (fdseg_0->fd_dev_id == devpts.dev_id)
-	    fdseg_s->fd_pty.pty_cons_obj = fdseg_0->fd_pty.pty_cons_obj;
+	fprintf(stderr, "Error looking up slave fd\n");
+	exit(-1);
     }
 
     fcntl(fdm, F_SETFD, FD_CLOEXEC);
@@ -104,6 +120,14 @@ main(int ac, char **av)
     struct cobj_ref t;
     thread_create(start_env->proc_container, &worker, &w1, &t, "w1");
     thread_create(start_env->proc_container, &worker, &w2, &t, "w2");
+
+    int curmode;
+    int r = ioctl(0, KDGETMODE, &curmode);
+    if (r >= 0) {
+	slavefd->fd_pty.pty_cons_mode_req = curmode;
+	slavefd->fd_pty.pty_cons_mode_cur = curmode;
+	thread_create(start_env->proc_container, &ioctlw, slavefd, &t, "ioctl");
+    }
 
     int wstat;
     waitpid(child_pid, &wstat, 0);

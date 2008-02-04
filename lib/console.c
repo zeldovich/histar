@@ -186,8 +186,10 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	return 0;
 
     case KDGETMODE:    case KDSETMODE: {
-	if (fd->fd_dev_id != devfbcons.dev_id)
-	    return 0;
+	if (fd->fd_dev_id != devfbcons.dev_id) {
+	    __set_errno(EINVAL);
+	    return -1;
+	}
 
 	struct fbcons_seg *fs = 0;
 	uint64_t nbytes = sizeof(*fs);
