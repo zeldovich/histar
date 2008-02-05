@@ -17,6 +17,7 @@ OBJDIRS += \
 	pkg/uclibc/libc/misc/pthread \
 	pkg/uclibc/libc/misc/statfs \
 	pkg/uclibc/libc/misc/utmp \
+	pkg/uclibc/libc/misc/sysvipc \
 	pkg/uclibc/libc/misc/file
 
 ##
@@ -78,6 +79,7 @@ LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/pthread/unlock.c \
 	pkg/uclibc/libc/misc/utmp/utent.c \
 	pkg/uclibc/libc/misc/utmp/wtent.c \
+	pkg/uclibc/libc/misc/sysvipc/ftok.c \
 	pkg/uclibc/libc/misc/file/lockf.c \
 	pkg/uclibc/libc/misc/file/lockf64.c \
 	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC)) \
