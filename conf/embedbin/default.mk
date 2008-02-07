@@ -72,7 +72,7 @@ KERN_BINFILES	+= user/urxvt user/xpdf
 KERN_BINFILES	+= user/libfreetype.so.6 user/libfontconfig.so.1
 KERN_BINFILES	+= user/fc-cache user/fc-list user/libexpat.so.1
 KERN_BINFILES	+= user/fbconsd user/fonts.tar.gz
-KERN_BINFILES	+= user/fbi user/libexif.so.12
+KERN_BINFILES	+= user/fbi user/libexif.so.12 user/libpng12.so.0
 
 ## Miscellaneous stuff: testing, benchmarking, experimental..
 KERN_BINFILES	+= user/fetch user/dnstest

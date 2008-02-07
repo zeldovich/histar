@@ -127,6 +127,7 @@ DISTURL_ghostscript-8.54-gpl := http://internap.dl.sourceforge.net/sourceforge/g
 DISTURL_fbida-2.06	    := http://dl.bytesex.org/releases/fbida/fbida-2.06.tar.gz
 DISTURL_libexif-0.6.16	    := http://easynews.dl.sourceforge.net/sourceforge/libexif/libexif-0.6.16.tar.gz
 DISTURL_jpeg-6b		    := http://www.ijg.org/files/jpegsrc.v6b.tar.gz
+DISTURL_libpng-1.2.24	    := http://download.sourceforge.net/libpng/libpng-1.2.24.tar.gz
 DISTURL_freetype-2.3.5	    := http://download.savannah.gnu.org/releases/freetype/freetype-2.3.5.tar.gz
 DISTURL_fontconfig-2.5.0    := http://fontconfig.org/release/fontconfig-2.5.0.tar.gz
 DISTURL_expat-2.0.1	    := http://internap.dl.sourceforge.net/sourceforge/expat/expat-2.0.1.tar.gz
@@ -930,6 +931,9 @@ $(OBJDIR)/acpkg/lib/libexpat.so.1: $(ACPKG_BUILDDIR)/expat-2.0.1/__build
 $(OBJDIR)/acpkg/lib/libjpeg.a: $(ACPKG_BUILDDIR)/jpeg-6b/__build
 	@
 
+$(OBJDIR)/acpkg/lib/libpng.a $(OBJDIR)/acpkg/lib/libpng12.so.0: $(ACPKG_BUILDDIR)/libpng-1.2.24/__build
+	@
+
 $(ACPKG_BUILDDIR)/freetype-2.3.5/Makefile: \
 	$(OBJDIR)/acpkg/lib/libz.so.1
 
@@ -957,6 +961,7 @@ $(OBJDIR)/acpkg/bin/fbi: $(ACPKG_BUILDDIR)/fbida-2.06/__build
 $(ACPKG_BUILDDIR)/fbida-2.06/__build: $(ACPKG_BUILDDIR)/fbida-2.06/__patch \
 		$(OBJDIR)/acpkg/lib/libexif.so.12 \
 		$(OBJDIR)/acpkg/lib/libjpeg.a \
+		$(OBJDIR)/acpkg/lib/libpng.a \
 		$(OBJDIR)/acpkg/lib/libfontconfig.so.1
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "verbose=yes prefix=$(TOP)/$(ACPKG_PREFIX) CFLAGS=-I$(TOP)/$(ACPKG_PREFIX)/include/freetype2 LDFLAGS='-Wl,-rpath-link -Wl,$(TOP)/$(ACPKG_PREFIX)/lib' $(ACENV) $(MAKE) install resdir=$(TOP)/$(ACPKG_PREFIX)/share/X11" )
 	touch $@
