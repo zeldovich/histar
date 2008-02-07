@@ -3,6 +3,7 @@ extern "C" {
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <inttypes.h>
 #include <sys/types.h>
 
 #include <inc/fbcons.h>
@@ -35,6 +36,7 @@ static FT_Face the_face;
 static uint32_t cols, rows;
 static uint32_t char_width, char_height;
 static jos_fb_mode kern_fb;
+static uint64_t borderpx;
 
 static FT_Face
 get_font(const char *name)
@@ -166,8 +168,8 @@ render(uint32_t row, uint32_t col, uint32_t c, uint8_t inverse)
 
  draw:
     for (uint32_t y = 0; y < char_height; y++)
-	sys_fb_set(((row * char_height + y) * kern_fb.vm.xres +
-		    col * char_width) * bytes_per_pixel,
+	sys_fb_set(((row * char_height + y + borderpx) * kern_fb.vm.xres +
+		    col * char_width + borderpx) * bytes_per_pixel,
 		   char_width * bytes_per_pixel,
 		   &buf[y * char_width * bytes_per_pixel]);
 
@@ -180,6 +182,33 @@ refresh(volatile uint32_t *newbuf, uint32_t *oldbuf,
 	uint32_t *oldcurx, uint32_t *oldcury,
 	uint32_t newcurx, uint32_t newcury)
 {
+    if (curredraw != *oldredraw && borderpx) {
+	uint32_t bytes_per_pixel = (kern_fb.vm.bpp + 7) / 8;
+	uint32_t buflen = bytes_per_pixel * kern_fb.vm.xres;
+	uint8_t *buf = (uint8_t *) malloc(buflen);
+	if (buf) {
+	    memset(buf, 0xff, buflen);
+
+	    for (uint32_t y = 0; y < borderpx; y++) {
+		sys_fb_set(kern_fb.vm.xres * y * bytes_per_pixel,
+			   kern_fb.vm.xres * bytes_per_pixel, buf);
+		sys_fb_set(kern_fb.vm.xres * (kern_fb.vm.yres - y - 1)
+					   * bytes_per_pixel,
+			   kern_fb.vm.xres * bytes_per_pixel, buf);
+	    }
+
+	    for (uint32_t y = 0; y < kern_fb.vm.yres; y++) {
+		sys_fb_set(kern_fb.vm.xres * y * bytes_per_pixel,
+			   borderpx * bytes_per_pixel, buf);
+		sys_fb_set((kern_fb.vm.xres * (y + 1) - borderpx) *
+			   bytes_per_pixel,
+			   borderpx * bytes_per_pixel, buf);
+	    }
+
+	    free(buf);
+	}
+    }
+
     for (uint32_t r = 0; r < rows; r++) {
 	for (uint32_t c = 0; c < cols; c++) {
 	    uint32_t i = r * cols + c;
@@ -271,11 +300,11 @@ worker(void *arg)
     fs = all_fs[worker_vt];
     memset(screenbuf, 0, rows * cols * sizeof(fs->data[0]));
 
+    jthread_mutex_lock(&fs->mu);
+
     uint32_t oldx = 0, oldy = 0;
     uint64_t updates = 0;
-    uint64_t redraw = 0;
-
-    jthread_mutex_lock(&fs->mu);
+    uint64_t redraw = fs->redraw - 1;
 
     for (;;) {
 	updates = fs->updates;
@@ -311,10 +340,8 @@ int
 main(int ac, char **av)
 try
 {
-    const char *fontname = "Monospace-16";
-
-    if (ac != 3 && ac != 4) {
-	fprintf(stderr, "Usage: %s taint grant [fontname]\n", av[0]);
+    if (ac != 5) {
+	fprintf(stderr, "Usage: %s taint grant fontname borderpixels\n", av[0]);
 	exit(-1);
     }
 
@@ -322,8 +349,8 @@ try
     error_check(strtou64(av[1], 0, 10, &taint));
     error_check(strtou64(av[2], 0, 10, &grant));
 
-    if (ac == 4)
-	fontname = av[3];
+    const char *fontname = av[3];
+    error_check(strtou64(av[4], 0, 10, &borderpx));
 
     the_face = get_font(fontname);
     if (!the_face) {
@@ -338,8 +365,13 @@ try
 
     error_check(sys_fb_get_mode(&kern_fb));
 
-    cols = kern_fb.vm.xres / char_width;
-    rows = kern_fb.vm.yres / char_height;
+    if (borderpx * 2 >= kern_fb.vm.xres || borderpx * 2 >= kern_fb.vm.yres) {
+	fprintf(stderr, "Border too large (%"PRIu64")\n", borderpx);
+	exit(-1);
+    }
+
+    cols = (kern_fb.vm.xres - borderpx * 2) / char_width;
+    rows = (kern_fb.vm.yres - borderpx * 2) / char_height;
     printf("Console size: %d x %d\n", cols, rows);
 
     label fsl(1);

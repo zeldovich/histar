@@ -484,13 +484,30 @@ init_fbcons(int basecons, int *consp, int maxvt)
 	}
     }
 
+    char borderpx[256];
+    borderpx[0] = '\0';
+
+    fs_inode consborder;
+    if (fs_namei("/etc/consborder", &consborder) >= 0) {
+	ssize_t cc = fs_pread(consborder, &borderpx[0], sizeof(borderpx), 0);
+	if (cc >= 0) {
+	    borderpx[cc] = '\0';
+
+	    char *nl = strchr(borderpx, '\n');
+	    if (nl)
+		*nl = '\0';
+	}
+    }
+
     if (!fontname[0])
 	sprintf(&fontname[0], "Monospace-20");
+    if (!borderpx[0])
+	sprintf(&borderpx[0], "0");
 
-    const char *argv[] = { "fbconsd", a0, a1, fontname };
+    const char *argv[] = { "fbconsd", a0, a1, fontname, borderpx };
     child_process cp = spawn(start_env->process_pool,
 		   ino, basecons, basecons, basecons,
-		   4, &argv[0],
+		   5, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
 		   0, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
 
