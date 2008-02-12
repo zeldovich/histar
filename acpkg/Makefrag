@@ -235,6 +235,7 @@ AUTOCONF_xpdf-3.02	    := --with-freetype2-includes=$(TOP)/$(ACPKG_PREFIX)/inclu
 AUTOCONF_libXxf86dga-1.0.2  := --disable-malloc0returnsnull
 AUTOCONF_xorg-server-1.4    := --disable-aiglx --disable-shm --disable-glx --disable-dri --disable-xinerama --disable-dga  --with-int10-backend=stub
 AUTOCONF_lesstif-0.95.0	    := --x-includes= --x-libraries=
+AUTOCONF_grep-2.5.3	    := --disable-perl-regexp
 
 ##
 ## Patches to apply to various packages
