@@ -162,6 +162,34 @@ do_fork()
      */
     scoped_jthread_lock l(&fork_mu);
 
+    /* 
+     * uas.ents will be malloc'ed in the new process.  Allocate before 
+     * jos_setjmp so the scope_guard will free it in the new process.
+     */
+    struct u_address_space uas;
+    uas.size = 32;
+    uas.ents = (u_segment_mapping *) malloc(uas.size * sizeof(uas.ents[0]));
+    if (!uas.ents)
+	throw error(-E_NO_MEM, "cannot allocate uas.ents");
+
+    scope_guard<void, u_segment_mapping **> uas_ents_free(free_indir, &uas.ents);
+    segment_unmap_flush();
+
+    struct cobj_ref cur_as;
+    error_check(sys_self_get_as(&cur_as));
+    int r = sys_as_get(cur_as, &uas);
+    while (r == -E_NO_SPACE) {
+	uas.size *= 2;
+	void *p = realloc(uas.ents, uas.size * sizeof(uas.ents[0]));
+	if (!p)
+	    throw error(-E_NO_MEM, "cannot realloc uas.ents, size %"PRIu64,
+			uas.size);
+	uas.ents = (u_segment_mapping *) p;
+
+	r = sys_as_get(cur_as, &uas);
+    }
+    error_check(r);
+
     // Prepare a setjmp buffer for the new thread, before we copy our stack!
     struct jos_jmp_buf jb;
     if (jos_setjmp(&jb) != 0) {
@@ -192,30 +220,6 @@ do_fork()
     }
 
     // Copy the address space, much like taint_cow() in lib/taint.c
-    struct u_address_space uas;
-    uas.size = 32;
-    uas.ents = (u_segment_mapping *) malloc(uas.size * sizeof(uas.ents[0]));
-    if (!uas.ents)
-	throw error(-E_NO_MEM, "cannot allocate uas.ents");
-
-    scope_guard<void, u_segment_mapping **> uas_ents_free(free_indir, &uas.ents);
-    segment_unmap_flush();
-
-    struct cobj_ref cur_as;
-    error_check(sys_self_get_as(&cur_as));
-    int r = sys_as_get(cur_as, &uas);
-    while (r == -E_NO_SPACE) {
-	uas.size *= 2;
-	void *p = realloc(uas.ents, uas.size * sizeof(uas.ents[0]));
-	if (!p)
-	    throw error(-E_NO_MEM, "cannot realloc uas.ents, size %"PRIu64,
-			uas.size);
-	uas.ents = (u_segment_mapping *) p;
-
-	r = sys_as_get(cur_as, &uas);
-    }
-    error_check(r);
-
     void *fd_base = (void *) UFDBASE;
     void *fd_end = ((char *) fd_base) + MAXFD * PGSIZE;
 
