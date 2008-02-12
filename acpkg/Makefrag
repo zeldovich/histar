@@ -285,7 +285,7 @@ ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/acpkg-wrap-gcc \
 		   $(ACPKG_WRAPDIR)/acpkg-wrap-g++
 ACPKG_CCACHE	:= $(shell ccache -V >/dev/null 2>/dev/null && echo ccache)
 
-$(ACPKG_WRAPS):
+$(ACPKG_WRAPS): | $(LDEPS)
 	@mkdir -p $(ACPKG_WRAPDIR)
 
 	( echo "#!/bin/sh"; \
