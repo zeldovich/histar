@@ -212,7 +212,7 @@ AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_clamav-0.91.2	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep --disable-strip
 AUTOCONF_ncurses-5.5	    := --without-cxx-binding --with-terminfo-dirs=/usr/share/terminfo --with-default-terminfo-dir=/usr/share/terminfo
-AUTOCONF_vim70		    := --with-tlib=ncurses
+AUTOCONF_vim70		    := --with-tlib=ncurses --disable-gui --without-x
 AUTOCONF_gmp-4.2.1	    := --enable-shared=$(SHARED_ENABLE)
 AUTOCONF_sfslite-1.0.0	    := --enable-shared=$(SHARED_ENABLE) --without-x --enable-sfsmisc
 AUTOCONF_ghostscript-8.54-gpl := --without-ijs --without-jbig2dec --without-jasper --without-x
