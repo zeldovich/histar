@@ -288,27 +288,30 @@ ACPKG_CCACHE	:= $(shell ccache -V >/dev/null 2>/dev/null && echo ccache)
 $(ACPKG_WRAPS): | $(LDEPS)
 	@mkdir -p $(ACPKG_WRAPDIR)
 
+	cp acpkg/acpkg-filter-args.pl $(ACPKG_WRAPDIR)/acpkg-filter-args.pl
+	chmod a+x $(ACPKG_WRAPDIR)/acpkg-filter-args.pl
+
 	( echo "#!/bin/sh"; \
 	  echo "PATH=$$PATH"; \
-	  echo "exec $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
+	  echo "exec perl acpkg-filter-args.pl $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
 	> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
 
 	( echo "#!/bin/sh"; \
 	  echo "PATH=$$PATH"; \
-	  echo "exec $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
+	  echo "exec perl acpkg-filter-args.pl $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
 	> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
 
 	( echo "#!/bin/sh"; \
 	  echo "PATH=$$PATH"; \
-	  echo "exec $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS) -lcprof" ) \
+	  echo "exec perl acpkg-filter-args.pl $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS) -lcprof" ) \
 	> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof
 
 	( echo "#!/bin/sh"; \
 	  echo "PATH=$$PATH"; \
-	  echo "exec $(ACPKG_CCACHE) $(CXX) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
+	  echo "exec perl acpkg-filter-args.pl $(ACPKG_CCACHE) $(CXX) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
 	> $(ACPKG_WRAPDIR)/acpkg-wrap-c++
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-c++
 
