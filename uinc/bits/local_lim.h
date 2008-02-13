@@ -5,6 +5,7 @@
 
 #define NAME_MAX	(KOBJ_NAME_LEN-1)
 #define PATH_MAX	1024
+#define ARG_MAX         131072
 
 #define CHILD_MAX	999
 
