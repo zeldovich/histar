@@ -828,6 +828,14 @@ pread(int fdnum, void *buf, size_t n, off_t off)
 {
     jos_trace("%d, %p, %zu, %zu", fdnum, buf, n, off);
 
+    return pread64(fdnum, buf, n, off);
+}
+
+ssize_t
+pread64(int fdnum, void *buf, size_t n, off64_t off)
+{
+    jos_trace("%d, %p, %zu, %zu", fdnum, buf, n, off);
+
     int64_t r;
     struct Dev *dev = 0;
     struct Fd *fd = 0;
