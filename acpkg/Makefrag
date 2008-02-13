@@ -288,6 +288,7 @@ $(ACPKG_WRAPS): | $(LDEPS)
 	@mkdir -p $(ACPKG_WRAPDIR)
 
 	ln -s /bin/false $(ACPKG_WRAPDIR)/pcre-config
+	ln -s ../acpkg/bin/freetype-config $(ACPKG_WRAPDIR)/freetype-config
 
 	cp acpkg/acpkg-filter-args.pl $(ACPKG_WRAPDIR)/acpkg-filter-args.pl
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-filter-args.pl
