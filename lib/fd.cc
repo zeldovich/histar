@@ -864,6 +864,14 @@ pwrite(int fdnum, const void *buf, size_t n, off_t off)
 {
     jos_trace("%d, %p, %zu, %zd", fdnum, buf, n, off);
 
+    return pwrite64(fdnum, buf, n, off);
+}
+
+ssize_t
+pwrite64(int fdnum, const void *buf, size_t n, off64_t off)
+{
+    jos_trace("%d, %p, %zu, %zd", fdnum, buf, n, off);
+
     int64_t r;
     struct Dev *dev = 0;
     struct Fd *fd = 0;
