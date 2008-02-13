@@ -782,7 +782,9 @@ $(OBJDIR)/user/gcc.tar: $(ACPKG_BUILDDIR)/gcc-3.4.5/__build $(ACPKG_BUILDDIR)/bi
 	rm -f $@
 
 	rm -f $(OBJDIR)/user/.tmp.gcc.tar
-	cp $(OBJDIR)/lib/crt{1,i,n}.o $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/
+	cp $(OBJDIR)/lib/crt1.o $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/
+	cp $(OBJDIR)/lib/crti.o $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/
+	cp $(OBJDIR)/lib/crtn.o $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/
 	tar -cf $(OBJDIR)/user/.tmp.gcc.tar -C $(OBJDIR)/acpkg \
 		bin/gcc bin/g++ bin/ld bin/as \
 		libexec/gcc/$(TARGET)/3.4.5/cc1 \
