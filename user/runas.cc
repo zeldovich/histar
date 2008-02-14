@@ -45,7 +45,7 @@ login(char *u, char *p)
 int
 main(int ac, char **av)
 {
-    if (ac < 3) {
+    if (ac < 4) {
 	printf("Usage: %s username password command\n", av[0]);
 	exit(-1);
     }
