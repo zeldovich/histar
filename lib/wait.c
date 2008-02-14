@@ -117,6 +117,7 @@ wait4(pid_t pid, int *statusp, int options, struct rusage *rusage)
 {
     struct wait_child *wc, *next;
     uint64_t start_counter;
+    int64_t pid_mask = UINT64(~0);
 
 again:
     start_counter = child_counter;
@@ -131,7 +132,7 @@ again:
         int64_t exit_code, exit_signal;
 	next = LIST_NEXT(wc, wc_link);
 
-	if (pid >= 0 && pid != wc->wc_pid)
+	if (pid >= 0 && pid != (wc->wc_pid & pid_mask))
 	    continue;
 
 	found_pid = 1;
@@ -225,6 +226,13 @@ again:
     if (pid >= 0 && !found_pid) {
 	cprintf("[%"PRIu64"/%"PRIu64"] wait4: %s: dud pid %"PRIu64"\n",
 		thread_id(), getpid(), jos_progname, pid);
+        if (pid_mask != 0xFFFFFFFF) {
+            pid_mask = 0xFFFFFFFF;
+            cprintf("[%"PRIu64"/%"PRIu64"] wait4: %s: retrying with 32-bit "
+                    "pid_mask %"PRIu64"\n",
+                    thread_id(), getpid(), jos_progname, pid);
+            goto again;
+        }
 	__set_errno(ECHILD);
 	return -1;
     }
