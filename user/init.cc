@@ -248,7 +248,8 @@ init_fs(int cons)
     error_check(fs_pwrite(passwd, passwd_data, strlen(passwd_data), 0));
 
     const char *group_data =
-	"root:x:0:\n";
+	"root:x:0:\n"
+	"users:x:100:\n";
     error_check(fs_pwrite(group, group_data, strlen(group_data), 0));
 
     const char *consfont_data = "Monospace-20\n";

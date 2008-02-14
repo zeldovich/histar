@@ -111,7 +111,7 @@ main(int ac, char **av)
 	pwd.pw_name = (char *) uname;
 	pwd.pw_passwd = (char *) "*";
 	pwd.pw_uid = new_uid;
-	pwd.pw_gid = 0;
+	pwd.pw_gid = 100;
 	pwd.pw_gecos = (char *) "";
 	pwd.pw_shell = (char *) "/bin/ksh";
 
