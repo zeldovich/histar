@@ -365,7 +365,6 @@ main(int ac, char **av)
     memcpy(&origterm, &term, sizeof(term));
 
     term.c_oflag |= ONLCR;
-    term.c_lflag &= ~ECHO;
     ioctl(0, TCSETS, &term);
 
     for (;;) {
