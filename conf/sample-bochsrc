@@ -8,7 +8,7 @@
 #gdbstub: enabled=1, port=1234, text_base=0, data_base=0, bss_base=0
 
 # how much memory the emulated machine will have
-megs: 32
+megs: 256
 
 # filename of ROM images
 romimage: file=$BXSHARE/BIOS-bochs-latest, address=0xf0000
