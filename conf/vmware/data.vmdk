@@ -5,7 +5,7 @@ parentCID=ffffffff
 createType="monolithicFlat"
 
 # Extent description
-RW 131072 FLAT "obj/fs/fs.img" 0
+RW 1048576 FLAT "obj/fs/fs.img" 0
 
 # The Disk Data Base 
 #DDB
