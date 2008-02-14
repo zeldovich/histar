@@ -53,7 +53,7 @@ login(char *u, char *p)
 
     setusercontext(0, pw, pw->pw_uid, LOGIN_SETALL);
 
-    const char *argv[] = { user_shell };
+    const char *argv[] = { user_shell, "-l" };
     const char *envv[] = { "TERM=vt100", "TERMINFO=/x/share/terminfo",
 			   &env_user[0], &env_home[0] };
     struct child_process shell = spawn(start_env->process_pool,
