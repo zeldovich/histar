@@ -176,3 +176,11 @@ to disk addresses 512 times the size of the actual disk.
 Partition table code truncated partition sizes to 32 bits, multiplying
 a uint32_t by a constant without casting it to uint64_t.
 
+***
+
+Overflow checking in safe_addptr() checked whether the sum was less
+than the first argument, which only worked if the pointer size is
+the same as argument size (i.e., 64-bit).  On a 32-bit platform, if
+the second argument is huge, it can still be the case that the sum,
+having overflowed, is greater than the first argument.
+
