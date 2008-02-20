@@ -33,7 +33,19 @@
 #include "netduser.h"
 
 /* copied from linux/errno.h */
+#define ERESTARTSYS	512     /* restart with a handler? */
 #define ERESTARTNOHAND  514     /* restart if no handler.. */
+
+#define RWRAP(statement)						\
+    ({									\
+	int64_t __r;							\
+	do {								\
+	    __r = statement;						\
+	    if (__r == -ERESTARTNOHAND || __r == -ERESTARTSYS)		\
+		linux_thread_flushsig();				\
+	} while (__r == -ERESTARTNOHAND || __r == -ERESTARTSYS);	\
+	__r;								\
+    })
 
 enum { dbg = 0 };
 enum { netd_do_taint = 0 };
@@ -89,7 +101,7 @@ service_slot(struct sock_slot *s, void *a)
     if (s->jos2lnx_full || s->outcnt || s->lnx2jos_full == CNT_LIMBO) {
 	r = linux_kill(s->linuxpid, SIGUSR1);
 	if (r < 0)
-	    panic("unable to kill: %d", r);
+	    debug_print(1, "unable to kill: %d", r);
     }
 }
 
@@ -127,7 +139,7 @@ netd_linux_ioctl(struct sock_slot *ss, struct netd_op_ioctl_args *a)
 	ifc.ifc_len = sizeof(buf);
 	ifc.ifc_buf = (void *) &buf[0];
 
-	if ((r = linux_ioctl(ss->sock, SIOCGIFCONF, &ifc)) < 0)
+	if ((r = RWRAP(linux_ioctl(ss->sock, SIOCGIFCONF, &ifc))) < 0)
 	    return r;
 
 	uint32_t nifs = ifc.ifc_len / sizeof(struct ifreq);
@@ -150,7 +162,7 @@ netd_linux_ioctl(struct sock_slot *ss, struct netd_op_ioctl_args *a)
 	strncpy(ifrp.ifr_name, a->gifflags.name, sizeof(ifrp.ifr_name));
 	ifrp.ifr_name[sizeof(ifrp.ifr_name) - 1] = 0;
 
-	if ((r = linux_ioctl(ss->sock, SIOCGIFFLAGS, &ifrp)) < 0)
+	if ((r = RWRAP(linux_ioctl(ss->sock, SIOCGIFFLAGS, &ifrp))) < 0)
 	    return r;
 	
 	a->gifflags.flags = ifrp.ifr_flags;
@@ -162,7 +174,7 @@ netd_linux_ioctl(struct sock_slot *ss, struct netd_op_ioctl_args *a)
 	strncpy(ifrp.ifr_name, a->gifhwaddr.name, sizeof(ifrp.ifr_name));
 	ifrp.ifr_name[sizeof(ifrp.ifr_name) - 1] = 0;
 	
-	if ((r = linux_ioctl(ss->sock, SIOCGIFHWADDR, &ifrp)) < 0)
+	if ((r = RWRAP(linux_ioctl(ss->sock, SIOCGIFHWADDR, &ifrp))) < 0)
 	    return r;
 	
 	family = ifrp.ifr_hwaddr.sa_family;
@@ -183,7 +195,7 @@ netd_linux_ioctl(struct sock_slot *ss, struct netd_op_ioctl_args *a)
 	strncpy(ifrp.ifr_name, a->gifaddr.name, sizeof(ifrp.ifr_name));
 	ifrp.ifr_name[sizeof(ifrp.ifr_name) - 1] = '\0';
 
-	if ((r = linux_ioctl(ss->sock, a->libc_ioctl, &ifrp)) < 0)
+	if ((r = RWRAP(linux_ioctl(ss->sock, a->libc_ioctl, &ifrp))) < 0)
 	    return r;
 
 	libc_to_netd((struct sockaddr_in *)&ifrp.ifr_addr, &a->gifaddr.addr);
@@ -195,7 +207,7 @@ netd_linux_ioctl(struct sock_slot *ss, struct netd_op_ioctl_args *a)
 	strncpy(ifrp.ifr_name, a->gifint.name, sizeof(ifrp.ifr_name));
 	ifrp.ifr_name[sizeof(ifrp.ifr_name) - 1] = '\0';
 
-	if ((r = linux_ioctl(ss->sock, a->libc_ioctl, &ifrp)) < 0)
+	if ((r = RWRAP(linux_ioctl(ss->sock, a->libc_ioctl, &ifrp))) < 0)
 	    return r;
 
 	a->gifint.val = ifrp.ifr_mtu;	/* all the same in a union */
@@ -203,7 +215,7 @@ netd_linux_ioctl(struct sock_slot *ss, struct netd_op_ioctl_args *a)
     }
 
     case FIONREAD: {
-        return linux_ioctl(ss->sock, FIONREAD, &a->intval) < 0;
+        return RWRAP(linux_ioctl(ss->sock, FIONREAD, &a->intval)) < 0;
     }
     default:
 	arch_printf("netd_linux_ioctl: unimplemented %d\n", a->libc_ioctl);
@@ -227,9 +239,9 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 
     switch(a->op_type) {
     case netd_op_socket:
-	r = linux_socket(a->socket.domain, 
-			 a->socket.type, 
-			 a->socket.protocol);	
+	r = RWRAP(linux_socket(a->socket.domain, 
+			       a->socket.type, 
+			       a->socket.protocol));
 	if (r >= 0) {
 	    ss->sock = r;
 	    ss->lnx2jos_full = 0;
@@ -239,7 +251,7 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 	break;
 
     case netd_op_close:
-	r = linux_close(ss->sock);
+	r = RWRAP(linux_close(ss->sock));
 	if (r < 0)
 	    arch_printf("netd_linux_dispatch: close error: %d\n", r);
 	a->rval = r;
@@ -247,11 +259,11 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 
     case netd_op_bind:
 	netd_to_libc(&a->bind.sin, &sin);
-	a->rval = linux_bind(ss->sock, (struct sockaddr *)&sin, sinlen);
+	a->rval = RWRAP(linux_bind(ss->sock, (struct sockaddr *)&sin, sinlen));
 	break;
 
     case netd_op_listen:
-	a->rval = linux_listen(ss->sock, a->listen.backlog);
+	a->rval = RWRAP(linux_listen(ss->sock, a->listen.backlog));
 	if (a->rval == 0) {
 	    ss->listen = 1;
 	    ss->lnx2jos_full = 0;
@@ -260,19 +272,19 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 
     case netd_op_connect:
 	netd_to_libc(&a->connect.sin, &sin);
-	a->rval = linux_connect(ss->sock, (struct sockaddr *)&sin, sinlen);
+	a->rval = RWRAP(linux_connect(ss->sock, (struct sockaddr *)&sin, sinlen));
 	if (a->rval == 0)
 	    ss->lnx2jos_full = 0;
 	break;
 
     case netd_op_send:
-	a->rval = linux_send(ss->sock, a->send.buf, a->send.count, a->send.flags);
+	a->rval = RWRAP(linux_send(ss->sock, a->send.buf, a->send.count, a->send.flags));
 	break;
 
     case netd_op_sendto:
 	netd_to_libc(&a->sendto.sin, &sin);
-	a->rval = linux_sendto(ss->sock, a->sendto.buf, a->sendto.count,
-			       a->sendto.flags, (struct sockaddr *)&sin, sinlen);
+	a->rval = RWRAP(linux_sendto(ss->sock, a->sendto.buf, a->sendto.count,
+			       a->sendto.flags, (struct sockaddr *)&sin, sinlen));
 	break;
 
     case netd_op_ioctl:
@@ -280,33 +292,33 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 	break;
 
     case netd_op_setsockopt:
-	a->rval = linux_setsockopt(ss->sock, a->setsockopt.level,
+	a->rval = RWRAP(linux_setsockopt(ss->sock, a->setsockopt.level,
 				   a->setsockopt.optname,
 				   a->setsockopt.optval,
-				   a->setsockopt.optlen);
+				   a->setsockopt.optlen));
 	break;
 
     case netd_op_getsockopt:
 	xlen = MIN(sizeof(a->getsockopt.optval), a->getsockopt.optlen);
-	a->rval = linux_getsockopt(ss->sock, a->getsockopt.level,
+	a->rval = RWRAP(linux_getsockopt(ss->sock, a->getsockopt.level,
 				   a->getsockopt.optname,
 				   a->getsockopt.optval,
-				   &xlen);
+				   &xlen));
 	a->getsockopt.optlen = xlen;
 	break;
 
     case netd_op_getsockname:
-	a->rval = linux_getsockname(ss->sock, (struct sockaddr *) &sin, &sinlen);
+	a->rval = RWRAP(linux_getsockname(ss->sock, (struct sockaddr *) &sin, &sinlen));
 	libc_to_netd(&sin, &a->getsockname.sin);
 	break;
 
     case netd_op_getpeername:
-	a->rval = linux_getpeername(ss->sock, (struct sockaddr *) &sin, &sinlen);
+	a->rval = RWRAP(linux_getpeername(ss->sock, (struct sockaddr *) &sin, &sinlen));
 	libc_to_netd(&sin, &a->getpeername.sin);
 	break;
 
     case netd_op_shutdown:
-	a->rval = linux_shutdown(ss->sock, a->shutdown.how);
+	a->rval = RWRAP(linux_shutdown(ss->sock, a->shutdown.how));
 	break;
 
     default:
@@ -337,7 +349,7 @@ linux_wait_for(struct sock_slot *ss)
     }
     debug_print(dbg, "(l%ld) wait_for: %d", ss->linuxpid, r);
 
-    if (r == -ERESTARTNOHAND) {
+    if (r == -ERESTARTNOHAND || r == -ERESTARTSYS) {
 	linux_thread_flushsig();
 
 	/*
@@ -364,7 +376,8 @@ linux_handle_socket(struct sock_slot *ss)
 	int addrlen = sizeof(sin);
 
 	debug_print(dbg, "(l%ld) accepting conn", ss->linuxpid);
-	r = linux_accept(ss->sock, (struct sockaddr *)&sin, &addrlen);
+
+	r = RWRAP(linux_accept(ss->sock, (struct sockaddr *)&sin, &addrlen));
 	if (r < 0) {
 	    ss->lnx2jos_buf.op_type = jos64_op_shutdown;
 	    ss->lnx2jos_full = 1;
@@ -395,10 +408,11 @@ linux_handle_socket(struct sock_slot *ss)
 	struct sockaddr_in sin;
 	int fromlen = sizeof(sin);
 
-	r = linux_recvfrom(ss->sock,
-			   ss->lnx2jos_buf.recv.buf,
-			   sizeof(ss->lnx2jos_buf.recv.buf),
-			   0, (struct sockaddr *) &sin, &fromlen);
+	r = RWRAP(linux_recvfrom(ss->sock,
+				 ss->lnx2jos_buf.recv.buf,
+				 sizeof(ss->lnx2jos_buf.recv.buf),
+				 0, (struct sockaddr *) &sin, &fromlen));
+
 	if (r == -ENOTCONN) {
 	    ss->lnx2jos_full = CNT_LIMBO;
 	    return;
@@ -441,16 +455,27 @@ linux_socket_thread(void *a)
     ss->linuxpid = linux_getpid();
     sys_sync_wakeup(&ss->linuxpid);
     debug_print(dbg, "(l%ld) starting", ss->linuxpid);
+
+    int did_something = 0;
     for (;;) {
 	netd_op_t op;
 
-	r = linux_wait_for(ss);
+	if (did_something)
+	    r = -1;
+	else
+	    r = linux_wait_for(ss);
 
-	if (r >= 0)
+	did_something = 0;
+
+	if (r >= 0) {
+	    did_something = 1;
 	    linux_handle_socket(ss);
+	}
 
 	if (ss->outcnt) {
-	    r = linux_write(ss->sock, ss->outbuf, ss->outcnt);
+	    did_something = 1;
+	    r = RWRAP(linux_write(ss->sock, ss->outbuf, ss->outcnt));
+
 	    if (r == ss->outcnt) {
 		ss->outcnt = 0;
 		sys_sync_wakeup(&ss->outcnt);
@@ -461,6 +486,7 @@ linux_socket_thread(void *a)
 	}
 
 	if (ss->jos2lnx_full) {
+	    did_something = 1;
 	    op = ss->jos2lnx_buf.op_type;
 	    if (op == netd_op_close && ss->outcnt) {
 		ss->lnx2jos_full = 0;
