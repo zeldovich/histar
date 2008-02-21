@@ -373,6 +373,8 @@ try
     struct stat st;
     error_check(fstat(fd, &st));
 
+#define LOG_PAGES 1000
+#define RESERVED_PAGES LOG_OFFSET+LOG_PAGES
     int n_sectors = st.st_size / 512;
     if (n_sectors * 512 < RESERVED_PAGES * 4096) {
 	printf("Disk too small, need at least %d bytes\n", RESERVED_PAGES*4096);
@@ -382,7 +384,7 @@ try
     disk_init(fd, n_sectors * 512);
 
     // Try to do something..
-    log_init();
+    log_init(LOG_PAGES);
     btree_manager_init();
     freelist_init(&freelist, RESERVED_PAGES * 4096, n_sectors * 512 - RESERVED_PAGES * 4096);
 

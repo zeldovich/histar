@@ -1,14 +1,10 @@
 #include <test/josenv.hh>
 #include <stdio.h>
 #include <stdlib.h>
-
-extern "C" {
-#include <kern/lib.h>
-}
-
+#include <stdarg.h>
 #include <inc/error.hh>
 
-void
+extern "C" void
 _panic(const char *file, int line, const char *fmt, ...)
 {
     va_list ap;
@@ -21,7 +17,7 @@ _panic(const char *file, int line, const char *fmt, ...)
     throw basic_exception("kernel panic: %s:%d: %s", file, line, &buf[0]);
 }
 
-int
+extern "C" int
 cprintf(const char *fmt, ...)
 {
     va_list ap;
