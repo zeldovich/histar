@@ -6,6 +6,7 @@ ifeq ($(SHARED_ENABLE),yes)
 KERN_BINFILES	+= user/ld.so user/libm.so user/libutil.so user/libdl.so
 KERN_BINFILES	+= user/libcrypt.so user/libintl.so user/libgcc_wrap.so
 KERN_BINFILES	+= user/libz.so.1
+KERN_BINFILES	+= user/libncurses.so.5
 KERN_BINFILES	+= user/ldd user/ldconfig
 endif
 
@@ -37,6 +38,7 @@ KERN_BINFILES	+= user/rmdir user/diff user/reset user/hostname user/id
 KERN_BINFILES	+= user/less user/dd user/ed user/patch user/comm user/wc
 KERN_BINFILES	+= user/seq user/fgrep user/date user/tee user/pwd
 KERN_BINFILES	+= user/bzip2 user/bunzip2 user/cmp user/cut user/true
+KERN_BINFILES	+= user/install user/expr user/zcat
 KERN_BINFILES	+= user/terminfo.tar.gz
 
 ## Networking tools
