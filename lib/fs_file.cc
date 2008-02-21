@@ -17,7 +17,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
-ssize_t
+int64_t
 fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
 {
     uint64_t cursize;
@@ -45,7 +45,7 @@ fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
     return count;
 }
 
-ssize_t
+int64_t
 fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off)
 {
     char *map = 0;

@@ -80,8 +80,8 @@ int  fs_remove(struct fs_inode dir, const char *fn, struct fs_inode f);
 int  fs_link(struct fs_inode dir, const char *fn, struct fs_inode f, int remove_old);
 int  fs_mknod(struct fs_inode dir, const char *fn, uint32_t dev_id, uint32_t dev_opt, struct fs_inode *ino, struct ulabel *l);
 
-ssize_t fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off);
-ssize_t fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off);
+int64_t fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off);
+int64_t fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off);
 int  fs_resize(struct fs_inode f, uint64_t len);
 int  fs_getsize(struct fs_inode f, uint64_t *len);
 

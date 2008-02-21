@@ -8,7 +8,6 @@
 #include <inc/fs.h>
 #include <inc/intmacro.h>
 #include <inc/gateparam.h>
-#include <inc/pty.h>
 
 #define NSEC_PER_SECOND		UINT64(1000000000)
 
