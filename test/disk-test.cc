@@ -374,7 +374,7 @@ try
     error_check(fstat(fd, &st));
 
 #define LOG_PAGES 1000
-#define RESERVED_PAGES LOG_OFFSET+LOG_PAGES
+#define RESERVED_PAGES (LOG_OFFSET+LOG_PAGES)
     int n_sectors = st.st_size / 512;
     if (n_sectors * 512 < RESERVED_PAGES * 4096) {
 	printf("Disk too small, need at least %d bytes\n", RESERVED_PAGES*4096);
