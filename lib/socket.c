@@ -12,7 +12,7 @@ libc_hidden_proto(socket)
 int
 socket(int domain, int type, int protocol)
 {
-    jos_trace("%d, %d, %d");
+    jos_trace("%d, %d, %d", domain, type, protocol);
     switch(domain) {
     case PF_INET:
 	return netd_socket(domain, type, protocol);
@@ -29,7 +29,7 @@ socket(int domain, int type, int protocol)
 int
 socketpair(int domain, int type, int protocol, int sv[2])
 {
-    jos_trace("%d, %d, %d, %p");
+    jos_trace("%d, %d, %d, %p", domain, type, protocol, sv);
     // fudge the socketpair
     return bipipe(type, sv);
 }
