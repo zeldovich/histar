@@ -10,6 +10,7 @@ extern "C" {
 
 static int disk_fd = -1;
 static int disk_nbytes;
+struct part_desc *pstate_part;
 
 void
 disk_init(int fd, int nbytes)
@@ -18,8 +19,11 @@ disk_init(int fd, int nbytes)
     disk_nbytes = nbytes;
 }
 
+// XXX Setup and use pstate_part eventually so full disk images
+// can be used directly
 disk_io_status
-stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
+stackwrap_disk_io(disk_op op, struct part_desc *pd, 
+          void *buf, uint32_t count, uint64_t offset)
 {
     assert((count % 512) == 0);
     assert((offset % 512) == 0);
