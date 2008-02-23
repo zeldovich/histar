@@ -344,12 +344,22 @@ static void
 free_embed(void)
 {
     for (int i = 0; embed_bins[i].name; i++) {
+	for (int j = 0; j < i; j++) {
+	    if (!strcmp(embed_bins[i].name, embed_bins[j].name)) {
+		cprintf("Duplicate embedded binary: %s\n", embed_bins[i].name);
+		goto skip;
+	    }
+	}
+
 	void *buf_start = (void *) embed_bins[i].buf;
 	void *buf_end = buf_start + embed_bins[i].size;
 
 	for (void *b = ROUNDUP(buf_start, PGSIZE);
 	     b + PGSIZE <= buf_end; b += PGSIZE)
 	    page_free(pa2kva(kva2pa(b)));
+
+ skip:
+	;
     }
 }
 

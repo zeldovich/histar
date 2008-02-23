@@ -38,7 +38,7 @@ KERN_BINFILES	+= user/rmdir user/diff user/reset user/hostname user/id
 KERN_BINFILES	+= user/less user/dd user/ed user/patch user/comm user/wc
 KERN_BINFILES	+= user/seq user/fgrep user/date user/tee user/pwd
 KERN_BINFILES	+= user/bzip2 user/bunzip2 user/cmp user/cut user/true
-KERN_BINFILES	+= user/install user/expr user/zcat
+KERN_BINFILES	+= user/install user/zcat
 KERN_BINFILES	+= user/terminfo.tar.gz
 
 ## Networking tools
