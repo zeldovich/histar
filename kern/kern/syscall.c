@@ -200,10 +200,17 @@ sys_machine_reboot(void)
     const struct kobject *root_ct;
     check(kobject_get(user_root_ct, &root_ct, kobj_container, iflow_rw));
 
+    struct Trapframe tf = cur_thread->th_tf;
     thread_arch_rebooting(&kobject_dirty(&cur_thread->th_ko)->th);
-    check(pstate_sync_now());
+    int r = pstate_sync_now();
+    if (r < 0) {
+	/* Roll back to the way things were... */
+	kobject_dirty(&cur_thread->th_ko)->th.th_tf = tf;
+	return r;
+    }
+
     machine_reboot();
-    return 0;
+    return -E_IO;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
