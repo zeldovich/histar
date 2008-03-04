@@ -20,7 +20,7 @@ libc_hidden_proto(mprotect)
 void *
 mmap64(void *start, size_t length, int prot, int flags, int fd, __off64_t offset)
 {
-    jos_trace("%p, %zu, %x, %x, %d, %zu", start, length, prot, flags, fd,
+    jos_trace("%p, %zu, 0x%x, 0x%x, %d, %zu", start, length, prot, flags, fd,
               offset);
 
     return mmap(start, length, prot, flags, fd, offset);
@@ -29,7 +29,7 @@ mmap64(void *start, size_t length, int prot, int flags, int fd, __off64_t offset
 void *
 mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 {
-    jos_trace("%p, %zu, %x, %x, %d, %zu", start, length, prot, flags, fdnum,
+    jos_trace("%p, %zu, 0x%x, 0x%x, %d, %zu", start, length, prot, flags, fdnum,
               offset);
 
     if (!(flags & MAP_ANONYMOUS)) {
@@ -198,7 +198,7 @@ munmap(void *start, size_t length)
 void *
 mremap(void *old_address, size_t old_size, size_t new_size, int flags, ...)
 {
-    jos_trace("%p, %zu, %zu, %x ...", old_address, old_size, new_size, flags);
+    jos_trace("%p, %zu, %zu, 0x%x ...", old_address, old_size, new_size, flags);
 
     __set_errno(ENOMEM);
     return MAP_FAILED;
@@ -207,7 +207,7 @@ mremap(void *old_address, size_t old_size, size_t new_size, int flags, ...)
 int
 msync(void *start, size_t length, int flags)
 {
-    jos_trace("%p, %zu, %x", start, length, flags);
+    jos_trace("%p, %zu, 0x%x", start, length, flags);
 
     set_enosys();
     return -1;
@@ -216,7 +216,7 @@ msync(void *start, size_t length, int flags)
 int
 mprotect(void *addr, size_t len, int prot)
 {
-    jos_trace("%p, %zu, %x", addr, len, prot);
+    jos_trace("%p, %zu, 0x%x", addr, len, prot);
 
     struct u_segment_mapping usm;
     int r = segment_lookup(addr, &usm);
@@ -264,7 +264,7 @@ munlock(const void *addr, size_t len)
 int
 mlockall(int flags)
 {
-    jos_trace("%x", flags);
+    jos_trace("0x%x", flags);
 
     set_enosys();
     return -1;
