@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <sys/mman.h>
+#include <inc/debug.h>
 
 #include <bits/unimpl.h>
 
@@ -19,12 +20,18 @@ libc_hidden_proto(mprotect)
 void *
 mmap64(void *start, size_t length, int prot, int flags, int fd, __off64_t offset)
 {
+    jos_trace("%p, %zu, %x, %x, %d, %zu", start, length, prot, flags, fd,
+              offset);
+
     return mmap(start, length, prot, flags, fd, offset);
 }
 
 void *
 mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 {
+    jos_trace("%p, %zu, %x, %x, %d, %zu", start, length, prot, flags, fdnum,
+              offset);
+
     if (!(flags & MAP_ANONYMOUS)) {
 	struct Fd *fd;
 	int r = fd_lookup(fdnum, &fd, 0, 0);
@@ -102,6 +109,8 @@ mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 int
 munmap(void *start, size_t length)
 {
+    jos_trace("%p, %zu", start, length);
+
     if (PGOFF(start)) {
 	cprintf("munmap: unaligned unmap, va %p, length %zu\n", start, length);
 	__set_errno(EINVAL);
@@ -189,6 +198,8 @@ munmap(void *start, size_t length)
 void *
 mremap(void *old_address, size_t old_size, size_t new_size, int flags, ...)
 {
+    jos_trace("%p, %zu, %zu, %x ...", old_address, old_size, new_size, flags);
+
     __set_errno(ENOMEM);
     return MAP_FAILED;
 }
@@ -196,6 +207,8 @@ mremap(void *old_address, size_t old_size, size_t new_size, int flags, ...)
 int
 msync(void *start, size_t length, int flags)
 {
+    jos_trace("%p, %zu, %x", start, length, flags);
+
     set_enosys();
     return -1;
 }
@@ -203,6 +216,8 @@ msync(void *start, size_t length, int flags)
 int
 mprotect(void *addr, size_t len, int prot)
 {
+    jos_trace("%p, %zu, %x", addr, len, prot);
+
     struct u_segment_mapping usm;
     int r = segment_lookup(addr, &usm);
     if (r <= 0) {
@@ -231,6 +246,8 @@ mprotect(void *addr, size_t len, int prot)
 int
 mlock(const void *addr, size_t len)
 {
+    jos_trace("%p, %zu", addr, len);
+
     set_enosys();
     return -1;
 }
@@ -238,6 +255,8 @@ mlock(const void *addr, size_t len)
 int
 munlock(const void *addr, size_t len)
 {
+    jos_trace("%p, %zu", addr, len);
+
     set_enosys();
     return -1;
 }
@@ -245,6 +264,8 @@ munlock(const void *addr, size_t len)
 int
 mlockall(int flags)
 {
+    jos_trace("%x", flags);
+
     set_enosys();
     return -1;
 }
@@ -252,6 +273,8 @@ mlockall(int flags)
 int
 munlockall(void)
 {
+    jos_trace("");
+
     set_enosys();
     return -1;
 }
