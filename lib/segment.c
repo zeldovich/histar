@@ -648,8 +648,64 @@ retry:
 		match_segslot == cache_uas.nent)
 	    {
 		match_segslot = i;
+            } else if (map_opts & SEG_MAPOPT_REPLACE) {
+                // replacing with a segment that isn't the same size
+                // so this conflicting entry must be broken up
+                if (map_start <= ent_start && map_end >= ent_end) {
+                    // nothing needs to happen in this case
+                    // new entry is wider than old
+                    cache_uas.ents[i].flags = 0;
+                    r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
+                    if (r < 0) {
+                        cprintf("segment_map: VA %p--%p busy from %p--%p, "
+                                "couldn't unmap\n",
+                                map_start, map_end, ent_start, ent_end);
+                        cache_invalidate();
+                        as_mutex_unlock(lockold);
+                        return r;
+                    }
+                } else {
+                    // one or two regions of the old mapping need to be
+                    // reinserted into the AS
+                    size_t length;
+                    if (map_end < ent_end) {
+                        length = ent_end - map_end;
+                        // This is safe because of the forced grow
+                        // earlier that ensured we have at least 2 free slots
+                        cache_uas.ents[cache_uas.nent] = cache_uas.ents[i];
+                        cache_uas.ents[cache_uas.nent].start_page -= 
+                                                            length / PGSIZE;
+                        cache_uas.ents[cache_uas.nent].num_pages =
+                                                            length / PGSIZE;
+                        r = sys_as_set_slot(as_ref,
+                                            &cache_uas.ents[cache_uas.nent]);
+                        if (r < 0) {
+                            cprintf("segment_map: VA %p--%p busy from %p--%p, "
+                                    "couldn't append back frag ent\n",
+                                    map_start, map_end, ent_start, ent_end);
+                            cache_invalidate();
+                            as_mutex_unlock(lockold);
+                            return r;
+                        }
+                        cache_uas.nent++;
+                    }
+                    if (map_start > ent_start) {
+                        length = map_start - ent_start;
+                        cache_uas.ents[i].num_pages = length / PGSIZE;
+                        r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
+                        if (r < 0) {
+                            cprintf("segment_map: VA %p--%p busy from %p--%p, "
+                                    "couldn't resize front frag ent\n",
+                                    map_start, map_end, ent_start, ent_end);
+                            cache_invalidate();
+                            as_mutex_unlock(lockold);
+                            return r;
+                        }
+                    }
+                }
 	    } else {
-		cprintf("segment_map: VA %p--%p busy\n", map_start, map_end);
+		cprintf("segment_map: VA %p--%p busy from %p--%p\n",
+                        map_start, map_end, ent_start, ent_end);
 		cache_invalidate();
 		as_mutex_unlock(lockold);
 		return -E_BUSY;
