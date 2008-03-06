@@ -213,28 +213,36 @@ segment_as_invalidate_nowb(uint64_t asid)
     as_mutex_unlock(l);
 }
 
+static void
+segment_map_print_slot(struct u_address_space *as, uint64_t i, int64_t no_head)
+{
+    if (i >= as->nent || as->ents[i].flags == 0)
+        return;
+
+    char name[KOBJ_NAME_LEN];
+    name[0] = '\0';
+    sys_obj_get_name(as->ents[i].segment, &name[0]);
+
+    if (!no_head)
+        cprintf("slot  kslot  segment  start  npages  fl  va\n");
+    cprintf("%4"PRId64"  %5d  %3"PRId64".%-3"PRId64"  "
+            "%5"PRId64"  %6"PRId64"  %02x  %p--%p (%s)\n",
+            i, as->ents[i].kslot,
+            as->ents[i].segment.container,
+            as->ents[i].segment.object,
+            as->ents[i].start_page,
+            as->ents[i].num_pages,
+            as->ents[i].flags,
+            as->ents[i].va,
+            as->ents[i].va + as->ents[i].num_pages * PGSIZE,
+            name);
+}
+
 void
 segment_map_print(struct u_address_space *as)
 {
-    cprintf("slot  kslot  segment  start  npages  fl  va\n");
-    for (uint64_t i = 0; i < as->nent; i++) {
-	char name[KOBJ_NAME_LEN];
-	name[0] = '\0';
-	sys_obj_get_name(as->ents[i].segment, &name[0]);
-
-	if (as->ents[i].flags == 0)
-	    continue;
-	cprintf("%4"PRId64"  %5d  %3"PRId64".%-3"PRId64"  "
-		"%5"PRId64"  %6"PRId64"  %02x  %p (%s)\n",
-		i, as->ents[i].kslot,
-		as->ents[i].segment.container,
-		as->ents[i].segment.object,
-		as->ents[i].start_page,
-		as->ents[i].num_pages,
-		as->ents[i].flags,
-		as->ents[i].va,
-		name);
-    }
+    for (uint64_t i = 0; i < as->nent; i++)
+        segment_map_print_slot(as, i, i);
 }
 
 void
@@ -654,17 +662,12 @@ retry:
                 if (map_start <= ent_start && map_end >= ent_end) {
                     // nothing needs to happen in this case
                     // new entry is wider than old
-                    cache_uas.ents[i].flags = 0;
-                    r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
-                    if (r < 0) {
-                        cprintf("segment_map: VA %p--%p busy from %p--%p, "
-                                "couldn't unmap\n",
-                                map_start, map_end, ent_start, ent_end);
-                        cache_invalidate();
-                        as_mutex_unlock(lockold);
-                        return r;
-                    }
+                    // and will entirely replace it
                 } else {
+                    if (segment_debug)
+                        cprintf("segment_map: VA %p--%p busy from %p--%p, "
+                                "splitting up\n",
+                                map_start, map_end, ent_start, ent_end);
                     // one or two regions of the old mapping need to be
                     // reinserted into the AS
                     size_t length;
@@ -673,11 +676,12 @@ retry:
                         // This is safe because of the forced grow
                         // earlier that ensured we have at least 2 free slots
                         cache_uas.ents[cache_uas.nent] = cache_uas.ents[i];
+                        cache_uas.ents[cache_uas.nent].va = map_end;
                         cache_uas.ents[cache_uas.nent].start_page +=
-                                    cache_uas.ents[cache_uas.nent].num_pages - 
-                                        (length / PGSIZE);
+                                        (map_end - ent_start) / PGSIZE;
                         cache_uas.ents[cache_uas.nent].num_pages =
                                                             length / PGSIZE;
+                        cache_uas.ents[cache_uas.nent].kslot = cache_uas.nent;
                         r = sys_as_set_slot(as_ref,
                                             &cache_uas.ents[cache_uas.nent]);
                         if (r < 0) {
@@ -692,8 +696,12 @@ retry:
                     }
                     if (map_start > ent_start) {
                         length = map_start - ent_start;
-                        cache_uas.ents[i].num_pages = length / PGSIZE;
-                        r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
+                        cache_uas.ents[cache_uas.nent] = cache_uas.ents[i];
+                        cache_uas.ents[cache_uas.nent].num_pages =
+                                                                length / PGSIZE;
+                        cache_uas.ents[cache_uas.nent].kslot = cache_uas.nent;
+                        r = sys_as_set_slot(as_ref,
+                                            &cache_uas.ents[cache_uas.nent]);
                         if (r < 0) {
                             cprintf("segment_map: VA %p--%p busy from %p--%p, "
                                     "couldn't resize front frag ent\n",
@@ -702,8 +710,11 @@ retry:
                             as_mutex_unlock(lockold);
                             return r;
                         }
+                        cache_uas.nent++;
                     }
                 }
+                // following code should replace this entry with new one
+                match_segslot = i;
 	    } else {
 		cprintf("segment_map: VA %p--%p busy from %p--%p\n",
                         map_start, map_end, ent_start, ent_end);
