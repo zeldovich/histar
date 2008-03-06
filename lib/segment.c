@@ -673,8 +673,9 @@ retry:
                         // This is safe because of the forced grow
                         // earlier that ensured we have at least 2 free slots
                         cache_uas.ents[cache_uas.nent] = cache_uas.ents[i];
-                        cache_uas.ents[cache_uas.nent].start_page -= 
-                                                            length / PGSIZE;
+                        cache_uas.ents[cache_uas.nent].start_page +=
+                                    cache_uas.ents[cache_uas.nent].num_pages - 
+                                        (length / PGSIZE);
                         cache_uas.ents[cache_uas.nent].num_pages =
                                                             length / PGSIZE;
                         r = sys_as_set_slot(as_ref,
