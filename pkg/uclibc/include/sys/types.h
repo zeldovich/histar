@@ -150,7 +150,9 @@ typedef __suseconds_t suseconds_t;
 /* Old compatibility names for C types.  */
 typedef unsigned long int ulong;
 typedef unsigned short int ushort;
+#ifndef __X86EMU_TYPES_H
 typedef unsigned int uint;
+#endif
 #endif
 
 /* These size-specific names are used by some of the inet code.  */
