@@ -49,7 +49,10 @@
 #define FALSE 0
 #endif
 
-#include <linux/types.h>
+// XXX Commented this out for use on HiStar, HiStar's types.h should get most
+//     of what's needed, if not it's probably best to adjust HiStar's types
+//     rather than copying in Linux's
+//#include <linux/types.h>
 #include <asm/types.h>
 
 struct agp_version {
