@@ -117,12 +117,20 @@ fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de,
 	}
 
 	if (p->dot_pos == 2) {
-	    int64_t parent_id = sys_container_get_parent(s->dir.obj.object);
-	    if (parent_id >= 0) {
-		sprintf(&de->de_name[0], "..");
-		de->de_inode.obj = COBJ(parent_id, parent_id);
+	    sprintf(&de->de_name[0], "..");
+
+	    if (s->dir.obj.object == start_env->root_container) {
+		de->de_inode.obj = start_env->fs_root.obj;
 		return 1;
 	    }
+
+	    int64_t parent_id = sys_container_get_parent(s->dir.obj.object);
+	    if (parent_id >= 0)
+		de->de_inode.obj = COBJ(parent_id, parent_id);
+	    else
+		de->de_inode.obj = s->dir.obj;
+
+	    return 1;
 	}
     }
 
@@ -183,10 +191,16 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o,
     }
 
     if (!strcmp(fn, "..")) {
+	if (dir.obj.object == start_env->root_container) {
+	    o->obj = start_env->fs_root.obj;
+	    return 0;
+	}
+    
 	int64_t parent_id = sys_container_get_parent(dir.obj.object);
 	if (parent_id < 0)
-	    return parent_id;
-	o->obj = COBJ(parent_id, parent_id);
+	    o->obj = dir.obj;
+	else
+	    o->obj = COBJ(parent_id, parent_id);
 	return 0;
     }
 
