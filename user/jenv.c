@@ -24,6 +24,6 @@ main(int ac, char **av)
     PRINT_OBJ(time_seg);
     PRINT_OBJ(fs_mtab_seg);
 
-    PRINT_32(ruid);
-    PRINT_32(euid);
+    PRINT_32(uid);
+    PRINT_32(gid);
 }
