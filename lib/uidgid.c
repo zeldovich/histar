@@ -18,41 +18,38 @@ libc_hidden_proto(setgroups)
 uid_t
 getuid()
 {
-    return start_env->ruid;
+    return start_env->uid;
 }
 
 gid_t
 getgid()
 {
-    return 0;
+    return start_env->gid;
 }
 
 uid_t
 geteuid()
 {
-    return start_env->euid;
+    return start_env->uid;
 }
 
 gid_t
 getegid()
 {
-    return 0;
+    return start_env->gid;
 }
 
 int
 setuid(uid_t uid)
 {
-    if (start_env->euid == 0)
-	start_env->ruid = uid;
-
-    start_env->euid = uid;
+    start_env->uid = uid;
     return 0;
 }
 
 int
 seteuid(uid_t uid)
 {
-    start_env->euid = uid;
+    start_env->uid = uid;
     return 0;
 }
 
@@ -71,14 +68,14 @@ setegid(gid_t gid)
 int
 setreuid(uid_t ruid, uid_t euid)
 {
-    start_env->ruid = ruid;
-    start_env->euid = euid;
+    start_env->uid = ruid;
     return 0;
 }
 
 int
 setregid(gid_t rgid, gid_t egid)
 {
+    start_env->gid = rgid;
     return 0;
 }
 

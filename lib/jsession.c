@@ -76,10 +76,11 @@ setusercontext(login_cap_t *lc, struct passwd *pwd,
 	    start_env->fs_mtab_seg = COBJ(start_env->shared_container, mtab_id);
     }
 
-    if (flags & LOGIN_SETUSER) {
-	start_env->ruid = pwd->pw_uid;
-	start_env->euid = pwd->pw_uid;
-    }
+    if (flags & LOGIN_SETUSER)
+	start_env->uid = pwd->pw_uid;
+
+    if (flags & LOGIN_SETGROUP)
+	start_env->gid = pwd->pw_gid;
 
     return 0;
 }

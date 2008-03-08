@@ -84,7 +84,7 @@ typedef struct {
     uint64_t ppid;
     char trace_on;	/* debugging */
     char jos_trace_on;	/* library call tracing, kind-of like strace */
-    int ruid, euid;
+    int uid, gid;
 
     uint64_t ctty;	/* controlling tty's pty_seg */
 
