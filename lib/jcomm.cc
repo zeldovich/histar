@@ -72,7 +72,7 @@ jlink_copyto(struct jlink *jl, const void *buf, uint64_t cnt)
 uint64_t
 jlink_read_bytes(struct jlink *jl)
 {
-    int r;
+    uint64_t r;
     jthread_mutex_lock(&jl->mu);
     r = jl->bytes;
     jthread_mutex_unlock(&jl->mu);
