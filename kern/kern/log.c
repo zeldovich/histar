@@ -250,6 +250,9 @@ log_apply_disk(uint64_t n_nodes)
     uint64_t count, n;
     offset_t off = the_log.byteoff;
 
+    /* We're rolling back to the on-disk state, discard in-memory data */
+    log_init(the_log.npages);
+
     while (n_nodes) {
 	n = JMIN(n_nodes, the_log.max_mem);
 	n_nodes -= n;
