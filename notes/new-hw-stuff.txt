@@ -1,0 +1,8 @@
+instruction to load base address for tag array, 5-bit register addr is 10000b
+32-entry, 2-way set assoc perm cache, low 4 bits are hash
+to flush, write 2 diff values for each hash value
+MMU gets disabled on tag exceptions
+new trap value
+
+need to do sta_mmuflush() after writing to the page tag table
+

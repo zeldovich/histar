@@ -17,6 +17,8 @@
 #define T_TAG_OF	0x0a	/* tag_overflow */
 #define T_WATCHPOINT	0x0b	/* watchpoint_detected */
 
+#define T_COARSE_TAG	0x0c
+
 #define T_IRQOFFSET	0x10	/* IRQ 1..15 are traps 0x11 thru 0x1f */
 
 #define T_REG_ERR	0x20	/* r_register_access_error */
