@@ -49,10 +49,12 @@ int jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe, struct wait_stat *ws
 int jcomm_addref(struct jcomm_ref jr, uint64_t ct);
 int jcomm_unref(struct jcomm_ref jr);
 
+uint64_t jcomm_read_bytes(struct jcomm_ref jr);
 int64_t jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt, int dowait);
 int64_t jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt, int dowait);
 int     jcomm_write_flush(struct jcomm_ref jr);
 
+uint64_t jlink_read_bytes(struct jlink *jl);
 int64_t jlink_read(struct jlink *jl, void *buf, uint64_t cnt, int16_t mode);
 int64_t jlink_write(struct jlink *jl, const void *buf, uint64_t cnt, int16_t mode);
 

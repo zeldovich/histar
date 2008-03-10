@@ -163,6 +163,7 @@ struct Fd
 		    
 		    /* listener state */
 		    uint16_t backlog;
+                    uint64_t backlogged;
 		    char listen;
 		    
 		    struct uds_slot slots[16];

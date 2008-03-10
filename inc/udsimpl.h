@@ -17,5 +17,6 @@ int uds_unref(struct Fd *fd);
 int uds_probe(struct Fd *fd, dev_probe_t probe);
 int uds_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat, int wslot_avail);
 int uds_shutdown(struct Fd *fd, int how);
+int uds_ioctl(struct Fd *fd, uint64_t req, va_list ap);
 
 #endif

@@ -69,6 +69,16 @@ jlink_copyto(struct jlink *jl, const void *buf, uint64_t cnt)
     memcpy(&jl->buf[0],   (char *)buf + cc1, cc2);
 }
 
+uint64_t
+jlink_read_bytes(struct jlink *jl)
+{
+    int r;
+    jthread_mutex_lock(&jl->mu);
+    r = jl->bytes;
+    jthread_mutex_unlock(&jl->mu);
+    return r;
+}
+
 int64_t
 jlink_read(struct jlink *jl, void *buf, uint64_t cnt, int16_t mode)
 {
@@ -297,6 +307,20 @@ int
 jcomm_unref(struct jcomm_ref jr)
 {
     return sys_obj_unref(JCSEG(jr));
+}
+
+uint64_t
+jcomm_read_bytes(struct jcomm_ref jr)
+{
+    struct jlink *links;
+    int r = jcomm_links_map(jr, &links);
+    if (r < 0)
+	return r;
+    scope_guard<void, void*> unmap(jcomm_links_unmap, links);
+    PF_CATCH_BLOCK;
+
+    struct jlink *jl = &links[jr.jc.chan];
+    return jlink_read_bytes(jl);
 }
 
 int64_t

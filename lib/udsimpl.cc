@@ -9,6 +9,7 @@ extern "C" {
 #include <inc/jcomm.h>
 #include <inc/labelutil.h>
 #include <inc/udsimpl.h>
+#include <inc/debug.h>
 
 #include <string.h>
 #include <fcntl.h>
@@ -131,6 +132,8 @@ uds_stream_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     sp.set_gc(false);
     
     slot->op = 1;
+    fd->fd_uds.s.backlogged++;
+    sys_sync_wakeup(&fd->fd_uds.s.backlogged);
     memcpy(&slot->jr, &a->jr, sizeof(slot->jr));
     slot->priv_gt = sp.gate();
     slot->taint = a->taint;
@@ -342,6 +345,7 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     fd_set_extra_handles(nfd, os->grant, os->taint);
     
     os->op = 2;
+    fd->fd_uds.s.backlogged--;
     sys_sync_wakeup(&os->op);
 
     return fd2num(nfd);
@@ -453,6 +457,7 @@ uds_listen(struct Fd *fd, int backlog)
 	backlog = max_slots(fd);
 
     fd->fd_uds.s.backlog = backlog;
+    fd->fd_uds.s.backlogged = 0;
     fd->fd_uds.s.listen = 1;
 
     return 0;
@@ -613,6 +618,11 @@ uds_probe(struct Fd *fd, dev_probe_t probe)
         set_enosys();
 	return -1;
     }
+
+    if (fd->fd_uds.s.listen) {
+        return !!fd->fd_uds.s.backlogged;
+    }
+
     return jcomm_probe(UDS_JCOMM(fd), probe);
 }
 
@@ -624,6 +634,13 @@ uds_statsync(struct Fd *fd, dev_probe_t probe,
         set_enosys();
 	return -1;
     }
+
+    if (fd->fd_uds.s.listen) {
+	WS_SETADDR(wstat, &fd->fd_uds.s.backlogged);
+	WS_SETVAL(wstat, 0);
+        return 1;
+    }
+
     return jcomm_multisync(UDS_JCOMM(fd), probe, wstat, wslot_avail);
 }
 
@@ -645,5 +662,25 @@ uds_shutdown(struct Fd *fd, int how)
     if (r < 0)
         cprintf("uds_shutdown: jcomm_shut error: %s\n", e2s(r));
     return r;
+}
+
+int
+uds_ioctl(struct Fd *fd, uint64_t req, va_list ap)
+{
+    switch (req) {
+    case FIONREAD: {
+	int *r = va_arg(ap, int *);
+	if (!fd->fd_uds.s.connect)
+	    return errno_val(EINVAL);
+	
+	*r = jcomm_read_bytes(UDS_JCOMM(fd));
+        return 0;
+    }
+    default:
+	fprintf(stderr, "uds_ioctl: unimplemented 0x%"PRIx64"\n", req);
+	errno = ENOSYS;
+	break;
+    }
+    return -1;
 }
 

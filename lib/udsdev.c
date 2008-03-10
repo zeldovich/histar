@@ -17,4 +17,5 @@ struct Dev devuds = {
     .dev_statsync = &uds_statsync,
     .dev_probe = &uds_probe,
     .dev_shutdown = &uds_shutdown,
+    .dev_ioctl = &uds_ioctl,
 };
