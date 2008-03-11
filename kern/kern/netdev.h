@@ -7,11 +7,6 @@
 #include <kern/kobjhdr.h>
 #include <inc/netdev.h>
 
-struct Netdev {
-    struct kobject_hdr gt_ko;
-    uint64_t nd_idx;
-};
-
 struct net_device {
     void *arg;
 

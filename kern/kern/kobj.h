@@ -12,6 +12,7 @@
 #include <kern/kocache.h>
 #include <kern/thread.h>
 #include <kern/as.h>
+#include <kern/device.h>
 #include <kern/netdev.h>
 
 #define KOBJ_DISK_SIZE	512
@@ -28,7 +29,7 @@ struct kobject_persistent {
 	struct Address_space as;
 	struct Segment sg;
 	struct Label lb;
-	struct Netdev nd;
+	struct Device dv;
     };
 };
 

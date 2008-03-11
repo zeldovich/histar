@@ -97,22 +97,22 @@ sys_cons_probe(void)
 static int64_t __attribute__ ((warn_unused_result))
 sys_fb_get_mode(struct jos_fb_mode *buf)
 {
-    if (!the_fb_dev)
+    if (!fbdevs[0])
 	return -E_NOT_FOUND;
 
     check(check_user_access(buf, sizeof(*buf), SEGMAP_WRITE));
-    memcpy(buf, &the_fb_dev->fb_mode, sizeof(*buf));
+    memcpy(buf, &fbdevs[0]->fb_mode, sizeof(*buf));
     return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
 sys_fb_set(uint64_t off, uint64_t nbytes, const uint8_t *buf)
 {
-    if (!the_fb_dev)
+    if (!fbdevs[0])
 	return -E_NOT_FOUND;
 
     check(check_user_access(buf, nbytes, 0));
-    return the_fb_dev->fb_set(the_fb_dev->fb_arg, off, nbytes, buf);
+    return fbdevs[0]->fb_set(fbdevs[0]->fb_arg, off, nbytes, buf);
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -129,7 +129,8 @@ sys_net_create(uint64_t container, uint64_t card_idx,
     struct kobject *ko;
     check(kobject_alloc(kobj_netdev, l, 0, &ko));
     check(alloc_set_name(&ko->hdr, name));
-    ko->nd.nd_idx = card_idx;
+    check(ko->dv.dv_type == device_net);
+    ko->dv.dv_idx = card_idx;
 
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));
@@ -144,10 +145,11 @@ sys_net_wait(struct cobj_ref ndref, uint64_t waiter_id, int64_t waitgen)
     const struct kobject *ko;
     check(cobj_get(ndref, kobj_netdev, &ko, iflow_rw));
 
-    if (ko->nd.nd_idx >= netdevs_num)
+    check(ko->dv.dv_type == device_net);
+    if (ko->dv.dv_idx >= netdevs_num)
 	return -E_INVAL;
 
-    struct net_device *ndev = netdevs[ko->nd.nd_idx];
+    struct net_device *ndev = netdevs[ko->dv.dv_idx];
     if (ndev == 0)
 	return -E_INVAL;
 
@@ -161,10 +163,11 @@ sys_net_buf(struct cobj_ref ndref, struct cobj_ref seg, uint64_t offset,
     const struct kobject *ko;
     check(cobj_get(ndref, kobj_netdev, &ko, iflow_rw));
 
-    if (ko->nd.nd_idx >= netdevs_num)
+    check(ko->dv.dv_type == device_net);
+    if (ko->dv.dv_idx >= netdevs_num)
 	return -E_INVAL;
 
-    struct net_device *ndev = netdevs[ko->nd.nd_idx];
+    struct net_device *ndev = netdevs[ko->dv.dv_idx];
     if (ndev == 0)
 	return -E_INVAL;
 
@@ -182,10 +185,11 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
     const struct kobject *ko;
     check(cobj_get(ndref, kobj_netdev, &ko, iflow_read));
 
-    if (ko->nd.nd_idx >= netdevs_num)
+    check(ko->dv.dv_type == device_net);
+    if (ko->dv.dv_idx >= netdevs_num)
 	return -E_INVAL;
 
-    struct net_device *ndev = netdevs[ko->nd.nd_idx];
+    struct net_device *ndev = netdevs[ko->dv.dv_idx];
     if (ndev == 0)
 	return -E_INVAL;
 

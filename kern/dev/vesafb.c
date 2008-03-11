@@ -12,7 +12,7 @@ struct vesafb_dev {
     uint8_t *fb_base;
     uint64_t fb_size;
 
-    struct fb_dev fbdev;
+    struct fb_device fbdev;
 };
 
 static int
@@ -44,5 +44,5 @@ vesafb_init(struct vbe_control_info *ctl_info,
     vfb.fbdev.fb_set = &vesafb_set;
     memcpy(&vfb.fbdev.fb_mode.vm, &vfb.mode_info, sizeof(vfb.fbdev.fb_mode.vm));
 
-    the_fb_dev = &vfb.fbdev;
+    fbdev_register(&vfb.fbdev);
 }
