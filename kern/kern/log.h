@@ -5,7 +5,7 @@
 #include <machine/types.h>
 
 // max pages for log buffer
-#define LOG_MEMORY          100
+#define LOG_MEMORY	1024
 
 int log_write(struct btree_node *node)
     __attribute__ ((warn_unused_result));
