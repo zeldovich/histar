@@ -229,7 +229,8 @@ log_flush(void)
     int r;
 
     if (the_log.npages <= the_log.in_mem + the_log.on_disk + 1)
-	panic("log_flush: out of log space");
+	panic("log_flush: out of log space: %"PRIu64" %"PRIu64" %"PRIu64,
+	      the_log.in_mem, the_log.on_disk, the_log.npages);
 
     uint64_t count;
     uint64_t off = the_log.byteoff + the_log.on_disk * PGSIZE;
