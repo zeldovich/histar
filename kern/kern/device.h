@@ -1,3 +1,6 @@
+#ifndef JOS_KERN_DEVICE_H
+#define JOS_KERN_DEVICE_H
+
 #include <kern/kobjhdr.h>
 
 typedef enum {
@@ -11,4 +14,4 @@ struct Device {
     uint64_t dv_idx;
 };
 
-
+#endif
