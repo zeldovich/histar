@@ -24,7 +24,7 @@ extern "C" {
 #include <inc/error.hh>
 
 enum { iterations = 100000 };
-enum { num_keys = 10000 };
+enum { num_keys = 100000 };
 enum { max_repeats = 100 };
 enum { logging = 0 };
 
@@ -47,12 +47,15 @@ enum { logging = 0 };
 struct freelist freelist;
 
 // Some magic values for checking
-static uint64_t magic1 = 0xdeadbeef00c0ffeeUL;
-static uint64_t magic2 = 0xc0c0d0d0a0a0e0e0UL;
+static uint64_t magic1 = UINT64(0xdeadbeef00c0ffee);
+static uint64_t magic2 = UINT64(0xc0c0d0d0a0a0e0e0);
 
 static char key_exists[num_keys];
 static uint64_t log_size;
 static uint64_t cur_iter;
+
+// Forward decls
+static void do_apply_disk(void);
 
 static void
 do_insert(void)
@@ -70,6 +73,33 @@ do_insert(void)
     } else {
 	key_exists[rnd] = 1;
     }
+}
+
+static void
+do_insert_burst(void)
+{
+    do_apply_disk();
+
+    if (logging)
+	printf("insert burst\n");
+
+    int rnd = x_rand() % 2;
+    for (int i = 0; i < num_keys; i++) {
+	if (i % 2 != rnd)
+	    continue;
+
+	uint64_t key = x_encrypt(i);
+	uint64_t val[2] = { x_hash(key, magic1), x_hash(key, magic2) };
+
+	int r = btree_insert(BTREE_OBJMAP, &key, &val[0]);
+	if (key_exists[i]) {
+	    should_be(r, -E_INVAL, "insert existing key");
+	} else {
+	    key_exists[i] = 1;
+	}
+    }
+
+    do_apply_disk();
 }
 
 static void
@@ -210,6 +240,34 @@ do_delete(void)
 }
 
 static void
+do_delete_burst(void)
+{
+    do_apply_disk();
+
+    if (logging)
+	printf("delete burst\n");
+
+    int rnd = x_rand() % 2;
+
+    for (int i = 0; i < num_keys; i++) {
+	if (i % 2 != rnd)
+	    continue;
+
+	uint64_t key = x_encrypt(i);
+
+	int r = btree_delete(BTREE_OBJMAP, &key);
+	if (key_exists[i]) {
+	    should_be(r, 0, "delete existing key");
+	    key_exists[i] = 0;
+	} else {
+	    should_be(r, -E_NOT_FOUND, "delete missing key");
+	}
+    }
+
+    do_apply_disk();
+}
+
+static void
 do_traverse(void)
 {
     if (logging)
@@ -305,12 +363,14 @@ static struct {
     int weight;
 } ops[] = {
     { &do_insert,	1,	100	},
+    { &do_insert_burst,	0,	5	},
     { &do_search,	1,	50	},
     { &do_search_leq,	1,	50	},
     { &do_search_leq_e,	1,	50	},
     { &do_search_geq,	1,	50	},
     { &do_search_geq_e,	1,	50	},
     { &do_delete,	1,	100	},
+    { &do_delete_burst,	0,	5	},
     { &do_traverse,	0,	50	},
     { &do_flush,	0,	50	},
     { &do_apply_disk,	0,	20	},
@@ -334,7 +394,7 @@ do_something(void)
 		repeat_count = 1;
 
 	    for (int j = 0; j < repeat_count; j++) {
-		alarm(5);
+		alarm(60);
 		ops[i].fn();
 		alarm(0);
 	    }
@@ -373,7 +433,7 @@ try
     struct stat st;
     error_check(fstat(fd, &st));
 
-#define LOG_PAGES 1000
+#define LOG_PAGES 10000
 #define RESERVED_PAGES (LOG_OFFSET+LOG_PAGES)
     int n_sectors = st.st_size / 512;
     if (n_sectors * 512 < RESERVED_PAGES * 4096) {
