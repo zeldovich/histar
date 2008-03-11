@@ -129,7 +129,7 @@ sys_net_create(uint64_t container, uint64_t card_idx,
     struct kobject *ko;
     check(kobject_alloc(kobj_netdev, l, 0, &ko));
     check(alloc_set_name(&ko->hdr, name));
-    check(ko->dv.dv_type == device_net);
+    ko->dv.dv_type = device_net;
     ko->dv.dv_idx = card_idx;
 
     const struct Container *c;
