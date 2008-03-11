@@ -145,8 +145,7 @@ sys_net_wait(struct cobj_ref ndref, uint64_t waiter_id, int64_t waitgen)
     const struct kobject *ko;
     check(cobj_get(ndref, kobj_netdev, &ko, iflow_rw));
 
-    check(ko->dv.dv_type == device_net);
-    if (ko->dv.dv_idx >= netdevs_num)
+    if (ko->dv.dv_type != device_net || ko->dv.dv_idx >= netdevs_num)
 	return -E_INVAL;
 
     struct net_device *ndev = netdevs[ko->dv.dv_idx];
@@ -163,8 +162,7 @@ sys_net_buf(struct cobj_ref ndref, struct cobj_ref seg, uint64_t offset,
     const struct kobject *ko;
     check(cobj_get(ndref, kobj_netdev, &ko, iflow_rw));
 
-    check(ko->dv.dv_type == device_net);
-    if (ko->dv.dv_idx >= netdevs_num)
+    if (ko->dv.dv_type != device_net || ko->dv.dv_idx >= netdevs_num)
 	return -E_INVAL;
 
     struct net_device *ndev = netdevs[ko->dv.dv_idx];
@@ -185,8 +183,7 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
     const struct kobject *ko;
     check(cobj_get(ndref, kobj_netdev, &ko, iflow_read));
 
-    check(ko->dv.dv_type == device_net);
-    if (ko->dv.dv_idx >= netdevs_num)
+    if (ko->dv.dv_type != device_net || ko->dv.dv_idx >= netdevs_num)
 	return -E_INVAL;
 
     struct net_device *ndev = netdevs[ko->dv.dv_idx];
