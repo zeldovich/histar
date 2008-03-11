@@ -55,6 +55,11 @@ Performance:
 
 Kernel bugs:
 
+* reuse flushed but not committed blocks in the on-disk log for the
+  same disk address when writing pages to the log; otherwise a page
+  can be written to the log multiple times in a single transaction,
+  running the system out of log space.  need to track commits in
+  the log code to do this (currently not tracked).
 * bugs in handling out-of-memory conditions [low priority for now]:
   - freelist/dstack: free_later list using a btree
   - implement log.disk_map using a btree
