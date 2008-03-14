@@ -78,9 +78,7 @@ bipipe_fd(struct jcomm_ref jr, int fd_mode, uint64_t grant, uint64_t taint)
 int
 bipipe(int type, int fv[2])
 {
-    struct ulabel l = { .ul_size = 0, .ul_nent = 0,
-			.ul_ent = 0, .ul_default = 1 };
-    return bipipe_label(type, fv, &l);
+    return bipipe_label(type, fv, 0);
 }
 
 int
@@ -91,13 +89,24 @@ bipipe_label(int type, int fv[2], struct ulabel *ul)
     uint64_t taint = handle_alloc();
     uint64_t grant = handle_alloc();
     
-    uint64_t label_ent[16];
-    struct ulabel label = { .ul_size = 16, .ul_ent = &label_ent[0] };
-    label.ul_default = ul->ul_default;
-    label.ul_nent = ul->ul_nent;
+    uint64_t label_ent[64];
+    struct ulabel label = { .ul_size = 64, .ul_ent = &label_ent[0] };
+    if (ul) {
+	label.ul_default = ul->ul_default;
+	label.ul_nent = ul->ul_nent;
 
-    assert(ul->ul_nent <= sizeof(label_ent) / sizeof(label_ent[0]));
-    memcpy(&label_ent[0], ul->ul_ent, ul->ul_nent * sizeof(ul->ul_ent[0]));
+	assert(ul->ul_nent <= sizeof(label_ent) / sizeof(label_ent[0]));
+	memcpy(&label_ent[0], ul->ul_ent, ul->ul_nent * sizeof(ul->ul_ent[0]));
+    } else {
+	r = sys_obj_get_label(COBJ(0, thread_id()), &label);
+	if (r < 0)
+	    return r;
+
+	for (uint32_t i = 0; i < label.ul_nent; i++)
+	    if (LB_LEVEL(label.ul_ent[i]) == LB_LEVEL_STAR)
+		label.ul_ent[i] = LB_CODE(LB_HANDLE(label.ul_ent[i]),
+					  label.ul_default);
+    }
 
     assert(0 == label_set_level(&label, taint, 3, 1));
     assert(0 == label_set_level(&label, grant, 0, 1));
