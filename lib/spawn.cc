@@ -21,7 +21,7 @@ extern "C" {
 #include <inc/spawn.hh>
 #include <inc/gateclnt.hh>
 
-static int label_debug = 0;
+enum { label_debug = 0 };
 
 struct child_process
 spawn(spawn_descriptor *sd)
@@ -31,7 +31,7 @@ spawn(spawn_descriptor *sd)
     bool uinit_style = (sd->spawn_flags_ & SPAWN_UINIT_STYLE);
     bool copy_mtab = (sd->spawn_flags_ & SPAWN_COPY_MTAB);
 
-    // Compute receive label for new process
+    // Compute clearance for new process
     label thread_clear(2);
 
     thread_cur_clearance(&tmp);
@@ -47,11 +47,14 @@ spawn(spawn_descriptor *sd)
 	thread_clear = out;
     }
 
-    // Compute send label for new process
-    label thread_label(1);
-
     thread_cur_label(&tmp);
     tmp.transform(label::star_to, 0);
+    thread_clear.merge(&tmp, &out, label::max, label::leq_starhi);
+    thread_clear = out;
+
+    // Compute label for new process
+    label thread_label(1);
+
     thread_label.merge(&tmp, &out, label::max, label::leq_starlo);
     thread_label = out;
 
