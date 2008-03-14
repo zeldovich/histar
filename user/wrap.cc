@@ -34,7 +34,9 @@ try
     int64_t clam_taint;
     error_check(clam_taint = handle_alloc());
 
-    label bipipe_l(1);
+    label bipipe_l;
+    thread_cur_label(&bipipe_l);
+    bipipe_l.transform(label::star_to, 1);
     bipipe_l.set(clam_taint, 3);
 
     int fds[2];
@@ -64,7 +66,9 @@ try
     error_check(fd_make_public(nullfd, taint_zero.to_ulabel()));
 
     // Make a private /tmp for clamscan to use
-    label tmp_label(1);
+    label tmp_label;
+    thread_cur_label(&tmp_label);
+    tmp_label.transform(label::star_to, 1);
     tmp_label.set(start_env->user_taint, 3);
     tmp_label.set(clam_taint, 3);
 
