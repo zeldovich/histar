@@ -36,6 +36,8 @@ Usability:
   in the page table.  page table has container entry of address space object,
   which also specifies the privilege object used to fill in the page table.
 * optimize container entry lookups by hashing containers?
+* multi-core support: scheduling, concurrency control at object level in
+  kernel, locality mechanisms
 
 HW support:
 
