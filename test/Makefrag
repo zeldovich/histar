@@ -2,7 +2,11 @@ OBJDIRS += test test/lwip test/btree
 
 .PRECIOUS: $(OBJDIR)/test/%.o
 
-TEST_KERN_CFLAGS := -g -DJOS_KERNEL -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj
+#TEST_COVERAGE_CFLAGS	:= --coverage
+#TEST_COVERAGE_LDFLAGS	:= -lgcov
+
+TEST_KERN_CFLAGS := -g -DJOS_KERNEL -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj \
+		    $(TEST_COVERAGE_CFLAGS)
 TEST_USER_CFLAGS := \
 	-g -DJOS_USER -DJOS_TEST -I$(TOP) -I$(TOP)/obj \
 	-D__STDC_FORMAT_MACROS \
@@ -73,7 +77,7 @@ $(OBJDIR)/ktest/%.o: kern/btree/%.c
 	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $< $(CSTD)
 
 $(OBJDIR)/ktest/disk-test: $(DISK_TEST_OBJS)
-	$(NCC) -o $@ $(DISK_TEST_OBJS) -lstdc++
+	$(NCC) -o $@ $(DISK_TEST_OBJS) -lstdc++ $(TEST_COVERAGE_LDFLAGS)
 
 ## User-code build rules
 
