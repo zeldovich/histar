@@ -18,13 +18,14 @@ static int netd_mom_debug = 0;
 static void
 netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t inet_taint, cobj_ref *ndev)
 {
-    int64_t netdev_id = container_find(ct, kobj_netdev, 0);
+    int64_t netdev_id = container_find(ct, kobj_device, 0);
     if (netdev_id < 0) {
 	label net_label(1);
 	net_label.set(netdev_grant, 0);
 	net_label.set(netdev_taint, 3);
 	net_label.set(inet_taint, 2);
-	netdev_id = sys_net_create(ct, 0, net_label.to_ulabel(), "jif0");
+	netdev_id = sys_device_create(ct, 0, net_label.to_ulabel(), "jif0",
+                                      device_net);
 	error_check(netdev_id);
 
 	if (netd_mom_debug)

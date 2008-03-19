@@ -9,7 +9,7 @@
     SYSCALL_ENTRY(fb_get_mode)			\
     SYSCALL_ENTRY(fb_set)			\
 						\
-    SYSCALL_ENTRY(net_create)			\
+    SYSCALL_ENTRY(device_create)		\
     SYSCALL_ENTRY(net_wait)			\
     SYSCALL_ENTRY(net_buf)			\
     SYSCALL_ENTRY(net_macaddr)			\

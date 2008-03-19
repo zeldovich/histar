@@ -317,7 +317,7 @@ user_bootstrap(void)
     struct Container *fsc;
     assert_check(container_alloc(obj_label, &fsc));
     fsc->ct_ko.ko_quota_total = (((uint64_t) 1) << 32);
-    fsc->ct_avoid_types = (1 << kobj_address_space) | (1 << kobj_netdev) |
+    fsc->ct_avoid_types = (1 << kobj_address_space) | (1 << kobj_device) |
 			  (1 << kobj_gate) | (1 << kobj_thread);
     assert_check(container_put(rc, &fsc->ct_ko));
     strncpy(&fsc->ct_ko.ko_name[0], "embed_bins", KOBJ_NAME_LEN - 1);

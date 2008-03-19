@@ -2,11 +2,7 @@
 #define JOS_KERN_DEVICE_H
 
 #include <kern/kobjhdr.h>
-
-typedef enum {
-    device_net,
-    device_fb
-} device_type;
+#include <inc/device.h>
 
 struct Device {
     struct kobject_hdr dv_ko;

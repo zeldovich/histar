@@ -13,7 +13,7 @@ enum kobject_type_enum {
     kobj_gate,
     kobj_segment,
     kobj_address_space,
-    kobj_netdev,
+    kobj_device,
     kobj_label,
     kobj_dead,
 

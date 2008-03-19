@@ -26,6 +26,7 @@ fb_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 
     fd->fd_dev_id = devfb.dev_id;
     fd->fd_omode = flags;
+    fd->fd_file.ino = ino;
     return fd2num(fd);
 }
 
@@ -49,7 +50,7 @@ fb_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	memset(v, 0, sizeof(*v));
 
 	struct jos_fb_mode fbmode;
-	int r = sys_fb_get_mode(&fbmode);
+	int r = sys_fb_get_mode(fd->fd_file.ino.obj, &fbmode);
 	if (r < 0) {
 	    __set_errno(EINVAL);
 	    return -1;
@@ -88,7 +89,7 @@ fb_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	memset(f, 0, sizeof(*f));
 
 	struct jos_fb_mode fbmode;
-	int r = sys_fb_get_mode(&fbmode);
+	int r = sys_fb_get_mode(fd->fd_file.ino.obj, &fbmode);
 	if (r < 0) {
 	    __set_errno(EINVAL);
 	    return -1;
@@ -102,6 +103,11 @@ fb_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	return 0;
     }
 
+    case FBIOBLANK: {
+        // XXX: Implement me
+        return 0;
+    }
+
     default:
 	__set_errno(ENOSYS);
 	return -1;
@@ -111,7 +117,7 @@ fb_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 static ssize_t
 fb_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 {
-    int r = sys_fb_set(offset, len, buf);
+    int r = sys_fb_set(fd->fd_file.ino.obj, offset, len, buf);
     if (r < 0) {
 	__set_errno(EINVAL);
 	return -1;

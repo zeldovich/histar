@@ -77,8 +77,8 @@ print_cobj(uint64_t ct, uint64_t slot)
 	printf("address space");
 	break;
 
-    case kobj_netdev:
-	printf("netdev");
+    case kobj_device:
+	printf("device");
 	break;
 
     default:

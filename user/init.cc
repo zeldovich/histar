@@ -206,7 +206,6 @@ init_fs(int cons)
     error_check(fs_mknod(dev, "null", devnull.dev_id, 0, &dummy_ino, 0));
     error_check(fs_mknod(dev, "zero", devzero.dev_id, 0, &dummy_ino, 0));
     error_check(fs_mknod(dev, "console", devcons.dev_id, 0, &dummy_ino, 0));
-    error_check(fs_mknod(dev, "fb0", devfb.dev_id, 0, &dummy_ino, 0));
     error_check(fs_mknod(dev, "tty", devtty.dev_id, 0, &dummy_ino, 0));
     error_check(fs_mknod(dev, "random", devrand.dev_id, 0, &dummy_ino, 0));
     error_check(fs_mknod(dev, "urandom", devrand.dev_id, 0, &dummy_ino, 0));
@@ -446,12 +445,41 @@ run_shell_entry(void *arg)
 static int
 init_fbcons(int basecons, int *consp, int maxvt)
 {
+    struct cobj_ref the_fb_dev;
     consp[0] = basecons;
+
+    int64_t fbdev_id = container_find(start_env->shared_container,
+                                      kobj_device, 0);
+    if (fbdev_id < 0) {
+        label fb_label(1);
+        fbdev_id = sys_device_create(start_env->shared_container, 0,
+                                     fb_label.to_ulabel(), "fbdev",
+                                     device_fb);
+        error_check(fbdev_id);
+    }    
+    the_fb_dev = COBJ(start_env->shared_container, fbdev_id);
+
+    struct fs_object_meta meta;
+    meta.mtime_nsec = meta.ctime_nsec = jos_time_nsec();
+    meta.dev_id = devfb.dev_id;
+    meta.dev_opt = 0;
+    int r = sys_obj_set_meta(the_fb_dev, 0, &meta);
+    if (r < 0) {
+        return 1;
+    }
+
+    char fb0path[130];
+    sprintf(fb0path, "#%"PRIu64".%"PRIu64, the_fb_dev.container,
+            the_fb_dev.object);
+    unlink("/dev/fb0");
+    symlink(fb0path, "/dev/fb0");
 
     /* Check if we are running in a graphical console */
     struct jos_fb_mode fb;
-    if (sys_fb_get_mode(&fb) < 0)
+    if (sys_fb_get_mode(the_fb_dev, &fb) < 0) {
+        cprintf("init: init_fbcons: no fb hardware available\n");
 	return 1;
+    }
 
     int64_t fbc_grant = handle_alloc();
     int64_t fbc_taint = handle_alloc();
@@ -461,8 +489,10 @@ init_fbcons(int basecons, int *consp, int maxvt)
     sprintf(a1, "%"PRIu64, fbc_taint);
 
     fs_inode ino;
-    if (fs_namei("/bin/fbconsd", &ino) < 0)
+    if (fs_namei("/bin/fbconsd", &ino) < 0) {
+        cprintf("init: init_fbcons: couldn't find /bin/fbconsd\n");
 	return 1;
+    }
 
     label ds(3), dr(0);
     ds.set(fbc_grant, LB_LEVEL_STAR);
@@ -505,10 +535,10 @@ init_fbcons(int basecons, int *consp, int maxvt)
     if (!borderpx[0])
 	sprintf(&borderpx[0], "0");
 
-    const char *argv[] = { "fbconsd", a0, a1, fontname, borderpx };
+    const char *argv[] = { "fbconsd", a0, a1, "/dev/fb0", fontname, borderpx };
     child_process cp = spawn(start_env->process_pool,
 		   ino, basecons, basecons, basecons,
-		   5, &argv[0],
+		   6, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
 		   0, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
 

@@ -95,29 +95,44 @@ sys_cons_probe(void)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_fb_get_mode(struct jos_fb_mode *buf)
+sys_fb_get_mode(struct cobj_ref fbref, struct jos_fb_mode *buf)
 {
-    if (!fbdevs[0])
-	return -E_NOT_FOUND;
+    const struct kobject *ko;
+    check(cobj_get(fbref, kobj_device, &ko, iflow_read));
+
+    if (ko->dv.dv_type != device_fb || ko->dv.dv_idx >= fbdevs_num)
+	return -E_INVAL;
+
+    struct fb_device *fbdev = fbdevs[ko->dv.dv_idx];
+    if (!fbdev)
+	return -E_INVAL;
 
     check(check_user_access(buf, sizeof(*buf), SEGMAP_WRITE));
-    memcpy(buf, &fbdevs[0]->fb_mode, sizeof(*buf));
+    memcpy(buf, &fbdev->fb_mode, sizeof(*buf));
     return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_fb_set(uint64_t off, uint64_t nbytes, const uint8_t *buf)
+sys_fb_set(struct cobj_ref fbref, uint64_t off, uint64_t nbytes,
+           const uint8_t *buf)
 {
-    if (!fbdevs[0])
-	return -E_NOT_FOUND;
+    const struct kobject *ko;
+    check(cobj_get(fbref, kobj_device, &ko, iflow_rw));
+
+    if (ko->dv.dv_type != device_fb || ko->dv.dv_idx >= fbdevs_num)
+	return -E_INVAL;
+
+    struct fb_device *fbdev = fbdevs[ko->dv.dv_idx];
+    if (!fbdev)
+	return -E_INVAL;
 
     check(check_user_access(buf, nbytes, 0));
-    return fbdevs[0]->fb_set(fbdevs[0]->fb_arg, off, nbytes, buf);
+    return fbdev->fb_set(fbdev->fb_arg, off, nbytes, buf);
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_net_create(uint64_t container, uint64_t card_idx,
-	       struct ulabel *ul, const char *name)
+sys_device_create(uint64_t container, uint64_t card_idx,
+	       struct ulabel *ul, const char *name, device_type type)
 {
     // Must have PCL <= { root_handle 0 } to create a netdev
     const struct kobject *root_ct;
@@ -127,9 +142,9 @@ sys_net_create(uint64_t container, uint64_t card_idx,
     check(alloc_ulabel(ul, &l, 0));
 
     struct kobject *ko;
-    check(kobject_alloc(kobj_netdev, l, 0, &ko));
+    check(kobject_alloc(kobj_device, l, 0, &ko));
     check(alloc_set_name(&ko->hdr, name));
-    ko->dv.dv_type = device_net;
+    ko->dv.dv_type = type;
     ko->dv.dv_idx = card_idx;
 
     const struct Container *c;
@@ -143,7 +158,7 @@ static int64_t __attribute__ ((warn_unused_result))
 sys_net_wait(struct cobj_ref ndref, uint64_t waiter_id, int64_t waitgen)
 {
     const struct kobject *ko;
-    check(cobj_get(ndref, kobj_netdev, &ko, iflow_rw));
+    check(cobj_get(ndref, kobj_device, &ko, iflow_rw));
 
     if (ko->dv.dv_type != device_net || ko->dv.dv_idx >= netdevs_num)
 	return -E_INVAL;
@@ -160,7 +175,7 @@ sys_net_buf(struct cobj_ref ndref, struct cobj_ref seg, uint64_t offset,
 	    netbuf_type type)
 {
     const struct kobject *ko;
-    check(cobj_get(ndref, kobj_netdev, &ko, iflow_rw));
+    check(cobj_get(ndref, kobj_device, &ko, iflow_rw));
 
     if (ko->dv.dv_type != device_net || ko->dv.dv_idx >= netdevs_num)
 	return -E_INVAL;
@@ -181,7 +196,7 @@ static int64_t __attribute__ ((warn_unused_result))
 sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
 {
     const struct kobject *ko;
-    check(cobj_get(ndref, kobj_netdev, &ko, iflow_read));
+    check(cobj_get(ndref, kobj_device, &ko, iflow_read));
 
     if (ko->dv.dv_type != device_net || ko->dv.dv_idx >= netdevs_num)
 	return -E_INVAL;
@@ -1035,8 +1050,8 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 
     switch (num) {
 	SYSCALL(cons_puts, p1, a2);
-	SYSCALL(fb_get_mode, p1);
-	SYSCALL(fb_set, a1, a2, p3);
+	SYSCALL(fb_get_mode, COBJ(a1, a2), p3);
+	SYSCALL(fb_set, COBJ(a1, a2), a3, a4, p5);
 	SYSCALL(net_macaddr, COBJ(a1, a2), p3);
 	SYSCALL(net_buf, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
 	SYSCALL(machine_reboot);
@@ -1083,7 +1098,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 
 	SYSCALL(cons_getc);
 	SYSCALL(cons_probe);
-	SYSCALL(net_create, a1, a2, p3, p4);
+	SYSCALL(device_create, a1, a2, p3, p4, a5);
 	SYSCALL(net_wait, COBJ(a1, a2), a3, a4);
 	SYSCALL(handle_create);
 	SYSCALL(obj_get_quota_total, COBJ(a1, a2));

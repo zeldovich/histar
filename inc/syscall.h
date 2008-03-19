@@ -8,6 +8,7 @@
 #include <inc/thread.h>
 #include <inc/kobj.h>
 #include <inc/label.h>
+#include <inc/device.h>
 #include <inc/netdev.h>
 #include <inc/fb.h>
 
@@ -18,11 +19,13 @@ int	sys_cons_puts(const char *s, uint64_t size);
 int	sys_cons_getc(void);
 int	sys_cons_probe(void);
 
-int	sys_fb_get_mode(struct jos_fb_mode *buf);
-int	sys_fb_set(uint64_t off, uint64_t nbytes, const uint8_t *buf);
+int	sys_fb_get_mode(struct cobj_ref fbdev, struct jos_fb_mode *buf);
+int	sys_fb_set(struct cobj_ref fbdev, uint64_t off, uint64_t nbytes,
+                   const uint8_t *buf);
 
-int64_t sys_net_create(uint64_t container, uint64_t card_idx,
-		       const struct ulabel *l, const char *name);
+int64_t sys_device_create(uint64_t container, uint64_t idx,
+		          const struct ulabel *l, const char *name,
+                          device_type type);
 int64_t	sys_net_wait(struct cobj_ref ndev, uint64_t waiter_id,
 		     int64_t waitgen);
 int	sys_net_buf(struct cobj_ref ndev, struct cobj_ref seg,

@@ -38,6 +38,8 @@ static uint32_t char_width, char_height;
 static jos_fb_mode kern_fb;
 static uint64_t borderpx;
 
+static struct cobj_ref the_fb_dev;
+
 static FT_Face
 get_font(const char *name)
 {
@@ -168,7 +170,8 @@ render(uint32_t row, uint32_t col, uint32_t c, uint8_t inverse)
 
  draw:
     for (uint32_t y = 0; y < char_height; y++)
-	sys_fb_set(((row * char_height + y + borderpx) * kern_fb.vm.xres +
+	sys_fb_set(the_fb_dev,
+                   ((row * char_height + y + borderpx) * kern_fb.vm.xres +
 		    col * char_width + borderpx) * bytes_per_pixel,
 		   char_width * bytes_per_pixel,
 		   &buf[y * char_width * bytes_per_pixel]);
@@ -190,17 +193,18 @@ refresh(volatile uint32_t *newbuf, uint32_t *oldbuf,
 	    memset(buf, 0xff, buflen);
 
 	    for (uint32_t y = 0; y < borderpx; y++) {
-		sys_fb_set(kern_fb.vm.xres * y * bytes_per_pixel,
+		sys_fb_set(the_fb_dev, kern_fb.vm.xres * y * bytes_per_pixel,
 			   kern_fb.vm.xres * bytes_per_pixel, buf);
-		sys_fb_set(kern_fb.vm.xres * (kern_fb.vm.yres - y - 1)
+		sys_fb_set(the_fb_dev, kern_fb.vm.xres
+                                           * (kern_fb.vm.yres - y - 1)
 					   * bytes_per_pixel,
 			   kern_fb.vm.xres * bytes_per_pixel, buf);
 	    }
 
 	    for (uint32_t y = 0; y < kern_fb.vm.yres; y++) {
-		sys_fb_set(kern_fb.vm.xres * y * bytes_per_pixel,
+		sys_fb_set(the_fb_dev, kern_fb.vm.xres * y * bytes_per_pixel,
 			   borderpx * bytes_per_pixel, buf);
-		sys_fb_set((kern_fb.vm.xres * (y + 1) - borderpx) *
+		sys_fb_set(the_fb_dev, (kern_fb.vm.xres * (y + 1) - borderpx) *
 			   bytes_per_pixel,
 			   borderpx * bytes_per_pixel, buf);
 	    }
@@ -340,8 +344,9 @@ int
 main(int ac, char **av)
 try
 {
-    if (ac != 5) {
-	fprintf(stderr, "Usage: %s taint grant fontname borderpixels\n", av[0]);
+    if (ac != 6) {
+	fprintf(stderr, "Usage: %s taint grant fbdevpath fontname "
+                        "borderpixels\n", av[0]);
 	exit(-1);
     }
 
@@ -349,8 +354,16 @@ try
     error_check(strtou64(av[1], 0, 10, &taint));
     error_check(strtou64(av[2], 0, 10, &grant));
 
-    const char *fontname = av[3];
-    error_check(strtou64(av[4], 0, 10, &borderpx));
+    struct fs_inode ino;
+    int r = fs_namei(av[3], &ino);
+    if (r < 0) {
+        fprintf(stderr, "Couldn't open fb at %s\n", av[3]);
+        exit(-1);
+    }
+    the_fb_dev = ino.obj;
+
+    const char *fontname = av[4];
+    error_check(strtou64(av[5], 0, 10, &borderpx));
 
     the_face = get_font(fontname);
     if (!the_face) {
@@ -363,7 +376,7 @@ try
     char_height = (the_face->bbox.yMax - the_face->bbox.yMin) *
 		  the_face->size->metrics.y_ppem / the_face->units_per_EM;
 
-    error_check(sys_fb_get_mode(&kern_fb));
+    error_check(sys_fb_get_mode(the_fb_dev, &kern_fb));
 
     if (borderpx * 2 >= kern_fb.vm.xres || borderpx * 2 >= kern_fb.vm.yres) {
 	fprintf(stderr, "Border too large (%"PRIu64")\n", borderpx);

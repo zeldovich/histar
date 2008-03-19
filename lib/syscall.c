@@ -1,6 +1,7 @@
 #include <inc/types.h>
 #include <inc/syscall.h>
 #include <inc/syscall_num.h>
+#include <inc/device.h>
 
 #define SOBJ(obj)	(obj).container, (obj).object
 #define SPTR(ptr)	((uint64_t) (uintptr_t) (ptr))
@@ -24,23 +25,24 @@ sys_cons_probe(void)
 }
 
 int
-sys_fb_get_mode(struct jos_fb_mode *buf)
+sys_fb_get_mode(struct cobj_ref fbdev, struct jos_fb_mode *buf)
 {
-    return syscall(SYS_fb_get_mode, SPTR(buf), 0, 0, 0, 0, 0, 0);
+    return syscall(SYS_fb_get_mode, SOBJ(fbdev), SPTR(buf), 0, 0, 0, 0);
 }
 
 int
-sys_fb_set(uint64_t off, uint64_t nbytes, const uint8_t *buf)
+sys_fb_set(struct cobj_ref fbdev, uint64_t off, uint64_t nbytes,
+           const uint8_t *buf)
 {
-    return syscall(SYS_fb_set, off, nbytes, SPTR(buf), 0, 0, 0, 0);
+    return syscall(SYS_fb_set, SOBJ(fbdev), off, nbytes, SPTR(buf), 0, 0);
 }
 
 int64_t
-sys_net_create(uint64_t container, uint64_t card_idx,
-	       const struct ulabel *l, const char *name)
+sys_device_create(uint64_t container, uint64_t idx,
+	          const struct ulabel *l, const char *name, device_type type)
 {
-    return syscall(SYS_net_create, container, card_idx, SPTR(l), SPTR(name),
-		   0, 0, 0);
+    return syscall(SYS_device_create, container, idx, SPTR(l), SPTR(name),
+		   type, 0, 0);
 }
 
 int64_t
