@@ -445,18 +445,21 @@ run_shell_entry(void *arg)
 static int
 init_fbcons(int basecons, int *consp, int maxvt)
 {
+    int64_t fbc_grant = handle_alloc();
+    int64_t fbc_taint = handle_alloc();
+
     struct cobj_ref the_fb_dev;
     consp[0] = basecons;
 
-    int64_t fbdev_id = container_find(start_env->shared_container,
-                                      kobj_device, 0);
-    if (fbdev_id < 0) {
-        label fb_label(1);
-        fbdev_id = sys_device_create(start_env->shared_container, 0,
-                                     fb_label.to_ulabel(), "fbdev",
-                                     device_fb);
-        error_check(fbdev_id);
-    }    
+    label fb_label(1);
+    fb_label.set(fbc_grant, 0);
+    fb_label.set(fbc_taint, 3);
+
+    int64_t fbdev_id = sys_device_create(start_env->shared_container, 0,
+					 fb_label.to_ulabel(), "fbdev",
+					 device_fb);
+    error_check(fbdev_id);
+
     the_fb_dev = COBJ(start_env->shared_container, fbdev_id);
 
     struct fs_object_meta meta;
@@ -464,9 +467,8 @@ init_fbcons(int basecons, int *consp, int maxvt)
     meta.dev_id = devfb.dev_id;
     meta.dev_opt = 0;
     int r = sys_obj_set_meta(the_fb_dev, 0, &meta);
-    if (r < 0) {
+    if (r < 0)
         return 1;
-    }
 
     char fb0path[130];
     sprintf(fb0path, "#%"PRIu64".%"PRIu64, the_fb_dev.container,
@@ -480,9 +482,6 @@ init_fbcons(int basecons, int *consp, int maxvt)
         cprintf("init: init_fbcons: no fb hardware available\n");
 	return 1;
     }
-
-    int64_t fbc_grant = handle_alloc();
-    int64_t fbc_taint = handle_alloc();
 
     char a0[64], a1[64];
     sprintf(a0, "%"PRIu64, fbc_grant);

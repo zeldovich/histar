@@ -6,7 +6,7 @@
 
 struct Device {
     struct kobject_hdr dv_ko;
-    device_type dv_type;
+    uint8_t  dv_type;
     uint64_t dv_idx;
 };
 

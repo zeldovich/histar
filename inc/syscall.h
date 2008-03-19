@@ -25,7 +25,7 @@ int	sys_fb_set(struct cobj_ref fbdev, uint64_t off, uint64_t nbytes,
 
 int64_t sys_device_create(uint64_t container, uint64_t idx,
 		          const struct ulabel *l, const char *name,
-                          device_type type);
+			  uint8_t device_type);
 int64_t	sys_net_wait(struct cobj_ref ndev, uint64_t waiter_id,
 		     int64_t waitgen);
 int	sys_net_buf(struct cobj_ref ndev, struct cobj_ref seg,

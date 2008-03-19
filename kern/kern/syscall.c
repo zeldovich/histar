@@ -132,7 +132,7 @@ sys_fb_set(struct cobj_ref fbref, uint64_t off, uint64_t nbytes,
 
 static int64_t __attribute__ ((warn_unused_result))
 sys_device_create(uint64_t container, uint64_t card_idx,
-	       struct ulabel *ul, const char *name, device_type type)
+		  struct ulabel *ul, const char *name, uint8_t type)
 {
     // Must have PCL <= { root_handle 0 } to create a netdev
     const struct kobject *root_ct;

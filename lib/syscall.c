@@ -39,7 +39,7 @@ sys_fb_set(struct cobj_ref fbdev, uint64_t off, uint64_t nbytes,
 
 int64_t
 sys_device_create(uint64_t container, uint64_t idx,
-	          const struct ulabel *l, const char *name, device_type type)
+	          const struct ulabel *l, const char *name, uint8_t type)
 {
     return syscall(SYS_device_create, container, idx, SPTR(l), SPTR(name),
 		   type, 0, 0);
