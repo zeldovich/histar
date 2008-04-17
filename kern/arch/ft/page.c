@@ -21,7 +21,7 @@ struct page_info *page_infos;
 //#include <ft_runtest.h>
 
 // debug flags
-static int scrub_free_pages = 0;
+enum { scrub_free_pages = 0 };
 int enable_page_alloc_failure = 0;
 
 // base of our simulated physical memory range
@@ -52,7 +52,7 @@ lnxpage_init(uint64_t membytes)
     }
 
     uintptr_t baseptr = 0x90000000;
-    physmem_base = mmap(baseptr, global_npages * PGSIZE,
+    physmem_base = mmap((void *) baseptr, global_npages * PGSIZE,
 			PROT_READ | PROT_WRITE,
 			MAP_FIXED | MAP_PRIVATE, physmem_file_fd, 0);
     if (physmem_base == MAP_FAILED) {
