@@ -1,0 +1,475 @@
+Index: conf/Makefrag.sparc
+===================================================================
+--- conf/Makefrag.sparc	(revision 6303)
++++ conf/Makefrag.sparc	(working copy)
+@@ -1,10 +1,10 @@
+ ARCH    := sparc
+-TARGET  := sparc-jos-linux
++TARGET  := sparc-josflat-linux
+ OBJTYPE := elf32-sparc
+ BFDARCH := sparc
+ 
+-CC      := $(GCCPREFIX)gcc -pipe -m32 -msoft-float -mcpu=v8
+-CXX     := $(GCCPREFIX)g++ -pipe -m32 -msoft-float -mcpu=v8
++CC      := $(GCCPREFIX)gcc -pipe -m32 -msoft-float -mcpu=v8 -mflat
++CXX     := $(GCCPREFIX)g++ -pipe -m32 -msoft-float -mcpu=v8 -mflat
+ AS      := $(GCCPREFIX)as -32
+ AR      := $(GCCPREFIX)ar
+ LD      := $(GCCPREFIX)ld -m elf32_sparc
+Index: GNUmakefile
+===================================================================
+--- GNUmakefile	(revision 6303)
++++ GNUmakefile	(working copy)
+@@ -8,10 +8,10 @@
+ 
+ # Target kernel architecture/type
+ 
+-K_ARCH	:= amd64
++#K_ARCH	:= amd64
+ #K_ARCH	:= i386
+ #K_ARCH	:= ft
+-#K_ARCH	:= sparc
++K_ARCH	:= sparc
+ #K_ARCH	:= um
+ 
+ ## Use multiple objdirs to build multiple architectures with same source tree
+@@ -101,10 +101,6 @@
+ USER_CFLAGS   = $(USER_COMFLAGS) $(CWARNS)
+ USER_CXXFLAGS = $(USER_COMFLAGS) $(CXXWARNS) -D__STDC_FORMAT_MACROS
+ 
+-ifeq ($(K_ARCH),sparc)
+-KERN_CFLAGS += -mrestore
+-endif
+-
+ # try to infer the correct GCCPREFIX
+ conf/gcc.$(K_ARCH).mk:
+ 	@if $(TARGET)-objdump -i 2>&1 | grep '^$(OBJTYPE)$$' >/dev/null 2>&1; \
+Index: kern/arch/sparc/memlayout.h
+===================================================================
+--- kern/arch/sparc/memlayout.h	(revision 6303)
++++ kern/arch/sparc/memlayout.h	(working copy)
+@@ -37,9 +37,7 @@
+ 
+ /* User-mode (below ULIM) address space layout conventions. */
+ #define USTACKTOP	ULIM
+-#define UTRAPMASKED     0x3FFFD000 /* keep syncrhonized with */
+-#define UWINOVERFLOW    0x3FFFE000 /* lib/sparc/Makefrag     */
+-#define UWINUNDERFLOW   0x3FFFF000 /*                        */
++#define UTRAPMASKED     0x3FFFF000 /* keep in sync with lib/sparc/Makefrag */
+ #define UMMAPBASE	0x40000000
+ #define UHEAP		0x50000000
+ #define UHEAPTOP	0x60000000
+Index: kern/arch/sparc/longjmp.S
+===================================================================
+--- kern/arch/sparc/longjmp.S	(revision 6303)
++++ kern/arch/sparc/longjmp.S	(working copy)
+@@ -1,17 +0,0 @@
+-#include <machine/mmu.h>
+-#include <machine/asm.h>
+-
+-ENTRY(jos_setjmp)
+-	st	%sp, [%o0]
+-	st	%o7, [%o0 + 4]
+-
+-	retl
+-	 mov	%g0, %o0
+-
+-ENTRY(jos_longjmp)
+-	FLUSH_WINDOWS
+-	ld	[%o0], %fp
+-	ld	[%o0 + 4], %o7
+-
+-	retl
+-	 restore
+Index: kern/arch/sparc/locore.S
+===================================================================
+--- kern/arch/sparc/locore.S	(revision 6306)
++++ kern/arch/sparc/locore.S	(working copy)
+@@ -4,22 +4,15 @@
+ #include <machine/sparc-config.h>
+ #include <machine/memlayout.h>
+ 
+-#define TRAP_ENTRY \
+-	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
+-#define WINDOW_ENTRY(label) \
+-	rd %psr, %l0; mov %l1, %y; ba label; andcc %l0, PSR_PS, %g0;
+-
+ 	/* The Trap Base Address (TBA) must be 4096 aligned */
+ 	.text
+ 	.align 4096
+ trapbase:
+-	.rept 5				/* Traps 0 - 4 */
+-	TRAP_ENTRY
+-	.endr
+-t_wovf:	WINDOW_ENTRY(window_spill)	/* 5: Window Overflow */
+-t_wunf:	WINDOW_ENTRY(window_fill)	/* 6: Window Underflow */
+-	.rept 249			/* Traps 7 - 255 */
+-	TRAP_ENTRY
++	.rept 256
++	rd	%psr, %l0
++	rd	%wim, %l3
++	b	def_trap
++	nop
+ 	.endr
+ 
+ ENTRY(start)
+@@ -151,78 +144,6 @@
+ 	jmp	%l1
+ 	 rett	%l2
+ 
+-/* Window overflow/spill and underflow/fill handlers.
+- * After the branch and delay are executed in window_fill/spill,
+- * the register state is:
+- * %l0 == psr
+- * %l1 == %y == pc
+- * %l2 == %g5 == npc
+- * We optimize for user window traps.  We use %y instead of %g1,
+- * because it seems GCC assumes %g1 is preserved across function
+- * calls in some places.
+- */
+-window_spill:	
+-	bz	user_spill
+-	 mov	%l2, %g5
+-
+-kernel_spill:	
+-	mov	%g1, %l7
+-
+-	/* rotate WIM bit right */
+-	mov	%wim, %l3
+-	sll	%l3, NWINDOWS - 1, %l4
+-	srl	%l3, 1, %l3
+-	or	%l3, %l4, %g1
+-
+-        /* CWP to window we are going to trap onto next */
+-	save
+-	mov	%g1, %wim
+-	WRITE_PAUSE
+-
+-	STORE_WINDOW(sp)
+-
+-	restore
+-
+-	mov	%l7, %g1
+-
+-	jmp	%l1
+-	 rett	%l2	
+-
+-user_spill:
+-	set	UWINOVERFLOW, %l7
+-	jmp	%l7
+-	 rett	%l7 + 4
+-	
+-window_fill:	
+-	bz	user_fill
+-	 mov	%l2, %g5
+-
+-kernel_fill:
+-        /* rotate WIM bit left */
+-        mov	%wim,	%l3
+-        srl	%l3, NWINDOWS - 1, %l4
+-        sll	%l3, 1, %l3
+-        or	%l3, %l4, %l3
+-
+-	mov	%l3, %wim
+-	WRITE_PAUSE
+-
+-	restore
+-	restore
+-
+-	LOAD_WINDOW(sp)
+-
+-	save
+-	save
+-
+-	jmp	%l1
+-	 rett	%l2
+-
+-user_fill:
+-	set	UWINUNDERFLOW, %l7
+-	jmp	%l7
+-	 rett	%l7 + 4
+-
+ ENTRY(thread_arch_idle_asm)
+ 	/* enable interrupts */
+ 	rd	%psr, %l3
+Index: kern/arch/sparc/trap.c
+===================================================================
+--- kern/arch/sparc/trap.c	(revision 6303)
++++ kern/arch/sparc/trap.c	(working copy)
+@@ -45,28 +45,6 @@
+ }
+ 
+ static void
+-fp_backtrace(uint32_t fp)
+-{
+-    cprintf("Backtrace:\n");
+-    uint32_t *fpp;
+-
+- again:
+-    fpp = (uint32_t *) fp;
+-    int r = check_user_access(fpp, 4 * 16, 0);
+-    if (r < 0)
+-	return;
+-
+-    uint32_t rfp = fpp[8 + 6];
+-    uint32_t rpc = fpp[8 + 7];
+-    cprintf("  fp=%x pc=%x\n", rfp, rpc);
+-    if (!rfp || !rpc)
+-	return;
+-
+-    fp = rfp;
+-    goto again;
+-}
+-
+-static void
+ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t trapno)
+ {
+     void *fault_va = (void *)lda_mmuregs(SRMMU_FAULT_ADDR);
+@@ -95,7 +73,6 @@
+ 	print_state("user page fault", t);
+ 	cprintf(", va=%p: %s\n", fault_va, e2s(r));
+ 	trapframe_print(&t->th_tf);
+-	fp_backtrace(t->th_tf.tf_regs.i6);
+ 	thread_halt(t);
+     }
+ }
+@@ -135,26 +112,26 @@
+     case T_SYSCALL: {
+ 	trap_thread_syscall_writeback = 1;
+ 
+-	uint32_t sysnum = tf->tf_regs.i0;
++	uint32_t sysnum = tf->tf_regs.o0;
+ #define MAKE_UINT64(a, b) (((uint64_t)(a) << 32) | (uint64_t)(b))	    
+-	uint64_t arg0 = MAKE_UINT64(tf->tf_regs.i1, tf->tf_regs.i2);
+-	uint64_t arg1 = MAKE_UINT64(tf->tf_regs.i3, tf->tf_regs.i4);
+-	uint64_t arg2 = MAKE_UINT64(tf->tf_regs.i5, tf->tf_regs.l0);
++	uint64_t arg0 = MAKE_UINT64(tf->tf_regs.o1, tf->tf_regs.o2);
++	uint64_t arg1 = MAKE_UINT64(tf->tf_regs.o3, tf->tf_regs.o4);
++	uint64_t arg2 = MAKE_UINT64(tf->tf_regs.o5, tf->tf_regs.l0);
+ 	uint64_t arg3 = MAKE_UINT64(tf->tf_regs.l1, tf->tf_regs.l2);
+ 	uint64_t arg4 = MAKE_UINT64(tf->tf_regs.l3, tf->tf_regs.l4);
+ 	uint64_t arg5 = MAKE_UINT64(tf->tf_regs.l5, tf->tf_regs.l6);
+-	uint64_t arg6 = MAKE_UINT64(tf->tf_regs.l7, tf->tf_regs.o0);
++	uint64_t arg6 = MAKE_UINT64(tf->tf_regs.l7, tf->tf_regs.i0);
+ #undef MAKE_UINT64
+ 	r = kern_syscall(sysnum, arg0, arg1, arg2,
+ 			 arg3, arg4, arg5, arg6);
+-	
++
+ 	if (trap_thread_syscall_writeback) {
+ 	    trap_thread_syscall_writeback = 0;
+ 	    
+ 	    if (r != -E_RESTART) {
+ 		struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
+-		t->th_tf.tf_regs.o1 = ((uint64_t) r) >> 32;
+-		t->th_tf.tf_regs.o2 = ((uint64_t) r) & 0xffffffff;
++		t->th_tf.tf_regs.i1 = ((uint64_t) r) >> 32;
++		t->th_tf.tf_regs.i2 = ((uint64_t) r) & 0xffffffff;
+ 		t->th_tf.tf_pc = t->th_tf.tf_npc;
+ 		t->th_tf.tf_npc = t->th_tf.tf_npc + 4;
+ 	    } 
+@@ -197,8 +174,8 @@
+ 	sched_stop(t, karch_get_tsc() - trap_user_iret_tsc);
+ 	t->th_tf = *tf;
+     }
+-    
+-    trap_dispatch(trapno, tf);    
++
++    trap_dispatch(trapno, tf);
+     thread_run();
+ }
+ 
+@@ -299,8 +276,8 @@
+ 
+     if (t == trap_thread && trap_thread_syscall_writeback) {
+ 	trap_thread_syscall_writeback = 0;
+-	t_utf.utf_regs.o1 = 0;
+-	t_utf.utf_regs.o2 = 0;
++	t_utf.utf_regs.i1 = 0;
++	t_utf.utf_regs.i2 = 0;
+ 	t_utf.utf_pc  = t_utf.utf_npc;
+ 	t_utf.utf_npc = t_utf.utf_npc + 4;
+     }
+Index: kern/arch/sparc/setjmp.h
+===================================================================
+--- kern/arch/sparc/setjmp.h	(revision 6303)
++++ kern/arch/sparc/setjmp.h	(working copy)
+@@ -5,12 +5,6 @@
+ 
+ #define JOS_LONGJMP_GCCATTR	
+ 
+-#if defined(JOS_KERNEL)
+-struct jos_jmp_buf {
+-    uint32_t jb_sp;
+-    uint32_t jb_pc;
+-};
+-#else
+ struct jos_jmp_buf {
+     /* For x86 style stack management.
+      * We don't need all the globals, only %g2-%g4.
+@@ -23,6 +17,5 @@
+     uint32_t jb_ins[8];
+     uint32_t jb_globals[8];
+ } __attribute__((aligned (8)));
+-#endif
+ 
+ #endif
+Index: kern/arch/sparc/asm.h
+===================================================================
+--- kern/arch/sparc/asm.h	(revision 6306)
++++ kern/arch/sparc/asm.h	(working copy)
+@@ -78,8 +78,3 @@
+         ldd     [%base_reg + 16], %o4; \
+         ldd     [%base_reg + 24], %o6;
+ 
+-#define _SV save	%sp, -STACKFRAME_SZ, %sp
+-#define _RS restore
+-#define FLUSH_WINDOWS \
+-        _SV; _SV; _SV; _SV; _SV; _SV; _SV; _SV; \
+-        _RS; _RS; _RS; _RS; _RS; _RS; _RS; _RS;
+Index: lib/sparc/crti.S
+===================================================================
+--- lib/sparc/crti.S	(revision 6303)
++++ lib/sparc/crti.S	(working copy)
+@@ -2,11 +2,13 @@
+ .global	_init
+ .type	_init, %function
+ _init:
+-	save	%sp, -104, %sp
++	sub	%sp, 8, %sp
++	st	%o7, [%sp]
+ 
+ .section .fini
+ .global	_fini
+ .type	_fini, %function
+ _fini:
+-	save	%sp, -104, %sp
++	sub	%sp, 8, %sp
++	st	%o7, [%sp]
+ 
+Index: lib/sparc/trapstub.S
+===================================================================
+--- lib/sparc/trapstub.S	(revision 6303)
++++ lib/sparc/trapstub.S	(working copy)
+@@ -5,10 +5,8 @@
+ 
+ 
+ ENTRY(utrap_entry_asm)
+-	/* Save space for the register window */
+-	sub	%sp, 0x40, %sp
+ 	call	utrap_entry
+-	 add	%sp, 0x40, %o0
++	 mov	%sp, %o0
+ 
+ .section .utrap_masked, "ax", @progbits
+ .globl utrap_ret
+Index: lib/sparc/crtn.S
+===================================================================
+--- lib/sparc/crtn.S	(revision 6303)
++++ lib/sparc/crtn.S	(working copy)
+@@ -1,14 +1,16 @@
+ .section .init
+ .global	_init
+ .type	_init, %function
+-	ret
+-	restore
++	ld	[%sp], %o7
++	retl
++	 add	%sp, 8, %sp
+ .size _init, .-_init
+ 
+ .section .fini
+ .global	_fini
+ .type	_fini, %function
+-	ret
+-	restore
++	ld	[%sp], %o7
++	retl
++	 add	%sp, 8, %sp
+ .size _fini, .-_fini
+ 
+Index: lib/sparc/crt1.S
+===================================================================
+--- lib/sparc/crt1.S	(revision 6303)
++++ lib/sparc/crt1.S	(working copy)
+@@ -1,15 +1,21 @@
+ #include <machine/asm.h>
+ #include <machine/mmu.h>
+-	
++
+ ENTRY(_start)
+-	// Args already in %o's, and kernel allocated space for a
+-	// stackframe
++	// Args in %o's
++	sub	%sp, 16, %sp
++	std	%o0, [%sp + 0]
++	std	%o2, [%sp + 8]
+ 
+ 	call	setup_env
+ 	 nop
+ 
++	ldd	[%sp + 0], %o0
++	ldd	[%sp + 8], %o2
+ 	call	_init
+ 	 nop
+ 
++	ldd	[%sp + 0], %o0
++	ldd	[%sp + 8], %o2
+ 	call	libmain
+ 	 nop
+Index: lib/sparc/syscall_entry.S
+===================================================================
+--- lib/sparc/syscall_entry.S	(revision 6303)
++++ lib/sparc/syscall_entry.S	(working copy)
+@@ -4,7 +4,14 @@
+ 
+ ENTRY(syscall)
+ 	mov	%sp, %g1
+-	save	%sp, -STACKFRAME_SZ, %sp
++
++	sub	%sp, 0x30, %sp
++	std	%l0, [%sp + 0x00]
++	std	%l2, [%sp + 0x08]
++	std	%l4, [%sp + 0x10]
++	std	%l6, [%sp + 0x18]
++	std	%i0, [%sp + 0x20]
++	std	%i2, [%sp + 0x28]
+ 
+ 	ld	[%g1 + 92],  %l0
+ 	ld	[%g1 + 96],  %l1
+@@ -15,11 +22,18 @@
+ 	ld	[%g1 + 116], %l6
+ 	ld	[%g1 + 120], %l7
+ 
+-	ld	[%g1 + 124], %o0
++	ld	[%g1 + 124], %i0
+ 
+ 	ta	SOFTWARE_TRAP(T_SYSCALL)
+-	 mov	%o1, %i0
+-	mov	%o2, %i1
++	 mov	%i1, %o0
++	mov	%i2, %o1
++
++	ldd	[%sp + 0x00], %l0
++	ldd	[%sp + 0x08], %l2
++	ldd	[%sp + 0x10], %l4
++	ldd	[%sp + 0x18], %l6
++	ldd	[%sp + 0x20], %i0
++	ldd	[%sp + 0x28], %i2
+ 
+-	ret
+-	 restore
++	retl
++	 add	%sp, 0x30, %sp
+Index: lib/sparc/Makefrag
+===================================================================
+--- lib/sparc/Makefrag	(revision 6303)
++++ lib/sparc/Makefrag	(working copy)
+@@ -1,6 +1,4 @@
+ LIB_SRCFILES += lib/$(ARCH)/win.S
+ 
+ # Keep synchronized with memlayout.h
+-LDFLAGS += -Wl,--section-start,.utrap_masked=0x3FFFD000 \
+-	   -Wl,-u,uwin_overflow -Wl,--section-start,.uwin_overflow=0x3FFFE000 \
+-	   -Wl,-u,uwin_underflow -Wl,--section-start,.uwin_underflow=0x3FFFF000
++LDFLAGS += -Wl,--section-start,.utrap_masked=0x3FFFF000
