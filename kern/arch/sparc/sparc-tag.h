@@ -89,6 +89,7 @@ TAG_REG_RW(tsr)
 TAG_REG_RW(rma)
 TAG_REG_RW(et)
 TAG_REG_RW(eoa)
+TAG_REG_RW(tb)		/* Tag table base address */
 #undef TAG_REG_RW
 
 #endif
