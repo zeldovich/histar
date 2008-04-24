@@ -120,7 +120,6 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 	bufsize -= bytes;
     }
 
-    sg->sg_ko.ko_flags |= c->ct_ko.ko_flags;
     if (sg_store)
 	*sg_store = sg;
     return container_put(c, &sg->sg_ko);
@@ -154,7 +153,6 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	cprintf("thread_load_elf: cannot allocate AS: %s\n", e2s(r));
 	return r;
     }
-    as->as_ko.ko_flags |= c->ct_ko.ko_flags;
 
     r = container_put(c, &as->as_ko);
     if (r < 0) {
@@ -258,7 +256,6 @@ thread_create_embed(struct Container *c,
 
     struct Thread *t;
     assert_check(thread_alloc(th_label, th_clearance, &t));
-    t->th_ko.ko_flags |= tc->ct_ko.ko_flags;
     strncpy(&t->th_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     thread_set_sched_parents(t, tc->ct_ko.ko_id, 0);
 
