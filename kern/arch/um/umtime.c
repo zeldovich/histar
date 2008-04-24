@@ -20,6 +20,11 @@ um_timer_ticks(void *arg)
     return ((uint64_t) tv.tv_sec) * 1000000 + tv.tv_usec;
 }
 
+static void
+um_schedule_nsec(void *arg, uint64_t nsec)
+{
+}
+
 void
 um_time_init(void)
 {
@@ -29,5 +34,10 @@ um_time_init(void)
 	.delay_nsec = &um_timer_delay,
     };
 
+    static struct preemption_timer pt = {
+	.schedule_nsec = &um_schedule_nsec,
+    };
+
     the_timesrc = &ts;
+    the_schedtmr = &pt;
 }

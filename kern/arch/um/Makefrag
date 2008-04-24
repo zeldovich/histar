@@ -8,6 +8,7 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/umcons.c			\
 	$(ARCHDIR)/umtime.c			\
 	$(ARCHDIR)/umbench.c			\
+	$(ARCHDIR)/trap.c			\
 	$(ARCHDIR)/main.c
 
 KERN_LIB :=					\
