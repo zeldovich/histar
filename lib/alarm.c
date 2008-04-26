@@ -10,11 +10,13 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <time.h>
 
 #include <sys/time.h>
 
 libc_hidden_proto(alarm)
 libc_hidden_proto(setitimer)
+libc_hidden_proto(timer_create)
 
 static struct cobj_ref alarm_worker_obj;
 static uint64_t alarm_worker_ct;
@@ -79,6 +81,14 @@ setitimer(__itimer_which_t which, const struct itimerval *value,
     return -1;
 }
 
+int
+timer_create(clockid_t clock_id, struct sigevent *evp, timer_t *timerid)
+{
+    set_enosys();
+    return -1;
+}
+
 libc_hidden_def(alarm)
 libc_hidden_def(setitimer)
+libc_hidden_def(timer_create)
 
