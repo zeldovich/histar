@@ -8,7 +8,7 @@ STDLIB_CSRC := \
 	getpt.c grantpt.c unlockpt.c gcvt.c drand48-iter.c jrand48.c \
 	jrand48_r.c lrand48.c lrand48_r.c mrand48.c mrand48_r.c nrand48.c \
 	nrand48_r.c rand_r.c srand48.c srand48_r.c seed48.c seed48_r.c \
-	valloc.c \
+	valloc.c posix_memalign.c a64l.c l64a.c \
 	abs.c labs.c atoi.c atol.c strtol.c strtoul.c _stdlib_strto_l.c \
 	qsort.c bsearch.c atof.c \
 	llabs.c atoll.c strtoll.c strtoull.c _stdlib_strto_ll.c \
