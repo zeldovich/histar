@@ -13,12 +13,12 @@ UCLIBC_ARCH := sparc
 endif
 
 UCLIBC_INCLUDES := \
-	-I$(TOP)/uinc \
-	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/$(UCLIBC_ARCH) \
-	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/common \
-	-I$(TOP)/pkg/uclibc/include \
-	-I$(TOP)/pkg/uclibc/libpthread/linuxthreads/sysdeps/pthread \
-	-I$(TOP)/pkg/uclibc/libpthread
+	-isystem $(TOP)/uinc \
+	-isystem $(TOP)/pkg/uclibc/libc/sysdeps/linux/$(UCLIBC_ARCH) \
+	-isystem $(TOP)/pkg/uclibc/libc/sysdeps/linux/common \
+	-isystem $(TOP)/pkg/uclibc/include \
+	-isystem $(TOP)/pkg/uclibc/libpthread/linuxthreads/sysdeps/pthread \
+	-isystem $(TOP)/pkg/uclibc/libpthread
 
 USER_INC := $(UCLIBC_INCLUDES) $(USER_INC)
 
