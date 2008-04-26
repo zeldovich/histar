@@ -17,6 +17,9 @@
 libc_hidden_proto(alarm)
 libc_hidden_proto(setitimer)
 libc_hidden_proto(timer_create)
+libc_hidden_proto(timer_delete)
+libc_hidden_proto(timer_gettime)
+libc_hidden_proto(timer_settime)
 
 static struct cobj_ref alarm_worker_obj;
 static uint64_t alarm_worker_ct;
@@ -88,7 +91,32 @@ timer_create(clockid_t clock_id, struct sigevent *evp, timer_t *timerid)
     return -1;
 }
 
+int
+timer_delete(timer_t timerid)
+{
+    set_enosys();
+    return -1;
+}
+
+int
+timer_settime(timer_t timerid, int flags,
+	      const struct itimerspec *val, struct itimerspec *oval)
+{
+    set_enosys();
+    return -1;
+}
+
+int
+timer_gettime(timer_t timerid, struct itimerspec *val)
+{
+    set_enosys();
+    return -1;
+}
+
 libc_hidden_def(alarm)
 libc_hidden_def(setitimer)
 libc_hidden_def(timer_create)
+libc_hidden_def(timer_delete)
+libc_hidden_def(timer_gettime)
+libc_hidden_def(timer_settime)
 
