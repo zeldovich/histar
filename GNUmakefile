@@ -49,7 +49,7 @@ ifeq ($(ARCH),amd64)
 OPTFLAG  += -march=athlon64
 endif
 
-BASECFLAGS  := -nostdinc -isystem $(shell $(CC) -print-file-name=include)
+BASECFLAGS  := -nostdinc -idirafter $(shell $(CC) -print-file-name=include)
 
 ifeq ($(K_ARCH),ft)
 BASECFLAGS :=
