@@ -204,6 +204,7 @@ DISTURL_libXp-1.0.0	    := http://xorg.freedesktop.org/releases/X11R7.3/src/ever
 DISTURL_libXprintUtil-1.0.1 := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXprintUtil-1.0.1.tar.gz
 DISTURL_openmotif-2.3.0	    := ftp://ftp.ics.com/openmotif/2.3/2.3.0/openmotif-2.3.0.tar.gz
 DISTURL_lesstif-0.95.0	    := http://easynews.dl.sourceforge.net/sourceforge/lesstif/lesstif-0.95.0.tar.gz
+DISTURL_qemu-0.9.1	    := http://fabrice.bellard.free.fr/qemu/qemu-0.9.1.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -273,6 +274,7 @@ PATCHFILE_net-tools-1.60    := net-tools-1.60.patch
 PATCHFILE_lesstif-0.95.0    := lesstif-0.95.0.patch
 PATCHFILE_xpdf-3.02	    := xpdf-3.02.patch
 PATCHFILE_mairix-0.21	    := mairix-0.21.patch
+PATCHFILE_qemu-0.9.1	    := qemu-0.9.1.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -1197,4 +1199,17 @@ $(ACPKG_BUILDDIR)/mairix-0.21/Makefile: $(ACPKG_BUILDDIR)/mairix-0.21/__patch | 
 	touch $@
 
 $(OBJDIR)/acpkg/bin/mairix: $(ACPKG_BUILDDIR)/mairix-0.21/__build
+
+$(ACPKG_BUILDDIR)/qemu-0.9.1/__build: $(ACPKG_BUILDDIR)/qemu-0.9.1/__patch
+	@mkdir -p $(ACPKG_PREFIX)
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) ./configure \
+		--cc=acpkg-wrap-gcc --host-cc=\"$(NCC)\" \
+		--disable-gcc-check --disable-gfx-check \
+		--disable-kqemu --disable-sdl --disable-vnc-tls \
+		--disable-linux-user --disable-darwin-user \
+		--target-list=\"i386-softmmu x86_64-softmmu sparc-softmmu\" \
+		--prefix=$(TOP)/$(ACPKG_PREFIX)" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) make" )
+	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) make install" )
+	touch $@
 

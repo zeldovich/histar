@@ -1,0 +1,494 @@
+--- block-raw-posix.c	2008/04/26 04:41:42	1.1
++++ block-raw-posix.c	2008/04/26 04:43:33
+@@ -28,7 +28,6 @@
+ #endif
+ #include "block_int.h"
+ #include <assert.h>
+-#include <aio.h>
+ 
+ #ifdef CONFIG_COCOA
+ #include <paths.h>
+@@ -49,8 +48,6 @@
+ #endif
+ #ifdef __linux__
+ #include <sys/ioctl.h>
+-#include <linux/cdrom.h>
+-#include <linux/fd.h>
+ #endif
+ #ifdef __FreeBSD__
+ #include <sys/disk.h>
+@@ -230,230 +227,28 @@
+     return ret;
+ }
+ 
+-/***********************************************************/
+-/* Unix AIO using POSIX AIO */
+-
+-typedef struct RawAIOCB {
+-    BlockDriverAIOCB common;
+-    struct aiocb aiocb;
+-    struct RawAIOCB *next;
+-} RawAIOCB;
+-
+-static int aio_sig_num = SIGUSR2;
+-static RawAIOCB *first_aio; /* AIO issued */
+-static int aio_initialized = 0;
+-
+-static void aio_signal_handler(int signum)
+-{
+-#ifndef QEMU_IMG
+-    CPUState *env = cpu_single_env;
+-    if (env) {
+-        /* stop the currently executing cpu because a timer occured */
+-        cpu_interrupt(env, CPU_INTERRUPT_EXIT);
+-#ifdef USE_KQEMU
+-        if (env->kqemu_enabled) {
+-            kqemu_cpu_interrupt(env);
+-        }
+-#endif
+-    }
+-#endif
+-}
+-
+ void qemu_aio_init(void)
+ {
+-    struct sigaction act;
+-
+-    aio_initialized = 1;
+-
+-    sigfillset(&act.sa_mask);
+-    act.sa_flags = 0; /* do not restart syscalls to interrupt select() */
+-    act.sa_handler = aio_signal_handler;
+-    sigaction(aio_sig_num, &act, NULL);
+-
+-#if defined(__GLIBC__) && defined(__linux__)
+-    {
+-        /* XXX: aio thread exit seems to hang on RedHat 9 and this init
+-           seems to fix the problem. */
+-        struct aioinit ai;
+-        memset(&ai, 0, sizeof(ai));
+-        ai.aio_threads = 1;
+-        ai.aio_num = 1;
+-        ai.aio_idle_time = 365 * 100000;
+-        aio_init(&ai);
+-    }
+-#endif
+ }
+ 
+ void qemu_aio_poll(void)
+ {
+-    RawAIOCB *acb, **pacb;
+-    int ret;
+-
+-    for(;;) {
+-        pacb = &first_aio;
+-        for(;;) {
+-            acb = *pacb;
+-            if (!acb)
+-                goto the_end;
+-            ret = aio_error(&acb->aiocb);
+-            if (ret == ECANCELED) {
+-                /* remove the request */
+-                *pacb = acb->next;
+-                qemu_aio_release(acb);
+-            } else if (ret != EINPROGRESS) {
+-                /* end of aio */
+-                if (ret == 0) {
+-                    ret = aio_return(&acb->aiocb);
+-                    if (ret == acb->aiocb.aio_nbytes)
+-                        ret = 0;
+-                    else
+-                        ret = -EINVAL;
+-                } else {
+-                    ret = -ret;
+-                }
+-                /* remove the request */
+-                *pacb = acb->next;
+-                /* call the callback */
+-                acb->common.cb(acb->common.opaque, ret);
+-                qemu_aio_release(acb);
+-                break;
+-            } else {
+-                pacb = &acb->next;
+-            }
+-        }
+-    }
+- the_end: ;
+ }
+ 
+-/* Wait for all IO requests to complete.  */
+ void qemu_aio_flush(void)
+ {
+-    qemu_aio_wait_start();
+-    qemu_aio_poll();
+-    while (first_aio) {
+-        qemu_aio_wait();
+-    }
+-    qemu_aio_wait_end();
+ }
+ 
+-/* wait until at least one AIO was handled */
+-static sigset_t wait_oset;
+-
+ void qemu_aio_wait_start(void)
+ {
+-    sigset_t set;
+-
+-    if (!aio_initialized)
+-        qemu_aio_init();
+-    sigemptyset(&set);
+-    sigaddset(&set, aio_sig_num);
+-    sigprocmask(SIG_BLOCK, &set, &wait_oset);
+ }
+ 
+ void qemu_aio_wait(void)
+ {
+-    sigset_t set;
+-    int nb_sigs;
+-
+-#ifndef QEMU_IMG
+-    if (qemu_bh_poll())
+-        return;
+-#endif
+-    sigemptyset(&set);
+-    sigaddset(&set, aio_sig_num);
+-    sigwait(&set, &nb_sigs);
+-    qemu_aio_poll();
+ }
+ 
+ void qemu_aio_wait_end(void)
+ {
+-    sigprocmask(SIG_SETMASK, &wait_oset, NULL);
+-}
+-
+-static RawAIOCB *raw_aio_setup(BlockDriverState *bs,
+-        int64_t sector_num, uint8_t *buf, int nb_sectors,
+-        BlockDriverCompletionFunc *cb, void *opaque)
+-{
+-    BDRVRawState *s = bs->opaque;
+-    RawAIOCB *acb;
+-
+-    if (fd_open(bs) < 0)
+-        return NULL;
+-
+-    acb = qemu_aio_get(bs, cb, opaque);
+-    if (!acb)
+-        return NULL;
+-    acb->aiocb.aio_fildes = s->fd;
+-    acb->aiocb.aio_sigevent.sigev_signo = aio_sig_num;
+-    acb->aiocb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
+-    acb->aiocb.aio_buf = buf;
+-    if (nb_sectors < 0)
+-        acb->aiocb.aio_nbytes = -nb_sectors;
+-    else
+-        acb->aiocb.aio_nbytes = nb_sectors * 512;
+-    acb->aiocb.aio_offset = sector_num * 512;
+-    acb->next = first_aio;
+-    first_aio = acb;
+-    return acb;
+-}
+-
+-static BlockDriverAIOCB *raw_aio_read(BlockDriverState *bs,
+-        int64_t sector_num, uint8_t *buf, int nb_sectors,
+-        BlockDriverCompletionFunc *cb, void *opaque)
+-{
+-    RawAIOCB *acb;
+-
+-    acb = raw_aio_setup(bs, sector_num, buf, nb_sectors, cb, opaque);
+-    if (!acb)
+-        return NULL;
+-    if (aio_read(&acb->aiocb) < 0) {
+-        qemu_aio_release(acb);
+-        return NULL;
+-    }
+-    return &acb->common;
+-}
+-
+-static BlockDriverAIOCB *raw_aio_write(BlockDriverState *bs,
+-        int64_t sector_num, const uint8_t *buf, int nb_sectors,
+-        BlockDriverCompletionFunc *cb, void *opaque)
+-{
+-    RawAIOCB *acb;
+-
+-    acb = raw_aio_setup(bs, sector_num, (uint8_t*)buf, nb_sectors, cb, opaque);
+-    if (!acb)
+-        return NULL;
+-    if (aio_write(&acb->aiocb) < 0) {
+-        qemu_aio_release(acb);
+-        return NULL;
+-    }
+-    return &acb->common;
+-}
+-
+-static void raw_aio_cancel(BlockDriverAIOCB *blockacb)
+-{
+-    int ret;
+-    RawAIOCB *acb = (RawAIOCB *)blockacb;
+-    RawAIOCB **pacb;
+-
+-    ret = aio_cancel(acb->aiocb.aio_fildes, &acb->aiocb);
+-    if (ret == AIO_NOTCANCELED) {
+-        /* fail safe: if the aio could not be canceled, we wait for
+-           it */
+-        while (aio_error(&acb->aiocb) == EINPROGRESS);
+-    }
+-
+-    /* remove the callback from the queue */
+-    pacb = &first_aio;
+-    for(;;) {
+-        if (*pacb == NULL) {
+-            break;
+-        } else if (*pacb == acb) {
+-            *pacb = acb->next;
+-            qemu_aio_release(acb);
+-            break;
+-        }
+-        pacb = &acb->next;
+-    }
+ }
+ 
+ static void raw_close(BlockDriverState *bs)
+@@ -556,10 +351,6 @@
+     raw_create,
+     raw_flush,
+ 
+-    .bdrv_aio_read = raw_aio_read,
+-    .bdrv_aio_write = raw_aio_write,
+-    .bdrv_aio_cancel = raw_aio_cancel,
+-    .aiocb_size = sizeof(RawAIOCB),
+     .protocol_name = "file",
+     .bdrv_pread = raw_pread,
+     .bdrv_pwrite = raw_pwrite,
+@@ -570,64 +361,6 @@
+ /***********************************************/
+ /* host device */
+ 
+-#ifdef CONFIG_COCOA
+-static kern_return_t FindEjectableCDMedia( io_iterator_t *mediaIterator );
+-static kern_return_t GetBSDPath( io_iterator_t mediaIterator, char *bsdPath, CFIndex maxPathSize );
+-
+-kern_return_t FindEjectableCDMedia( io_iterator_t *mediaIterator )
+-{
+-    kern_return_t       kernResult;
+-    mach_port_t     masterPort;
+-    CFMutableDictionaryRef  classesToMatch;
+-
+-    kernResult = IOMasterPort( MACH_PORT_NULL, &masterPort );
+-    if ( KERN_SUCCESS != kernResult ) {
+-        printf( "IOMasterPort returned %d\n", kernResult );
+-    }
+-
+-    classesToMatch = IOServiceMatching( kIOCDMediaClass );
+-    if ( classesToMatch == NULL ) {
+-        printf( "IOServiceMatching returned a NULL dictionary.\n" );
+-    } else {
+-    CFDictionarySetValue( classesToMatch, CFSTR( kIOMediaEjectableKey ), kCFBooleanTrue );
+-    }
+-    kernResult = IOServiceGetMatchingServices( masterPort, classesToMatch, mediaIterator );
+-    if ( KERN_SUCCESS != kernResult )
+-    {
+-        printf( "IOServiceGetMatchingServices returned %d\n", kernResult );
+-    }
+-
+-    return kernResult;
+-}
+-
+-kern_return_t GetBSDPath( io_iterator_t mediaIterator, char *bsdPath, CFIndex maxPathSize )
+-{
+-    io_object_t     nextMedia;
+-    kern_return_t   kernResult = KERN_FAILURE;
+-    *bsdPath = '\0';
+-    nextMedia = IOIteratorNext( mediaIterator );
+-    if ( nextMedia )
+-    {
+-        CFTypeRef   bsdPathAsCFString;
+-    bsdPathAsCFString = IORegistryEntryCreateCFProperty( nextMedia, CFSTR( kIOBSDNameKey ), kCFAllocatorDefault, 0 );
+-        if ( bsdPathAsCFString ) {
+-            size_t devPathLength;
+-            strcpy( bsdPath, _PATH_DEV );
+-            strcat( bsdPath, "r" );
+-            devPathLength = strlen( bsdPath );
+-            if ( CFStringGetCString( bsdPathAsCFString, bsdPath + devPathLength, maxPathSize - devPathLength, kCFStringEncodingASCII ) ) {
+-                kernResult = KERN_SUCCESS;
+-            }
+-            CFRelease( bsdPathAsCFString );
+-        }
+-        IOObjectRelease( nextMedia );
+-    }
+-
+-    return kernResult;
+-}
+-
+-#endif
+-
+ static int hdev_open(BlockDriverState *bs, const char *filename, int flags)
+ {
+     BDRVRawState *s = bs->opaque;
+@@ -762,115 +495,6 @@
+ }
+ #endif
+ 
+-#if defined(__linux__)
+-
+-static int raw_is_inserted(BlockDriverState *bs)
+-{
+-    BDRVRawState *s = bs->opaque;
+-    int ret;
+-
+-    switch(s->type) {
+-    case FTYPE_CD:
+-        ret = ioctl(s->fd, CDROM_DRIVE_STATUS, CDSL_CURRENT);
+-        if (ret == CDS_DISC_OK)
+-            return 1;
+-        else
+-            return 0;
+-        break;
+-    case FTYPE_FD:
+-        ret = fd_open(bs);
+-        return (ret >= 0);
+-    default:
+-        return 1;
+-    }
+-}
+-
+-/* currently only used by fdc.c, but a CD version would be good too */
+-static int raw_media_changed(BlockDriverState *bs)
+-{
+-    BDRVRawState *s = bs->opaque;
+-
+-    switch(s->type) {
+-    case FTYPE_FD:
+-        {
+-            int ret;
+-            /* XXX: we do not have a true media changed indication. It
+-               does not work if the floppy is changed without trying
+-               to read it */
+-            fd_open(bs);
+-            ret = s->fd_media_changed;
+-            s->fd_media_changed = 0;
+-#ifdef DEBUG_FLOPPY
+-            printf("Floppy changed=%d\n", ret);
+-#endif
+-            return ret;
+-        }
+-    default:
+-        return -ENOTSUP;
+-    }
+-}
+-
+-static int raw_eject(BlockDriverState *bs, int eject_flag)
+-{
+-    BDRVRawState *s = bs->opaque;
+-
+-    switch(s->type) {
+-    case FTYPE_CD:
+-        if (eject_flag) {
+-            if (ioctl (s->fd, CDROMEJECT, NULL) < 0)
+-                perror("CDROMEJECT");
+-        } else {
+-            if (ioctl (s->fd, CDROMCLOSETRAY, NULL) < 0)
+-                perror("CDROMEJECT");
+-        }
+-        break;
+-    case FTYPE_FD:
+-        {
+-            int fd;
+-            if (s->fd >= 0) {
+-                close(s->fd);
+-                s->fd = -1;
+-            }
+-            fd = open(bs->filename, s->fd_open_flags | O_NONBLOCK);
+-            if (fd >= 0) {
+-                if (ioctl(fd, FDEJECT, 0) < 0)
+-                    perror("FDEJECT");
+-                close(fd);
+-            }
+-        }
+-        break;
+-    default:
+-        return -ENOTSUP;
+-    }
+-    return 0;
+-}
+-
+-static int raw_set_locked(BlockDriverState *bs, int locked)
+-{
+-    BDRVRawState *s = bs->opaque;
+-
+-    switch(s->type) {
+-    case FTYPE_CD:
+-        if (ioctl (s->fd, CDROM_LOCKDOOR, locked) < 0) {
+-            /* Note: an error can happen if the distribution automatically
+-               mounts the CD-ROM */
+-            //        perror("CDROM_LOCKDOOR");
+-        }
+-        break;
+-    default:
+-        return -ENOTSUP;
+-    }
+-    return 0;
+-}
+-
+-static int raw_ioctl(BlockDriverState *bs, unsigned long int req, void *buf)
+-{
+-    BDRVRawState *s = bs->opaque;
+-
+-    return ioctl(s->fd, req, buf);
+-}
+-#else
+-
+ static int raw_is_inserted(BlockDriverState *bs)
+ {
+     return 1;
+@@ -895,7 +519,6 @@
+ {
+     return -ENOTSUP;
+ }
+-#endif /* !linux */
+ 
+ BlockDriver bdrv_host_device = {
+     "host_device",
+@@ -908,10 +531,6 @@
+     NULL,
+     raw_flush,
+ 
+-    .bdrv_aio_read = raw_aio_read,
+-    .bdrv_aio_write = raw_aio_write,
+-    .bdrv_aio_cancel = raw_aio_cancel,
+-    .aiocb_size = sizeof(RawAIOCB),
+     .bdrv_pread = raw_pread,
+     .bdrv_pwrite = raw_pwrite,
+     .bdrv_getlength = raw_getlength,
+--- configure	2008/04/26 04:49:48	1.1
++++ configure	2008/04/26 17:54:38
+@@ -325,7 +325,7 @@
+     AIOLIBS=
+ else
+     # Some Linux architectures (e.g. s390) don't imply -lpthread automatically.
+-    AIOLIBS="-lrt -lpthread"
++    AIOLIBS=
+ fi
+ 
+ # default flags for all hosts
+@@ -890,8 +890,9 @@
+   echo "#define CONFIG_ADLIB 1" >> $config_h
+ fi
+ if test "$oss" = "yes" ; then
+-  echo "CONFIG_OSS=yes" >> $config_mak
+-  echo "#define CONFIG_OSS 1" >> $config_h
++  #echo "CONFIG_OSS=yes" >> $config_mak
++  #echo "#define CONFIG_OSS 1" >> $config_h
++  true
+ fi
+ if test "$coreaudio" = "yes" ; then
+   echo "CONFIG_COREAUDIO=yes" >> $config_mak
+--- x86_64.ld	2008/04/26 04:48:24	1.1
++++ x86_64.ld	2008/04/26 04:48:30
+@@ -2,7 +2,6 @@
+ OUTPUT_FORMAT("elf64-x86-64", "elf64-x86-64", "elf64-x86-64")
+ OUTPUT_ARCH(i386:x86-64)
+ ENTRY(_start)
+-SEARCH_DIR("/lib64"); SEARCH_DIR("/usr/lib64"); SEARCH_DIR("/usr/local/lib64");
+ SECTIONS
+ {
+   /* Read-only sections, merged into text segment: */
