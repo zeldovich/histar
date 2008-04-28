@@ -11,6 +11,7 @@ SPARC_INST_ATTR uint32_t rd_tbr(void);
 SPARC_INST_ATTR void flush(void);
 SPARC_INST_ATTR uint32_t lda(uint32_t addr, uint32_t asi);
 SPARC_INST_ATTR void sta(uint32_t addr, uint32_t val, uint32_t asi);
+SPARC_INST_ATTR void wr_psr(uint32_t v);
 
 uint32_t 
 rd_sp(void)
@@ -28,6 +29,13 @@ rd_psr(void)
     __asm__ __volatile__("rd %%psr, %0"
 			 : "=r" (retval));
     return retval;
+}
+
+void
+wr_psr(uint32_t v)
+{
+    __asm__ __volatile__("wr %0, %%psr"
+			 : : "r" (v));
 }
 
 uint32_t 
