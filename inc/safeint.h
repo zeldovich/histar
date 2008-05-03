@@ -1,23 +1,29 @@
 #ifndef JOS_INC_SAFEINT_H
 #define JOS_INC_SAFEINT_H
 
-#define SAFEINT_FUNCTIONS(suffix, T)				\
-    static __inline __attribute__((always_inline)) T		\
-    safe_add##suffix(int *of, uint64_t a, uint64_t b)		\
-    {								\
-	T r = a + b;						\
-	if (r < a || r < b)					\
-	    *of = 1;						\
-	return r;						\
-    }								\
-								\
-    static __inline __attribute__((always_inline)) T		\
-    safe_mul##suffix(int *of, uint64_t a, uint64_t b)		\
-    {								\
-	T r = a * b;						\
-	if (a && r / a != b)					\
-	    *of = 1;						\
-	return r;						\
+#define SAFEINT_FUNCTIONS(suffix, T)					\
+    static __inline __attribute__((always_inline)) T			\
+    safe_add##suffix(int *of, uint64_t a, uint64_t b)			\
+    {									\
+	T r = a + b;							\
+	if (r < a || r < b)						\
+	    *of = 1;							\
+	return r;							\
+    }									\
+									\
+    static __inline __attribute__((always_inline)) T			\
+    safe_mul##suffix(int *of, uint64_t a, uint64_t b)			\
+    {									\
+	if (__builtin_constant_p(a) && !__builtin_constant_p(b)) {	\
+	    T t = a;							\
+	    a = b;							\
+	    b = t;							\
+	}								\
+									\
+	T r = a * b;							\
+	if (b && r / b != a)						\
+	    *of = 1;							\
+	return r;							\
     }
 
 SAFEINT_FUNCTIONS(32, uint32_t)
