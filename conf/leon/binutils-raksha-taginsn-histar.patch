@@ -9,7 +9,7 @@ Description: Adds support for tag instructions to gas and objdump
 diff -BbruN gas/config/tc-sparc.c gas/config/tc-sparc.c
 --- gas/config/tc-sparc.c	2006-04-05 05:41:57.000000000 -0700
 +++ gas/config/tc-sparc.c	2007-06-15 11:02:41.000000000 -0700
-@@ -787,6 +787,41 @@
+@@ -787,6 +787,42 @@
    {"", -1},			/* End marker.  */
  };
  
@@ -33,6 +33,7 @@ diff -BbruN gas/config/tc-sparc.c gas/config/tc-sparc.c
 +  {"et", 14},
 +  {"eoa", 15},
 +  {"tb", 16},
++  {"etag", 17},
 +  {"",-1},                         /* End marker. */
 +};
 +
@@ -51,7 +52,7 @@ diff -BbruN gas/config/tc-sparc.c gas/config/tc-sparc.c
  static int
  cmp_reg_entry (parg, qarg)
       const PTR parg;
-@@ -872,6 +907,10 @@
+@@ -872,6 +908,10 @@
  
    qsort (priv_reg_table, sizeof (priv_reg_table) / sizeof (priv_reg_table[0]),
  	 sizeof (priv_reg_table[0]), cmp_reg_entry);
@@ -62,7 +63,7 @@ diff -BbruN gas/config/tc-sparc.c gas/config/tc-sparc.c
  
    /* If -bump, record the architecture level at which we start issuing
       warnings.  The behaviour is different depending upon whether an
-@@ -1552,6 +1591,87 @@
+@@ -1552,6 +1592,87 @@
  		continue;
  	      }
  
@@ -150,7 +151,7 @@ diff -BbruN gas/config/tc-sparc.c gas/config/tc-sparc.c
  	    case '!':
  	    case '?':
  	      /* Parse a sparc64 privileged register.  */
-@@ -2555,6 +2675,7 @@
+@@ -2555,6 +2676,7 @@
  		}
  	      break;
  
@@ -158,7 +159,7 @@ diff -BbruN gas/config/tc-sparc.c gas/config/tc-sparc.c
  	    case 'A':
  	      {
  		int asi = 0;
-@@ -2581,7 +2702,8 @@
+@@ -2581,7 +2703,8 @@
  			goto error;
  		      }
  		  }
