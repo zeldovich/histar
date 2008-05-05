@@ -20,14 +20,6 @@
 char boot_cmdline[256];
 
 static void
-mmu_init(void)
-{
-    for (uint32_t i = 64; i < 128; i++)
-	bootpt.pm1_ent[i] = 0;
-    tlb_flush_all();
-}
-
-static void
 bss_init (void)
 {
     extern char sbss[], ebss[];
@@ -40,8 +32,8 @@ init (void)
     int r;
 
     write_tsr(TSR_T);
-    mmu_init();
     bss_init();
+    mmu_init();
 
     amba_init();
     irqmp_init();

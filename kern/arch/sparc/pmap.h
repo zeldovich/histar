@@ -22,8 +22,7 @@ struct Pagemap2 {
     };
 };
 
-extern struct Pagemap bootpt;
-
+void mmu_init(void);
 void page_init(void);
 void page_init2(void);
 
@@ -32,8 +31,6 @@ typedef uint32_t ctxptr_t;
 struct Contexttable {
     ctxptr_t ct_ent[CTX_NCTX];
 };
-
-extern struct Contexttable bootct;
 
 #endif /* __ASSEMBLER__ */
 

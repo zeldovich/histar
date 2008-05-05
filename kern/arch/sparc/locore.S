@@ -19,8 +19,8 @@ ENTRY(abort)
 
 	/*
 	 * Disable the MMU, to simplify re-loading a new kernel with grmon.
-	 * This function is also located at 0x80001000, making it easy to
-	 * reset the MMU using "run 0x80001000".
+	 * This function is also located at 0x40001000, making it easy to
+	 * reset the MMU using "run 0x40001000".
 	 */
 	set	SRMMU_CTXTBL_PTR, %g1
 	set	SRMMU_CTX_REG, %g2
@@ -45,34 +45,7 @@ ENTRY(start)
 	set	(PSR_S | PSR_PIL), %g2
 	wr	%g2, %psr
 	WRITE_PAUSE
-		
-	/* Set the first PTD of the Context Table to point to bootpt */
-	set	RELOC(bootpt), %g2 
-	srl	%g2, 4, %g2
-	or	%g2, PT_ET_PTD, %g2
-	set	RELOC(bootct), %g1
-	st	%g2, [%g1]
 
-	/* Set Context Table Pointer register */	
-	srl	%g1, 4, %g1
-	set	SRMMU_CTXTBL_PTR, %g2
-	sta	%g1, [%g2] ASI_MMUREGS
-
-	/* Set context register to 0 */
-	set	SRMMU_CTX_REG, %g2
-	sta	%g0, [%g2] ASI_MMUREGS
-
-	/* Enable MMU */
-	lda	[%g0] ASI_MMUREGS, %g3
-	or	%g3, SRMMU_CTRL_E, %g3
-	sta	%g3, [%g0] ASI_MMUREGS
-	WRITE_PAUSE
-
-	set	vm_enabled, %g1
-	jmpl	%g1, %g0
-	 nop
-
-vm_enabled:	
 	/* Make window 1 invalid */
 	mov	0x02, %wim
 	WRITE_PAUSE

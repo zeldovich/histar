@@ -6,6 +6,13 @@
 #include <inc/error.h>
 #include <inc/safeint.h>
 
+static struct Contexttable bootct
+    __attribute__ ((aligned (4096), section (".data")));
+static struct Pagemap bootpt
+    __attribute__ ((aligned (4096), section (".data")));
+static struct Pagemap2 bootpt2s[192 * (1 + 64)]
+    __attribute__ ((aligned (512), section (".data")));
+
 static int
 pmap_alloc_pmap2(struct Pagemap2fl *fl, struct Pagemap2 **pgmap)
 {
@@ -333,14 +340,8 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 void *
 pa2kva(physaddr_t pa)
 {
-    if (pa >= PA_MEMBASE && pa < PA_MEMEND)
-	return (void *) (pa + LOAD_OFFSET);
-    
-    if (pa >= PA_AHBBASE && pa < PA_AHBEND)
-	return (void *)(AHBBASE + (pa - PA_AHBBASE));
-
-    if (pa > PA_AHBIO)
-	return (void *)pa;
+    if (pa >= PA_MEMBASE)
+	return (void *) pa;
 
     panic("pa2kva called with invalid pa 0x%x", pa);
 }
@@ -349,8 +350,9 @@ physaddr_t
 kva2pa(void *kva)
 {
     physaddr_t va = (physaddr_t) kva;
-    if (va >= PHYSBASE && va < PHYSEND)
+    if (va >= (uintptr_t) PHYSBASE && va < (uintptr_t) PHYSEND)
 	return va - LOAD_OFFSET;
+
     panic("kva2pa called with invalid kva %p", kva);
 }
 
@@ -364,4 +366,44 @@ physaddr_t
 ppn2pa(ppn_t pn)
 {
     return (pn << PGSHIFT) + PA_MEMBASE;
+}
+
+/*
+ * MMU initialization
+ */
+
+void
+mmu_init(void)
+{
+    uint32_t n2 = 0;
+
+    for (uint32_t i = 64; i < 256; i++) {
+	uint32_t cflag = (i >= 128) ? 0 : PTE_C;
+
+	struct Pagemap2 *pt2 = &bootpt2s[n2++];
+	bootpt.pm1_ent[i] = PTD_ENTRY(kva2pa(pt2));
+
+	for (uint32_t j = 0; j < 64; j++) {
+	    struct Pagemap2 *pt3 = &bootpt2s[n2++];
+	    pt2->pm2_ent[j] = PTD_ENTRY(kva2pa(pt3));
+
+	    for (uint32_t k = 0; k < 64; k++) {
+		uint32_t ppn = i * (1 << 12) + j * (1 << 6) + k;
+		pt3->pm2_ent[k] = (ppn << PTE_PPN_SHIFT) |
+				  (PT_ET_PTE << PT_ET_SHIFT) |
+				  (PTE_ACC_SUPER << PTE_ACC_SHIFT) |
+				  cflag;
+	    }
+	}
+    }
+
+    assert(n2 == sizeof(bootpt2s) / sizeof(*bootpt2s));
+
+    bootct.ct_ent[0] = (kva2pa(&bootpt) >> 4) | (PT_ET_PTD << PT_ET_SHIFT);
+    sta(SRMMU_CTXTBL_PTR, kva2pa(&bootct) >> 4, ASI_MMUREGS);
+    sta(SRMMU_CTX_REG,    0, ASI_MMUREGS);
+    sta(SRMMU_CTRL_REG,   SRMMU_CTRL_E | lda(SRMMU_CTRL_REG, ASI_MMUREGS),
+			  ASI_MMUREGS);
+    __asm volatile("nop; nop; nop;");
+    tlb_flush_all();
 }
