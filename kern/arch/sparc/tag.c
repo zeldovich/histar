@@ -655,7 +655,7 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 
     uint32_t et = read_et();
     uint32_t cause = (et >> ET_CAUSE_SHIFT) & ET_CAUSE_MASK;
-    uint32_t dtag = (et >> ET_TAG_SHIFT) & ET_TAG_MASK;
+    uint32_t dtag = read_etag();
 
     if (tag_trap_debug)
 	cprintf("  data tag = %d, cause = %s (%d), pc = 0x%x\n",
