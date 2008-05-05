@@ -15,6 +15,8 @@ SECTIONS
 
 	PROVIDE(etext = .);
 
+	. = ALIGN(0x1000);
+
 	PROVIDE(srodata = .);
 	.rodata : AT(ADDR(.rodata) - LOAD_OFFSET) {
 		*(.rodata .rodata.* .gnu.linkonce.r.*)
@@ -29,11 +31,15 @@ SECTIONS
 	}
 	PROVIDE(edata = .);
 
+	. = ALIGN(0x1000);
+
 	PROVIDE(srwdata = .);
 	.data_krw : AT(ADDR(.data_krw) - LOAD_OFFSET) {
 		*(.data_krw)
 	}
 	PROVIDE(erwdata = .);
+
+	. = ALIGN(0x1000);
 
 	PROVIDE(sbss = .);	
 	.bss : AT(ADDR(.bss) - LOAD_OFFSET) {

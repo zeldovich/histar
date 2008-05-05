@@ -24,8 +24,7 @@ static TAILQ_HEAD(Page_list, Page_link) page_free_list;
 // Global page allocation stats
 struct page_stats page_stats;
 
-PROT_FUNC(PCTAG_P_ALLOC, DTAG_P_ALLOC,
-	  void, page_free_real, void *v)
+PROT_FUNC(DTAG_P_ALLOC, void, page_free_real, void *v)
 {
     struct Page_link *pl = (struct Page_link *) v;
     if (PGOFF(pl))
@@ -50,8 +49,7 @@ page_free(void *v)
     page_free_real(v);
 }
 
-PROT_FUNC(PCTAG_P_ALLOC, DTAG_P_ALLOC,
-	  int, page_alloc, void **vp, const struct Label *l)
+PROT_FUNC(DTAG_P_ALLOC, int, page_alloc, void **vp, const struct Label *l)
 {
     struct Page_link *pl = TAILQ_FIRST(&page_free_list);
 
@@ -76,8 +74,7 @@ PROT_FUNC(PCTAG_P_ALLOC, DTAG_P_ALLOC,
     if (scrub_free_pages)
 	memset(pl, 0xcd, PGSIZE);
 
-    uint32_t page_tag = tag_alloc(l, tag_type_data);
-    tag_set(pl, page_tag, PGSIZE);
+    tag_set(pl, label_to_tag(l), PGSIZE);
 
     struct page_info *pi = page_to_pageinfo(pl);
     assert(pi->pi_freepage);
@@ -107,5 +104,4 @@ page_alloc_init(void)
 
     tag_set(&page_stats, DTAG_P_ALLOC, sizeof(page_stats));
     tag_set(&page_free_list, DTAG_P_ALLOC, sizeof(page_free_list));
-    tag_setperm(PCTAG_P_ALLOC, DTAG_P_ALLOC, TAG_PERM_READ | TAG_PERM_WRITE);
 }

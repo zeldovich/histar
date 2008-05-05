@@ -347,7 +347,7 @@ pa2kva(physaddr_t pa)
 }
 
 physaddr_t
-kva2pa(void *kva)
+kva2pa(const void *kva)
 {
     physaddr_t va = (physaddr_t) kva;
     if (va >= (uintptr_t) PHYSBASE && va < (uintptr_t) PHYSEND)

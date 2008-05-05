@@ -30,9 +30,6 @@
 #define TAG_PERM_WRITE	(1 << 1)
 #define TAG_PERM_EXEC	(1 << 2)
 
-#define TAG_PC_BITS	7
-#define TAG_DATA_BITS	7
-
 /*
  * Pre-defined tag values
  */
@@ -50,10 +47,7 @@
 #define DTAG_STACK_EX	10		/* 4 extra stacks */
 #define DTAG_STACK_EXL	13		/* Last */
 #define DTAG_DYNAMIC	14		/* First dynamically-allocated */
-
-#define PCTAG_INIT	0		/* While bootstrapping */
-#define PCTAG_P_ALLOC	1		/* Page allocator */
-#define PCTAG_DYNAMIC	2		/* First dynamically-allocated */
+#define DTAG_PERWORD	0xffffffff	/* Break out per word of memory */
 
 /*
  * Tag trap errors
@@ -69,7 +63,6 @@
 #define MONCALL_PCALL		1	/* Protected domain call */
 #define MONCALL_PRETURN		2	/* Protected domain return */
 #define MONCALL_TAGSET		3	/* Change tags ala memset */
-#define MONCALL_DTAGALLOC	4	/* Allocate a tag */
 #define MONCALL_THREAD_SWITCH	5	/* Change to another thread */
 #define MONCALL_KOBJ_ALLOC	6	/* Allocate a kobject */
 #define MONCALL_CATEGORY_ALLOC	7	/* Allocate a category */
@@ -98,7 +91,7 @@ enum {
 #define PCALL_DEPTH	4		/* Maximum nesting level */
 
 #define PROT_FUNC_WRAP2(moncall_pcall, stackframe_sz,			\
-		        pctag, dtag, type, name)			\
+		        dtag, type, name)				\
     __asm__(".text\n"							\
 	    ".align 4\n"						\
 	    ".globl " #name "\n"					\
@@ -111,8 +104,7 @@ enum {
 	    " nop\n"							\
 	    "save   %sp, -" #stackframe_sz ", %sp\n"			\
 	    "set    " #moncall_pcall ", %l0\n"				\
-	    "set    " #pctag ", %l1\n"					\
-	    "set    " #dtag ", %l2\n"					\
+	    "set    " #dtag ", %l1\n"					\
 	    "set    __preal_" #name ", %l3\n"				\
 	    "set    moncall_dummy, %g1\n"				\
 	    "st	    %g0, [%g1]\n"					\
@@ -120,9 +112,9 @@ enum {
 
 #define PROT_FUNC_WRAP(...) PROT_FUNC_WRAP2(__VA_ARGS__)
 
-#define PROT_FUNC(pctag, dtag, type, name, ...)				\
+#define PROT_FUNC(dtag, type, name, ...)				\
     PROT_FUNC_WRAP(MONCALL_PCALL, STACKFRAME_SZ,			\
-		   pctag, dtag, type, name)				\
+		   dtag, type, name)					\
 									\
     type name(__VA_ARGS__);						\
     type __preal_##name(__VA_ARGS__);					\
@@ -144,13 +136,10 @@ void	 tag_trap_return(const struct Trapframe *tf)
 		__attribute__((noreturn));
 
 void	 tag_set(const void *addr, uint32_t dtag, size_t n);
-uint32_t tag_alloc(const struct Label *l, int tag_type);
+uint32_t label_to_tag(const struct Label *l);
 
 int64_t	 monitor_call(uint32_t op, ...);
 void	 pcall_trampoline(void) __attribute__((noreturn));
-
-void	 tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t permbits);
-uint32_t tag_getperm(uint32_t pctag, uint32_t dtag);
 
 void	 tag_is_kobject(const void *ptr, uint8_t type);
 void	 tag_is_syncslot(const void *ptr);

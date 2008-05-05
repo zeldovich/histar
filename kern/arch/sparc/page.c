@@ -71,11 +71,6 @@ gaisler_ddrspa_detect(void)
     cprintf("SDRAM: 0x%08x-0x%08x (%dM available)\n", 
 	    ahb_dev.start[0], ahb_dev.stop[0], sdram_sz);
 
-    if (sdram_sz > 32) {
-	cprintf("Truncating memory to 32MB, for testing..\n");
-	sdram_sz = 32;
-    }
-
     global_npages = sdram_sz << 8;
     minpa = ahb_dev.start[0];
     maxpa = minpa + (global_npages * PGSIZE);
