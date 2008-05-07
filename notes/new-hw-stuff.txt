@@ -9,3 +9,6 @@
 + MMU gets disabled on tag exceptions
 + MMU disable gets toggled high on crossing %rma, gets cleared on a tret
 
+invariant: tag perms for DTAG_KRW, DTAG_STACK, etc are always in the cache
+to ensure that we never preempt trap handling code, etc
+
