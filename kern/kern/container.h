@@ -59,4 +59,7 @@ int	cobj_get(struct cobj_ref ref, uint8_t type,
 int	container_has(const struct Container *c, kobject_id_t id)
     __attribute__ ((warn_unused_result));
 
+int     container_move(struct Container *ct, struct Container *dest_ct, uint64_t common_ancestor)
+    __attribute__ ((warn_unused_result));
+
 #endif

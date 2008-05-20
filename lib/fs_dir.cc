@@ -390,6 +390,46 @@ fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct ulabel
 }
 
 int
+fs_move(struct fs_inode srcdir, struct fs_inode dstdir, struct fs_inode srcino, const char * old_fn, const char *new_fn)
+{
+    fs_dir *src = NULL, *dst = NULL;
+    try {
+        if (srcdir.obj.object == dstdir.obj.object) {
+	    src = fs_dir_open(srcdir, 1);
+            dst = src;
+        } else if (srcdir.obj.object < dstdir.obj.object) {
+	    src = fs_dir_open(srcdir, 1);
+	    dst = fs_dir_open(dstdir, 1);
+        } else {
+	    dst = fs_dir_open(dstdir, 1);
+	    src = fs_dir_open(srcdir, 1);
+        }
+        struct fs_inode dstino;
+        dstino.obj = COBJ(dstdir.obj.object, srcino.obj.object);
+        dst->insert(new_fn, dstino);
+        src->remove(old_fn, srcino);
+        if (src == dst) {
+            delete dst;
+        } else {
+            delete dst;
+            delete src;
+        }
+    } catch (error &e) {
+        if (src == dst) {
+            if (dst)
+                delete dst;
+        } else {
+            if (dst)
+                delete dst;
+            if (src)
+                delete src;
+        }
+	return e.err();
+    }
+    return 0;
+}
+
+int
 fs_link(struct fs_inode dir, const char *fn, struct fs_inode f, int remove_old)
 {
     int r = sys_segment_addref(f.obj, dir.obj.object);

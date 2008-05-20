@@ -102,6 +102,12 @@ sys_container_move_quota(uint64_t parent, uint64_t child, int64_t nbytes)
     return syscall(SYS_container_move_quota, parent, child, nbytes, 0, 0, 0, 0);
 }
 
+int
+sys_container_move(uint64_t ct, uint64_t dst, uint64_t common_ancestor)
+{
+    return syscall(SYS_container_move, ct, dst, common_ancestor, 0, 0, 0, 0);
+}
+
 int64_t
 sys_handle_create(void)
 {

@@ -280,3 +280,72 @@ container_has(const struct Container *c, kobject_id_t id)
 {
     return container_slot_find(c, id, 0, page_shared_ro);
 }
+
+/* returns 0 if ct has ancestor in its path to the user_root_ct
+ * without re-encountering itself along the path */
+extern uint64_t user_root_ct;
+static int
+container_has_ancestor(const struct Container *ct, uint64_t ancestor,
+                       uint64_t avoid)
+{
+    for (;;) {
+        if (ct->ct_ko.ko_id == avoid)
+            return -E_NOT_FOUND;
+        else if (ct->ct_ko.ko_id == ancestor)
+            return 0;
+        else if (ct->ct_ko.ko_id == user_root_ct)
+            return -E_NOT_FOUND;
+
+        int r = container_find(&ct, ct->ct_ko.ko_parent, iflow_read);
+	if (r < 0)
+	    return (r == -E_RESTART) ? r : -E_NOT_FOUND;
+    }
+    // Never happens
+    assert(0);
+}
+
+int
+container_move(struct Container *ct, struct Container *dest_ct,
+               uint64_t common_ancestor)
+{
+    int r;
+    const struct Container *src_ct;
+    uint64_t quota;
+
+    // avoid types of new parent includes all avoids of moving ct
+    if ((ct->ct_avoid_types & dest_ct->ct_avoid_types) < ct->ct_avoid_types)
+	return -E_BAD_TYPE;
+
+    r = container_find(&src_ct, ct->ct_ko.ko_parent, iflow_rw);
+    if (r < 0)
+        return r;
+    // Ensure able to write old and new parent ct and the ct itself
+    // Ensure able to read all cts up from old and new to some common ancestor
+    r = container_has_ancestor(src_ct, common_ancestor, ct->ct_ko.ko_id);
+    if (r < 0)
+        return r;
+
+    r = container_has_ancestor(dest_ct, common_ancestor, ct->ct_ko.ko_id);
+    if (r < 0)
+        return r;
+
+    // Ensure able to sustain the quota of the moving container
+    if (dest_ct->ct_ko.ko_quota_total != CT_QUOTA_INF) {
+        if (ct->ct_ko.ko_quota_total == CT_QUOTA_INF)
+            return -E_NO_SPACE;
+        quota = ct->ct_ko.ko_quota_total + dest_ct->ct_ko.ko_quota_total;
+        if (quota > dest_ct->ct_ko.ko_quota_total)
+            return -E_NO_SPACE;
+    }
+
+    // If all checks are okay then go ahead and do the move
+    r = container_unref(&kobject_dirty(&src_ct->ct_ko)->ct, &ct->ct_ko);
+    if (r < 0)
+        return r;
+
+    r = container_put(dest_ct, &ct->ct_ko);
+    if (r < 0)
+        return r;
+
+    return 0;
+}

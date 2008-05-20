@@ -475,6 +475,18 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
+sys_container_move(uint64_t container, uint64_t new_parent, uint64_t common_ancestor)
+{
+    const struct Container *ct, *src_ct, *dest_ct;
+    check(container_find(&ct, container, iflow_rw));
+    check(container_find(&src_ct, ct->ct_ko.ko_parent, iflow_rw));
+    check(container_find(&dest_ct, new_parent, iflow_rw));
+    int r = container_move(&kobject_dirty(&ct->ct_ko)->ct,
+                           &kobject_dirty(&dest_ct->ct_ko)->ct, common_ancestor);
+    return r;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
 sys_gate_create(uint64_t container, struct thread_entry *ute,
 		struct ulabel *u_label, struct ulabel *u_clear,
 		struct ulabel *u_guard, const char *name,
@@ -1119,6 +1131,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(as_create, a1, p2, p3);
 	SYSCALL(as_copy, COBJ(a1, a2), a3, p4, p5);
 	SYSCALL(pstate_timestamp);
+	SYSCALL(container_move, a1, a2, a3);
 
     default:
 	cprintf("Unknown syscall %"PRIu64"\n", num);
