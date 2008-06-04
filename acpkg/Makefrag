@@ -570,7 +570,7 @@ ACPKG_COREUTILS_BINS := basename cat chgrp chmod chown chroot cksum comm \
 			seq setuidgid sha1sum shred sleep sort split stat \
 			stty su sum sync tac tail tee test touch tr true \
 			tsort tty uname unexpand uniq unlink uptime users \
-			vdir wc wheel-gen.pl who whoami yes
+			vdir wc wheel-gen.pl who whoami yes install
 $(patsubst %,$(OBJDIR)/acpkg/bin/%,$(ACPKG_COREUTILS_BINS)): $(ACPKG_BUILDDIR)/coreutils-5.94/__build
 	@
 
