@@ -700,12 +700,11 @@ signal_utrap(struct UTrapframe *utf)
 
 	    fprintf(stderr, "[%"PRIu64"] signal_utrap: cannot enable fp: %s\n",
 		    thread_id(), e2s(r));
-	    si.si_signo = SIGILL;
-	    si.si_code = ILL_ILLTRP;
+	    si.si_signo = SIGFPE;
+	    si.si_code = FPE_FLTINV;
 	} else if (utf->utf_trap_num == ARCH_BRKPT ||
 		   utf->utf_trap_num == ARCH_DEBUG) {
 	    si.si_signo = SIGTRAP;
-	    // XXX TRAP_BRKPT or TRAP_TRACE?
 	    si.si_code = TRAP_BRKPT;
 	} else {
 	    cprintf("[%"PRIu64"] signal_utrap: unknown hw trap %d\n",
