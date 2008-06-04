@@ -81,14 +81,23 @@ fb_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	v->yres = fbmode.vm.yres;
 	v->bits_per_pixel = fbmode.vm.bpp;
 
-	v->red.offset = fbmode.vm.fb_color[vbe_red].fieldpos;
-	v->red.length = fbmode.vm.fb_color[vbe_red].masksize;
-	v->green.offset = fbmode.vm.fb_color[vbe_green].fieldpos;
-	v->green.length = fbmode.vm.fb_color[vbe_green].masksize;
-	v->blue.offset = fbmode.vm.fb_color[vbe_blue].fieldpos;
-	v->blue.length = fbmode.vm.fb_color[vbe_blue].masksize;
-	v->transp.offset = fbmode.vm.fb_color[vbe_reserved].fieldpos;
-	v->transp.length = fbmode.vm.fb_color[vbe_reserved].masksize;
+        // XXX Notice, vbe info is not right for some reason
+        // so we depend on the "else" here for sane values
+        if (fbmode.vm.fb_color[vbe_red].masksize) {
+            v->red.offset = fbmode.vm.fb_color[vbe_red].fieldpos;
+            v->red.length = fbmode.vm.fb_color[vbe_red].masksize;
+            v->green.offset = fbmode.vm.fb_color[vbe_green].fieldpos;
+            v->green.length = fbmode.vm.fb_color[vbe_green].masksize;
+            v->blue.offset = fbmode.vm.fb_color[vbe_blue].fieldpos;
+            v->blue.length = fbmode.vm.fb_color[vbe_blue].masksize;
+            v->transp.offset = fbmode.vm.fb_color[vbe_reserved].fieldpos;
+            v->transp.length = fbmode.vm.fb_color[vbe_reserved].masksize;
+        } else {
+            v->red.offset = 0;
+            v->green.offset = 8;
+            v->blue.offset = 16;
+            v->red.length = v->green.length = v->blue.length = 8;
+        }
 
 	/* just like linux does it in vesafb.c */
 	v->xres_virtual = fbmode.vm.xres;
