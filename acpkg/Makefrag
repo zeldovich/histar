@@ -344,7 +344,7 @@ $(ACPKG_BUILDDIR)/%/__unpack:
 	@mkdir -p acpkg/distcache
 	@mkdir -p $(ACPKG_BUILDDIR)
 	test ! -z "$(DISTURL)" # Need URL for $(PKGNAME)
-	test -e acpkg/distcache/`echo $(DISTURL) | tr / _` || wget $(DISTURL) -O acpkg/distcache/`echo $(DISTURL) | tr / _`
+	test -e acpkg/distcache/`echo $(DISTURL) | tr / _` || wget $(DISTURL) -O acpkg/distcache/__wget_$(PKGNAME) && mv acpkg/distcache/__wget_$(PKGNAME) acpkg/distcache/`echo $(DISTURL) | tr / _`
 	test -d $(ACPKG_BUILDDIR)/$(PKGNAME) || tar -C $(ACPKG_BUILDDIR) -xzf acpkg/distcache/`echo $(DISTURL) | tr / _` || tar -C $(ACPKG_BUILDDIR) -xjf acpkg/distcache/`echo $(DISTURL) | tr / _`
 	touch $(ACPKG_BUILDDIR)/$(PKGNAME)/__unpack
 
