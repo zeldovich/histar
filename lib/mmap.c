@@ -43,7 +43,16 @@ mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 	if (fd->fd_dev_id == devzero.dev_id)
 	    goto anon;
 
-	if (fd->fd_dev_id != devfile.dev_id) {
+	if (fd->fd_dev_id == devfb.dev_id) {
+            if (flags & MAP_PRIVATE) {
+                cprintf("mmap: Cannot map devices MAP_PRIVATE\n");
+                return MAP_FAILED;
+            }
+            if (!length) {
+                cprintf("mmap: Cannot map devices without length specified\n");
+                return MAP_FAILED;
+            }
+	} else if (fd->fd_dev_id != devfile.dev_id) {
 	    cprintf("mmap: cannot mmap type %d\n", fd->fd_dev_id);
 	    __set_errno(EINVAL);
 	    return MAP_FAILED;

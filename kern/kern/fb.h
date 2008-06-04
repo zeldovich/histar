@@ -9,6 +9,9 @@ struct fb_device {
 
     int (*fb_set) (void*, uint64_t, uint64_t, const uint8_t*);
     void *fb_arg;
+
+    physaddr_t fb_base;
+    uint64_t fb_size;
 };
 
 enum { fbdevs_max = 1 };

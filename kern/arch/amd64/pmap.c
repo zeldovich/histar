@@ -41,7 +41,7 @@ kva2pa(void *kva)
     physaddr_t va = (physaddr_t) kva;
     if (va >= KERNBASE && va < KERNBASE + (global_npages << PGSHIFT))
 	return va - KERNBASE;
-    if (va >= PHYSBASE && va < PHYSBASE + (global_npages << PGSHIFT))
+    if (va >= PHYSBASE)
 	return va - PHYSBASE;
     panic("kva2pa called with invalid kva %p", kva);
 }

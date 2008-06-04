@@ -2,9 +2,12 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
 #include <inttypes.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 
 #include <inc/fbcons.h>
 #include <inc/lib.h>
@@ -12,6 +15,7 @@ extern "C" {
 #include <inc/stdio.h>
 #include <inc/fd.h>
 #include <inc/fb.h>
+#include <linux/fb.h>
 #include <inc/string.h>
 #include <inc/kbdcodes.h>
 
@@ -35,10 +39,14 @@ static uint64_t reboots;
 static FT_Face the_face;
 static uint32_t cols, rows;
 static uint32_t char_width, char_height;
-static jos_fb_mode kern_fb;
+static fb_var_screeninfo fbinfo;
 static uint64_t borderpx;
 
 static struct cobj_ref the_fb_dev;
+static int fb_fd;
+
+static void *fb_mem;
+static uint64_t fb_size;
 
 static FT_Face
 get_font(const char *name)
@@ -122,7 +130,7 @@ get_glyph_bitmap(FT_Face face, uint32_t c)
 static void
 render(uint32_t row, uint32_t col, uint32_t c, uint8_t inverse)
 {
-    uint32_t bytes_per_pixel = (kern_fb.vm.bpp + 7) / 8;
+    uint32_t bytes_per_pixel = (fbinfo.bits_per_pixel + 7) / 8;
     uint8_t *buf = (uint8_t *) malloc(bytes_per_pixel *
 				      char_width * char_height);
     if (!buf) {
@@ -169,13 +177,13 @@ render(uint32_t row, uint32_t col, uint32_t c, uint8_t inverse)
     FT_Done_Glyph((FT_Glyph) glyph);
 
  draw:
-    for (uint32_t y = 0; y < char_height; y++)
-	sys_fb_set(the_fb_dev,
-                   ((row * char_height + y + borderpx) * kern_fb.vm.xres +
-		    col * char_width + borderpx) * bytes_per_pixel,
-		   char_width * bytes_per_pixel,
-		   &buf[y * char_width * bytes_per_pixel]);
-
+    for (uint32_t y = 0; y < char_height; y++) {
+        char *dst = (char *) fb_mem;
+        dst = &dst[((row * char_height + (y) + borderpx) * fbinfo.xres +
+		    col * char_width + borderpx) * bytes_per_pixel];
+        memcpy(dst, &buf[y * char_width * bytes_per_pixel],
+	       char_width * bytes_per_pixel);
+    }
     free(buf);
 }
 
@@ -186,27 +194,27 @@ refresh(volatile uint32_t *newbuf, uint32_t *oldbuf,
 	uint32_t newcurx, uint32_t newcury)
 {
     if (curredraw != *oldredraw && borderpx) {
-	uint32_t bytes_per_pixel = (kern_fb.vm.bpp + 7) / 8;
-	uint32_t buflen = bytes_per_pixel * kern_fb.vm.xres;
+	uint32_t bytes_per_pixel = (fbinfo.bits_per_pixel + 7) / 8;
+	uint32_t buflen = bytes_per_pixel * fbinfo.xres;
 	uint8_t *buf = (uint8_t *) malloc(buflen);
 	if (buf) {
 	    memset(buf, 0xff, buflen);
 
+            char *dst = (char *) fb_mem;
 	    for (uint32_t y = 0; y < borderpx; y++) {
-		sys_fb_set(the_fb_dev, kern_fb.vm.xres * y * bytes_per_pixel,
-			   kern_fb.vm.xres * bytes_per_pixel, buf);
-		sys_fb_set(the_fb_dev, kern_fb.vm.xres
-                                           * (kern_fb.vm.yres - y - 1)
-					   * bytes_per_pixel,
-			   kern_fb.vm.xres * bytes_per_pixel, buf);
+                dst = &dst[fbinfo.xres * y * bytes_per_pixel];
+                memcpy(dst, buf, fbinfo.xres * bytes_per_pixel);
+                dst = &dst[fbinfo.xres * (fbinfo.yres - y - 1) *
+                           bytes_per_pixel];
+                memcpy(dst, buf, fbinfo.xres * bytes_per_pixel);
 	    }
 
-	    for (uint32_t y = 0; y < kern_fb.vm.yres; y++) {
-		sys_fb_set(the_fb_dev, kern_fb.vm.xres * y * bytes_per_pixel,
-			   borderpx * bytes_per_pixel, buf);
-		sys_fb_set(the_fb_dev, (kern_fb.vm.xres * (y + 1) - borderpx) *
-			   bytes_per_pixel,
-			   borderpx * bytes_per_pixel, buf);
+	    for (uint32_t y = 0; y < fbinfo.yres; y++) {
+                dst = &dst[fbinfo.xres * y * bytes_per_pixel];
+                memcpy(dst, buf, borderpx * bytes_per_pixel);
+                dst = &dst[(fbinfo.xres * (y + 1) - borderpx) *
+			   bytes_per_pixel];
+                memcpy(dst, buf, borderpx * bytes_per_pixel);
 	    }
 
 	    free(buf);
@@ -356,12 +364,13 @@ try
 
     struct fs_inode ino;
     int r = fs_namei(av[3], &ino);
-    if (r < 0) {
+    fb_fd = open(av[3], O_RDWR);
+    if (r < 0 || fb_fd < 0) {
         fprintf(stderr, "Couldn't open fb at %s\n", av[3]);
         exit(-1);
     }
     the_fb_dev = ino.obj;
-
+    
     const char *fontname = av[4];
     error_check(strtou64(av[5], 0, 10, &borderpx));
 
@@ -376,15 +385,24 @@ try
     char_height = (the_face->bbox.yMax - the_face->bbox.yMin) *
 		  the_face->size->metrics.y_ppem / the_face->units_per_EM;
 
-    error_check(sys_fb_get_mode(the_fb_dev, &kern_fb));
+    error_check(ioctl(fb_fd, FBIOGET_VSCREENINFO, &fbinfo));
 
-    if (borderpx * 2 >= kern_fb.vm.xres || borderpx * 2 >= kern_fb.vm.yres) {
+    // XXX Is there a better way for this fb_size?
+    fb_size = fbinfo.xres * fbinfo.yres * fbinfo.bits_per_pixel;
+    fb_mem = mmap(0, fb_size, PROT_READ | PROT_WRITE,
+                  MAP_SHARED, fb_fd, 0);
+    if (fb_mem == MAP_FAILED) {
+        fprintf(stderr, "Couldn't mmap fb from %s\n", av[3]);
+        exit(-1);
+    }
+
+    if (borderpx * 2 >= fbinfo.xres || borderpx * 2 >= fbinfo.yres) {
 	fprintf(stderr, "Border too large (%"PRIu64")\n", borderpx);
 	exit(-1);
     }
 
-    cols = (kern_fb.vm.xres - borderpx * 2) / char_width;
-    rows = (kern_fb.vm.yres - borderpx * 2) / char_height;
+    cols = (fbinfo.xres - borderpx * 2) / char_width;
+    rows = (fbinfo.yres - borderpx * 2) / char_height;
     printf("Console size: %d x %d\n", cols, rows);
 
     label fsl(1);

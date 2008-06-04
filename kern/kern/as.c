@@ -1,3 +1,4 @@
+#include <kern/fb.h>
 #include <kern/segment.h>
 #include <kern/container.h>
 #include <kern/kobj.h>
@@ -343,6 +344,72 @@ as_va_to_segment_page(const struct u_segment_mapping *usm, void *va)
 }
 
 static int
+as_pmap_fill_device(const struct Address_space *as,
+		    const struct Device *dv,
+		    struct segment_mapping *sm,
+		    const struct u_segment_mapping *usm,
+		    void *need_va, uint32_t usmflags)
+{
+    if (usm->num_pages == 0)
+	return -E_INVAL;
+
+    int of = 0;
+    need_va = ROUNDDOWN(need_va, PGSIZE);
+
+    void *usm_first = ROUNDDOWN(usm->va, PGSIZE);
+    void *usm_last = (void *)
+	safe_addptr(&of, (uintptr_t) usm_first,
+		    safe_mulptr(&of, usm->num_pages - 1, PGSIZE));
+    if (of || PGOFF(usm->va))
+	return -E_INVAL;
+    assert(need_va >= usm_first && need_va <= usm_last);
+
+    void *map_first = usm_first;
+    void *map_last  = usm_last;
+
+    if (need_va - map_first > as_courtesy_pages * PGSIZE)
+	map_first = need_va - as_courtesy_pages * PGSIZE;
+    if (map_last - need_va > as_courtesy_pages * PGSIZE)
+	map_last = need_va + as_courtesy_pages * PGSIZE;
+
+    if (as_debug)
+	cprintf("as_pmap_fill_device: va %p start %"PRIu64" num %"PRIu64
+                " need %p: mapping %p--%p\n",
+		usm->va, usm->start_page, usm->num_pages, need_va, map_first,
+                map_last);
+
+    struct fb_device *fbdev = fbdevs[dv->dv_idx];
+    if (!fbdev)
+        return -E_INVAL;
+
+    int r = 0;
+    for (void *va = map_first; va <= map_last; va += PGSIZE) {
+	void *pp = 0;
+	physaddr_t pppa = 0;
+	uint64_t segpage = as_va_to_segment_page(usm, va);
+
+        pp = (void *)(pa2kva(fbdev->fb_base) + segpage * PGSIZE);
+        pppa = fbdev->fb_base + segpage * PGSIZE;
+
+        uint64_t ptflags = PTE_P | PTE_U | PTE_NX;
+        if ((usmflags & SEGMAP_WRITE))
+            ptflags |= PTE_W;
+        if ((usmflags & SEGMAP_EXEC))
+            ptflags &= ~PTE_NX;
+
+        ptent_t *ptep;
+        r = pgdir_walk(as->as_pgmap, va, 1, &ptep);
+        if (r < 0)
+            return r;
+
+        as_arch_page_invalidate_cb(as->as_pgmap, ptep, va);
+        *ptep = pppa | ptflags;
+    }
+
+    return 0;
+}
+
+static int
 as_pmap_fill_segment(const struct Address_space *as,
 		     const struct Segment *sg,
 		     struct segment_mapping *sm,
@@ -474,7 +541,7 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	const struct kobject *ko;
 
  retry_ro:
-	r = cobj_get(seg_ref, kobj_segment, &ko,
+	r = cobj_get(seg_ref, kobj_any, &ko,
 		     (flags & SEGMAP_WRITE) ? iflow_rw : iflow_read);
 	if (r < 0) {
 	    /*
@@ -492,6 +559,12 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	    return r;
 	}
 
+        if (ko->hdr.ko_type != kobj_segment &&
+            ko->hdr.ko_type != kobj_device) {
+            cprintf("as_pmap_fill: non-{segment, device} in AS\n");
+            return -E_INVAL;
+        }
+
 	struct segment_mapping *sm;
 	r = as_get_segmap(as, &sm, i);
 	if (r < 0)
@@ -500,10 +573,13 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	if (as_debug)
 	    cprintf("as_pmap_fill: fault %p base %p\n", va, va_start);
 
-	const struct Segment *sg = &ko->sg;
-	sm->sm_as_slot = i;
-	sm->sm_ct_id = seg_ref.container;
-	return as_pmap_fill_segment(as, sg, sm, usm, va, flags);
+        sm->sm_as_slot = i;
+        sm->sm_ct_id = seg_ref.container;
+        if (ko->hdr.ko_type == kobj_segment) {
+            return as_pmap_fill_segment(as, &ko->sg, sm, usm, va, flags);
+        } else if (ko->hdr.ko_type == kobj_device) {
+            return as_pmap_fill_device(as, &ko->dv, sm, usm, va, flags);
+        }
     }
 
     return -E_NOT_FOUND;

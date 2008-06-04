@@ -40,6 +40,9 @@ extern struct page_info *page_infos;
 static __inline struct page_info *
 page_to_pageinfo(void *p)
 {
+    // No page infos if phys page is higher than global_npages
+    if ((kva2pa(p) >> PGSHIFT) > global_npages)
+        return NULL;
     ppn_t pn = pa2ppn(kva2pa(p));
     return &page_infos[pn];
 }

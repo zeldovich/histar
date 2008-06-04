@@ -432,6 +432,8 @@ void
 pagetree_incpin_write(void *p)
 {
     struct page_info *pi = page_to_pageinfo(p);
+    if (!pi)
+        return;
     if (pi->pi_ref != 1 + pi->pi_write_shared_ref)
 	panic("pagetree_incpin_write: shared page -- refcount %d", pi->pi_ref);
     ++pi->pi_hw_write_pin;
@@ -445,6 +447,8 @@ void
 pagetree_decpin_write(void *p)
 {
     struct page_info *pi = page_to_pageinfo(p);
+    if (!pi)
+        return;
     if (pi->pi_ref != 1 + pi->pi_write_shared_ref)
 	panic("pagetree_decpin_write: shared page, refcount %d", pi->pi_ref);
     if (pi->pi_hw_write_pin == 0)
@@ -461,6 +465,8 @@ void
 pagetree_incpin_read(void *p)
 {
     struct page_info *pi = page_to_pageinfo(p);
+    if (!pi)
+        return;
     ++pi->pi_hw_read_pin;
     if (pi->pi_hw_read_pin == 0)
 	panic("pagetree_incpin_read: overflow\n");
@@ -470,6 +476,8 @@ void
 pagetree_decpin_read(void *p)
 {
     struct page_info *pi = page_to_pageinfo(p);
+    if (!pi)
+        return;
     if (pi->pi_hw_read_pin == 0)
 	panic("pagetree_decpin_read: not pinned\n");
     --pi->pi_hw_read_pin;

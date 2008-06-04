@@ -4,6 +4,7 @@
 #include <inc/fd.h>
 #include <inc/stdio.h>
 #include <inc/assert.h>
+#include <sys/mman.h>
 
 #include <linux/fb.h>
 
@@ -13,6 +14,9 @@
 #include <stddef.h>
 #include <string.h>
 #include <inttypes.h>
+
+static void *fb;
+static uint64_t fb_size;
 
 static int
 fb_open(struct fs_inode ino, int flags, uint32_t dev_opt)
@@ -27,7 +31,24 @@ fb_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     fd->fd_dev_id = devfb.dev_id;
     fd->fd_omode = flags;
     fd->fd_file.ino = ino;
-    return fd2num(fd);
+    int fdnum = fd2num(fd);
+
+    if (!fb) {
+        struct fb_var_screeninfo fbinfo;
+        r = ioctl(fdnum, FBIOGET_VSCREENINFO, &fbinfo);
+        if (r < 0) {
+            cprintf("fb_open: couldn't get fb size\n");
+            return r;
+        }
+        fb_size = fbinfo.xres * fbinfo.yres * fbinfo.bits_per_pixel;
+        fb = mmap(0, fb_size, PROT_READ | PROT_WRITE, MAP_SHARED, fdnum, 0);
+        if (r < 0) {
+            cprintf("fb_open: couldn't mmap fb device\n");
+            return r;
+        }
+    }
+
+    return fdnum;
 }
 
 static int
@@ -100,6 +121,8 @@ fb_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	f->line_length = fbmode.vm.bytes_per_scanline;
 	f->visual = (fbmode.vm.bpp == 8) ? FB_VISUAL_STATIC_PSEUDOCOLOR
 					 : FB_VISUAL_TRUECOLOR;
+        f->smem_start = 0;
+        f->smem_len = (fbmode.vm.bpp / 8) * fbmode.vm.xres * fbmode.vm.yres;
 	return 0;
     }
 
@@ -117,18 +140,17 @@ fb_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 static ssize_t
 fb_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 {
-    int r = sys_fb_set(fd->fd_file.ino.obj, offset, len, buf);
-    if (r < 0) {
-	__set_errno(EINVAL);
-	return -1;
-    }
-
+    memcpy(fb + offset, buf, len);
     return len;
 }
 
 static int
 fb_close(struct Fd *fd)
 {
+    // XXX: remove device from as, fix length
+    if (fb)
+        munmap(fb, fb_size);
+    fb = NULL;
     return 0;
 }
 
