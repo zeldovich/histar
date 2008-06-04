@@ -390,7 +390,7 @@ fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct ulabel
 }
 
 int
-fs_move(struct fs_inode srcdir, struct fs_inode dstdir, struct fs_inode srcino, const char * old_fn, const char *new_fn)
+fs_move(struct fs_inode srcdir, struct fs_inode dstdir, struct fs_inode srcino, const char *old_fn, const char *new_fn)
 {
     fs_dir *src = NULL, *dst = NULL;
     try {
@@ -410,7 +410,11 @@ fs_move(struct fs_inode srcdir, struct fs_inode dstdir, struct fs_inode srcino, 
 
 	error_check(sys_obj_move(srcino.obj, dstdir.obj.object,
 				 start_env->root_container));
-
+	fs_dir_iterator i;
+        struct fs_inode existing_ino;
+	int found = dst->lookup(new_fn, &i, &existing_ino);
+	if (found)
+            dst->remove(new_fn, existing_ino);
         dst->insert(new_fn, dstino);
         src->remove(old_fn, srcino);
         if (src == dst) {

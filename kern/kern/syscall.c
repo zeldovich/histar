@@ -487,9 +487,6 @@ sys_obj_move(struct cobj_ref o, uint64_t new_parent, uint64_t ancestor)
     check(container_has_ancestor(src, ancestor));
     check(container_has_ancestor(dst, ancestor));
 
-    if (src->ct_ko.ko_id == dst->ct_ko.ko_id)
-	return -E_INVAL;
-
     check(container_unref(&kobject_dirty(&src->ct_ko)->ct, &ko->hdr, 1));
     check(container_put(&kobject_dirty(&dst->ct_ko)->ct, &ko->hdr, 1));
     assert(0 == container_unref(&kobject_dirty(&src->ct_ko)->ct, &ko->hdr, 0));
