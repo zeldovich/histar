@@ -32,6 +32,7 @@
  #define ARCH_DEVICE  T_DEVICE
  #define ARCH_BRKPT   T_BRKPT
  #define ARCH_DEBUG   T_DEBUG
+ #define ARCH_DIVIDE  T_DIVIDE
 
  #define JOS_ONSTACK_GCCATTR regparm(2)
 #elif defined(JOS_ARCH_sparc)
@@ -41,6 +42,7 @@
  #define ARCH_DEVICE  T_FP_DISABLED
  #define ARCH_BRKPT   T_BRKPT
  #define ARCH_DEBUG   T_BRKPT
+ #define ARCH_DIVIDE  T_DIVIDE
 
  #define JOS_ONSTACK_GCCATTR
 #else
@@ -706,6 +708,9 @@ signal_utrap(struct UTrapframe *utf)
 		   utf->utf_trap_num == ARCH_DEBUG) {
 	    si.si_signo = SIGTRAP;
 	    si.si_code = TRAP_BRKPT;
+	} else if (utf->utf_trap_num == ARCH_DIVIDE) {
+	    si.si_signo = SIGFPE;
+	    si.si_code = FPE_INTDIV;
 	} else {
 	    cprintf("[%"PRIu64"] signal_utrap: unknown hw trap %d\n",
 		    thread_id(), utf->utf_trap_num);
