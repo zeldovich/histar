@@ -275,6 +275,7 @@ PATCHFILE_lesstif-0.95.0    := lesstif-0.95.0.patch
 PATCHFILE_xpdf-3.02	    := xpdf-3.02.patch
 PATCHFILE_mairix-0.21	    := mairix-0.21.patch
 PATCHFILE_qemu-0.9.1	    := qemu-0.9.1.patch
+PATCHFILE_linux-2.6.20.4    := linux-2.6.20.4.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -344,7 +345,7 @@ $(ACPKG_BUILDDIR)/%/__unpack:
 	@mkdir -p acpkg/distcache
 	@mkdir -p $(ACPKG_BUILDDIR)
 	test ! -z "$(DISTURL)" # Need URL for $(PKGNAME)
-	test -e acpkg/distcache/`echo $(DISTURL) | tr / _` || wget $(DISTURL) -O acpkg/distcache/__wget_$(PKGNAME) && mv acpkg/distcache/__wget_$(PKGNAME) acpkg/distcache/`echo $(DISTURL) | tr / _`
+	test -e acpkg/distcache/`echo $(DISTURL) | tr / _` || ( wget $(DISTURL) -O acpkg/distcache/__wget_$(PKGNAME) && mv acpkg/distcache/__wget_$(PKGNAME) acpkg/distcache/`echo $(DISTURL) | tr / _` )
 	test -d $(ACPKG_BUILDDIR)/$(PKGNAME) || tar -C $(ACPKG_BUILDDIR) -xzf acpkg/distcache/`echo $(DISTURL) | tr / _` || tar -C $(ACPKG_BUILDDIR) -xjf acpkg/distcache/`echo $(DISTURL) | tr / _`
 	touch $(ACPKG_BUILDDIR)/$(PKGNAME)/__unpack
 
@@ -717,11 +718,11 @@ $(LINUX_OUT)/.config: lind/defconfig
 	@mkdir -p $(@D)
 	cp lind/defconfig $@
 
-$(LINUX_SRC)/include/asm-lind: | $(LINUX_SRC)/__unpack
+$(LINUX_SRC)/include/asm-lind: | $(LINUX_SRC)/__patch
 	rm -f $@
 	ln -s ../arch/lind/asm-lind $@
 
-$(LINUX_SRC)/arch/lind: | $(LINUX_SRC)/__unpack
+$(LINUX_SRC)/arch/lind: | $(LINUX_SRC)/__patch
 	rm -f $@
 	ln -s $(TOP)/lind $@
 
