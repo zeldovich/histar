@@ -149,7 +149,7 @@ sys_device_create(uint64_t container, uint64_t card_idx,
 
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));
-    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr, 0));
 
     return ko->hdr.ko_id;
 }
@@ -249,7 +249,7 @@ sys_container_alloc(uint64_t parent_ct, struct ulabel *ul,
     c->ct_ko.ko_quota_total =
 	JMIN(c->ct_ko.ko_quota_total + quota, CT_QUOTA_INF);
 
-    check(container_put(&kobject_dirty(&parent->ct_ko)->ct, &c->ct_ko));
+    check(container_put(&kobject_dirty(&parent->ct_ko)->ct, &c->ct_ko, 0));
     return c->ct_ko.ko_id;
 }
 
@@ -263,7 +263,7 @@ sys_obj_unref(struct cobj_ref cobj)
 
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
-    check(container_unref(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
+    check(container_unref(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr, 0));
 
     kobject_gc_scan();
     return 0;
@@ -475,15 +475,25 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_container_move(uint64_t container, uint64_t new_parent, uint64_t common_ancestor)
+sys_obj_move(struct cobj_ref o, uint64_t new_parent, uint64_t ancestor)
 {
-    const struct Container *ct, *src_ct, *dest_ct;
-    check(container_find(&ct, container, iflow_rw));
-    check(container_find(&src_ct, ct->ct_ko.ko_parent, iflow_rw));
-    check(container_find(&dest_ct, new_parent, iflow_rw));
-    int r = container_move(&kobject_dirty(&ct->ct_ko)->ct,
-                           &kobject_dirty(&dest_ct->ct_ko)->ct, common_ancestor);
-    return r;
+    const struct kobject *ko;
+    check(cobj_get(o, kobj_any, &ko, iflow_none));
+
+    const struct Container *src, *dst;
+    check(container_find(&src, o.container, iflow_rw));
+    check(container_find(&dst, new_parent,  iflow_rw));
+
+    check(container_has_ancestor(src, ancestor));
+    check(container_has_ancestor(dst, ancestor));
+
+    if (src->ct_ko.ko_id == dst->ct_ko.ko_id)
+	return -E_INVAL;
+
+    check(container_unref(&kobject_dirty(&src->ct_ko)->ct, &ko->hdr, 1));
+    check(container_put(&kobject_dirty(&dst->ct_ko)->ct, &ko->hdr, 1));
+    assert(0 == container_unref(&kobject_dirty(&src->ct_ko)->ct, &ko->hdr, 0));
+    return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -518,7 +528,7 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
 	    return -E_INVAL;
     }
 
-    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &g->gt_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &g->gt_ko, 0));
     return g->gt_ko.ko_id;
 }
 
@@ -558,7 +568,7 @@ sys_thread_create(uint64_t ct, const char *name)
     check(thread_alloc(cur_th_label, cur_th_clearance, &t));
     check(alloc_set_name(&t->th_ko, name));
 
-    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &t->th_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &t->th_ko, 0));
     return t->th_ko.ko_id;
 }
 
@@ -697,7 +707,7 @@ sys_self_addref(uint64_t ct)
 {
     const struct Container *c;
     check(container_find(&c, ct, iflow_rw));
-    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &cur_thread->th_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &cur_thread->th_ko, 0));
     return 0;
 }
 
@@ -890,7 +900,7 @@ sys_segment_create(uint64_t ct, uint64_t num_bytes, struct ulabel *ul,
     check(alloc_set_name(&sg->sg_ko, name));
 
     check(segment_set_nbytes(sg, num_bytes));
-    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko, 0));
     return sg->sg_ko.ko_id;
 }
 
@@ -911,7 +921,7 @@ sys_segment_copy(struct cobj_ref seg, uint64_t ct,
     check(segment_copy(&src->sg, l, &sg));
     check(alloc_set_name(&sg->sg_ko, name));
 
-    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko, 0));
     return sg->sg_ko.ko_id;
 }
 
@@ -923,7 +933,7 @@ sys_segment_addref(struct cobj_ref seg, uint64_t ct)
 
     const struct kobject *ko;
     check(cobj_get(seg, kobj_segment, &ko, iflow_read));
-    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr, 0));
     return 0;
 }
 
@@ -966,7 +976,7 @@ sys_as_create(uint64_t container, struct ulabel *ul, const char *name)
     check(as_alloc(l, &as));
     check(alloc_set_name(&as->as_ko, name));
 
-    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &as->as_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &as->as_ko, 0));
     return as->as_ko.ko_id;
 }
 
@@ -986,7 +996,7 @@ sys_as_copy(struct cobj_ref as, uint64_t container, struct ulabel *ul, const cha
     check(as_copy(&src->as, l, &nas));
     check(alloc_set_name(&nas->as_ko, name));
 
-    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &nas->as_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &nas->as_ko, 0));
     return nas->as_ko.ko_id;
 }
 
@@ -1075,6 +1085,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(obj_set_meta, COBJ(a1, a2), p3, p4);
 	SYSCALL(obj_set_fixedquota, COBJ(a1, a2));
 	SYSCALL(obj_set_readonly, COBJ(a1, a2));
+	SYSCALL(obj_move, COBJ(a1, a2), a3, a4);
 	SYSCALL(gate_enter, COBJ(a1, a2), p3, p4, p5);
 	SYSCALL(gate_clearance, COBJ(a1, a2), p3);
 	SYSCALL(gate_get_entry, COBJ(a1, a2), p3);
@@ -1131,7 +1142,6 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(as_create, a1, p2, p3);
 	SYSCALL(as_copy, COBJ(a1, a2), a3, p4, p5);
 	SYSCALL(pstate_timestamp);
-	SYSCALL(container_move, a1, a2, a3);
 
     default:
 	cprintf("Unknown syscall %"PRIu64"\n", num);

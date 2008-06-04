@@ -33,6 +33,7 @@
     SYSCALL_ENTRY(obj_set_fixedquota)		\
     SYSCALL_ENTRY(obj_set_readonly)		\
     SYSCALL_ENTRY(obj_get_readonly)		\
+    SYSCALL_ENTRY(obj_move)			\
 						\
     SYSCALL_ENTRY(gate_create)			\
     SYSCALL_ENTRY(gate_enter)			\
@@ -82,7 +83,6 @@
     SYSCALL_ENTRY(as_set)			\
     SYSCALL_ENTRY(as_get_slot)			\
     SYSCALL_ENTRY(as_set_slot)			\
-    SYSCALL_ENTRY(container_move)		\
 
 #ifndef __ASSEMBLER__
 #define SYSCALL_ENTRY(name)	SYS_##name,

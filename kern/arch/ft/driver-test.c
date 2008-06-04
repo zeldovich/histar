@@ -76,7 +76,7 @@ bootstrap_stuff(void)
 
     struct Segment *s;
     assert(0 == segment_alloc(rcl, &s));
-    assert(0 == container_put(rc, &s->sg_ko));
+    assert(0 == container_put(rc, &s->sg_ko, 0));
     assert(0 == segment_set_nbytes(s, 4096));
 
     // Figure out where to map this guy..
@@ -86,7 +86,7 @@ bootstrap_stuff(void)
 
     struct Address_space *as;
     assert(0 == as_alloc(rcl, &as));
-    assert(0 == container_put(rc, &as->as_ko));
+    assert(0 == container_put(rc, &as->as_ko, 0));
     assert(0 == kobject_set_nbytes(&as->as_ko, PGSIZE));
     as->as_utrap_entry = 0xdeadbeef;
     as->as_utrap_stack_base = (uintptr_t) upage;
@@ -103,7 +103,7 @@ bootstrap_stuff(void)
 
     struct Thread *t;
     assert(0 == thread_alloc(rcl, tc, &t));
-    assert(0 == container_put(rc, &t->th_ko));
+    assert(0 == container_put(rc, &t->th_ko, 0));
     sprintf(t->th_ko.ko_name, "bootstrap");
     t->th_asref = COBJ(rc->ct_ko.ko_id, as->as_ko.ko_id);
     thread_set_sched_parents(t, rc->ct_ko.ko_id, 0);

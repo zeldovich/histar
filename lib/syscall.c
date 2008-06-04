@@ -102,12 +102,6 @@ sys_container_move_quota(uint64_t parent, uint64_t child, int64_t nbytes)
     return syscall(SYS_container_move_quota, parent, child, nbytes, 0, 0, 0, 0);
 }
 
-int
-sys_container_move(uint64_t ct, uint64_t dst, uint64_t common_ancestor)
-{
-    return syscall(SYS_container_move, ct, dst, common_ancestor, 0, 0, 0, 0);
-}
-
 int64_t
 sys_handle_create(void)
 {
@@ -172,6 +166,12 @@ int
 sys_obj_get_readonly(struct cobj_ref o)
 {
     return syscall(SYS_obj_get_readonly, SOBJ(o), 0, 0, 0, 0, 0);
+}
+
+int
+sys_obj_move(struct cobj_ref o, uint64_t new_parent, uint64_t ancestor)
+{
+    return syscall(SYS_obj_move, SOBJ(o), new_parent, ancestor, 0, 0, 0);
 }
 
 int64_t

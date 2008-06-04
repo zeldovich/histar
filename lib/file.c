@@ -317,42 +317,14 @@ rename(const char *src, const char *dst)
     if (r < 0)
 	goto err;
 
-    struct stat s;
-    r = stat(src, &s);
-    if (r < 0)
-        return -E_NOT_FOUND;
+    uint64_t dst_ct, ct;
+    dst_ct = dst_dir_ino.obj.object;
+    ct = f.obj.object;
 
-    if (s.st_mode & S_IFDIR) {
-        uint64_t dst_ct, ct;
-        dst_ct = dst_dir_ino.obj.object;
-        ct = f.obj.object;
-
-        r = sys_container_move(ct, dst_ct, start_env->fs_root.obj.object);
-        if (r < 0) {
-            cprintf("rename: sys_container_move failed\n");
-       	    goto err;
-        }
-
-        r = fs_move(src_dir_ino, dst_dir_ino, f, src_base, dst_base);
-        if (r < 0) {
-            cprintf("rename: fs_move failed\n");
-       	    goto err;
-        }
-    } else {
-        // if we are moving a file
-        r = fs_link(dst_dir_ino, dst_base, f, 1);
-        if (r == -E_VAR_QUOTA) {
-            char *fq = getenv("FS_LINK_FIX_QUOTA");
-            if (fq) {
-                sys_obj_set_fixedquota(f.obj);
-                r = fs_link(dst_dir_ino, dst_base, f, 1);
-            }
-        }
-
-        if (r < 0)
-            goto err;
-
-        r = fs_remove(src_dir_ino, src_base, f);
+    r = fs_move(src_dir_ino, dst_dir_ino, f, src_base, dst_base);
+    if (r < 0) {
+	cprintf("rename: fs_move failed: %s\n", e2s(r));
+	goto err;
     }
 
  err:

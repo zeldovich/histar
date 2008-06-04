@@ -42,8 +42,6 @@ int64_t sys_container_get_parent(uint64_t container);
 int64_t	sys_container_get_slot_id(uint64_t container, uint64_t slot);
 int	sys_container_move_quota(uint64_t parent, uint64_t child,
 				 int64_t nbytes);
-int     sys_container_move(uint64_t ct, uint64_t new_parent,
-                           uint64_t common_ancestor);
 
 int	sys_obj_unref(struct cobj_ref o);
 int	sys_obj_get_type(struct cobj_ref o);
@@ -56,6 +54,8 @@ int	sys_obj_set_meta(struct cobj_ref o, const void *oldm, void *newm);
 int	sys_obj_set_fixedquota(struct cobj_ref o);
 int	sys_obj_set_readonly(struct cobj_ref o);
 int	sys_obj_get_readonly(struct cobj_ref o);
+int	sys_obj_move(struct cobj_ref o, uint64_t new_parent_ct,
+		     uint64_t common_ancestor);
 
 int64_t	sys_handle_create(void);
 

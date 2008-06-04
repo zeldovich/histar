@@ -122,7 +122,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 
     if (sg_store)
 	*sg_store = sg;
-    return container_put(c, &sg->sg_ko);
+    return container_put(c, &sg->sg_ko, 0);
 }
 
 static int
@@ -154,7 +154,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	return r;
     }
 
-    r = container_put(c, &as->as_ko);
+    r = container_put(c, &as->as_ko, 0);
     if (r < 0) {
 	cprintf("thread_load_elf: cannot put AS in container: %s\n", e2s(r));
 	return r;
@@ -252,14 +252,14 @@ thread_create_embed(struct Container *c,
     assert_check(container_alloc(obj_label, &tc));
     tc->ct_ko.ko_quota_total = (((uint64_t) 1) << 32);
     strncpy(&tc->ct_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
-    assert(container_put(c, &tc->ct_ko) >= 0);
+    assert(container_put(c, &tc->ct_ko, 0) >= 0);
 
     struct Thread *t;
     assert_check(thread_alloc(th_label, th_clearance, &t));
     strncpy(&t->th_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     thread_set_sched_parents(t, tc->ct_ko.ko_id, 0);
 
-    assert_check(container_put(tc, &t->th_ko));
+    assert_check(container_put(tc, &t->th_ko, 0));
     assert_check(thread_load_elf(tc, t,
 				 obj_label, th_label, th_clearance,
 				 prog->buf, prog->size, arg0, arg1));
@@ -306,7 +306,7 @@ user_bootstrap(void)
     struct Container *rc;
     assert_check(container_alloc(obj_label, &rc));
     rc->ct_ko.ko_quota_total = CT_QUOTA_INF;
-    assert_check(container_put(root_parent, &rc->ct_ko));
+    assert_check(container_put(root_parent, &rc->ct_ko, 0));
     strncpy(&rc->ct_ko.ko_name[0], "root container", KOBJ_NAME_LEN - 1);
     user_root_ct = rc->ct_ko.ko_id;
 
@@ -316,7 +316,7 @@ user_bootstrap(void)
     fsc->ct_ko.ko_quota_total = (((uint64_t) 1) << 32);
     fsc->ct_avoid_types = (1 << kobj_address_space) | (1 << kobj_device) |
 			  (1 << kobj_gate) | (1 << kobj_thread);
-    assert_check(container_put(rc, &fsc->ct_ko));
+    assert_check(container_put(rc, &fsc->ct_ko, 0));
     strncpy(&fsc->ct_ko.ko_name[0], "embed_bins", KOBJ_NAME_LEN - 1);
 
     fs_init(fsc, obj_label);

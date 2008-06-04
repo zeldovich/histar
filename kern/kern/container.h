@@ -39,7 +39,8 @@ int	container_find(const struct Container **cp, kobject_id_t id,
     __attribute__ ((warn_unused_result));
 
 // Store a reference to the object in the container
-int	container_put(struct Container *c, const struct kobject_hdr *ko)
+int	container_put(struct Container *c, const struct kobject_hdr *ko,
+		      uint64_t extra_refs)
     __attribute__ ((warn_unused_result));
 
 // Get the object in a given container slot
@@ -47,7 +48,8 @@ int	container_get(const struct Container *c, kobject_id_t *idp, uint64_t slot)
     __attribute__ ((warn_unused_result));
 
 // Drop a reference to the given object from the container
-int	container_unref(struct Container *c, const struct kobject_hdr *ko)
+int	container_unref(struct Container *c, const struct kobject_hdr *ko,
+			int preponly)
     __attribute__ ((warn_unused_result));
 
 // Find an object by <container-id, object-id> pair
@@ -59,7 +61,7 @@ int	cobj_get(struct cobj_ref ref, uint8_t type,
 int	container_has(const struct Container *c, kobject_id_t id)
     __attribute__ ((warn_unused_result));
 
-int     container_move(struct Container *ct, struct Container *dest_ct, uint64_t common_ancestor)
-    __attribute__ ((warn_unused_result));
+// Check whether container has a specific ancestor
+int	container_has_ancestor(const struct Container *c, uint64_t ancestor);
 
 #endif

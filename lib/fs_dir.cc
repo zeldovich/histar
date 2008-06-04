@@ -404,15 +404,23 @@ fs_move(struct fs_inode srcdir, struct fs_inode dstdir, struct fs_inode srcino, 
 	    dst = fs_dir_open(dstdir, 1);
 	    src = fs_dir_open(srcdir, 1);
         }
+
         struct fs_inode dstino;
         dstino.obj = COBJ(dstdir.obj.object, srcino.obj.object);
+
+	error_check(sys_obj_move(srcino.obj, dstdir.obj.object,
+				 start_env->root_container));
+
         dst->insert(new_fn, dstino);
         src->remove(old_fn, srcino);
         if (src == dst) {
             delete dst;
+	    dst = 0;
         } else {
             delete dst;
+	    dst = 0;
             delete src;
+	    src = 0;
         }
     } catch (error &e) {
         if (src == dst) {

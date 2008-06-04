@@ -32,7 +32,7 @@ um_bench(void)
 
     for (uint32_t i = 0; i < sizeof(s) / sizeof(*s); i++) {
 	assert(0 == segment_alloc(l1, &s[i]));
-	assert(0 == container_put(c, &s[i]->sg_ko));
+	assert(0 == container_put(c, &s[i]->sg_ko, 0));
     }
 
     uint64_t t0, t1;
@@ -109,18 +109,18 @@ um_bench(void)
     sg->sg_ko.ko_flags |= KOBJ_FIXED_QUOTA;
 
     TEST_START {
-	assert(0 == container_put(c, &sg->sg_ko));
+	assert(0 == container_put(c, &sg->sg_ko, 0));
     }
     TEST_END("container addref");
 
     TEST_START {
-	assert(0 == container_unref(c, &sg->sg_ko));
+	assert(0 == container_unref(c, &sg->sg_ko, 0));
     }
     TEST_END("container unref");
 
     TEST_START {
-	assert(0 == container_put(c, &sg->sg_ko));
-	assert(0 == container_unref(c, &sg->sg_ko));
+	assert(0 == container_put(c, &sg->sg_ko, 0));
+	assert(0 == container_unref(c, &sg->sg_ko, 0));
     }
     TEST_END("container addref/unref");
 }

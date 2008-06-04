@@ -120,10 +120,10 @@ container_slot_alloc(struct Container *c, struct container_slot **csp)
 
 static int
 container_slot_addref(struct Container *c, struct container_slot *cs,
-		      const struct kobject_hdr *ko)
+		      const struct kobject_hdr *ko, uint64_t extra_refs)
 {
     if (cs->cs_ref == 0) {
-	if (ko->ko_ref > 0 && !(ko->ko_flags & KOBJ_FIXED_QUOTA))
+	if (ko->ko_ref > extra_refs && !(ko->ko_flags & KOBJ_FIXED_QUOTA))
 	    return -E_VAR_QUOTA;
 
 	int r = kobject_incref(ko, &c->ct_ko);
@@ -147,7 +147,8 @@ container_slot_decref(struct Container *c, struct container_slot *cs,
 }
 
 int
-container_put(struct Container *c, const struct kobject_hdr *ko)
+container_put(struct Container *c, const struct kobject_hdr *ko,
+	      uint64_t extra_refs)
 {
     assert(ko->ko_type < kobj_ntypes);
     if ((c->ct_avoid_types & (1 << ko->ko_type)))
@@ -160,7 +161,7 @@ container_put(struct Container *c, const struct kobject_hdr *ko)
     if (r < 0)
 	return r;
 
-    r = container_slot_addref(c, cs, ko);
+    r = container_slot_addref(c, cs, ko, extra_refs);
     if (r < 0)
 	return r;
 
@@ -182,14 +183,15 @@ container_get(const struct Container *c, kobject_id_t *idp, uint64_t slot)
 }
 
 int
-container_unref(struct Container *c, const struct kobject_hdr *ko)
+container_unref(struct Container *c, const struct kobject_hdr *ko, int preponly)
 {
     struct container_slot *cs;
     int r = container_slot_find(c, ko->ko_id, &cs, page_excl_dirty);
     if (r < 0)
 	return r;
 
-    container_slot_decref(c, cs, ko);
+    if (!preponly)
+	container_slot_decref(c, cs, ko);
     return 0;
 }
 
@@ -281,71 +283,27 @@ container_has(const struct Container *c, kobject_id_t id)
     return container_slot_find(c, id, 0, page_shared_ro);
 }
 
-/* returns 0 if ct has ancestor in its path to the user_root_ct
- * without re-encountering itself along the path */
-extern uint64_t user_root_ct;
-static int
-container_has_ancestor(const struct Container *ct, uint64_t ancestor,
-                       uint64_t avoid)
-{
-    for (;;) {
-        if (ct->ct_ko.ko_id == avoid)
-            return -E_NOT_FOUND;
-        else if (ct->ct_ko.ko_id == ancestor)
-            return 0;
-        else if (ct->ct_ko.ko_id == user_root_ct)
-            return -E_NOT_FOUND;
-
-        int r = container_find(&ct, ct->ct_ko.ko_parent, iflow_read);
-	if (r < 0)
-	    return (r == -E_RESTART) ? r : -E_NOT_FOUND;
-    }
-    // Never happens
-    assert(0);
-}
-
 int
-container_move(struct Container *ct, struct Container *dest_ct,
-               uint64_t common_ancestor)
+container_has_ancestor(const struct Container *c, uint64_t ancestor)
 {
-    int r;
-    const struct Container *src_ct;
-    uint64_t quota;
+ again:
+    if (c->ct_ko.ko_id == ancestor)
+	return 0;
 
-    // avoid types of new parent includes all avoids of moving ct
-    if ((ct->ct_avoid_types & dest_ct->ct_avoid_types) < ct->ct_avoid_types)
-	return -E_BAD_TYPE;
+    uint64_t parent_id = c->ct_ko.ko_parent;
+    if (!parent_id)
+	return -E_NOT_FOUND;
 
-    r = container_find(&src_ct, ct->ct_ko.ko_parent, iflow_rw);
+    const struct kobject *ko;
+    int r = cobj_get(COBJ(parent_id, c->ct_ko.ko_id), kobj_container,
+		     &ko, iflow_none);
     if (r < 0)
-        return r;
-    // Ensure able to write old and new parent ct and the ct itself
-    // Ensure able to read all cts up from old and new to some common ancestor
-    r = container_has_ancestor(src_ct, common_ancestor, ct->ct_ko.ko_id);
+	return r;
+
+    r = kobject_get(parent_id, &ko, kobj_container, iflow_read);
     if (r < 0)
-        return r;
+	return r;
 
-    r = container_has_ancestor(dest_ct, common_ancestor, ct->ct_ko.ko_id);
-    if (r < 0)
-        return r;
-
-    // Ensure able to sustain the quota of the moving container
-    if (dest_ct->ct_ko.ko_quota_total != CT_QUOTA_INF) {
-        if (ct->ct_ko.ko_quota_total == CT_QUOTA_INF)
-            return -E_NO_SPACE;
-        quota = ct->ct_ko.ko_quota_total + dest_ct->ct_ko.ko_quota_total;
-        if (quota > dest_ct->ct_ko.ko_quota_total)
-            return -E_NO_SPACE;
-    }
-
-    // If all checks are okay then go ahead and do the move
-    r = container_unref(&kobject_dirty(&src_ct->ct_ko)->ct, &ct->ct_ko);
-    if (r < 0)
-        return r;
-
-    r = container_put(dest_ct, &ct->ct_ko);
-    if (r < 0)
-        return r;
-
-    return 0;
+    c = &ko->ct;
+    goto again;
 }

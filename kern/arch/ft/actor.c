@@ -51,7 +51,7 @@ actor_create(struct actor *ar, int tainted)
 	assert(0 == container_alloc(tl, &tctr));
 	tctr->ct_ko.ko_quota_total = CT_QUOTA_INF;
 
-	assert(0 == container_put(&kobject_dirty(&rc_ko->hdr)->ct, &tctr->ct_ko));
+	assert(0 == container_put(&kobject_dirty(&rc_ko->hdr)->ct, &tctr->ct_ko, 0));
 	ar->scratch_ct = tctr->ct_ko.ko_id;
     } else {
 	ar->scratch_ct = root_container_id;
@@ -59,7 +59,7 @@ actor_create(struct actor *ar, int tainted)
 
     struct Thread *t;
     assert(0 == thread_alloc(tl, tc, &t));
-    assert(0 == container_put(&kobject_dirty(&rc_ko->hdr)->ct, &t->th_ko));
+    assert(0 == container_put(&kobject_dirty(&rc_ko->hdr)->ct, &t->th_ko, 0));
     thread_set_runnable(t);
     thread_set_sched_parents(t, root_container_id, 0);
     ar->thread_id = t->th_ko.ko_id;
