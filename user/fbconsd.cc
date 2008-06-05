@@ -42,9 +42,7 @@ static uint32_t char_width, char_height;
 static fb_var_screeninfo fbinfo;
 static uint64_t borderpx;
 
-static struct cobj_ref the_fb_dev;
 static int fb_fd;
-
 static void *fb_mem;
 static uint64_t fb_size;
 
@@ -200,18 +198,24 @@ refresh(volatile uint32_t *newbuf, uint32_t *oldbuf,
 	if (buf) {
 	    memset(buf, 0xff, buflen);
 
-            char *dst = (char *) fb_mem;
+	    char *dst;
 	    for (uint32_t y = 0; y < borderpx; y++) {
+		dst = (char *) fb_mem;
                 dst = &dst[fbinfo.xres * y * bytes_per_pixel];
                 memcpy(dst, buf, fbinfo.xres * bytes_per_pixel);
+
+		dst = (char *) fb_mem;
                 dst = &dst[fbinfo.xres * (fbinfo.yres - y - 1) *
                            bytes_per_pixel];
                 memcpy(dst, buf, fbinfo.xres * bytes_per_pixel);
 	    }
 
 	    for (uint32_t y = 0; y < fbinfo.yres; y++) {
+		dst = (char *) fb_mem;
                 dst = &dst[fbinfo.xres * y * bytes_per_pixel];
                 memcpy(dst, buf, borderpx * bytes_per_pixel);
+
+		dst = (char *) fb_mem;
                 dst = &dst[(fbinfo.xres * (y + 1) - borderpx) *
 			   bytes_per_pixel];
                 memcpy(dst, buf, borderpx * bytes_per_pixel);
@@ -362,14 +366,11 @@ try
     error_check(strtou64(av[1], 0, 10, &taint));
     error_check(strtou64(av[2], 0, 10, &grant));
 
-    struct fs_inode ino;
-    int r = fs_namei(av[3], &ino);
     fb_fd = open(av[3], O_RDWR);
-    if (r < 0 || fb_fd < 0) {
+    if (fb_fd < 0) {
         fprintf(stderr, "Couldn't open fb at %s\n", av[3]);
         exit(-1);
     }
-    the_fb_dev = ino.obj;
     
     const char *fontname = av[4];
     error_check(strtou64(av[5], 0, 10, &borderpx));
@@ -387,7 +388,6 @@ try
 
     error_check(ioctl(fb_fd, FBIOGET_VSCREENINFO, &fbinfo));
 
-    // XXX Is there a better way for this fb_size?
     fb_size = fbinfo.xres * fbinfo.yres * fbinfo.bits_per_pixel;
     fb_mem = mmap(0, fb_size, PROT_READ | PROT_WRITE,
                   MAP_SHARED, fb_fd, 0);
