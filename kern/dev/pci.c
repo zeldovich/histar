@@ -37,10 +37,12 @@ struct pci_driver pci_attach_vendor[] = {
     { 0x10ec, 0x8029, &ne2kpci_attach },
     { 0x8086, 0x1229, &fxp_attach },
     { 0xfefe, 0xefef, &pnic_attach },
+    { 0x8086, 0x100e, &e1000_attach },
     { 0x8086, 0x100f, &e1000_attach },
     { 0x8086, 0x107c, &e1000_attach },
     { 0x8086, 0x108c, &e1000_attach },
     { 0x8086, 0x109a, &e1000_attach },
+    { 0x8086, 0x1079, &e1000_attach },
     { 0, 0, 0 },
 };
 
