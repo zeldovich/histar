@@ -15,9 +15,6 @@
 #include <string.h>
 #include <inttypes.h>
 
-static void *fb;
-static uint64_t fb_size;
-
 static int
 fb_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 {
@@ -31,24 +28,7 @@ fb_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     fd->fd_dev_id = devfb.dev_id;
     fd->fd_omode = flags;
     fd->fd_file.ino = ino;
-    int fdnum = fd2num(fd);
-
-    if (!fb) {
-        struct fb_var_screeninfo fbinfo;
-        r = ioctl(fdnum, FBIOGET_VSCREENINFO, &fbinfo);
-        if (r < 0) {
-            cprintf("fb_open: couldn't get fb size\n");
-            return r;
-        }
-        fb_size = fbinfo.xres * fbinfo.yres * fbinfo.bits_per_pixel;
-        fb = mmap(0, fb_size, PROT_READ | PROT_WRITE, MAP_SHARED, fdnum, 0);
-        if (r < 0) {
-            cprintf("fb_open: couldn't mmap fb device\n");
-            return r;
-        }
-    }
-
-    return fdnum;
+    return fd2num(fd);
 }
 
 static int
@@ -149,17 +129,35 @@ fb_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 static ssize_t
 fb_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 {
+    struct jos_fb_mode fbmode;
+    int r = sys_fb_get_mode(fd->fd_file.ino.obj, &fbmode);
+    if (r < 0) {
+	__set_errno(EIO);
+	return -1;
+    }
+
+    uint64_t fb_size = fbmode.vm.xres * fbmode.vm.yres * fbmode.vm.bpp;
+    if (offset + len > fb_size) {
+	__set_errno(ERANGE);
+	return -1;
+    }
+
+    void *fb = 0;
+    r = segment_map(fd->fd_file.ino.obj, 0, SEGMAP_READ | SEGMAP_WRITE,
+		    &fb, &fb_size, 0);
+    if (r < 0) {
+	__set_errno(EIO);
+	return -1;
+    }
+
     memcpy(fb + offset, buf, len);
+    segment_unmap_delayed(fb, 1);
     return len;
 }
 
 static int
 fb_close(struct Fd *fd)
 {
-    // XXX: remove device from as, fix length
-    if (fb)
-        munmap(fb, fb_size);
-    fb = NULL;
     return 0;
 }
 
