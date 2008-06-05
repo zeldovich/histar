@@ -93,6 +93,35 @@ pthread_mutex_destroy(pthread_mutex_t *mutex)
     return 0;
 }
 
+int
+pthread_mutexattr_init(pthread_mutexattr_t *attr)
+{
+    return 0;
+}
+
+int
+pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
+{
+    return 0;
+}
+
+int
+pthread_setcancelstate(int state, int *oldstate)
+{
+    return 0;
+}
+
+int
+pthread_setcanceltype(int type, int *oldtype)
+{
+    return 0;
+}
+
+void
+pthread_testcancel(void)
+{
+}
+
 void
 _pthread_cleanup_push_defer(struct _pthread_cleanup_buffer *buffer,
 			    void (*routine)(void *), void *arg)
