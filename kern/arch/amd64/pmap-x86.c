@@ -263,11 +263,10 @@ as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
     if (!(pte & PTE_P) || !(pte & PTE_D))
 	return;
 
-    if ((pte >= KERNBASE && pte < KERNBASE + (global_npages << PGSHIFT))
-        || (pte >= PHYSBASE && pte < PHYSBASE + (global_npages << PGSHIFT))) {
-        struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(pte)));
-        pi->pi_dirty = 1;
-        *ptep &= ~PTE_D;
+    struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(pte)));
+    if (pi) {
+	pi->pi_dirty = 1;
+	*ptep &= ~PTE_D;
     }
     pmap_queue_invlpg(pgmap, va);
 }

@@ -30,13 +30,6 @@ sys_fb_get_mode(struct cobj_ref fbdev, struct jos_fb_mode *buf)
     return syscall(SYS_fb_get_mode, SOBJ(fbdev), SPTR(buf), 0, 0, 0, 0);
 }
 
-int
-sys_fb_set(struct cobj_ref fbdev, uint64_t off, uint64_t nbytes,
-           const uint8_t *buf)
-{
-    return syscall(SYS_fb_set, SOBJ(fbdev), off, nbytes, SPTR(buf), 0, 0);
-}
-
 int64_t
 sys_device_create(uint64_t container, uint64_t idx,
 	          const struct ulabel *l, const char *name, uint8_t type)
@@ -172,6 +165,18 @@ int
 sys_obj_move(struct cobj_ref o, uint64_t new_parent, uint64_t ancestor)
 {
     return syscall(SYS_obj_move, SOBJ(o), new_parent, ancestor, 0, 0, 0);
+}
+
+int64_t
+sys_obj_read(struct cobj_ref o, void *buf, uint64_t len, uint64_t off)
+{
+    return syscall(SYS_obj_read, SOBJ(o), SPTR(buf), len, off, 0, 0);
+}
+
+int64_t
+sys_obj_write(struct cobj_ref o, const void *buf, uint64_t len, uint64_t off)
+{
+    return syscall(SYS_obj_write, SOBJ(o), SPTR(buf), len, off, 0, 0);
 }
 
 int64_t

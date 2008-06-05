@@ -7,7 +7,6 @@
     SYSCALL_ENTRY(cons_probe)			\
 						\
     SYSCALL_ENTRY(fb_get_mode)			\
-    SYSCALL_ENTRY(fb_set)			\
 						\
     SYSCALL_ENTRY(device_create)		\
     SYSCALL_ENTRY(net_wait)			\
@@ -34,6 +33,8 @@
     SYSCALL_ENTRY(obj_set_readonly)		\
     SYSCALL_ENTRY(obj_get_readonly)		\
     SYSCALL_ENTRY(obj_move)			\
+    SYSCALL_ENTRY(obj_read)			\
+    SYSCALL_ENTRY(obj_write)			\
 						\
     SYSCALL_ENTRY(gate_create)			\
     SYSCALL_ENTRY(gate_enter)			\

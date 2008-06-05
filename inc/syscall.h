@@ -20,8 +20,6 @@ int	sys_cons_getc(void);
 int	sys_cons_probe(void);
 
 int	sys_fb_get_mode(struct cobj_ref fbdev, struct jos_fb_mode *buf);
-int	sys_fb_set(struct cobj_ref fbdev, uint64_t off, uint64_t nbytes,
-                   const uint8_t *buf);
 
 int64_t sys_device_create(uint64_t container, uint64_t idx,
 		          const struct ulabel *l, const char *name,
@@ -56,6 +54,10 @@ int	sys_obj_set_readonly(struct cobj_ref o);
 int	sys_obj_get_readonly(struct cobj_ref o);
 int	sys_obj_move(struct cobj_ref o, uint64_t new_parent_ct,
 		     uint64_t common_ancestor);
+int64_t	sys_obj_read(struct cobj_ref o, void *buf,
+		     uint64_t len, uint64_t off);
+int64_t	sys_obj_write(struct cobj_ref o, const void *buf,
+		      uint64_t len, uint64_t off);
 
 int64_t	sys_handle_create(void);
 

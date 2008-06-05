@@ -113,24 +113,6 @@ sys_fb_get_mode(struct cobj_ref fbref, struct jos_fb_mode *buf)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_fb_set(struct cobj_ref fbref, uint64_t off, uint64_t nbytes,
-           const uint8_t *buf)
-{
-    const struct kobject *ko;
-    check(cobj_get(fbref, kobj_device, &ko, iflow_rw));
-
-    if (ko->dv.dv_type != device_fb || ko->dv.dv_idx >= fbdevs_num)
-	return -E_INVAL;
-
-    struct fb_device *fbdev = fbdevs[ko->dv.dv_idx];
-    if (!fbdev)
-	return -E_INVAL;
-
-    check(check_user_access(buf, nbytes, 0));
-    return fbdev->fb_set(fbdev->fb_arg, off, nbytes, buf);
-}
-
-static int64_t __attribute__ ((warn_unused_result))
 sys_device_create(uint64_t container, uint64_t card_idx,
 		  struct ulabel *ul, const char *name, uint8_t type)
 {
@@ -491,6 +473,59 @@ sys_obj_move(struct cobj_ref o, uint64_t new_parent, uint64_t ancestor)
     check(container_put(&kobject_dirty(&dst->ct_ko)->ct, &ko->hdr, 1));
     assert(0 == container_unref(&kobject_dirty(&src->ct_ko)->ct, &ko->hdr, 0));
     return 0;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_obj_read(struct cobj_ref o, uint8_t *buf,
+	     uint64_t nbytes, uint64_t off)
+{
+    const struct kobject *ko;
+    check(cobj_get(o, kobj_any, &ko, iflow_read));
+    check(check_user_access(buf, nbytes, SEGMAP_WRITE));
+
+    switch (ko->hdr.ko_type) {
+    case kobj_device:
+	switch (ko->dv.dv_type) {
+	/* Note: will need iflow_rw for streaming devices! */
+
+	default:
+	    return -E_INVAL;
+	}
+
+    default:
+	return -E_INVAL;
+    }
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_obj_write(struct cobj_ref o, const uint8_t *buf,
+	      uint64_t nbytes, uint64_t off)
+{
+    const struct kobject *ko;
+    check(cobj_get(o, kobj_any, &ko, iflow_rw));
+    check(check_user_access(buf, nbytes, 0));
+
+    switch (ko->hdr.ko_type) {
+    case kobj_device:
+	switch (ko->dv.dv_type) {
+	case device_fb: {
+	    if (ko->dv.dv_idx >= fbdevs_num)
+		return -E_INVAL;
+
+	    struct fb_device *fbdev = fbdevs[ko->dv.dv_idx];
+	    if (!fbdev)
+		return -E_INVAL;
+
+	    return fbdev->fb_set(fbdev->fb_arg, off, nbytes, buf);
+	}
+
+	default:
+	    return -E_INVAL;
+	}
+
+    default:
+	return -E_INVAL;
+    }
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1070,7 +1105,6 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
     switch (num) {
 	SYSCALL(cons_puts, p1, a2);
 	SYSCALL(fb_get_mode, COBJ(a1, a2), p3);
-	SYSCALL(fb_set, COBJ(a1, a2), a3, a4, p5);
 	SYSCALL(net_macaddr, COBJ(a1, a2), p3);
 	SYSCALL(net_buf, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
 	SYSCALL(machine_reboot);
@@ -1125,6 +1159,8 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(obj_get_quota_avail, COBJ(a1, a2));
 	SYSCALL(obj_get_type, COBJ(a1, a2));
 	SYSCALL(obj_get_readonly, COBJ(a1, a2));
+	SYSCALL(obj_read, COBJ(a1, a2), p3, a4, a5);
+	SYSCALL(obj_write, COBJ(a1, a2), p3, a4, a5);
 	SYSCALL(container_alloc, a1, p2, p3, a4, a5);
 	SYSCALL(container_get_slot_id, a1, a2);
 	SYSCALL(container_get_nslots, a1);
