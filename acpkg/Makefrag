@@ -240,8 +240,9 @@ AUTOCONF_rxvt-unicode-8.7   := --disable-perl
 AUTOCONF_rxvt-unicode-9.02  := --disable-perl
 AUTOCONF_xpdf-3.02	    := --with-freetype2-includes=$(TOP)/$(ACPKG_PREFIX)/include/freetype2
 AUTOCONF_libXxf86dga-1.0.2  := --disable-malloc0returnsnull
-AUTOCONF_xorg-server-1.4    := --disable-aiglx --disable-mitshm --disable-glx --disable-dri --disable-xinerama --disable-dga  --with-int10-backend=stub
+AUTOCONF_xorg-server-1.4    := --disable-aiglx --disable-mitshm --disable-glx --disable-dri --disable-xinerama --disable-dga --with-int10-backend=stub --disable-config-dbus
 AUTOCONF_lesstif-0.95.0	    := --x-includes= --x-libraries=
+AUTOCONF_bash-3.1	    := --disable-multibyte --disable-nls
 
 ##
 ## Patches to apply to various packages
