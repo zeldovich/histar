@@ -109,6 +109,22 @@ _pthread_cleanup_pop_restore(struct _pthread_cleanup_buffer *buffer,
 	buffer->__routine(buffer->__arg);
 }
 
+void
+_pthread_cleanup_push(struct _pthread_cleanup_buffer *buffer,
+		      void (*routine)(void*), void *arg)
+{
+    buffer->__routine = routine;
+    buffer->__arg = arg;
+}
+
+void
+_pthread_cleanup_pop(struct _pthread_cleanup_buffer *buffer,
+		     int execute)
+{
+    if (execute)
+	buffer->__routine(buffer->__arg);
+}
+
 int
 pthread_create(pthread_t *__restrict tid,
 	       __const pthread_attr_t *__restrict attr,
