@@ -98,7 +98,7 @@ sercons_init(void)
 
     // Set speed; requires DLAB latch
     outb(com_port->io + COM_LCR, COM_LCR_DLAB);
-    outb(com_port->io + COM_DLL, (uint8_t) (115200 / 9600));
+    outb(com_port->io + COM_DLL, (uint8_t) (115200 / 38400));
     outb(com_port->io + COM_DLM, 0);
 
     // 8 data bits, 1 stop bit, parity off; turn off DLAB latch
