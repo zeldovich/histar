@@ -1,0 +1,11 @@
+--- xf86-input-void-1.1.0/src/void.c	2008/06/05 23:30:54	1.1
++++ xf86-input-void-1.1.0/src/void.c	2008/06/05 23:30:58
+@@ -283,7 +283,7 @@
+     pInfo->flags = XI86_KEYBOARD_CAPABLE | XI86_POINTER_CAPABLE | XI86_SEND_DRAG_EVENTS;
+     pInfo->device_control = xf86VoidControlProc;
+     pInfo->read_input = NULL;
+-    pInfo->motion_history_proc = xf86GetMotionEvents;
++    //pInfo->motion_history_proc = xf86GetMotionEvents;
+     pInfo->history_size = 0;
+     pInfo->control_proc = NULL;
+     pInfo->close_proc = NULL;

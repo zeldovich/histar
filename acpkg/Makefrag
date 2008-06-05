@@ -279,6 +279,7 @@ PATCHFILE_xpdf-3.02	    := xpdf-3.02.patch
 PATCHFILE_mairix-0.21	    := mairix-0.21.patch
 PATCHFILE_qemu-0.9.1	    := qemu-0.9.1.patch
 PATCHFILE_linux-2.6.20.4    := linux-2.6.20.4.patch
+PATCHFILE_xf86-input-void-1.1.0 := xf86-input-void-1.1.0.patch
 PATCHFILE_default	    := empty.patch
 
 ##
