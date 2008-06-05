@@ -206,6 +206,7 @@ DISTURL_libXprintUtil-1.0.1 := http://xorg.freedesktop.org/releases/X11R7.3/src/
 DISTURL_openmotif-2.3.0	    := ftp://ftp.ics.com/openmotif/2.3/2.3.0/openmotif-2.3.0.tar.gz
 DISTURL_lesstif-0.95.0	    := http://easynews.dl.sourceforge.net/sourceforge/lesstif/lesstif-0.95.0.tar.gz
 DISTURL_qemu-0.9.1	    := http://fabrice.bellard.free.fr/qemu/qemu-0.9.1.tar.gz
+DISTURL_libXtst-1.0.3	    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXtst-1.0.3.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -1065,6 +1066,9 @@ $(OBJDIR)/acpkg/bin/xpdf: $(ACPKG_BUILDDIR)/xpdf-3.02/__build
 	@
 
 $(ACPKG_BUILDDIR)/xpdf-3.02/Makefile: | acpkg-xlibs
+
+$(OBJDIR)/acpkg/lib/libXtst.so.6: $(ACPKG_BUILDDIR)/libXtst-1.0.3/__build
+$(ACPKG_BUILDDIR)/libXtst-1.0.3/Makefile: | acpkg-xlibs
 
 $(ACPKG_BUILDDIR)/libXp-1.0.0/Makefile: | \
 				$(ACPKG_BUILDDIR)/printproto-1.0.3/__build
