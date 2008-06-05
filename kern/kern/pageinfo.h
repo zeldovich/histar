@@ -41,7 +41,7 @@ static __inline struct page_info *
 page_to_pageinfo(void *p)
 {
     // No page_info for non-memory pages (higher than global_npages)
-    if (pa2ppn(kva2pa(p)) > global_npages)
+    if (kva2pa(p) > ppn2pa(global_npages))
 	return NULL;
 
     ppn_t pn = pa2ppn(kva2pa(p));

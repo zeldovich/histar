@@ -11,7 +11,7 @@ struct fb_device {
     void *fb_arg;
 
     physaddr_t fb_base;
-    uint64_t fb_size;
+    uint64_t fb_npages;
 };
 
 enum { fbdevs_max = 1 };

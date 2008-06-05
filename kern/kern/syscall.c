@@ -128,6 +128,7 @@ sys_device_create(uint64_t container, uint64_t card_idx,
     check(alloc_set_name(&ko->hdr, name));
     ko->dv.dv_type = type;
     ko->dv.dv_idx = card_idx;
+    device_swapin(&ko->dv);
 
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));

@@ -16,7 +16,7 @@ struct segment_mapping {
     uint64_t sm_ct_id;		// container for segment
     uint64_t sm_as_slot;
 
-    const struct Segment *sm_sg;
+    const struct kobject *sm_ko;
     LIST_ENTRY(segment_mapping) sm_link;
 };
 

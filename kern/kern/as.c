@@ -208,9 +208,9 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
 	if (r < 0)
 	    goto out;
 
-	if (sm->sm_sg) {
+	if (sm->sm_ko) {
 	    LIST_REMOVE(sm, sm_link);
-	    kobject_unpin_page(&sm->sm_sg->sg_ko);
+	    kobject_unpin_page(&sm->sm_ko->hdr);
 	}
 
 	memset(sm, 0, sizeof(*sm));
@@ -279,7 +279,7 @@ as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
 	// Can skip invalidation -- simply growing the mapping.
     } else {
 	// Invalidate any pre-existing mappings first..
-	assert(!sm->sm_sg || as == sm->sm_as);
+	assert(!sm->sm_ko || as == sm->sm_as);
 	as_invalidate_sm(sm);
     }
 
@@ -316,9 +316,9 @@ as_swapout(struct Address_space *as)
 	if (r < 0)
 	    continue;
 
-	if (sm->sm_sg) {
+	if (sm->sm_ko) {
 	    LIST_REMOVE(sm, sm_link);
-	    kobject_unpin_page(&sm->sm_sg->sg_ko);
+	    kobject_unpin_page(&sm->sm_ko->hdr);
 	}
     }
 
@@ -344,77 +344,11 @@ as_va_to_segment_page(const struct u_segment_mapping *usm, void *va)
 }
 
 static int
-as_pmap_fill_device(const struct Address_space *as,
-		    const struct Device *dv,
-		    struct segment_mapping *sm,
-		    const struct u_segment_mapping *usm,
-		    void *need_va, uint32_t usmflags)
-{
-    if (usm->num_pages == 0)
-	return -E_INVAL;
-
-    int of = 0;
-    need_va = ROUNDDOWN(need_va, PGSIZE);
-
-    void *usm_first = ROUNDDOWN(usm->va, PGSIZE);
-    void *usm_last = (void *)
-	safe_addptr(&of, (uintptr_t) usm_first,
-		    safe_mulptr(&of, usm->num_pages - 1, PGSIZE));
-    if (of || PGOFF(usm->va))
-	return -E_INVAL;
-    assert(need_va >= usm_first && need_va <= usm_last);
-
-    void *map_first = usm_first;
-    void *map_last  = usm_last;
-
-    if (need_va - map_first > as_courtesy_pages * PGSIZE)
-	map_first = need_va - as_courtesy_pages * PGSIZE;
-    if (map_last - need_va > as_courtesy_pages * PGSIZE)
-	map_last = need_va + as_courtesy_pages * PGSIZE;
-
-    if (as_debug)
-	cprintf("as_pmap_fill_device: va %p start %"PRIu64" num %"PRIu64
-                " need %p: mapping %p--%p\n",
-		usm->va, usm->start_page, usm->num_pages, need_va, map_first,
-                map_last);
-
-    struct fb_device *fbdev = fbdevs[dv->dv_idx];
-    if (!fbdev)
-        return -E_INVAL;
-
-    int r = 0;
-    for (void *va = map_first; va <= map_last; va += PGSIZE) {
-	void *pp = 0;
-	physaddr_t pppa = 0;
-	uint64_t segpage = as_va_to_segment_page(usm, va);
-
-        pp = (void *)(pa2kva(fbdev->fb_base) + segpage * PGSIZE);
-        pppa = fbdev->fb_base + segpage * PGSIZE;
-
-        uint64_t ptflags = PTE_P | PTE_U | PTE_NX;
-        if ((usmflags & SEGMAP_WRITE))
-            ptflags |= PTE_W;
-        if ((usmflags & SEGMAP_EXEC))
-            ptflags &= ~PTE_NX;
-
-        ptent_t *ptep;
-        r = pgdir_walk(as->as_pgmap, va, 1, &ptep);
-        if (r < 0)
-            return r;
-
-        as_arch_page_invalidate_cb(as->as_pgmap, ptep, va);
-        *ptep = pppa | ptflags;
-    }
-
-    return 0;
-}
-
-static int
-as_pmap_fill_segment(const struct Address_space *as,
-		     const struct Segment *sg,
-		     struct segment_mapping *sm,
-		     const struct u_segment_mapping *usm,
-		     void *need_va, uint32_t usmflags)
+as_pmap_fill_kobj(const struct Address_space *as,
+		  const struct kobject *ko,
+		  struct segment_mapping *sm,
+		  const struct u_segment_mapping *usm,
+		  void *need_va, uint32_t usmflags)
 {
     if (usm->num_pages == 0)
 	return -E_INVAL;
@@ -442,10 +376,10 @@ as_pmap_fill_segment(const struct Address_space *as,
 	cprintf("as_pmap_fill_segment: va %p start %"PRIu64" num %"PRIu64" need %p: mapping %p--%p\n",
 		usm->va, usm->start_page, usm->num_pages, need_va, map_first, map_last);
 
-    if (sm->sm_sg) {
+    if (sm->sm_ko) {
 	LIST_REMOVE(sm, sm_link);
-	kobject_unpin_page(&sm->sm_sg->sg_ko);
-	sm->sm_sg = 0;
+	kobject_unpin_page(&sm->sm_ko->hdr);
+	sm->sm_ko = 0;
     }
 
     int r = 0;
@@ -453,16 +387,18 @@ as_pmap_fill_segment(const struct Address_space *as,
 	void *pp = 0;
 	uint64_t segpage = as_va_to_segment_page(usm, va);
 
-	if (va != need_va && (usmflags & SEGMAP_WRITE)) {
+	if (va != need_va && (usmflags & SEGMAP_WRITE) &&
+	    ko->hdr.ko_type == kobj_segment)
+	{
 	    /*
 	     * If this is a courtesy writable mapping, and there's a refcount
 	     * on this page, defer doing the actual copy-on-write until user
 	     * hits this exact page, because it's quite costly.
 	     */
-	    if (segpage >= kobject_npages(&sg->sg_ko))
+	    if (segpage >= kobject_npages(&ko->hdr))
 		continue;
 
-	    struct kobject *sg_ko = kobject_ephemeral_dirty(&sg->sg_ko);
+	    struct kobject *sg_ko = kobject_ephemeral_dirty(&ko->hdr);
 	    r = pagetree_get_page(&sg_ko->ko_pt, segpage, &pp, page_shared_ro);
 	    if (r < 0 || !pp)
 		continue;
@@ -472,9 +408,37 @@ as_pmap_fill_segment(const struct Address_space *as,
 		continue;
 	}
 
-	r = kobject_get_page(&sg->sg_ko, segpage, &pp,
-			     (usmflags & SEGMAP_WRITE) ? page_excl_dirty_later
-						       : page_shared_ro);
+	switch (ko->hdr.ko_type) {
+	case kobj_segment:
+	    r = kobject_get_page(&ko->sg.sg_ko, segpage, &pp,
+				 (usmflags & SEGMAP_WRITE) ? page_excl_dirty_later
+							   : page_shared_ro);
+	    break;
+
+	case kobj_device:
+	    if (ko->dv.dv_type == device_fb) {
+		struct fb_device *fbdev = fbdevs[ko->dv.dv_idx];
+		if (!fbdev) {
+		    r = -E_INVAL;
+		    break;
+		}
+
+		if (segpage >= fbdev->fb_npages) {
+		    r = -E_INVAL;
+		    break;
+		}
+
+		pp = pa2kva(fbdev->fb_base + segpage * PGSIZE);
+		r = 0;
+	    } else {
+		r = -E_INVAL;
+	    }
+	    break;
+
+	default:
+	    r = -E_INVAL;
+	}
+
 	if (r < 0) {
 	    if (va != need_va)
 		continue;
@@ -489,18 +453,33 @@ as_pmap_fill_segment(const struct Address_space *as,
 	}
 
 	struct page_info *pi = page_to_pageinfo(pp);
-	pi->pi_seg = sg->sg_ko.ko_id;
-	pi->pi_segpg = segpage;
+	if (pi) {
+	    pi->pi_seg = ko->hdr.ko_id;
+	    pi->pi_segpg = segpage;
+	}
     }
 
     sm->sm_as = as;
-    sm->sm_sg = sg;
+    sm->sm_ko = ko;
     if (usmflags & SEGMAP_WRITE)
 	sm->sm_rw_mappings = 1;
 
-    struct Segment *msg = &kobject_dirty(&sg->sg_ko)->sg;
-    LIST_INSERT_HEAD(&msg->sg_segmap_list, sm, sm_link);
-    kobject_pin_page(&sg->sg_ko);
+    switch (ko->hdr.ko_type) {
+    case kobj_segment:
+	LIST_INSERT_HEAD(&kobject_dirty(&ko->hdr)->sg.sg_segmap_list,
+			 sm, sm_link);
+	break;
+
+    case kobj_device:
+	LIST_INSERT_HEAD(&kobject_dirty(&ko->hdr)->dv.dv_segmap_list,
+			 sm, sm_link);
+	break;
+
+    default:
+	panic("bad kobject type in as_pmap_fill_kobj");
+    }
+
+    kobject_pin_page(&ko->hdr);
     return 0;
 
 err:
@@ -559,11 +538,11 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	    return r;
 	}
 
-        if (ko->hdr.ko_type != kobj_segment &&
-            ko->hdr.ko_type != kobj_device) {
-            cprintf("as_pmap_fill: non-{segment, device} in AS\n");
-            return -E_INVAL;
-        }
+	if (ko->hdr.ko_type != kobj_segment &&
+	    ko->hdr.ko_type != kobj_device) {
+	    cprintf("as_pmap_fill: bad object type %d\n", ko->hdr.ko_type);
+	    return -E_INVAL;
+	}
 
 	struct segment_mapping *sm;
 	r = as_get_segmap(as, &sm, i);
@@ -573,13 +552,9 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	if (as_debug)
 	    cprintf("as_pmap_fill: fault %p base %p\n", va, va_start);
 
-        sm->sm_as_slot = i;
-        sm->sm_ct_id = seg_ref.container;
-        if (ko->hdr.ko_type == kobj_segment) {
-            return as_pmap_fill_segment(as, &ko->sg, sm, usm, va, flags);
-        } else if (ko->hdr.ko_type == kobj_device) {
-            return as_pmap_fill_device(as, &ko->dv, sm, usm, va, flags);
-        }
+	sm->sm_as_slot = i;
+	sm->sm_ct_id = seg_ref.container;
+	return as_pmap_fill_kobj(as, ko, sm, usm, va, flags);
     }
 
     return -E_NOT_FOUND;
@@ -620,7 +595,7 @@ as_switch_invalidate(const struct Address_space *as,
 	if (r < 0)
 	    goto err;
 
-	if (!sm->sm_sg)
+	if (!sm->sm_ko)
 	    continue;
 
 	const struct u_segment_mapping *usm;
@@ -713,7 +688,7 @@ as_map_ro_sm(struct segment_mapping *sm)
 void
 as_invalidate_sm(struct segment_mapping *sm)
 {
-    if (!sm->sm_sg)
+    if (!sm->sm_ko)
 	return;
 
     if (as_debug)
@@ -731,8 +706,8 @@ as_invalidate_sm(struct segment_mapping *sm)
 			     sm->sm_as->as_pgmap) == 0);
 
     LIST_REMOVE(sm, sm_link);
-    kobject_unpin_page(&sm->sm_sg->sg_ko);
-    sm->sm_sg = 0;
+    kobject_unpin_page(&sm->sm_ko->hdr);
+    sm->sm_ko = 0;
     sm->sm_rw_mappings = 0;
     return;
 }
@@ -762,7 +737,7 @@ as_invert_mapped(const struct Address_space *as, void *addr,
 	if (r < 0)
 	    return r;
 
-	if (!sm->sm_sg)
+	if (!sm->sm_ko)
 	    continue;
 
 	const struct u_segment_mapping *usm;
