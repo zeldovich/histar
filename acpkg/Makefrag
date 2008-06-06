@@ -209,6 +209,8 @@ DISTURL_qemu-0.9.1	    := http://fabrice.bellard.free.fr/qemu/qemu-0.9.1.tar.gz
 DISTURL_libXtst-1.0.3	    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXtst-1.0.3.tar.gz
 DISTURL_xrandr-1.2.2	    := http://xorg.freedesktop.org/releases/X11R7.3/src/app/xrandr-1.2.2.tar.gz
 DISTURL_libXrandr-1.2.2	    := http://xorg.freedesktop.org/releases/X11R7.3/src/lib/libXrandr-1.2.2.tar.gz
+DISTURL_font-alias-1.0.1    := http://xorg.freedesktop.org/releases/X11R7.3/src/font/font-alias-1.0.1.tar.gz
+DISTURL_font-cursor-misc-1.0.0 := http://xorg.freedesktop.org/releases/X11R7.3/src/font/font-cursor-misc-1.0.0.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -1208,6 +1210,9 @@ $(ACPKG_BUILDDIR)/libXfont-1.3.1/Makefile: $(ACPKG_BUILDDIR)/libfontenc-1.0.4/__
                                 $(ACPKG_BUILDDIR)/fontcacheproto-0.1.2/__build \
                                 $(ACPKG_BUILDDIR)/fontsproto-2.0.2/__build
 
+$(ACPKG_BUILDDIR)/font-alias-1.0.1/Makefile: $(ACPKG_BUILDDIR)/xorg-server-1.4/__build
+$(ACPKG_BUILDDIR)/font-cursor-misc-1.0.0/Makefile: $(ACPKG_BUILDDIR)/xorg-server-1.4/__build
+
 .PHONY: acpkg-xall
 acpkg-xall: acpkg-xlibs \
 		$(OBJDIR)/acpkg/bin/xhost \
@@ -1222,7 +1227,9 @@ acpkg-xall: acpkg-xlibs \
 		$(ACPKG_BUILDDIR)/xorg-server-1.4/__build \
 		$(ACPKG_BUILDDIR)/xf86-input-void-1.1.0/__build \
 		$(ACPKG_BUILDDIR)/xf86-video-fbdev-0.3.1/__build \
-		$(ACPKG_BUILDDIR)/xf86-video-dummy-0.2.0/__build
+		$(ACPKG_BUILDDIR)/xf86-video-dummy-0.2.0/__build \
+		$(ACPKG_BUILDDIR)/font-alias-1.0.1/__build \
+		$(ACPKG_BUILDDIR)/font-cursor-misc-1.0.0/__build
 	@
 
 $(ACPKG_BUILDDIR)/mairix-0.21/Makefile: $(ACPKG_BUILDDIR)/mairix-0.21/__patch | $(ACPKG_WRAPS)
