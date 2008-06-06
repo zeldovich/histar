@@ -42,6 +42,8 @@ fi
 
 test -f /bin/vim && ln -s vim /bin/vi
 test -f /bin/xauth && ln -s /bin/xauth /usr/bin/xauth
+test -f /bin/xorg.conf && ln -s /bin/xorg.conf /etc/xorg.conf
+touch /dev/tty0
 
 mkdir /sample
 mkdir /sample/wrap
