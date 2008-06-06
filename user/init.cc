@@ -544,6 +544,17 @@ init_fbcons(int basecons, int *consp, int maxvt)
     int64_t ec;
     error_check(process_wait(&cp, &ec));
 
+    if (fs_namei("/usr/bin/Xorg", &ino) >= 0) {
+	const char *argv[] = { "Xorg",
+			       "-logfile", "/tmp/xorg.log",
+			       "vt0", "-keeptty", "-sharevts",
+			       "-verbose", "99" };
+	spawn(start_env->process_pool, ino, basecons, basecons, basecons,
+	      sizeof(argv) / sizeof(*argv), &argv[0],
+	      sizeof(env) / sizeof(*env), &env[0],
+	      0, &ds, 0, &dr, 0, 0);
+    }
+
     for (int vt = 0; vt < maxvt; vt++) {
 	char namebuf[KOBJ_NAME_LEN];
 	sprintf(&namebuf[0], "consbuf%d", vt);
