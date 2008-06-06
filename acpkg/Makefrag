@@ -207,6 +207,8 @@ DISTURL_openmotif-2.3.0	    := ftp://ftp.ics.com/openmotif/2.3/2.3.0/openmotif-2
 DISTURL_lesstif-0.95.0	    := http://easynews.dl.sourceforge.net/sourceforge/lesstif/lesstif-0.95.0.tar.gz
 DISTURL_qemu-0.9.1	    := http://fabrice.bellard.free.fr/qemu/qemu-0.9.1.tar.gz
 DISTURL_libXtst-1.0.3	    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/libXtst-1.0.3.tar.gz
+DISTURL_xrandr-1.2.2	    := http://xorg.freedesktop.org/releases/X11R7.3/src/app/xrandr-1.2.2.tar.gz
+DISTURL_libXrandr-1.2.2	    := http://xorg.freedesktop.org/releases/X11R7.3/src/lib/libXrandr-1.2.2.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -236,6 +238,7 @@ AUTOCONF_libXt-1.0.4        := --disable-malloc0returnsnull
 AUTOCONF_libXrender-0.9.4   := --disable-malloc0returnsnull
 AUTOCONF_libXext-1.0.2      := --disable-malloc0returnsnull
 AUTOCONF_libXp-1.0.0	    := --disable-malloc0returnsnull
+AUTOCONF_libXrandr-1.2.2    := --disable-malloc0returnsnull
 AUTOCONF_vnc-4.1.2          := --with-installed-zlib
 AUTOCONF_rxvt-unicode-8.7   := --disable-perl
 AUTOCONF_rxvt-unicode-9.02  := --disable-perl
@@ -280,6 +283,7 @@ PATCHFILE_mairix-0.21	    := mairix-0.21.patch
 PATCHFILE_qemu-0.9.1	    := qemu-0.9.1.patch
 PATCHFILE_linux-2.6.20.4    := linux-2.6.20.4.patch
 PATCHFILE_xf86-input-void-1.1.0 := xf86-input-void-1.1.0.patch
+PATCHFILE_xrandr-1.2.2	    := xrandr-1.2.2.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -1046,6 +1050,11 @@ $(OBJDIR)/acpkg/bin/xlogo: $(ACPKG_BUILDDIR)/xlogo-1.0.1/__build
 	@
 
 $(ACPKG_BUILDDIR)/xlogo-1.0.1/Makefile: | acpkg-xlibs
+
+$(OBJDIR)/acpkg/bin/xrandr: $(ACPKG_BUILDDIR)/xrandr-1.2.2/__build
+
+$(ACPKG_BUILDDIR)/xrandr-1.2.2/Makefile: | acpkg-xlibs \
+	$(ACPKG_BUILDDIR)/libXrandr-1.2.2/__build
 
 $(OBJDIR)/acpkg/bin/xeyes: $(ACPKG_BUILDDIR)/xeyes-1.0.1/__build
 	@

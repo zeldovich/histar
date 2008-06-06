@@ -1,0 +1,41 @@
+--- xrandr-1.2.2/xrandr.c	2008/06/06 00:21:15	1.1
++++ xrandr-1.2.2/xrandr.c	2008/06/06 00:22:18
+@@ -189,7 +189,7 @@
+ 
+ #if HAS_RANDR_1_2
+ typedef enum _policy {
+-    clone, extend
++    xrandr_clone, extend
+ } policy_t;
+ 
+ typedef enum _relation {
+@@ -1602,7 +1602,7 @@
+     int		ret = 0;
+ #if HAS_RANDR_1_2
+     output_t	*output = NULL;
+-    policy_t	policy = clone;
++    policy_t	policy = xrandr_clone;
+     Bool    	setit_1_2 = False;
+     Bool    	query_1_2 = False;
+     Bool	modeit = False;
+@@ -1863,7 +1863,7 @@
+ 	    continue;
+ 	}
+ 	if (!strcmp ("--clone", argv[i])) {
+-	    policy = clone;
++	    policy = xrandr_clone;
+ 	    setit_1_2 = True;
+ 	    continue;
+ 	}
+@@ -2296,9 +2296,9 @@
+ 		printf ("\tClones:    ");
+ 		for (j = 0; j < output_info->nclone; j++)
+ 		{
+-		    output_t	*clone = find_output_by_xid (output_info->clones[j]);
++		    output_t	*cln = find_output_by_xid (output_info->clones[j]);
+ 
+-		    if (clone) printf (" %s", clone->output.string);
++		    if (cln) printf (" %s", cln->output.string);
+ 		}
+ 		printf ("\n");
+ 		if (output->crtc_info)
