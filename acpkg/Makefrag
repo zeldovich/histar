@@ -1208,6 +1208,23 @@ $(ACPKG_BUILDDIR)/libXfont-1.3.1/Makefile: $(ACPKG_BUILDDIR)/libfontenc-1.0.4/__
                                 $(ACPKG_BUILDDIR)/fontcacheproto-0.1.2/__build \
                                 $(ACPKG_BUILDDIR)/fontsproto-2.0.2/__build
 
+.PHONY: acpkg-xall
+acpkg-xall: acpkg-xlibs \
+		$(OBJDIR)/acpkg/bin/xhost \
+		$(OBJDIR)/acpkg/bin/xclock \
+		$(OBJDIR)/acpkg/bin/xlogo \
+		$(OBJDIR)/acpkg/bin/xrandr \
+		$(OBJDIR)/acpkg/bin/xeyes \
+		$(OBJDIR)/acpkg/bin/xauth \
+		$(OBJDIR)/acpkg/bin/urxvt \
+		$(OBJDIR)/acpkg/bin/xpdf \
+		$(ACPKG_BUILDDIR)/libXtst-1.0.3/__build \
+		$(ACPKG_BUILDDIR)/xorg-server-1.4/__build \
+		$(ACPKG_BUILDDIR)/xf86-input-void-1.1.0/__build \
+		$(ACPKG_BUILDDIR)/xf86-video-fbdev-0.3.1/__build \
+		$(ACPKG_BUILDDIR)/xf86-video-dummy-0.2.0/__build
+	@
+
 $(ACPKG_BUILDDIR)/mairix-0.21/Makefile: $(ACPKG_BUILDDIR)/mairix-0.21/__patch | $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
 	-( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) distclean" )
