@@ -11,6 +11,12 @@
 
 ENTRY(abort)
 	/*
+	 * Enable trusted mode.
+	 */
+	set	TSR_T, %g1
+	wrtr	%g1, %tsr
+
+	/*
 	 * Set full %wim and turn off traps to trigger a CPU error later.
 	 */
 	mov	0xff, %wim
