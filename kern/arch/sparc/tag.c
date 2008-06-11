@@ -23,7 +23,7 @@ extern const uint8_t kstack[], kstack_top[];
 extern const uint8_t monstack[], monstack_top[];
 extern const uint8_t extra_stack[], extra_stack_top[];
 
-static uint32_t tag_table[65536] __attribute__((aligned(4096)));
+static uint32_t tag_table[1024 * 1024] __attribute__((aligned(4096)));
 
 uint32_t moncall_dummy;
 uint32_t cur_stack_base;
@@ -66,11 +66,24 @@ const char* const cause_table[] = {
 extern uint64_t nkobjects;
 
 static void
+tag_perm_pin(void)
+{
+    wrtperm(DTAG_KEXEC, TAG_PERM_READ | TAG_PERM_EXEC);
+    wrtperm(DTAG_KRO, TAG_PERM_READ);
+    wrtperm(DTAG_KRW, TAG_PERM_READ | TAG_PERM_WRITE);
+    wrtperm(DTAG_STACK_0, TAG_PERM_READ | TAG_PERM_WRITE);
+    if (pcall_next > 0)
+	wrtperm(DTAG_STACK_EX + pcall_next - 1, TAG_PERM_READ | TAG_PERM_WRITE);
+}
+
+static void
 tag_flushperm(void)
 {
-    /* 32-way cache, hash is low bits */
-    for (uint32_t i = 0; i < 32; i++)
+    /* 64-entry, 4-way cache, hash is low 4 bits */
+    for (uint32_t i = 0; i < 64; i++)
 	wrtperm(i, 0);
+
+    tag_perm_pin();
 }
 
 static const struct Label *
@@ -93,6 +106,8 @@ label_to_tag(const struct Label *l)
 void
 tag_set(const void *addr, uint32_t dtag, size_t n)
 {
+    assert(dtag != 0);
+
     if (!(read_tsr() & TSR_T)) {
 	int r = monitor_call(MONCALL_TAGSET, addr, dtag, n);
 	if (r != 0)
@@ -157,11 +172,13 @@ tag_compare(uint32_t dtag, int write)
 {
     if (!cur_mon_thread) {
 	wrtperm(dtag, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+	tag_perm_pin();
 	return 0;
     }
 
     if (cur_pcall_dtag == dtag) {
 	wrtperm(dtag, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+	tag_perm_pin();
 	return 0;
     }
 
@@ -169,11 +186,13 @@ tag_compare(uint32_t dtag, int write)
 	switch (dtag) {
 	case DTAG_DEVICE: case DTAG_KRW: case DTAG_TYPE_SYNC: case DTAG_STACK_0:
 	    wrtperm(dtag, TAG_PERM_READ | TAG_PERM_WRITE);
+	    tag_perm_pin();
 	    return 0;
 
 	case DTAG_KEXEC: case DTAG_KRO: case DTAG_TYPE_KOBJ:
 	    if (!write) {
 		wrtperm(dtag, TAG_PERM_READ | TAG_PERM_EXEC);
+		tag_perm_pin();
 		return 0;
 	    }
 
@@ -185,6 +204,7 @@ tag_compare(uint32_t dtag, int write)
 	    uint32_t stacknum = dtag - DTAG_STACK_EX;
 	    if (cur_stack_base == (uintptr_t) pcall_stack[stacknum].stack_base) {
 		wrtperm(dtag, TAG_PERM_READ | TAG_PERM_WRITE);
+		tag_perm_pin();
 		return 0;
 	    }
 	}
@@ -214,8 +234,10 @@ tag_compare(uint32_t dtag, int write)
 	}
 
 	wrtperm(dtag, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+	tag_perm_pin();
     } else {
 	wrtperm(dtag, TAG_PERM_READ | TAG_PERM_EXEC);
+	tag_perm_pin();
     }
 
     return 0;
@@ -228,6 +250,8 @@ tag_compare(uint32_t dtag, int write)
 static int32_t
 moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
 {
+    assert(dtag != 0);
+
     if (((uintptr_t) addr) & 3)
 	return -E_INVAL;
 
@@ -320,6 +344,8 @@ tag_moncall(struct Trapframe *tf)
 
 	uint32_t magic_dtag = tf->tf_regs.l1;
 
+	wrtperm(DTAG_STACK_EX + pcall_idx, TAG_PERM_READ | TAG_PERM_WRITE);
+	tag_perm_pin();
 	tf->tf_pc = (uintptr_t) &pcall_trampoline;
 	tf->tf_npc = tf->tf_pc + 4;
 	tf->tf_psr = PSR_S | PSR_PS | PSR_PIL | PSR_ET;
@@ -351,6 +377,8 @@ tag_moncall(struct Trapframe *tf)
 	const struct Label *ko_l;
 	assert(0 == kobject_get_label(&ko->hdr, kolabel_contaminate, &ko_l));
 
+	wrtperm(DTAG_STACK_EX + pcall_idx, TAG_PERM_READ | TAG_PERM_WRITE);
+	tag_perm_pin();
 	tf->tf_pc = (uintptr_t) &pcall_trampoline;
 	tf->tf_npc = tf->tf_pc + 4;
 	tf->tf_psr = PSR_S | PSR_PS | PSR_PIL | PSR_ET;
@@ -376,11 +404,17 @@ tag_moncall(struct Trapframe *tf)
 
 	/* remove permissions for previous stack */
 	wrtperm(DTAG_STACK_EX + pcall_idx, 0);
+	tag_perm_pin();
 
 	cur_pcall_dtag = ps->pcall_dtag;
 	cur_stack_base = ps->prev_stack_base;
 	break;
     }
+
+    case MONCALL_TEST:
+	put_retval = 1;
+	retval = -tf->tf_regs.i1;
+	break;
 
     case MONCALL_TAGSET:
 	put_retval = 1;
@@ -653,15 +687,19 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
     if (tag_trap_debug)
 	cprintf("tag trap...\n");
 
+    if (!(tf->tf_psr & PSR_ET))
+	panic("tag trap with traps disabled");
+
     uint32_t et = read_et();
     uint32_t cause = (et >> ET_CAUSE_SHIFT) & ET_CAUSE_MASK;
     uint32_t dtag = read_etag();
 
     if (tag_trap_debug)
-	cprintf("  data tag = %d, cause = %s (%d), pc = 0x%x\n",
+	cprintf("  data tag = 0x%x, cause = %s (%d), pc = 0x%x, "
+		"et = 0x%x, psr = 0x%x\n",
 		dtag,
 		cause <= ET_CAUSE_EXEC ? cause_table[cause] : "unknown",
-		cause, tf->tf_pc);
+		cause, tf->tf_pc, et, tf->tf_psr);
 
     if (err) {
 	cprintf("  tag trap err = %d [%x]\n", err, errv);

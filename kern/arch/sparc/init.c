@@ -62,6 +62,11 @@ init (void)
     write_tsr(0);
     cprintf("done.\n");
 
+    uint32_t test_in  = 0x521835ab;
+    uint32_t test_out = monitor_call(MONCALL_TEST, test_in);
+    if (test_out != -test_in)
+	panic("MONCALL_TEST does not work");
+
     cprintf("=== kernel ready, calling thread_run() ===\n");
     thread_run();
 }

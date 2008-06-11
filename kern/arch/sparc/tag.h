@@ -63,6 +63,7 @@
 #define MONCALL_PCALL		1	/* Protected domain call */
 #define MONCALL_PRETURN		2	/* Protected domain return */
 #define MONCALL_TAGSET		3	/* Change tags ala memset */
+#define MONCALL_TEST		4	/* Make sure MONCALL works */
 #define MONCALL_THREAD_SWITCH	5	/* Change to another thread */
 #define MONCALL_KOBJ_ALLOC	6	/* Allocate a kobject */
 #define MONCALL_CATEGORY_ALLOC	7	/* Allocate a category */
