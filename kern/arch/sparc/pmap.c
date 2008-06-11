@@ -7,7 +7,7 @@
 #include <inc/safeint.h>
 
 static struct Contexttable bootct
-    __attribute__ ((aligned (4096), section (".data")));
+    __attribute__ ((aligned (4096), section (".data_krw")));
 static struct Pagemap bootpt
     __attribute__ ((aligned (4096), section (".data")));
 static struct Pagemap2 bootpt2s[192 * (1 + 64)]
