@@ -413,6 +413,17 @@ ENTRY(tag_trap_return)
 ENTRY(monitor_call)
 	save	%sp, -STACKFRAME_SZ, %sp
 
+	/* Make sure we're not in trusted mode, otherwise this won't work */
+	rdtr	%tsr, %l1
+	set	0x2000000, %l2
+	andcc	%l1, %l2, %l1
+	bz	1f
+	 nop
+
+	ta 1
+	 nop
+
+1:
 	mov	%i0, %l0
 	set	moncall_dummy, %g1
 	st	%g0, [%g1]
