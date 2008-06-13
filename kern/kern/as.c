@@ -721,7 +721,7 @@ as_invert_mapped(const struct Address_space *as, void *addr,
 	int r = pgdir_walk(as->as_pgmap, addr, 0, &pte);
 	if (r >= 0 && *pte) {
 	    struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(*pte)));
-	    if (pi->pi_hw_write_pin) {
+	    if (pi && pi->pi_hw_write_pin) {
 		/* page not shared by multiple segments */
 		*segp = pi->pi_seg;
 		*offsetp = (pi->pi_segpg * PGSIZE) + PGOFF(addr);
