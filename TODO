@@ -54,6 +54,7 @@ Performance:
 * deal with fragmentation on-disk
 * partial segment swapin and swapout
 * page reclamation, LRU (unpin callbacks for reclaiming space?)
+* update lwip (http://pdos.csail.mit.edu/~sbw/lwip/)
 
 Kernel bugs:
 
