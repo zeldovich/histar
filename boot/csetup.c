@@ -63,15 +63,6 @@ set_video(void)
 
     uint16_t ax, bx, cx, di;
 
-    /* Save our %es which points to video memory */
-    uint16_t save_es = 0;
-    __asm volatile("movw %%es, %%ax" : "=a" (save_es));
-
-    /* Use the %cs/%ds offset for %es, and note it */
-    uint32_t es = 0;
-    __asm volatile("movw %%ds, %%ax; movw %%ax, %%es"
-		   : "+a" (es) : : "memory");
-
     /* Get VBE control info */
     extern struct vbe_control_info vbe_control_info;
     vbe_control_info.sig[0] = 'V';
@@ -105,12 +96,12 @@ set_video(void)
     if (ax != 0x4f)
 	return;
 
-    sysx_info.vbe_control_info = (es << 4) + (uint16_t) (uintptr_t) &vbe_control_info;
-    sysx_info.vbe_mode_info = (es << 4) + (uint16_t) (uintptr_t) &vbe_mode_info;
-    sysx_info.vbe_mode = vbe_mode;
+    uint32_t ds;
+    __asm volatile("movw %%ds, %%ax" : "+a" (ds));
 
-    /* Restore the %es which points to video memory */
-    __asm volatile("movw %%ax, %%es" : : "a" (save_es));
+    sysx_info.vbe_control_info = (ds << 4) + (uint16_t) (uintptr_t) &vbe_control_info;
+    sysx_info.vbe_mode_info = (ds << 4) + (uint16_t) (uintptr_t) &vbe_mode_info;
+    sysx_info.vbe_mode = vbe_mode;
 }
 
 void
@@ -118,6 +109,6 @@ csetup(void)
 {
     enable_a20_fast();
     detect_memory_e801();
-    __asm volatile("movw $(0x0200 + '0'), %es:(0x02)");
+    __asm volatile("movw $(0x0200 + '0'), %fs:(0x02)");
     set_video();
 }

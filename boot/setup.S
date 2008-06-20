@@ -113,11 +113,11 @@ trampoline:
 	
 ## Print a diagnostic message
 		movw	$0xb800, %ax
-		movw	%ax, %es
-		movw	$(0x0200 + '*'), %es:(0x00)
+		movw	%ax, %fs
+		movw	$(0x0200 + '*'), %fs:(0x00)
 
 		calll	csetup
-		movw	$(0x0200 + '1'), %es:(0x04)
+		movw	$(0x0200 + '1'), %fs:(0x04)
 
 ## Set %edi to the linear load address (our link address is 0)
 		movw	%cs, %ax
@@ -143,7 +143,7 @@ eip_abs:
 		movl	$start, %esp
 		addl	%edi, %esp
 
-		movw	$(0x0200 + '2'), %es:(0x06)
+		movw	$(0x0200 + '2'), %fs:(0x06)
 
 #### Switch from real to protected mode	
 ####     The descriptors in our GDT allow all physical memory to be accessed.
@@ -164,12 +164,12 @@ eip_abs:
 		movl	$gdtdesc, %eax		# gdtdesc is 16-byte aligned
 		addl	%esi, %eax
 		lgdtl	(%eax)			# load GDT
-		movw	$(0x0200 + '3'), %es:(0x08)
+		movw	$(0x0200 + '3'), %fs:(0x08)
 
 		movl	%cr0, %eax		# turn on protected mode
 		orl	$CR0_PE_ON, %eax	# 
 		movl	%eax, %cr0		# 
-		movw	$(0x0200 + '4'), %es:(0x0a)
+		movw	$(0x0200 + '4'), %fs:(0x0a)
 
 		### CPU magic: jump to relocation, flush prefetch queue, and reload %cs
 		### Has the effect of just jmp to the next instruction, but simultaneous
