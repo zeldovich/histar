@@ -33,6 +33,46 @@ enable_a20_fast(void)
 }
 
 static void
+detect_memory_e820(void)
+{
+    int count = 0;
+    uint32_t next = 0;
+    uint32_t size, id;
+    uint8_t err;
+    struct e820entry *desc = sysx_info.e820_map;
+    
+    do {
+	size = sizeof(struct e820entry);
+	
+	/* Important: %edx is clobbered by some BIOSes,
+	   so it must be either used for the error output
+	   or explicitly marked clobbered. */
+	__asm volatile("int $0x15; setc %0"
+		       : "=d" (err), "+b" (next), "=a" (id), "+c" (size),
+		       "=m" (*desc)
+		       : "D" (desc), "d" (SMAP), "a" (0xe820));
+	
+	/* Some BIOSes stop returning SMAP in the middle of
+	   the search loop.  We don't know exactly how the BIOS
+	   screwed up the map at that point, we might have a
+	   partial map, the full map, or complete garbage, so
+	   just return failure. */
+	if (id != SMAP) {
+	    count = 0;
+	    break;
+	}
+	
+	if (err)
+	    break;
+	
+	count++;
+	desc++;
+    } while (next && count < E820MAX);
+    
+    sysx_info.e820_nents = count;
+}
+
+static void
 detect_memory_e801(void)
 {
     uint16_t ax, bx, cx, dx;
@@ -109,6 +149,7 @@ csetup(void)
 {
     extern uint32_t cmd_line_ptr;
     enable_a20_fast();
+    detect_memory_e820();
     detect_memory_e801();
     /* SYSLINUX copies the command line to somewhere in low memory
      * and saves a pointer in the Linux setup header.  We copy the
