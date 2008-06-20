@@ -70,6 +70,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
 
     uint64_t lower_kb = 0;
     uint64_t upper_kb = 0;
+    struct sysx_info sxi;
 
     if (start_eax == MULTIBOOT_EAX_MAGIC) {
 	struct multiboot_info *mbi = (struct multiboot_info *) pa2kva(start_ebx);
@@ -86,15 +87,15 @@ init (uint32_t start_eax, uint32_t start_ebx)
     }
 
     if (start_eax == SYSXBOOT_EAX_MAGIC) {
-	struct sysx_info *sxi = pa2kva(start_ebx);
-	char *cmdline = pa2kva(sxi->cmdline);
+	memcpy(&sxi, pa2kva(start_ebx), sizeof(sxi));
+	char *cmdline = pa2kva(sxi.cmdline);
 	strncpy(&boot_cmdline[0], cmdline, sizeof(boot_cmdline) - 1);
-	upper_kb = sxi->extmem_kb;
+	upper_kb = sxi.extmem_kb;
 
-	if (sxi->vbe_mode)
-	    vesafb_init(pa2kva(sxi->vbe_control_info),
-			pa2kva(sxi->vbe_mode_info),
-			sxi->vbe_mode);
+	if (sxi.vbe_mode)
+	    vesafb_init(pa2kva(sxi.vbe_control_info),
+			pa2kva(sxi.vbe_mode_info),
+			sxi.vbe_mode);
     }
 
     // Our boot sector passes in the upper memory size this way
@@ -106,13 +107,13 @@ init (uint32_t start_eax, uint32_t start_ebx)
     sercons_init();
     lptcons_init();
     pic_init();
-
+    
     acpi_init();	/* Picks up HPET, PM timer */
     apic_init();	/* LAPIC timer for preemption */
     tsc_timer_init();	/* Optimization for PM timer */
     pit_init();		/* Fallback position */
 
-    page_init(lower_kb, upper_kb);
+    page_init(lower_kb, upper_kb, sxi.e820_map, sxi.e820_nents);
     pci_init();
     part_init();
 
