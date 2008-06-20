@@ -5,7 +5,7 @@
 
 enum { enable_vesa = 0 };
 
-extern struct sysx_info sysx_info;
+struct sysx_info sysx_info;
 
 /*
  *  Enable A20:
@@ -107,8 +107,14 @@ set_video(void)
 void
 csetup(void)
 {
+    extern uint32_t cmd_line_ptr;
     enable_a20_fast();
     detect_memory_e801();
+    /* SYSLINUX copies the command line to somewhere in low memory
+     * and saves a pointer in the Linux setup header.  We copy the
+     * pointer over to our sysx_info.
+     */
+    sysx_info.cmdline = cmd_line_ptr;
     __asm volatile("movw $(0x0200 + '0'), %fs:(0x02)");
     set_video();
 }

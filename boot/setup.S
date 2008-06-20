@@ -74,6 +74,7 @@ heap_end_ptr:	.word	0		# (Header version 0x0201 or later)
 					# for local heap purposes.
 
 pad1:		.word	0
+.globl cmd_line_ptr
 cmd_line_ptr:	.long	0		# (Header version 0x0202 or later)
 					# If nonzero, a 32-bit pointer
 					# to the kernel command line.
@@ -91,15 +92,7 @@ cmd_line_ptr:	.long	0		# (Header version 0x0202 or later)
 
 ramdisk_max:	.long	0xffffffff
 
-# A sysx_info header that we will use to pass memory size and 
-# a command line pointer to init()
-.globl sysx_info
-sysx_info:
-memory_size:	.long	0
-cmd_line_addr:	.long	0
-		.long	0
-		.long	0
-		.long	0
+# End of Linux-style header.
 
 trampoline:
 		cli				# Disable interrupts
@@ -194,14 +187,6 @@ protcseg:
 		movw	%ax, %gs		# -> GS
 		movw	%ax, %ss		# -> SS: Stack Segment
 		movw	$(0x0300 + '5'), (0xb800c)
-
-		### initialize the sysx_info.cmdline for init()
-		movl	$cmd_line_addr, %eax	# SYSLINUX copies the command line
-		addl	%edi, %eax		# to somewhere in low memory and
-		movl	$cmd_line_ptr, %ebx	# saves a pointer in the Linux setup
-		addl	%edi, %ebx		# header.  So, we copy the pointer
-		movl	(%ebx), %ebx		# over to our sysx_info.
-		movl	%ebx, (%eax)
 
 		movl	0x100000, %edx
 		cmpl	$ELF_MAGIC_LE, %edx
