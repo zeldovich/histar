@@ -103,6 +103,16 @@ trampoline:
 		movw	%ax,%ds			# -> Data Segment
 		movw	%ax,%es			# -> Extra Segment
 		movw	%ax,%ss			# -> Stack Segment
+
+# Stack paranoia: align the stack and make sure it is good
+# for both 16- and 32-bit references.  In particular, if we
+# were meant to have been using the full 16-bit segment, the
+# caller might have set %sp to zero, which breaks %esp-based
+# references.
+		andw	$~3, %sp		# dword align (might as well...)
+		jnz	1f
+		movw	$0xfffc, %sp		# Make sure we're not zero
+1:		movzwl	%sp, %esp		# Clear upper half of %esp
 	
 ## Print a diagnostic message
 		movw	$0xb800, %ax
