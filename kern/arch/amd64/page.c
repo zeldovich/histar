@@ -87,13 +87,12 @@ e820_init(struct e820entry *map, uint8_t n)
     // Align to another page boundary.
     boot_alloc(0, PGSIZE);
 
-    struct e820entry *desc = map;
     for (uint8_t i = 0; i < n; i++) {
-        if (desc[i].type != E820_RAM)
+        if (map[i].type != E820_RAM)
             continue;
         
-        uint64_t s = ROUNDUP(desc[i].addr, PGSIZE);
-        uint64_t e = ROUNDDOWN(desc[i].addr + desc[i].size, PGSIZE);
+        uint64_t s = ROUNDUP(map[i].addr, PGSIZE);
+        uint64_t e = ROUNDDOWN(map[i].addr + map[i].size, PGSIZE);
 
 	int inuse;
 	for(; s < e; s += PGSIZE) {
