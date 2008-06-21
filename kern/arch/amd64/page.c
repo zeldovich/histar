@@ -60,8 +60,8 @@ e820_detect_memory(struct e820entry *desc, uint8_t n)
 	// kernel's bss segment - i.e. the first virtual address that the 
 	// linker did _not_ assign to any kernel code or variables.
         if (s < RELOC(end) && RELOC(end) < e) {
-	    boot_freemem = end;
-	    boot_endmem = (char *)(e + KERNBASE);
+	    boot_freemem = (char *)(RELOC(end) + PHYSBASE);
+	    boot_endmem = (char *)(e + PHYSBASE);
 	}
         
 	// global_npages counts from 0 to the last RAM page.
@@ -102,7 +102,7 @@ e820_init(struct e820entry *map, uint8_t n)
 	    if (s != 0 && s < IOPHYSMEM)
 		inuse = 0;
 	    
-	    if (s >= RELOC (boot_freemem))
+	    if (s >= (uint64_t)boot_freemem - PHYSBASE)
 		inuse = 0;
 
 	    if (!inuse)
