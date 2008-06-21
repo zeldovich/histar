@@ -9,7 +9,6 @@
 
 // These variables are set by i386_detect_memory()
 static physaddr_t maxpa_boot;	// Maximum physical address for boot_alloc
-static size_t basemem;		// Amount of base memory (in bytes)
 static uint64_t membytes;       // Maximum usuable bytes of the physical AS
 
 // These variables are set in i386_vm_init()
@@ -55,69 +54,6 @@ static int
 nvram_read(int r)
 {
     return mc146818_read (r) | (mc146818_read (r + 1) << 8);
-}
-
-static void
-i386_detect_memory(uint64_t lower_kb, uint64_t upper_kb)
-{
-    // Worse case, CMOS tells us how many kilobytes there are
-    if (!lower_kb)
-	lower_kb = nvram_read(NVRAM_BASELO);
-    if (!upper_kb)
-	upper_kb = nvram_read (NVRAM_EXTLO);
-
-    basemem = ROUNDDOWN(lower_kb * 1024, PGSIZE);
-    size_t extmem  = ROUNDDOWN(upper_kb * 1024, PGSIZE);
-
-    // Calculate the maxmium physical address based on whether
-    // or not there is any extended memory.  See comment in ../inc/mmu.h.
-    if (extmem)
-	maxpa_boot = EXTPHYSMEM + extmem;
-    else
-	maxpa_boot = basemem;
-
-    global_npages = maxpa_boot / PGSIZE;
-
-    cprintf("Physical memory: %dK available, ", (int) (maxpa_boot / 1024));
-    cprintf("base = %dK, extended = %dK\n", (int) (basemem / 1024),
-	    (int) (extmem / 1024));
-}
-
-static void
-i386_init(uint64_t lower_kb, uint64_t upper_kb)
-{
-    i386_detect_memory(lower_kb, upper_kb);
-
-    int inuse;
-
-    // Align boot_freemem to page boundary.
-    boot_alloc(0, PGSIZE);
-
-    // Allocate space for page status info.
-    uint64_t sz = global_npages * sizeof(*page_infos);
-    page_infos = boot_alloc(sz, PGSIZE);
-    memset(page_infos, 0, sz);
-
-    // Align to another page boundary.
-    boot_alloc(0, PGSIZE);
-
-    for (uint64_t i = 0; i < global_npages; i++) {
-	// Off-limits until proven otherwise.
-	inuse = 1;
-
-	// The bottom basemem bytes are free except page 0.
-	if (i != 0 && i < basemem / PGSIZE)
-	    inuse = 0;
-
-	// The IO hole and the kernel abut.
-
-	// The memory past the kernel is free.
-	if (i >= RELOC (boot_freemem) / PGSIZE)
-	    inuse = 0;
-
-	if (!inuse)
-	    page_free(pa2kva(i << PGSHIFT));
-    }
 }
 
 static void
@@ -193,12 +129,31 @@ e820_init(struct e820entry *map, uint8_t n)
 void
 page_init(uint64_t lower_kb, uint64_t upper_kb, struct e820entry *map, uint8_t n)
 {
+    struct e820entry fm[2];
+
     page_alloc_init();
 
-    if (map && n)
-	e820_init(map, n);
-    else
-	i386_init(lower_kb, upper_kb);
-
+    if (!map || !n) {
+	// Fake an e820 map
+	if (!lower_kb)
+	    lower_kb = nvram_read(NVRAM_BASELO);
+	if (!upper_kb)
+	    upper_kb = nvram_read (NVRAM_EXTLO);
+	
+	fm[0].addr = 0;
+	fm[0].size = ROUNDDOWN(lower_kb * 1024, PGSIZE);
+	fm[0].type = E820_RAM;
+	assert(fm[0].size <= IOPHYSMEM);
+	
+	fm[1].addr = EXTPHYSMEM;
+	fm[1].size = ROUNDDOWN(upper_kb * 1024, PGSIZE);
+	fm[1].type = E820_RAM;
+	
+	n = 2;
+	map = fm;
+    }
+	
+    e820_init(map, n);
+    
     page_stats.pages_used = 0;
 }
