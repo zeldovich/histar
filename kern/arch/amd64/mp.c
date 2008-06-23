@@ -113,8 +113,9 @@ arch_cpu(void)
 void
 mp_init(void)
 {
-    // default value
+    // default values
     ncpu = 1;
+    bcpu = &cpus[0];
 
     struct mp_fptr *fptr = mp_search();
     if (!fptr) {
