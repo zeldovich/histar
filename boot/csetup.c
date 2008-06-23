@@ -136,7 +136,7 @@ set_video(void)
     if (ax != 0x4f)
 	return;
 
-    uint32_t ds;
+    uint32_t ds = 0;
     __asm volatile("movw %%ds, %%ax" : "+a" (ds));
 
     sysx_info.vbe_control_info = (ds << 4) + (uint16_t) (uintptr_t) &vbe_control_info;
