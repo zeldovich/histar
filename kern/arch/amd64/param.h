@@ -6,6 +6,7 @@
 #define JOS_ARCH_BITS	64
 #define JOS_ARCH_ENDIAN	JOS_LITTLE_ENDIAN
 #define JOS_ARCH_RETADD	1
+#define JOS_NCPU	16
 
 #ifdef JOS_KERNEL
 #include <dev/picirq.h>

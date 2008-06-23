@@ -47,6 +47,11 @@ void irq_arch_enable(uint32_t irqno);
 void karch_fp_init(struct Fpregs *fpreg);
 
 /*
+ * Multiprocessor
+ */
+uint32_t arch_cpu(void);
+
+/*
  * Page map manipulation
  */
 struct Pagemap;

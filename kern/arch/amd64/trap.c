@@ -292,7 +292,7 @@ thread_arch_idle(void)
 {
     trap_thread_set(0);
     trap_user_iret_tsc = read_tsc();
-    thread_arch_idle_asm();
+    thread_arch_idle_asm(KSTACKTOP(arch_cpu()));
 }
 
 int

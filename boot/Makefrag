@@ -54,6 +54,11 @@ $(OBJDIR)/boot/bbootsect: $(BBS_OBJS)
 	$(OBJCOPY) -S -O binary $@.out $@	
 	perl boot/pad.pl $@ 512
 
+# Build the bootstrap code for mp systems
+$(OBJDIR)/boot/bootother: $(OBJDIR)/boot/bootother.o
+	$(LD) -melf_i386 -N -e start -Ttext 0x7000 -o $(OBJDIR)/boot/bootother.out $<
+	$(OBJCOPY) -S -O binary $(OBJDIR)/boot/bootother.out $@
+
 # For Linux setup code, link at 0x0, but load address is irrelevant
 $(OBJDIR)/boot/bsetup: $(SETUP_OBJS)
 	$(LD) -melf_i386 -N -e start -o $@.out -Ttext 0x0 $^

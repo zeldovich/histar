@@ -31,6 +31,11 @@ struct sysx_info {
     uint8_t e820_nents;
 } __attribute__ ((packed));
 
+/* Physical address to load the bootstrap code for application processors
+ * See boot/Makefrag and boot/bootother.S.
+ */
+#define APBOOTSTRAP 0x7000
+
 #endif
 
 #endif

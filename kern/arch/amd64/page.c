@@ -114,7 +114,7 @@ e820_init(struct e820entry *map, uint8_t n)
 	    // Off-limits until proven otherwise.
 	    inuse = 1;
 
-	    if (s != 0 && s < IOPHYSMEM)
+	    if (s != 0 && s != APBOOTSTRAP && s < IOPHYSMEM)
 		inuse = 0;
 	    
 	    if (s >= (uint64_t)boot_freemem - PHYSBASE)

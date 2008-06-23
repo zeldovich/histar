@@ -21,7 +21,8 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/acpimach.c			\
 	$(ARCHDIR)/reboot.c			\
 	$(ARCHDIR)/tsctimer.c			\
-	$(ARCHDIR)/arch-x86.c
+	$(ARCHDIR)/arch-x86.c			\
+	$(ARCHDIR)/mp.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/strlen.S			\
@@ -55,7 +56,11 @@ KERN_DEV :=					\
 	kern/dev/hpet.c				\
 	kern/dev/vesafb.c
 
-$(OBJDIR)/kern/kernel.%.debuginfo:
+$(OBJDIR)/kern/embed_bootother.o: $(OBJDIR)/boot/bootother
+	@mkdir -p $(@D)
+	cd $(OBJDIR) && $(OBJCOPY) -I binary -O $(OBJTYPE) -B $(BFDARCH) `echo $< | sed -e 's,[^/]*/,,'` ../$@
+
+$(OBJDIR)/kern/kernel.%.debuginfo: $(OBJDIR)/kern/embed_bootother.o
 	$(LD) -o $@ $(KERN_LDFLAGS) $^ $(GCC_LIB)
 
 all: $(OBJDIR)/boot/bochs.img $(OBJDIR)/fs/fs.img $(OBJDIR)/boot/bimage.base

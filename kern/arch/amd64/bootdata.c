@@ -1,4 +1,4 @@
-
+#include <machine/param.h>
 #include <machine/pmap.h>
 
 /*
@@ -10,17 +10,21 @@
 #define KPDE_BITS (KPDEP_BITS|PTE_PS|PTE_G)
 #define KPTE_BITS (KPDEP_BITS|PTE_G)
 
-#define DO_8(_start, _macro)				\
-  _macro (((_start) + 0)) _macro (((_start) + 1))	\
-  _macro (((_start) + 2)) _macro (((_start) + 3))	\
-  _macro (((_start) + 4)) _macro (((_start) + 5))	\
-  _macro (((_start) + 6)) _macro (((_start) + 7))
+#define DO_2(_start, _macro)					\
+  _macro (((_start) + 0)) _macro (((_start) + 1))
+
+#define DO_4(_start, _macro)					\
+  DO_2 ((_start) + 0, _macro) DO_2 ((_start) + 2, _macro)
+
+#define DO_8(_start, _macro)					\
+  DO_4 ((_start) + 0, _macro) DO_4 ((_start) + 4, _macro)
+
+#define DO_16(_start, _macro)					\
+  DO_8 ((_start) + 0, _macro) DO_8 ((_start) + 8, _macro)
 
 #define DO_64(_start, _macro)					\
-  DO_8 ((_start) + 0, _macro) DO_8 ((_start) + 8, _macro)	\
-  DO_8 ((_start) + 16, _macro) DO_8 ((_start) + 24, _macro)	\
-  DO_8 ((_start) + 32, _macro) DO_8 ((_start) + 40, _macro)	\
-  DO_8 ((_start) + 48, _macro) DO_8 ((_start) + 56, _macro)
+  DO_16 ((_start) + 0, _macro) DO_16 ((_start) + 16, _macro)	\
+  DO_16 ((_start) + 32, _macro) DO_16 ((_start) + 48, _macro)
 
 #define DO_512(_start, _macro)					\
   DO_64 ((_start) + 0, _macro) DO_64 ((_start) + 64, _macro)	\
@@ -30,14 +34,32 @@
 
 #define TRANS2MEG(n) (0x200000UL * (n) | KPDE_BITS), 
 
+#if JOS_NCPU == 1
+#define DO_NCPU(_macro) _macro((0))
+#elif JOS_NCPU == 2
+#define DO_NCPU(_macro) DO_2(0, _macro)
+#elif JOS_NCPU == 4
+#define DO_NCPU(_macro) DO_4(0, _macro)
+#elif JOS_NCPU == 16
+#define DO_NCPU(_macro) DO_16(0, _macro)
+#else
+#error unknown JOS_NCPU
+#endif    
+
 /* Page directory bootpds mapping the kernel stack (one page under KERNBASE) */
-char kstack[2 * PGSIZE] __attribute__ ((aligned (4096), section (".data")));
+static char kstack[JOS_NCPU][2 * PGSIZE] 
+       __attribute__ ((aligned (4096), section (".data")));
+
+#define KSTACK_MAPPING(cpu)						\
+    [509 - ((cpu) * 3)] = RELOC (&kstack[cpu][0 * PGSIZE]) + KPTE_BITS, \
+    [510 - ((cpu) * 3)]	= RELOC (&kstack[cpu][1 * PGSIZE]) + KPTE_BITS,
+
 struct Pagemap bootpts PTATTR = {
   .pm_ent = {
-    [509] = RELOC (&kstack[0 * PGSIZE]) + KPTE_BITS,
-    [510] = RELOC (&kstack[1 * PGSIZE]) + KPTE_BITS,
+      DO_NCPU(KSTACK_MAPPING)
   }
 };
+
 struct Pagemap bootpds PTATTR = {
   .pm_ent = {
     [511] = RELOC (&bootpts) + KPDEP_BITS, /* sic - KPDE_BITS has PS, G */
@@ -82,22 +104,34 @@ struct Pagemap bootpml4 PTATTR = {
 /*
  * Boot segments
  */
-struct Tss tss = {
-  .tss_rsp = { KSTACKTOP, KERNBASE, KERNBASE },
-  .tss_iomb = offsetof (struct Tss, tss_iopb),
+#define TSS_INIT(cpu)					\
+  { .tss_rsp = { KSTACKTOP(cpu), KERNBASE, KERNBASE },	\
+    .tss_iomb = offsetof (struct Tss, tss_iopb),	\
+  },
+    
+struct Tss tss[JOS_NCPU] = {
+  DO_NCPU(TSS_INIT)
 };
 
-uint64_t gdt[] = {
-  [GD_KT  >> 3] = SEG64 (SEG_X|SEG_R, 0),
-  [GD_TSS >> 3]	= 0, 0,
-  [GD_UD  >> 3] = SEG64 (SEG_W, 3),
-  [GD_UT_NMASK >> 3] = SEG64 (SEG_X|SEG_R, 3),
-  [GD_UT_MASK  >> 3] = SEG64 (SEG_X|SEG_R, 3),
+#define GDT_INIT(cpu)					\
+  { [GD_KT  >> 3] = SEG64 (SEG_X|SEG_R, 0),		\
+    [GD_TSS >> 3]	= 0, 0,				\
+    [GD_UD  >> 3] = SEG64 (SEG_W, 3),			\
+    [GD_UT_NMASK >> 3] = SEG64 (SEG_X|SEG_R, 3),	\
+    [GD_UT_MASK  >> 3] = SEG64 (SEG_X|SEG_R, 3),	\
+  },
+
+uint64_t gdt[JOS_NCPU][7] = {
+  DO_NCPU(GDT_INIT)
 };
 
-struct Pseudodesc gdtdesc = {
-  .pd_lim = sizeof (gdt) - 1,
-  .pd_base = RELOC (&gdt)
+#define GDTDESC_INIT(cpu)				\
+  { .pd_lim = sizeof (gdt[(cpu)]) - 1,			\
+    .pd_base = RELOC (&gdt[(cpu)])			\
+  },
+
+struct Pseudodesc gdtdesc[JOS_NCPU] = {
+  DO_NCPU(GDTDESC_INIT)
 };
 
 struct Gatedesc idt[0x100];

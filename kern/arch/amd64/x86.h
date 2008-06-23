@@ -17,6 +17,7 @@ X86_INST_ATTR void write_rflags(uint64_t eflags);
 X86_INST_ATTR uint64_t read_rbp(void);
 X86_INST_ATTR uint64_t read_rsp(void);
 X86_INST_ATTR uint64_t read_tscp(uint32_t *auxp);
+X86_INST_ATTR void mfence(void);
 
 void
 lcr0(uint64_t val)
@@ -105,6 +106,12 @@ read_tscp(uint32_t *auxp)
 	__asm __volatile("rdtscp" : "=a" (a), "=d" (d), "=c" (c));
 	*auxp = c;
 	return ((uint64_t) a) | (((uint64_t) d) << 32);
+}
+
+void
+mfence(void)
+{
+        __asm __volatile("mfence");
 }
 
 #define READ_DR(n)						\

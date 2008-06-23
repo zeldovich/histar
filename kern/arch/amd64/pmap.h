@@ -6,6 +6,7 @@
 #include <machine/memlayout.h>
 #include <machine/boot.h>
 #ifndef __ASSEMBLER__
+#include <machine/param.h>
 #include <kern/lib.h>
 #include <inc/intmacro.h>
 #endif /* !__ASSEMBLER__ */
@@ -22,9 +23,9 @@
 #if !defined(__ASSEMBLER__) && defined(JOS_KERNEL)
 extern struct Pagemap bootpml4;
 
-extern struct Tss tss;
-extern uint64_t gdt[];
-extern struct Pseudodesc gdtdesc;
+extern struct Tss tss[JOS_NCPU];
+extern uint64_t gdt[JOS_NCPU][7];
+extern struct Pseudodesc gdtdesc[JOS_NCPU];
 extern struct Gatedesc idt[0x100];
 extern struct Pseudodesc idtdesc;
 

@@ -5,9 +5,19 @@
  * Boot sequence
  */
 	.text
-.globl	start
+.globl	start_ap
+start_ap:  .code32
+	movw	$(0x0800 + 'B'), (0xb8004)
+	movl	$(RELOC (farptr_ap)),%edi
+	jmp	start_common
+	
+.globl	start	
 start:	.code32
 	movw	$(0x0400 + '7'), (0xb8010)
+	movl	$(RELOC (farptr)),%edi
+	jmp	start_common	
+		
+start_common:	.code32
 	movl	%eax,%ebp			// Save multiboot magic
 
 	movl	%cr4,%eax			// Enable PAE
@@ -22,20 +32,19 @@ start:	.code32
 	orl	$(EFER_LME|EFER_NXE),%eax
 	wrmsr
 
-	movl	$RELOC(PD_SKIP + gdtdesc),%eax	// Load GDT
+	movl	$RELOC(bgdtdesc),%eax	// Load GDT
 	lgdt	(%eax)
 
-	movl	$(RELOC (farptr)),%ecx		// Far porter to inlong
 	movl	%cr0,%eax			// Enable paging
 	orl	$(CR0_PE|CR0_PG|CR0_WP|CR0_AM|CR0_TS|CR0_MP|CR0_NE),%eax
 	movl	%eax,%cr0
 	movw	$(0x0400 + '8'), (0xb8012)
 
-	ljmp	*(%ecx)
+	ljmp	*(%edi)
 
 inlong:	.code64
 	movw	$(0x0500 + '9'), (0xb8014)
-	movabsq	$(KSTACKTOP),%rsp		// set %rsp to top of stack
+	movabsq	$(KSTACKTOP(0)),%rsp		// set %rsp to top of stack
 	movl	%ebp,%edi			// restore & pass multiboot magic
 	movl	%ebx,%esi			// pass multiboot pointer
 	xorq	%rbp,%rbp			// clear frame pointer
@@ -43,14 +52,35 @@ inlong:	.code64
 	call	*%r11
 1:	jmp	1b				// shouldn't get here
 
-farptr: .long	RELOC(inlong)
+farptr: 
+	.long	RELOC(inlong)
 	.word	GD_KT
 
+inlong_ap:
+	movw	$(0x0B00 + 'E'), (0xb800A)
+	movq	ap_stacktop,%rsp		// set %rsp to top of stack
+	xorq	%rbp,%rbp			// clear frame pointer
+	movq	$init_ap,%r11			// call init function
+	call	*%r11
+
+farptr_ap: 
+	.long	RELOC(inlong_ap)
+	.word	GD_KT
+
+.align 8
+bgdt:
+	.quad 0				// null segment
+	.quad SEG64(SEG_X|SEG_R, 0)	// Code segment
+
+.align 16
+	.quad				// garbage
+bgdtdesc:
+	.word	15			// sizeof(gdt) - 1
+	.quad RELOC(bgdt)		// address gdt
 
 /*
  * Trap handlers
  */
-
 
 // These trap entry stubs must fit within 16 bytes of code
 .globl	trap_noec_entry_stub
@@ -115,7 +145,7 @@ trapframe_pop:
 
 .globl	thread_arch_idle_asm
 thread_arch_idle_asm:
-	movabsq	$(KSTACKTOP), %rsp
+	movq	%rdi,%rsp
 	sti
 1:	jmp 1b
 

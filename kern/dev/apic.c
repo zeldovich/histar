@@ -1,7 +1,9 @@
 #include <machine/x86.h>
+#include <machine/mp.h>
 #include <dev/apic.h>
 #include <dev/apicreg.h>
 #include <dev/picirq.h>
+#include <dev/nvram.h>
 #include <kern/timer.h>
 #include <kern/intr.h>
 #include <kern/sched.h>
@@ -25,17 +27,69 @@ apic_write(uint32_t off, uint32_t val)
     *(volatile uint32_t *) (pa2kva(LAPIC_BASE) + off) = val;
 }
 
+static void
+apic_icr_wait()
+{
+    for (uint32_t i = 0; i < (1 << 16); i++)
+	if (!(apic_read(LAPIC_ICRLO) & LAPIC_DLSTAT_BUSY))
+	    return;
+
+    cprintf("apic_icr_wait: timeout\n");
+}
+
 void
 apic_send_ipi(uint32_t target, uint32_t vector)
 {
     apic_write(LAPIC_ICRHI, target << LAPIC_ID_SHIFT);
     apic_write(LAPIC_ICRLO, LAPIC_DLMODE_FIXED | vector);
+    apic_icr_wait();
+}
 
-    for (uint32_t i = 0; i < (1 << 16); i++)
-	if (!(apic_read(LAPIC_ICRLO) & LAPIC_DLSTAT_BUSY))
-	    return;
+static int
+ipi_init(uint32_t apicid)
+{
+    // Intel MultiProcessor spec. section B.4.1
+    apic_write(LAPIC_ICRHI, apicid << LAPIC_ID_SHIFT);
+    apic_write(LAPIC_ICRLO, apicid | LAPIC_DLMODE_INIT | LAPIC_LVL_TRIG |
+	       LAPIC_LVL_ASSERT);
+    apic_icr_wait();
+    timer_delay(10 * 1000000);	// 10ms
 
-    cprintf("apic_send_ipi: timeout\n");
+    apic_write(LAPIC_ICRLO, apicid | LAPIC_DLMODE_INIT | LAPIC_LVL_TRIG |
+	       LAPIC_LVL_DEASSERT);
+    apic_icr_wait();
+
+    return (apic_read(LAPIC_ICRLO) & LAPIC_DLSTAT_BUSY) ? -1 : 0;
+}
+
+void
+apic_start_ap(uint32_t apicid, physaddr_t pa)
+{
+    // Universal Start-up Algorithm from Intel MultiProcessor spec
+    int r;
+    uint16_t *dwordptr;
+
+    // "The BSP must initialize CMOS shutdown code to 0Ah ..."
+    outb(IO_RTC, NVRAM_RESET);
+    outb(IO_RTC + 1, NVRAM_RESET_JUMP);
+
+    // "and the warm reset vector (DWORD based at 40:67) to point
+    // to the AP startup code ..."
+    dwordptr = pa2kva(0x467);
+    dwordptr[0] = 0;
+    dwordptr[1] = pa >> 4;
+
+    // ... prior to executing the following sequence:"
+    if ((r = ipi_init(apicid)) < 0)
+	panic("unable to send init");
+    timer_delay(10 * 1000000);	// 10ms
+
+    for (uint32_t i = 0; i < 2; i++) {
+	apic_icr_wait();
+	apic_write(LAPIC_ICRHI, apicid << LAPIC_ID_SHIFT);
+	apic_write(LAPIC_ICRLO, LAPIC_DLMODE_STARTUP | (pa >> 12));
+	timer_delay(200 * 1000);	// 200us
+    }
 }
 
 static void
@@ -70,8 +124,27 @@ apic_init(void)
     cprintf("APIC: version %d, %d LVTs, APIC ID %d\n", vers, maxlvt, id);
 
     apic_write(LAPIC_SVR, LAPIC_SVR_FDIS | LAPIC_SVR_ENABLE | APIC_SPURIOUS);
-    apic_write(LAPIC_LVINT0, LAPIC_DLMODE_EXTINT);
-    apic_write(LAPIC_LVINT1, LAPIC_DLMODE_NMI);
+
+    if (&cpus[arch_cpu()] == bcpu) {
+	apic_write(LAPIC_LVINT0, LAPIC_DLMODE_EXTINT);
+	apic_write(LAPIC_LVINT1, LAPIC_DLMODE_NMI);
+    } else {
+	apic_write(LAPIC_LVINT0, LAPIC_DLMODE_EXTINT | LAPIC_LVT_MASKED);
+	apic_write(LAPIC_LVINT1, LAPIC_DLMODE_NMI | LAPIC_LVT_MASKED);
+    }
+
+    if (((v >> LAPIC_VERSION_LVT_SHIFT) & 0x0FF) >= 4)
+	apic_write(LAPIC_PCINT, LAPIC_LVT_MASKED);
+
+    // Clear error status register (requires back-to-back writes).
+    apic_write(LAPIC_ESR, 0);
+    apic_write(LAPIC_ESR, 0);
+
+    // Send an Init Level De-Assert to synchronise arbitration ID's.
+    apic_write(LAPIC_ICRHI, 0);
+    apic_write(LAPIC_ICRLO, LAPIC_DEST_ALLINCL | LAPIC_DLMODE_INIT |
+	       LAPIC_LVL_TRIG | LAPIC_LVL_DEASSERT);
+    while (apic_read(LAPIC_ICRLO) & LAPIC_DLSTAT_BUSY) ;
 
     // Enable APIC timer for preemption.
     if (the_timesrc && !the_schedtmr) {
@@ -97,4 +170,10 @@ apic_init(void)
 
 	cprintf("LAPIC: %"PRIu64" Hz\n", ap->freq_hz);
     }
+
+    // Ack any outstanding interrupts.
+    apic_write(LAPIC_EOI, 0);
+
+    // Enable interrupts on the APIC (but not on the processor).
+    apic_write(LAPIC_TPRI, 0);
 }
