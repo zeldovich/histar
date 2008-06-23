@@ -38,12 +38,11 @@ pa2kva(physaddr_t pa)
 physaddr_t
 kva2pa(void *kva)
 {
+    extern char end[];
     physaddr_t va = (physaddr_t) kva;
-    uint64_t kernbase_limit =
-	JMIN(global_npages << PGSHIFT, UINT64(0x7FFFFFFF));
-    if (va >= KERNBASE && va < KERNBASE + kernbase_limit)
+    if (va >= KERNBASE && va < (uint64_t)end)
 	return va - KERNBASE;
-    if (va >= PHYSBASE && va < PHYSBASE + (global_npages << PGSHIFT))
+    if (va >= PHYSBASE && va < PHYSBASE + pa_limit)
 	return va - PHYSBASE;
     panic("kva2pa called with invalid kva %p", kva);
 }

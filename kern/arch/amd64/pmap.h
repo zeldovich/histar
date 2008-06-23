@@ -43,6 +43,9 @@ void page_init(uint64_t lower_kb, uint64_t upper_kb,
 	       struct e820entry *map, uint8_t n);
 void pmap_set_current_arch(struct Pagemap *pm);
 
+/* page.c */
+extern uint64_t pa_limit;
+
 #endif /* !__ASSEMBLER__ && JOS_KERNEL */
 
 #endif /* !JOS_MACHINE_PMAP_H */

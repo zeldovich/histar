@@ -7,6 +7,9 @@
 #include <inc/error.h>
 #include <inc/queue.h>
 
+// Limit of physical address space
+uint64_t pa_limit = UINT64(0x100000000);		
+
 static uint64_t membytes;       // Maximum usuable bytes of the physical AS
 static char *boot_freemem;	// Pointer to next byte of free mem
 static char *boot_endmem;	// Pointer to first unusable byte
@@ -47,6 +50,9 @@ e820_detect_memory(struct e820entry *desc, uint8_t n)
 {
     extern char end[];
     for (uint8_t i = 0; i < n; i++) {
+	if (desc[i].addr + desc[i].size > pa_limit)
+	    pa_limit = desc[i].addr + desc[i].size;
+
         if (desc[i].type != E820_RAM)
             continue;
         
@@ -78,13 +84,12 @@ e820_init(struct e820entry *map, uint8_t n)
 
     // bootdata.c only maps the first 4 GBs.  Page mappings need to be added
     // to bootpdplo if the physical address space is larger than 4 GBs.
-    uint64_t maxpa = global_npages << PGSHIFT;
-    if (maxpa > UINT64(0x100000000)) {
+    if (pa_limit > UINT64(0x100000000)) {
 	extern struct Pagemap bootpdplo;
-	uint64_t gp = ROUNDUP(maxpa, UINT64(0x40000000)) / 0x40000000;
+	uint64_t gp = ROUNDUP(pa_limit, 0x40000000) / 0x40000000;
 	for (uint64_t i = 4; i < gp; i++)
 	    bootpdplo.pm_ent[i] = (i * 0x40000000) + (PTE_P|PTE_W|PTE_PS|PTE_G);
-    }   
+    }
 
     // Align boot_freemem to page boundary.
     boot_alloc(0, PGSIZE);
