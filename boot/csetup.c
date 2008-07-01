@@ -147,6 +147,13 @@ set_video(void)
 void
 csetup(void)
 {
+    /*
+     * Need to zero out sysx_info ourselves, since the compiler places
+     * it in .bss, but no code exists to zero that out at runtime..
+     */
+    for (uint16_t i = 0; i < sizeof(sysx_info); i++)
+	((uint8_t *) &sysx_info)[i] = 0;
+
     extern uint32_t cmd_line_ptr;
     enable_a20_fast();
     detect_memory_e820();
