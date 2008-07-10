@@ -145,7 +145,22 @@ container_slot_addref(struct Container *c, struct container_slot *cs,
     }
 
     cs->cs_ref++;
-    container_modify_tickets(c, ko->ko_id, 1024);
+    int r = container_modify_tickets(c, ko->ko_id, 1024);
+    if (r < 0)
+        cprintf("container_slot_addref: failed to modify object tickets\n");
+
+    // TODO Make this deal with "running" containers later to deal with
+    // container_move
+    const struct kobject *kobj;
+    if (ko->ko_type == kobj_thread) {
+        r = kobject_get(cs->cs_id, &kobj, kobj_thread, iflow_none);
+        if (r < 0)
+            cprintf("container_slot_addref: failed to find thread\n");
+        if (SAFE_EQUAL(kobj->th.th_status, thread_runnable)) {
+            container_join(c, ko->ko_id);
+        }
+    }
+
     return 0;
 }
 
@@ -155,7 +170,6 @@ container_slot_decref(struct Container *c, struct container_slot *cs,
 {
     if (cs->cs_ref == 1) {
         if (ko->ko_type == kobj_thread || ko->ko_type == kobj_container) {
-            cprintf("container_slot_decref: ref count going to 0 so leaving %"PRIu64" from %"PRIu64"\n", c->ct_ko.ko_id, ko->ko_id);
             container_leave(c, ko->ko_id);
         }
     }
@@ -228,7 +242,6 @@ container_nslots(const struct Container *c)
 int
 container_gc(struct Container *c)
 {
-    //cprintf("container_gc: %"PRIu64"\n", c->ct_ko.ko_id);
     uint64_t nslots = container_nslots(c);
     for (uint64_t i = 0; i < nslots; i++) {
 	struct container_slot *cs;
@@ -359,16 +372,10 @@ container_join(struct Container *ct, uint64_t kobj_id)
     struct container_slot *cs;
     const struct Container *temp;
 
-    //cprintf("container_join: id %"PRIu64"\n", kobj_id);
 recurse:
-    if (ct->ct_ko.ko_id == 69074555862865520L)
-        cprintf ("NOTE: JOIN IN 5520\n");
-    //cprintf("container_join: recurse id %"PRIu64" ct %"PRIu64" running %"PRIu64"\n", kobj_id, ct->ct_ko.ko_id, ct->ct_runnable);
     r = container_slot_find(ct, kobj_id, &cs, page_shared_ro);
-    if (r < 0) {
-        cprintf("container_join: %"PRIu64" not in this container\n", kobj_id);
+    if (r < 0)
         return;
-    }
 
     // this is for the case the same thread is in a container twice
     // this will keep from double counting it and hence nothing propagates
@@ -384,7 +391,6 @@ recurse:
     cs->cs_sched_pass = ct->ct_global_pass + cs->cs_sched_remain;
     ct->ct_global_tickets += cs->cs_sched_tickets;
 
-    //cprintf("container_join: after adj ct run %"PRIu64" is_root %d\n", ct->ct_runnable, ct->ct_ko.ko_id == user_root_ct);
     // if the ct was already runnable or are at the root we are all done
     if (ct->ct_runnable > 1 || ct->ct_ko.ko_id == user_root_ct ||
         !ct->ct_ko.ko_ref)
@@ -408,16 +414,10 @@ container_leave(struct Container *ct, uint64_t kobj_id)
     struct container_slot *cs;
     const struct Container *temp;
 
-    //cprintf("container_leave: id %"PRIu64"\n", kobj_id);
 recurse:
-    if (ct->ct_ko.ko_id == 69074555862865520L)
-        cprintf ("NOTE: LEAVE IN 5520\n");
-    //cprintf("container_leave: recurse id %"PRIu64" ct %"PRIu64" running %"PRIu64"\n", kobj_id, ct->ct_ko.ko_id, ct->ct_runnable);
     r = container_slot_find(ct, kobj_id, &cs, page_shared_ro);
-    if (r < 0) {
-        cprintf("container_leave: %"PRIu64" not in this container\n", kobj_id);
+    if (r < 0)
         return;
-    }
 
     // this is for the case the same thread is in a container twice
     // this will keep from double counting it and hence nothing propagates
@@ -433,7 +433,6 @@ recurse:
     cs->cs_sched_remain = cs->cs_sched_pass - ct->ct_global_pass;
     ct->ct_global_tickets -= cs->cs_sched_tickets;
 
-    //cprintf("container_leave: after adj ct run %"PRIu64" is_root %d\n", ct->ct_runnable, ct->ct_ko.ko_id == user_root_ct);
     // if ct remains runnable or we are at the root we are all done
     // or if this container has no refs (i.e. no valid parent)
     if (ct->ct_runnable > 0 || ct->ct_ko.ko_id == user_root_ct ||
@@ -461,12 +460,10 @@ container_schedule(const struct Container *ct)
     if (ct->ct_runnable == 0) {
         cur_ct = 0;
         cur_thread = 0;
-        panic("Root container not schedulable");
         return -1;
     }
 
 recurse:
-    //cprintf("--> %"PRIu64" ", ct->ct_ko.ko_id);
     // find the min scheduleable obj in this ct
     slots = container_nslots(ct);
     min_pass_cs = 0;
@@ -482,7 +479,6 @@ recurse:
     }
     // if none, then we don't run anything
     if (!min_pass_cs) {
-        cprintf("container_schedule: no running object found in %"PRIu64" with runnable count %"PRIu64"\n", ct->ct_ko.ko_id, ct->ct_runnable);
         cur_ct = 0;
         cur_thread = 0;
         panic("No runnable thread in indicated path");
@@ -502,26 +498,11 @@ recurse:
         cur_ct = ct;
         cur_thread = &kobj->th;
         if (!SAFE_EQUAL(cur_thread->th_status, thread_runnable)) {
-            cprintf("Selected a non-runnable thread: %"PRIu64" cs_runnable %"PRIu64" cs_sched_tickets %"PRIu64"\n", kobj->hdr.ko_id, min_pass_cs->cs_runnable, min_pass_cs->cs_sched_tickets);
+            panic("Selected a non-runnable thread: %"PRIu64"\n",
+                  kobj->hdr.ko_id);
         }
-        //cprintf("Running %"PRIu64" %s\n", kobj->hdr.ko_id, kobj->hdr.ko_name);
-        //cprintf("From ct %"PRIu64" with run %"PRIu64" tickets %"PRIu64"\n",
-         //       cur_ct->ct_ko.ko_id, cur_ct->ct_runnable,
-         //       min_pass_cs->cs_sched_tickets);
         return 0;
     } else if (kobj->hdr.ko_type == kobj_container) {
-        if (kobj->hdr.ko_id == ct->ct_ko.ko_id) {
-            cprintf("= Bad Container %"PRIu64" Contents =\n", kobj->hdr.ko_id);
-            slots = container_nslots(ct);
-            for (slot = 0; slot < slots; slot++) {
-                r = container_slot_get(ct, slot, &cs, page_shared_ro);
-                if (r < 0)
-                    continue;
-                cprintf("id %"PRIu64" runnable %"PRIu64" tickets %"PRIu64" pass %"PRIx64"%"PRIx64"\n", cs->cs_id, cs->cs_runnable, cs->cs_sched_tickets, (uint64_t) (cs->cs_sched_pass >> 64), (uint64_t) cs->cs_sched_pass);
-            }
-            panic("container_schedule: container %"PRIu64" tried to "
-                  "schedule itself\n", kobj->hdr.ko_id);
-        }
         ct = &kobj->ct;
         goto recurse;
     } else {
@@ -547,9 +528,8 @@ sched_stop(uint64_t elapsed)
 recurse:
     // find the slot for this thread/container
     r = container_slot_find(ct, kobj_id, &cs, page_excl_dirty);
-    if (r < 0)
-        cprintf("sched_stop: couldn't find slot for a ct/cs pair\n");
-    else {
+    if (r < 0) {
+    } else {
         // update it's pass
         uint64_t tickets = cs->cs_sched_tickets ? : 1;
         uint128_t cs_stride = stride1 / tickets;
@@ -563,10 +543,8 @@ recurse:
     if (kobj_id == user_root_ct)
         return;
     r = container_find(&ct, ct->ct_ko.ko_parent, iflow_none);
-    if (r < 0) {
-        cprintf("sched_stop: couldn't find a parent ct updating passes\n");
+    if (r < 0)
         return;
-    }
 
     goto recurse;
 }
