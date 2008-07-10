@@ -74,7 +74,7 @@ thread_sched_join(struct Thread *t)
         if (r < 0)
             continue;
 
-        container_join(&kobject_dirty(&temp->ct_ko)->ct, t->th_ko.hdr.ko_id);
+        container_join(&kobject_dirty(&ct->ct_ko)->ct, t->th_ko.ko_id);
     }
 }
 
@@ -93,7 +93,7 @@ thread_sched_leave(struct Thread *t)
         if (r < 0)
             continue;
 
-        container_leave(&kobject_dirty(&temp->ct_ko)->ct, t->th_ko.hdr.ko_id);
+        container_leave(&kobject_dirty(&ct->ct_ko)->ct, t->th_ko.ko_id);
     }
 }
 
@@ -101,12 +101,12 @@ static void
 thread_sched_adjust(struct Thread *t, int runnable)
 {
     if (t->th_sched_joined && !runnable) {
-	sched_leave(t);
+	thread_sched_leave(t);
 	t->th_sched_joined = 0;
     }
 
     if (!t->th_sched_joined && runnable) {
-	sched_join(t);
+	thread_sched_join(t);
 	t->th_sched_joined = 1;
     }
 }
@@ -161,7 +161,6 @@ thread_alloc(const struct Label *tracking,
 	return r;
 
     struct Thread *t = &ko->th;
-    t->th_sched_tickets = 1024;
     t->th_status = thread_not_started;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
 
@@ -200,7 +199,8 @@ thread_swapin(struct Thread *t)
      * negative, with an absolute value greater than global_pass.
      * So, on sched_join(), the thread's pass will underflow.
      */
-    t->th_sched_remain = 0;
+    // TODO: What should we do here?
+    // t->th_sched_remain = 0;
 
     if (SAFE_EQUAL(t->th_status, thread_suspended))
 	t->th_status = thread_runnable;

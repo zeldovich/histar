@@ -87,4 +87,7 @@ void    container_pass_update(struct Container *ct, uint128_t new_global_pass);
 
 void    sched_stop(uint64_t elapsed);
 
+int     container_modify_tickets(struct Container *ct, uint64_t kobj_id,
+                         int64_t delta);
+
 #endif
