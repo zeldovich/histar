@@ -554,29 +554,41 @@ int
 thread_utrap(const struct Thread *const_t,
 	     uint32_t src, uint32_t num, uint64_t arg)
 {
+    cprintf("thread_utrap: line %d\n", __LINE__);
     if (!SAFE_EQUAL(const_t->th_status, thread_runnable) &&
 	!SAFE_EQUAL(const_t->th_status, thread_suspended))
 	return -E_INVAL;
+    cprintf("thread_utrap: line %d\n", __LINE__);
 
     if (thread_arch_is_masked(const_t))
 	return -E_BUSY;
+    cprintf("thread_utrap: line %d\n", __LINE__);
 
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
+    cprintf("thread_utrap: line %d\n", __LINE__);
     int r = thread_load_as(t);
+    cprintf("thread_utrap: line %d\n", __LINE__);
     if (r < 0)
 	return r;
+    cprintf("thread_utrap: line %d\n", __LINE__);
 
     // Switch the current thread to the trap target thread, temporarily,
     // to ensure its privileges & thread-local segment are used.
     const struct Thread *saved_t = cur_thread;
     thread_switch(t);
+    cprintf("thread_utrap: line %d\n", __LINE__);
 
     r = thread_arch_utrap(t, src, num, arg);
-    if (r >= 0)
+    cprintf("thread_utrap: line %d\n", __LINE__);
+    if (r >= 0) {
+    cprintf("thread_utrap: line %d\n", __LINE__);
 	thread_set_runnable(t);
+    cprintf("thread_utrap: line %d\n", __LINE__);
+    }
 
     // Switch back
     thread_switch(saved_t);
+    cprintf("thread_utrap: line %d\n", __LINE__);
     return r;
 }
 

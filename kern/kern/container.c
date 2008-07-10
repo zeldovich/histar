@@ -361,6 +361,8 @@ container_join(struct Container *ct, uint64_t kobj_id)
 
     cprintf("container_join: id %"PRIu64"\n", kobj_id);
 recurse:
+    if (ct->ct_ko.ko_id == 69074555862865520L)
+        cprintf ("NOTE: JOIN IN 5520\n");
     cprintf("container_join: recurse id %"PRIu64" ct %"PRIu64" running %"PRIu64"\n", kobj_id, ct->ct_ko.ko_id, ct->ct_runnable);
     r = container_slot_find(ct, kobj_id, &cs, page_shared_ro);
     if (r < 0) {
@@ -408,6 +410,8 @@ container_leave(struct Container *ct, uint64_t kobj_id)
 
     cprintf("container_leave: id %"PRIu64"\n", kobj_id);
 recurse:
+    if (ct->ct_ko.ko_id == 69074555862865520L)
+        cprintf ("NOTE: LEAVE IN 5520\n");
     cprintf("container_leave: recurse id %"PRIu64" ct %"PRIu64" running %"PRIu64"\n", kobj_id, ct->ct_ko.ko_id, ct->ct_runnable);
     r = container_slot_find(ct, kobj_id, &cs, page_shared_ro);
     if (r < 0) {
@@ -457,12 +461,12 @@ container_schedule(const struct Container *ct)
     if (ct->ct_runnable == 0) {
         cur_ct = 0;
         cur_thread = 0;
-        cprintf("-");
+        panic("Root container not schedulable");
         return -1;
     }
 
 recurse:
-    //cprintf("%"PRIu64" ", ct->ct_ko.ko_id);
+    cprintf("--> %"PRIu64" ", ct->ct_ko.ko_id);
     // find the min scheduleable obj in this ct
     slots = container_nslots(ct);
     min_pass_cs = 0;
@@ -481,6 +485,7 @@ recurse:
         cprintf("container_schedule: no running object found in %"PRIu64" with runnable count %"PRIu64"\n", ct->ct_ko.ko_id, ct->ct_runnable);
         cur_ct = 0;
         cur_thread = 0;
+        panic("No runnable thread in indicated path");
         return -E_NOT_FOUND;
     }
 

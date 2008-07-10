@@ -274,6 +274,7 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 
  retry_mu:
     if (thread_id() != signal_thread_id && tobj.object == signal_thread_id) {
+        cprintf("ACQUIRING LOCK\n");
 	if (jthread_mutex_trylock(&trap_mu) < 0) {
 	    if (signal_debug)
 		cprintf("[%"PRIu64"] signal_trap_thread: lock busy\n",
@@ -297,6 +298,7 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 			"(sig=%d)\n",
 			thread_id(), start_env->shared_container, signo);
 	    __set_errno(ESRCH);
+cprintf("LOCK EXIT POINT: %d\n", __LINE__);
 	    return -1;
 	}
 
@@ -305,6 +307,7 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 		    "trying to trap %"PRIu64".%"PRIu64"\n",
 		    thread_id(), tobj.container, tobj.object);
 	int r = sys_thread_trap(tobj, cur_as, UTRAP_USER_SIGNAL, 0);
+        cprintf("signal_trap_thread: CHILD SHOULD RELEASE THE LOCK NOW");
 
 	if (r == 0) {
 	    if (signal_debug)
@@ -312,10 +315,13 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 			"trapped %"PRIu64".%"PRIu64"\n",
 			thread_id(), tobj.container, tobj.object);
 
-	    if (trap_mu_locked)
+	    if (trap_mu_locked) {
+                cprintf("RELEASING LOCK\n");
 		jthread_mutex_unlock(&trap_mu);
+            }
 
 	    rv = 0;
+cprintf("LOCK EXIT POINT: %d\n", __LINE__);
 	    goto done;
 	}
 
@@ -343,6 +349,7 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 
 	    if (status == PROCESS_EXITED) {
 		__set_errno(ESRCH);
+cprintf("LOCK EXIT POINT: %d\n", __LINE__);
 		goto err;
 	    }
 	}
@@ -352,8 +359,10 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 		thread_id(), jos_progname, tobj.container, tobj.object, e2s(r));
 	__set_errno(EPERM);
  err:
-	if (trap_mu_locked)
+	if (trap_mu_locked) {
+            cprintf("RELEASING LOCK\n");
 	    jthread_mutex_unlock(&trap_mu);
+        }
 
 	rv = -1;
 	goto done;
@@ -365,6 +374,7 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 	goto retry_mu;
     }
 
+cprintf("LOCK EXIT POINT: %d\n", __LINE__);
     return rv;
 }
 
