@@ -49,7 +49,7 @@
 #error Unknown arch
 #endif
 
-enum { signal_debug = 1 };
+enum { signal_debug = 0 };
 enum { signal_debug_utf_dump = 0 };
 volatile uint64_t signal_counter;
 

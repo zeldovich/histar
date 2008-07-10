@@ -74,7 +74,7 @@ thread_sched_join(struct Thread *t)
         if (r < 0)
             continue;
 
-        cprintf("thread_sched_join: thread %"PRIu64" joining parent %"PRIu64"\n", t->th_ko.ko_id, ct->ct_ko.ko_id);
+        //cprintf("thread_sched_join: thread %"PRIu64" joining parent %"PRIu64"\n", t->th_ko.ko_id, ct->ct_ko.ko_id);
         container_join(&kobject_dirty(&ct->ct_ko)->ct, t->th_ko.ko_id);
     }
 }
@@ -104,7 +104,7 @@ thread_sched_leave(struct Thread *t)
 static void
 thread_sched_adjust(struct Thread *t, int runnable)
 {
-    cprintf("thread_sched_adjust: %"PRIu64" %d\n", t->th_ko.ko_id, runnable);
+    //cprintf("thread_sched_adjust: %"PRIu64" %d\n", t->th_ko.ko_id, runnable);
     if (t->th_sched_joined && !runnable) {
 	thread_sched_leave(t);
 	t->th_sched_joined = 0;
@@ -119,7 +119,7 @@ thread_sched_adjust(struct Thread *t, int runnable)
 void
 thread_set_runnable(const struct Thread *const_t)
 {
-    cprintf("thread_set_runnable: %"PRIu64" %s\n", const_t->th_ko.ko_id, const_t->th_ko.ko_name);
+    //cprintf("thread_set_runnable: %"PRIu64" %s\n", const_t->th_ko.ko_id, const_t->th_ko.ko_name);
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     thread_sched_adjust(t, 0);
@@ -567,41 +567,29 @@ int
 thread_utrap(const struct Thread *const_t,
 	     uint32_t src, uint32_t num, uint64_t arg)
 {
-    cprintf("thread_utrap: line %d\n", __LINE__);
     if (!SAFE_EQUAL(const_t->th_status, thread_runnable) &&
 	!SAFE_EQUAL(const_t->th_status, thread_suspended))
 	return -E_INVAL;
-    cprintf("thread_utrap: line %d\n", __LINE__);
 
     if (thread_arch_is_masked(const_t))
 	return -E_BUSY;
-    cprintf("thread_utrap: line %d\n", __LINE__);
 
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
-    cprintf("thread_utrap: line %d\n", __LINE__);
     int r = thread_load_as(t);
-    cprintf("thread_utrap: line %d\n", __LINE__);
     if (r < 0)
 	return r;
-    cprintf("thread_utrap: line %d\n", __LINE__);
 
     // Switch the current thread to the trap target thread, temporarily,
     // to ensure its privileges & thread-local segment are used.
     const struct Thread *saved_t = cur_thread;
     thread_switch(t);
-    cprintf("thread_utrap: line %d\n", __LINE__);
 
     r = thread_arch_utrap(t, src, num, arg);
-    cprintf("thread_utrap: line %d\n", __LINE__);
-    if (r >= 0) {
-    cprintf("thread_utrap: line %d\n", __LINE__);
+    if (r >= 0)
 	thread_set_runnable(t);
-    cprintf("thread_utrap: line %d\n", __LINE__);
-    }
 
     // Switch back
     thread_switch(saved_t);
-    cprintf("thread_utrap: line %d\n", __LINE__);
     return r;
 }
 

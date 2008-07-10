@@ -228,7 +228,7 @@ container_nslots(const struct Container *c)
 int
 container_gc(struct Container *c)
 {
-    cprintf("container_gc: %"PRIu64"\n", c->ct_ko.ko_id);
+    //cprintf("container_gc: %"PRIu64"\n", c->ct_ko.ko_id);
     uint64_t nslots = container_nslots(c);
     for (uint64_t i = 0; i < nslots; i++) {
 	struct container_slot *cs;
@@ -359,11 +359,11 @@ container_join(struct Container *ct, uint64_t kobj_id)
     struct container_slot *cs;
     const struct Container *temp;
 
-    cprintf("container_join: id %"PRIu64"\n", kobj_id);
+    //cprintf("container_join: id %"PRIu64"\n", kobj_id);
 recurse:
     if (ct->ct_ko.ko_id == 69074555862865520L)
         cprintf ("NOTE: JOIN IN 5520\n");
-    cprintf("container_join: recurse id %"PRIu64" ct %"PRIu64" running %"PRIu64"\n", kobj_id, ct->ct_ko.ko_id, ct->ct_runnable);
+    //cprintf("container_join: recurse id %"PRIu64" ct %"PRIu64" running %"PRIu64"\n", kobj_id, ct->ct_ko.ko_id, ct->ct_runnable);
     r = container_slot_find(ct, kobj_id, &cs, page_shared_ro);
     if (r < 0) {
         cprintf("container_join: %"PRIu64" not in this container\n", kobj_id);
@@ -384,7 +384,7 @@ recurse:
     cs->cs_sched_pass = ct->ct_global_pass + cs->cs_sched_remain;
     ct->ct_global_tickets += cs->cs_sched_tickets;
 
-    cprintf("container_join: after adj ct run %"PRIu64" is_root %d\n", ct->ct_runnable, ct->ct_ko.ko_id == user_root_ct);
+    //cprintf("container_join: after adj ct run %"PRIu64" is_root %d\n", ct->ct_runnable, ct->ct_ko.ko_id == user_root_ct);
     // if the ct was already runnable or are at the root we are all done
     if (ct->ct_runnable > 1 || ct->ct_ko.ko_id == user_root_ct ||
         !ct->ct_ko.ko_ref)
@@ -408,11 +408,11 @@ container_leave(struct Container *ct, uint64_t kobj_id)
     struct container_slot *cs;
     const struct Container *temp;
 
-    cprintf("container_leave: id %"PRIu64"\n", kobj_id);
+    //cprintf("container_leave: id %"PRIu64"\n", kobj_id);
 recurse:
     if (ct->ct_ko.ko_id == 69074555862865520L)
         cprintf ("NOTE: LEAVE IN 5520\n");
-    cprintf("container_leave: recurse id %"PRIu64" ct %"PRIu64" running %"PRIu64"\n", kobj_id, ct->ct_ko.ko_id, ct->ct_runnable);
+    //cprintf("container_leave: recurse id %"PRIu64" ct %"PRIu64" running %"PRIu64"\n", kobj_id, ct->ct_ko.ko_id, ct->ct_runnable);
     r = container_slot_find(ct, kobj_id, &cs, page_shared_ro);
     if (r < 0) {
         cprintf("container_leave: %"PRIu64" not in this container\n", kobj_id);
@@ -433,7 +433,7 @@ recurse:
     cs->cs_sched_remain = cs->cs_sched_pass - ct->ct_global_pass;
     ct->ct_global_tickets -= cs->cs_sched_tickets;
 
-    cprintf("container_leave: after adj ct run %"PRIu64" is_root %d\n", ct->ct_runnable, ct->ct_ko.ko_id == user_root_ct);
+    //cprintf("container_leave: after adj ct run %"PRIu64" is_root %d\n", ct->ct_runnable, ct->ct_ko.ko_id == user_root_ct);
     // if ct remains runnable or we are at the root we are all done
     // or if this container has no refs (i.e. no valid parent)
     if (ct->ct_runnable > 0 || ct->ct_ko.ko_id == user_root_ct ||
@@ -466,7 +466,7 @@ container_schedule(const struct Container *ct)
     }
 
 recurse:
-    cprintf("--> %"PRIu64" ", ct->ct_ko.ko_id);
+    //cprintf("--> %"PRIu64" ", ct->ct_ko.ko_id);
     // find the min scheduleable obj in this ct
     slots = container_nslots(ct);
     min_pass_cs = 0;
@@ -504,10 +504,10 @@ recurse:
         if (!SAFE_EQUAL(cur_thread->th_status, thread_runnable)) {
             cprintf("Selected a non-runnable thread: %"PRIu64" cs_runnable %"PRIu64" cs_sched_tickets %"PRIu64"\n", kobj->hdr.ko_id, min_pass_cs->cs_runnable, min_pass_cs->cs_sched_tickets);
         }
-        cprintf("Running %"PRIu64" %s\n", kobj->hdr.ko_id, kobj->hdr.ko_name);
-        cprintf("From ct %"PRIu64" with run %"PRIu64" tickets %"PRIu64"\n",
-                cur_ct->ct_ko.ko_id, cur_ct->ct_runnable,
-                min_pass_cs->cs_sched_tickets);
+        //cprintf("Running %"PRIu64" %s\n", kobj->hdr.ko_id, kobj->hdr.ko_name);
+        //cprintf("From ct %"PRIu64" with run %"PRIu64" tickets %"PRIu64"\n",
+         //       cur_ct->ct_ko.ko_id, cur_ct->ct_runnable,
+         //       min_pass_cs->cs_sched_tickets);
         return 0;
     } else if (kobj->hdr.ko_type == kobj_container) {
         if (kobj->hdr.ko_id == ct->ct_ko.ko_id) {
