@@ -4,10 +4,19 @@ echo PS1=\''[\\\\u@\\\\h \\\\W]\\\\$ '\' > /etc/profile
 
 rm /rct/embed_bins
 
+for x in 1 2 3 4 5; do
+    /bin/echo "!!!!!!!!!!!!!!!!!!!!!!!!!!! $x"
+done
+
+echo "############## mkdir /usr ###################"
 mkdir /usr
+echo "############## mkdir /usr/bin ###################"
 mkdir /usr/bin
-mkdir /lib
-ln -s /bin/*.so /lib
+echo "############## mkdir /lib ###################"
+#mkdir /lib
+#echo "############## ln ###################"
+#ln -s /bin/*.so /lib
+echo "############## Dirs all setup ###################"
 
 if [ -f /bin/gcc.tar.gz ]; then
     echo "$0: unpacking gcc.."

@@ -11,7 +11,7 @@
 static struct Thread_list sync_time_waiting;
 static HASH_TABLE(addr_hash, struct sync_wait_list, 512) sync_addr_waiting;
 static HASH_TABLE(cobj_hash, struct sync_wait_list, 512) sync_cobj_waiting;
-enum { sync_debug = 0 };
+enum { sync_debug = 1 };
 
 static struct sync_wait_list *
 sync_addr_head(uint64_t seg_id, uint64_t offset)

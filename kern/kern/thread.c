@@ -74,6 +74,7 @@ thread_sched_join(struct Thread *t)
         if (r < 0)
             continue;
 
+        cprintf("thread_sched_join: thread %"PRIu64" joining parent %"PRIu64"\n", t->th_ko.ko_id, ct->ct_ko.ko_id);
         container_join(&kobject_dirty(&ct->ct_ko)->ct, t->th_ko.ko_id);
     }
 }
@@ -90,9 +91,12 @@ thread_sched_leave(struct Thread *t)
             continue;
 
         r = container_find(&ct, t->th_sched_parents[i], iflow_none);
-        if (r < 0)
+        if (r < 0) {
+            cprintf("thread_sched_leave: failed to find thread %"PRIu64" parent %"PRIu64"\n", t->th_ko.ko_id, t->th_sched_parents[i]);
             continue;
+        }
 
+        cprintf("thread_sched_leave: thread %"PRIu64" leaving parent %"PRIu64"\n", t->th_ko.ko_id, ct->ct_ko.ko_id);
         container_leave(&kobject_dirty(&ct->ct_ko)->ct, t->th_ko.ko_id);
     }
 }
@@ -100,6 +104,7 @@ thread_sched_leave(struct Thread *t)
 static void
 thread_sched_adjust(struct Thread *t, int runnable)
 {
+    cprintf("thread_sched_adjust: %"PRIu64" %d\n", t->th_ko.ko_id, runnable);
     if (t->th_sched_joined && !runnable) {
 	thread_sched_leave(t);
 	t->th_sched_joined = 0;
@@ -114,6 +119,7 @@ thread_sched_adjust(struct Thread *t, int runnable)
 void
 thread_set_runnable(const struct Thread *const_t)
 {
+    cprintf("thread_set_runnable: %"PRIu64" %s\n", const_t->th_ko.ko_id, const_t->th_ko.ko_name);
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     thread_sched_adjust(t, 0);
@@ -128,6 +134,7 @@ thread_set_runnable(const struct Thread *const_t)
 void
 thread_suspend(const struct Thread *const_t, struct Thread_list *waitq)
 {
+    cprintf("thread_suspend: %"PRIu64"\n", const_t->th_ko.ko_id);
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     thread_sched_adjust(t, 0);
@@ -339,6 +346,8 @@ thread_set_waitslots(const struct Thread *const_t, uint64_t nslots)
 void
 thread_set_sched_parents(const struct Thread *const_t, uint64_t p0, uint64_t p1)
 {
+    cprintf("thread_set_sched_parents: %"PRIu64" %"PRIu64" %"PRIu64"\n",
+            const_t->th_ko.ko_id, p0, p1);
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
     t->th_sched_parents[0] = p0;
     t->th_sched_parents[1] = p1;
