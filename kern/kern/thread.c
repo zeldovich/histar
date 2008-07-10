@@ -60,6 +60,44 @@ thread_link(struct Thread *t, struct Thread_list *tlist)
 }
 
 static void
+thread_sched_join(struct Thread *t)
+{
+    int r;
+    const struct Container *ct;
+
+    thread_check_sched_parents(t);
+    for (uint8_t i = 0; i < 2; i++) {
+        if (!t->th_sched_parents[i])
+            continue;
+
+        r = container_find(&ct, t->th_sched_parents[i], iflow_none);
+        if (r < 0)
+            continue;
+
+        container_join(&kobject_dirty(&temp->ct_ko)->ct, t->th_ko.hdr.ko_id);
+    }
+}
+
+static void
+thread_sched_leave(struct Thread *t)
+{
+    int r;
+    const struct Container *ct;
+
+    thread_check_sched_parents(t);
+    for (uint8_t i = 0; i < 2; i++) {
+        if (!t->th_sched_parents[i])
+            continue;
+
+        r = container_find(&ct, t->th_sched_parents[i], iflow_none);
+        if (r < 0)
+            continue;
+
+        container_leave(&kobject_dirty(&temp->ct_ko)->ct, t->th_ko.hdr.ko_id);
+    }
+}
+
+static void
 thread_sched_adjust(struct Thread *t, int runnable)
 {
     if (t->th_sched_joined && !runnable) {

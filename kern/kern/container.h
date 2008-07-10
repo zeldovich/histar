@@ -12,10 +12,10 @@ struct container_slot {
     uint64_t cs_ref;
     uint64_t cs_sched_tickets; // # of tickets of container for this elt
     union {
-        uint128_t ct_sched_pass;
-        int128_t ct_sched_remain;
+        uint128_t cs_sched_pass;
+        int128_t cs_sched_remain;
     }; 
-
+    uint64_t cs_runnable;
 };
 
 #define NUM_CT_SLOT_PER_PAGE	(PGSIZE / sizeof(struct container_slot))
@@ -31,8 +31,10 @@ struct Container {
     uint64_t ct_avoid_types;
 
     // Scheduling information
+    uint64_t ct_last_update;
     uint64_t ct_global_tickets;
     uint128_t ct_global_pass;
+    uint64_t ct_runnable;
 
     struct container_slot ct_slots[NUM_CT_SLOT_INLINE];
 };
@@ -76,5 +78,13 @@ int	container_has_ancestor(const struct Container *c, uint64_t ancestor);
 
 int     container_schedule(const struct Container *ct)
     __attribute__ ((warn_unused_result));
+
+void    container_join(struct Container *ct, uint64_t kobj_id);
+
+void    container_leave(struct Container *ct, uint64_t kobj_id);
+
+void    container_pass_update(struct Container *ct, uint128_t new_global_pass);
+
+void    sched_stop(uint64_t elapsed);
 
 #endif

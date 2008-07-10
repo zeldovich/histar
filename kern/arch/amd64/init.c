@@ -163,7 +163,6 @@ init (uint32_t start_eax, uint32_t start_ebx)
     part_init();
 
     kobject_init();
-    sched_init();
     pstate_init();
 
     bootothers();
