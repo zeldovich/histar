@@ -349,8 +349,10 @@ thread_set_sched_parents(const struct Thread *const_t, uint64_t p0, uint64_t p1)
     cprintf("thread_set_sched_parents: %"PRIu64" %"PRIu64" %"PRIu64"\n",
             const_t->th_ko.ko_id, p0, p1);
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
+    thread_sched_leave(t);
     t->th_sched_parents[0] = p0;
     t->th_sched_parents[1] = p1;
+    thread_sched_join(t);
     thread_check_sched_parents(t);
 }
 
@@ -381,6 +383,17 @@ thread_check_sched_parents(const struct Thread *t)
 	}
 
 	// Success: no need to halt this thread.
+        for (i = 0; i < 2; i++) {
+            if (!t->th_sched_parents[i])
+                continue;
+
+            r = container_find(&c, t->th_sched_parents[i], iflow_none);
+            if (r < 0)
+                continue;
+
+            cprintf("thread_check_sched_parents: thread %"PRIu64" joining parent %"PRIu64"\n", t->th_ko.ko_id, c->ct_ko.ko_id);
+            container_join(&kobject_dirty(&c->ct_ko)->ct, t->th_ko.ko_id);
+        }
 	return;
     }
 
