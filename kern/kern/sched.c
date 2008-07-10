@@ -3,9 +3,12 @@
 #include <kern/lib.h>
 #include <kern/timer.h>
 #include <kern/container.h>
+#include <kern/kobj.h>
 #include <kern/sync.h>
 #include <kern/arch.h>
 #include <inc/error.h>
+
+extern uint64_t user_root_ct;
 
 static uint64_t global_tickets;
 static uint128_t global_pass;
@@ -31,6 +34,16 @@ schedule(void)
 {
     sync_wakeup_timer();
     timer_periodic_notify();
+
+    const struct Container *rct;
+    int r = container_find(&rct, user_root_ct, iflow_none);
+    if (r < 0)
+        panic("schedule: Could not schedule the root container");
+    r = container_schedule(rct);
+    if (r < 0) {
+        the_schedtmr->schedule_nsec(the_schedtmr->arg, 10 * 1000 * 1000);
+        return;
+    }
 
     do {
 	const struct Thread *t, *min_pass_th = 0;

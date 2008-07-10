@@ -307,3 +307,67 @@ container_has_ancestor(const struct Container *c, uint64_t ancestor)
     c = &ko->ct;
     goto again;
 }
+
+void
+container_pass_update(struct Container *ct, uint128_t new_pass)
+{
+    // bury this in container as well?
+    static uint64_t last_tsc;
+
+    uint64_t elapsed = karch_get_tsc() - last_tsc;
+    last_tsc += elapsed;
+
+    if (new_pass) {
+        global_pass = new_global_pass;
+    } else if (global_tickets) {
+        global_pass += ((uint128_t) (stride1 / global_tickets)) * elapsed;
+    }
+}
+
+const struct Container *cur_ct;
+int
+container_schedule(const struct Container *ct)
+{
+    // for each container slot
+    //    if min non-zero ticket value for the slot
+    //    if it's a thread, sched it
+    //    if it's a ct, then recurse
+    //    also, remember to track cur_ct and cur_thread
+    //    so we can update up the tree on sched_stop
+    //    Need to only consider runnable objects
+    int r;
+    struct container_slot *cs = 0, *min_pass_cs = 0;
+    uint64_t slot, slots;
+    const struct kobject *kobj;
+
+recurse:
+    // find the min scheduleable obj in this ct
+    slots = container_nslots(ct);
+    for (slot = 0; slot < slots; slot++) {
+        r = container_slot_get(ct, slot, &cs, page_shared_ro);
+        if (r < 0 || cs->cs_sched_tickets == 0)
+            continue;
+        if (!min_pass_cs ||
+                cs->cs_sched_tickets < min_pass_cs->cs_sched_tickets)
+            min_pass_cs = cs;
+    }
+    // if none, then we don't run anything
+    if (!min_pass_cs) {
+        cur_ct = 0;
+        cur_thread = 0;
+        return -E_NOT_FOUND;
+    }
+
+    // If thread schedule it, otherwise "recurse" on the child container
+    r = kobject_get(cs->cs_id, &kobj, kobj_any, iflow_none);
+    if (r < 0)
+        panic("container_schedule: Couldn't get object for chosen slot\n");
+    if (kobj->hdr.ko_type == kobj_thread) {
+        cur_ct = ct;
+        cur_thread = &kobj->th;
+        return 0;
+    }
+    ct = &kobj->ct;
+    goto recurse;
+}
+

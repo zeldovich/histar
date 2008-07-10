@@ -10,6 +10,12 @@
 struct container_slot {
     kobject_id_t cs_id;
     uint64_t cs_ref;
+    uint64_t cs_sched_tickets; // # of tickets of container for this elt
+    union {
+        uint128_t ct_sched_pass;
+        int128_t ct_sched_remain;
+    }; 
+
 };
 
 #define NUM_CT_SLOT_PER_PAGE	(PGSIZE / sizeof(struct container_slot))
@@ -23,6 +29,10 @@ struct Container {
 
     // Cannot store certain types of objects
     uint64_t ct_avoid_types;
+
+    // Scheduling information
+    uint64_t ct_global_tickets;
+    uint128_t ct_global_pass;
 
     struct container_slot ct_slots[NUM_CT_SLOT_INLINE];
 };
@@ -63,5 +73,8 @@ int	container_has(const struct Container *c, kobject_id_t id)
 
 // Check whether container has a specific ancestor
 int	container_has_ancestor(const struct Container *c, uint64_t ancestor);
+
+int     container_schedule(const struct Container *ct)
+    __attribute__ ((warn_unused_result));
 
 #endif
