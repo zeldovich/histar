@@ -60,54 +60,15 @@ thread_link(struct Thread *t, struct Thread_list *tlist)
 }
 
 static void
-thread_sched_join(struct Thread *t)
-{
-    int r;
-    const struct Container *ct;
-
-    thread_check_sched_parents(t);
-    for (uint8_t i = 0; i < 2; i++) {
-        if (!t->th_sched_parents[i])
-            continue;
-
-        r = container_find(&ct, t->th_sched_parents[i], iflow_none);
-        if (r < 0)
-            continue;
-
-        container_join(&kobject_dirty(&ct->ct_ko)->ct, t->th_ko.ko_id);
-    }
-}
-
-static void
-thread_sched_leave(struct Thread *t)
-{
-    int r;
-    const struct Container *ct;
-
-    thread_check_sched_parents(t);
-    for (uint8_t i = 0; i < 2; i++) {
-        if (!t->th_sched_parents[i])
-            continue;
-
-        r = container_find(&ct, t->th_sched_parents[i], iflow_none);
-        if (r < 0) {
-            continue;
-        }
-
-        container_leave(&kobject_dirty(&ct->ct_ko)->ct, t->th_ko.ko_id);
-    }
-}
-
-static void
 thread_sched_adjust(struct Thread *t, int runnable)
 {
     if (t->th_sched_joined && !runnable) {
-	thread_sched_leave(t);
+	sched_leave(t);
 	t->th_sched_joined = 0;
     }
 
     if (!t->th_sched_joined && runnable) {
-	thread_sched_join(t);
+	sched_join(t);
 	t->th_sched_joined = 1;
     }
 }
@@ -162,6 +123,7 @@ thread_alloc(const struct Label *tracking,
 	return r;
 
     struct Thread *t = &ko->th;
+    t->th_sched_tickets = 1024;
     t->th_status = thread_not_started;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
 
@@ -200,8 +162,7 @@ thread_swapin(struct Thread *t)
      * negative, with an absolute value greater than global_pass.
      * So, on sched_join(), the thread's pass will underflow.
      */
-    // TODO: What should we do here?
-    // t->th_sched_remain = 0;
+    t->th_sched_remain = 0;
 
     if (SAFE_EQUAL(t->th_status, thread_suspended))
 	t->th_status = thread_runnable;
@@ -341,10 +302,8 @@ void
 thread_set_sched_parents(const struct Thread *const_t, uint64_t p0, uint64_t p1)
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
-    thread_sched_leave(t);
     t->th_sched_parents[0] = p0;
     t->th_sched_parents[1] = p1;
-    thread_sched_join(t);
     thread_check_sched_parents(t);
 }
 
@@ -375,30 +334,12 @@ thread_check_sched_parents(const struct Thread *t)
 	}
 
 	// Success: no need to halt this thread.
-        for (i = 0; i < 2; i++) {
-            if (!t->th_sched_parents[i])
-                continue;
-
-            r = container_find(&c, t->th_sched_parents[i], iflow_none);
-            if (r < 0)
-                continue;
-
-            container_join(&kobject_dirty(&c->ct_ko)->ct, t->th_ko.ko_id);
-        }
 	return;
     }
 
     cprintf("thread %"PRIu64" (%s) not self-aware (%"PRIu64" refs), halting\n",
 	    t->th_ko.ko_id, t->th_ko.ko_name, t->th_ko.ko_ref);
-    // NOTE: Don't call thread_halt directly or we'll end up in infinite
-    // mutal recursion; we know our sched parents are broken already
-    // so this is the best we can do anyway
-    struct Thread *th = &kobject_dirty(&t->th_ko)->th;
-    thread_unlink(th);
-    th->th_status = thread_halted;
-    thread_unpin(th);
-    if (cur_thread == t)
-	cur_thread = 0;
+    thread_halt(t);
 }
 
 int

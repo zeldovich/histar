@@ -40,9 +40,14 @@ struct Thread {
     uint8_t th_linked : 1;
     uint8_t th_unused_flag : 1;
 
+    uint32_t th_sched_tickets;
     uint64_t th_multi_slots;
 
     kobject_id_t th_sched_parents[2];
+    union {
+	uint128_t th_sched_pass;
+	int128_t th_sched_remain;
+    };
 
     LIST_ENTRY(Thread) th_link;
 };

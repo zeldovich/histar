@@ -203,7 +203,7 @@ trap_handler(struct Trapframe *tf, uint32_t tbr)
 
     if (trap_thread) {
 	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
-	sched_stop(karch_get_tsc() - trap_user_iret_tsc);
+	sched_stop(t, karch_get_tsc() - trap_user_iret_tsc);
 	t->th_tf = *tf;
     }
 

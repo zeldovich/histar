@@ -40,6 +40,7 @@ init (void)
     amba_attach();
 
     kobject_init();
+    sched_init();
     pstate_init();
     prof_init();
 

@@ -312,9 +312,8 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 			"trapped %"PRIu64".%"PRIu64"\n",
 			thread_id(), tobj.container, tobj.object);
 
-	    if (trap_mu_locked) {
+	    if (trap_mu_locked)
 		jthread_mutex_unlock(&trap_mu);
-            }
 
 	    rv = 0;
 	    goto done;
@@ -353,9 +352,8 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 		thread_id(), jos_progname, tobj.container, tobj.object, e2s(r));
 	__set_errno(EPERM);
  err:
-	if (trap_mu_locked) {
+	if (trap_mu_locked)
 	    jthread_mutex_unlock(&trap_mu);
-        }
 
 	rv = -1;
 	goto done;

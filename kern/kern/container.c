@@ -1,12 +1,8 @@
+#include <kern/container.h>
 #include <kern/label.h>
 #include <kern/kobj.h>
-#include <kern/timer.h>
-#include <kern/arch.h>
 #include <kern/lib.h>
 #include <inc/error.h>
-
-// Max tickets constant for scheduling
-extern const uint64_t stride1;
 
 int
 container_alloc(const struct Label *l, struct Container **cp)
@@ -135,32 +131,9 @@ container_slot_addref(struct Container *c, struct container_slot *cs,
 	    return r;
 
 	cs->cs_id = ko->ko_id;
-
-        // (Re-)initialize scheduling info
-        // TODO: done here and in decref; probably only want to do it
-        // on decref?
-        cs->cs_runnable = 0;
-        cs->cs_sched_tickets = 0;
-        cs->cs_sched_pass = 0;
     }
 
     cs->cs_ref++;
-    int r = container_modify_tickets(c, ko->ko_id, 1024);
-    if (r < 0)
-        cprintf("container_slot_addref: failed to modify object tickets\n");
-
-    // TODO Make this deal with "running" containers later to deal with
-    // container_move
-    const struct kobject *kobj;
-    if (ko->ko_type == kobj_thread) {
-        r = kobject_get(cs->cs_id, &kobj, kobj_thread, iflow_none);
-        if (r < 0)
-            cprintf("container_slot_addref: failed to find thread\n");
-        if (SAFE_EQUAL(kobj->th.th_status, thread_runnable)) {
-            container_join(c, ko->ko_id);
-        }
-    }
-
     return 0;
 }
 
@@ -168,19 +141,9 @@ static void
 container_slot_decref(struct Container *c, struct container_slot *cs,
 		      const struct kobject_hdr *ko)
 {
-    if (cs->cs_ref == 1) {
-        if (ko->ko_type == kobj_thread || ko->ko_type == kobj_container) {
-            container_leave(c, ko->ko_id);
-        }
-    }
-
     cs->cs_ref--;
-    if (cs->cs_ref == 0) {
-        cs->cs_sched_tickets = 0;
-        cs->cs_sched_pass = 0;
-        cs->cs_runnable = 0;
+    if (cs->cs_ref == 0)
 	kobject_decref(ko, &c->ct_ko);
-    }
 }
 
 int
@@ -343,227 +306,4 @@ container_has_ancestor(const struct Container *c, uint64_t ancestor)
 
     c = &ko->ct;
     goto again;
-}
-
-extern const uint64_t stride1;
-const struct Container *cur_ct;
-
-void
-container_pass_update(struct Container *ct, uint128_t new_global_pass)
-{
-    // bury this in container as well?
-    uint64_t elapsed = karch_get_tsc() - ct->ct_last_update;
-    ct->ct_last_update += elapsed;
-
-    if (new_global_pass) {
-        ct->ct_global_pass = new_global_pass;
-    } else if (ct->ct_global_tickets) {
-        ct->ct_global_pass += ((uint128_t) (stride1 / ct->ct_global_tickets)) *
-                                                elapsed;
-    }
-}
-
-extern uint64_t user_root_ct;
-// Essentially set kobj_id in ct as runnable
-void
-container_join(struct Container *ct, uint64_t kobj_id)
-{
-    int r;
-    struct container_slot *cs;
-    const struct Container *temp;
-
-recurse:
-    r = container_slot_find(ct, kobj_id, &cs, page_shared_ro);
-    if (r < 0)
-        return;
-
-    // this is for the case the same thread is in a container twice
-    // this will keep from double counting it and hence nothing propagates
-    // up so we are done
-    if (cs->cs_runnable)
-        return;
-
-    // mark this slot as runnable and adjust the container
-    cs->cs_runnable = 1;
-    ct->ct_runnable++;
-
-    container_pass_update(ct, 0);
-    cs->cs_sched_pass = ct->ct_global_pass + cs->cs_sched_remain;
-    ct->ct_global_tickets += cs->cs_sched_tickets;
-
-    // if the ct was already runnable or are at the root we are all done
-    if (ct->ct_runnable > 1 || ct->ct_ko.ko_id == user_root_ct ||
-        !ct->ct_ko.ko_ref)
-        return;
-
-    // recurse on parent
-    r = container_find(&temp, ct->ct_ko.ko_parent, iflow_none);
-    if (r < 0)
-        panic("container_join: couldn't get the parent ct of %"PRIu64"\n",
-                ct->ct_ko.ko_parent);
-    kobj_id = ct->ct_ko.ko_id;
-    ct = &kobject_dirty(&temp->ct_ko)->ct;
-    goto recurse;
-}
-
-// Essentially set kobj_id in ct as not runnable
-void
-container_leave(struct Container *ct, uint64_t kobj_id)
-{
-    int r;
-    struct container_slot *cs;
-    const struct Container *temp;
-
-recurse:
-    r = container_slot_find(ct, kobj_id, &cs, page_shared_ro);
-    if (r < 0)
-        return;
-
-    // this is for the case the same thread is in a container twice
-    // this will keep from double counting it and hence nothing propagates
-    // up so we are done
-    if (!cs->cs_runnable)
-        return;
-
-    // mark this slot as non-runnable and adjust the container
-    cs->cs_runnable = 0;
-    ct->ct_runnable--;
-
-    container_pass_update(ct, 0);
-    cs->cs_sched_remain = cs->cs_sched_pass - ct->ct_global_pass;
-    ct->ct_global_tickets -= cs->cs_sched_tickets;
-
-    // if ct remains runnable or we are at the root we are all done
-    // or if this container has no refs (i.e. no valid parent)
-    if (ct->ct_runnable > 0 || ct->ct_ko.ko_id == user_root_ct ||
-        !ct->ct_ko.ko_ref)
-        return;
-
-    // recurse on parent
-    r = container_find(&temp, ct->ct_ko.ko_parent, iflow_none);
-    if (r < 0)
-        panic("container_leave: couldn't get the parent ct of %"PRIu64"\n",
-                ct->ct_ko.ko_parent);
-    kobj_id = ct->ct_ko.ko_id;
-    ct = &kobject_dirty(&temp->ct_ko)->ct;
-    goto recurse;
-}
-
-int
-container_schedule(const struct Container *ct)
-{
-    int r;
-    struct container_slot *cs = 0, *min_pass_cs = 0;
-    uint64_t slot, slots;
-    const struct kobject *kobj;
-
-    if (ct->ct_runnable == 0) {
-        cur_ct = 0;
-        cur_thread = 0;
-        return -1;
-    }
-
-recurse:
-    // find the min scheduleable obj in this ct
-    slots = container_nslots(ct);
-    min_pass_cs = 0;
-    for (slot = 0; slot < slots; slot++) {
-        r = container_slot_get(ct, slot, &cs, page_shared_ro);
-        if (r < 0 || cs->cs_id == ct->ct_ko.ko_id ||
-            !cs->cs_ref || !cs->cs_runnable || !cs->cs_sched_tickets)
-            continue;
-        if (!min_pass_cs ||
-                cs->cs_sched_pass < min_pass_cs->cs_sched_pass) {
-            min_pass_cs = cs;
-        }
-    }
-    // if none, then we don't run anything
-    if (!min_pass_cs) {
-        cur_ct = 0;
-        cur_thread = 0;
-        panic("No runnable thread in indicated path");
-        return -E_NOT_FOUND;
-    }
-
-    // If thread schedule it, otherwise "recurse" on the child container
-    do {
-        r = kobject_get(min_pass_cs->cs_id, &kobj, kobj_any, iflow_none);
-        // TODO: Need to handle this intelligently in case
-        // threads/cts aren't swapped in (in other words, the get fails)
-        if (r < 0)
-            cprintf("container_schedule: Couldn't get scheduled slot "
-                  "(id %"PRIu64"): %s\n", min_pass_cs->cs_id, e2s(r));
-    } while (r < 0);
-    if (kobj->hdr.ko_type == kobj_thread) {
-        cur_ct = ct;
-        cur_thread = &kobj->th;
-        if (!SAFE_EQUAL(cur_thread->th_status, thread_runnable)) {
-            panic("Selected a non-runnable thread: %"PRIu64"\n",
-                  kobj->hdr.ko_id);
-        }
-        return 0;
-    } else if (kobj->hdr.ko_type == kobj_container) {
-        ct = &kobj->ct;
-        goto recurse;
-    } else {
-        panic("container_schedule: tried traversal of non thread/container");
-    }
-}
-
-void
-sched_stop(uint64_t elapsed)
-{   
-    int r;
-    struct container_slot *cs;
-    const struct Container *ct;
-    uint64_t kobj_id;
-
-    if (!cur_ct || !cur_thread)
-        return;
-    
-    // start at current thread and container
-    kobj_id = cur_thread->th_ko.ko_id;
-    ct = cur_ct;
-
-recurse:
-    // find the slot for this thread/container
-    r = container_slot_find(ct, kobj_id, &cs, page_excl_dirty);
-    if (r < 0) {
-    } else {
-        // update it's pass
-        uint64_t tickets = cs->cs_sched_tickets ? : 1;
-        uint128_t cs_stride = stride1 / tickets;
-        cs->cs_sched_pass += cs_stride * elapsed;
-    }
-
-    // make kobj_id be the id for this ct to update it's pass
-    // and update ct to be kobj_id's parent, and loop
-    kobj_id = ct->ct_ko.ko_id;
-    // unless we are at the root, in which case we are done
-    if (kobj_id == user_root_ct)
-        return;
-    r = container_find(&ct, ct->ct_ko.ko_parent, iflow_none);
-    if (r < 0)
-        return;
-
-    goto recurse;
-}
-
-int
-container_modify_tickets(struct Container *ct, uint64_t kobj_id,
-                         int64_t delta)
-{
-    int r;
-    struct container_slot *cs;
-
-    r = container_slot_find(ct, kobj_id, &cs, page_excl_dirty);
-    if (r < 0)
-        return -E_INVAL;
-
-    // TODO: Check over/under flow here, etc
-
-    cs->cs_sched_tickets += delta;
-    ct->ct_global_tickets += delta;
-
-    return 0;
 }

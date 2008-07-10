@@ -264,16 +264,6 @@ thread_create_embed(struct Container *c,
 				 obj_label, th_label, th_clearance,
 				 prog->buf, prog->size, arg0, arg1));
 
-    // Assign some number of tickets to the container and its thread
-    // so that it can run
-    int r;
-    r = container_modify_tickets(c, tc->ct_ko.ko_id, 1024);
-    if (r < 0)
-        panic("thread_create_embed: couldn't assign tickets to container\n");
-    r = container_modify_tickets(tc, t->th_ko.ko_id, 1024);
-    if (r < 0)
-        panic("thread_create_embed: couldn't assign tickets to thread\n");
-
     thread_set_runnable(t);
 }
 

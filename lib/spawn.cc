@@ -415,9 +415,7 @@ process_report_exit(int64_t code, int64_t signo)
     }
 
     int r = process_update_state(PROCESS_EXITED, code, signo);
-    if (r >= 0 && start_env->ppid) {
-	if (kill(start_env->ppid, SIGCHLD) < 0)
-            cprintf("process_report_exit: KILL on ppid failed\n");
-    }
+    if (r >= 0 && start_env->ppid)
+	kill(start_env->ppid, SIGCHLD);
     return r;
 }
