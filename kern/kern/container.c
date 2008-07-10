@@ -558,7 +558,7 @@ container_modify_tickets(struct Container *ct, uint64_t kobj_id,
 
     r = container_slot_find(ct, kobj_id, &cs, page_excl_dirty);
     if (r < 0)
-        panic("container_modify_tickets: couldn't find obj in ct\n");
+        return -E_INVAL;
 
     // TODO: Check over/under flow here, etc
 
