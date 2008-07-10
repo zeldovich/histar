@@ -21,18 +21,18 @@ schedule(void)
     sync_wakeup_timer();
     timer_periodic_notify();
 
-    cprintf("*** schedule\n");
+    //cprintf("*** schedule\n");
 
     r = container_find(&rct, user_root_ct, iflow_none);
     if (r < 0)
         panic("schedule: Could not schedule the root container");
     do {
-        cprintf("!");
+        //cprintf("!");
         r = container_schedule(rct);
         if (r < 0) {
-            cprintf("schedule: failed to schedule a runnable thread\n");
+            //cprintf("schedule: failed to schedule a runnable thread\n");
             // TODO: remove the panic before done
-            panic("schedule: failed to schedule a runnable thread\n");
+            //panic("schedule: failed to schedule a runnable thread\n");
             the_schedtmr->schedule_nsec(the_schedtmr->arg, 10 * 1000 * 1000);
             return;
         }
