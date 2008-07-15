@@ -56,7 +56,7 @@ protcseg:
 	
 	movl	start + 4092, %ecx
 	movl	$start, %eax
-	jmp	%ecx
+	jmp	*%ecx
 
 .align 4
 gdt:
