@@ -29,14 +29,20 @@ kva2pa(void *kva)
 void
 um_mem_init(uint64_t bytes)
 {
+    bytes = ROUNDDOWN(bytes, PGSIZE);
+
     cprintf("%"PRIu64" bytes physical memory\n", bytes);
 
     mem_bytes = bytes;
+    global_npages = bytes / PGSIZE;
+
     mem_base = malloc(bytes + PGSIZE);
     mem_base = ROUNDUP(mem_base, PGSIZE);
     assert(mem_base);
 
-    page_infos = malloc((mem_bytes / PGSIZE) * sizeof(*page_infos));
+    uint64_t pilen = (mem_bytes / PGSIZE) * sizeof(*page_infos);
+    page_infos = malloc(pilen);
+    memset(page_infos, 0, pilen);
 
     page_alloc_init();
     for (uint64_t pg = 0; pg < mem_bytes / PGSIZE; pg++) {

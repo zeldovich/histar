@@ -1,4 +1,6 @@
 #include <kern/arch.h>
+#include <kern/sched.h>
+#include <kern/kobj.h>
 #include <inc/setjmp.h>
 #include <inc/error.h>
 #include <stdlib.h>
@@ -12,7 +14,7 @@ thread_arch_run(const struct Thread *t)
 {
     printf("pretending to have run thread %s (%"PRIu64")\n",
 	    t->th_ko.ko_name, t->th_ko.ko_id);
-    sched_stop(t, 100);
+    sched_stop(&kobject_dirty(&t->th_ko)->th, 100);
 
     static int setjmp_done;
     if (setjmp_done)

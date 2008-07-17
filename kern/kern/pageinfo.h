@@ -4,6 +4,7 @@
 #include <machine/types.h>
 #include <kern/arch.h>
 #include <kern/pagetree.h>
+#include <kern/lib.h>
 
 struct page_info {
     // references to this page from pagetree's
