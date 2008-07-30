@@ -1,7 +1,7 @@
 * binutils
 
 Apply conf/leon/binutils-leon-nofpu-r3.patch,
-      conf/leon/binutils-raksha-taginsn-r24.patch,
+      conf/leon/binutils-raksha-taginsn-histar.patch,
       conf/leon/binutils-tag-memo-insns.patch
 
 ./configure --prefix=/usr/local --disable-nls --target=sparc-jos-linux

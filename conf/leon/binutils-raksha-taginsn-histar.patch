@@ -9,7 +9,7 @@ Description: Adds support for tag instructions to gas and objdump
 diff -BbruN gas/config/tc-sparc.c gas/config/tc-sparc.c
 --- gas/config/tc-sparc.c	2006-04-05 05:41:57.000000000 -0700
 +++ gas/config/tc-sparc.c	2007-06-15 11:02:41.000000000 -0700
-@@ -787,6 +787,41 @@
+@@ -787,6 +787,42 @@
    {"", -1},			/* End marker.  */
  };
  
@@ -33,6 +33,7 @@ diff -BbruN gas/config/tc-sparc.c gas/config/tc-sparc.c
 +  {"et", 14},
 +  {"eoa", 15},
 +  {"tb", 16},
++  {"etag", 17},
 +  {"",-1},                         /* End marker. */
 +};
 +
