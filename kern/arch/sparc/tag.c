@@ -687,9 +687,6 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
     if (tag_trap_debug)
 	cprintf("tag trap...\n");
 
-    if (!(tf->tf_psr & PSR_ET))
-	panic("tag trap with traps disabled");
-
     uint32_t et = read_et();
     uint32_t cause = (et >> ET_CAUSE_SHIFT) & ET_CAUSE_MASK;
     uint32_t dtag = read_etag();
@@ -701,11 +698,19 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 		cause <= ET_CAUSE_EXEC ? cause_table[cause] : "unknown",
 		cause, tf->tf_pc, et, tf->tf_psr);
 
+    if (!(tf->tf_psr & PSR_ET))
+	cprintf("*** tag trap (tag 0x%x) with traps disabled\n", dtag);
+
     if (err) {
 	cprintf("  tag trap err = %d [%x]\n", err, errv);
 	cprintf("  data tag = %d, cause = %d\n", dtag, cause);
 	trapframe_print(tf);
 	abort();
+    }
+
+    if (!(tf->tf_psr & PSR_ET)) {
+	trapframe_print(tf);
+	panic("tag trap with traps disabled");
     }
 
     if (dtag == DTAG_MONCALL)
