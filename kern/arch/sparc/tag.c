@@ -24,6 +24,8 @@ extern const uint8_t monstack[], monstack_top[];
 extern const uint8_t extra_stack[], extra_stack_top[];
 
 static uint32_t tag_table[1024 * 1024] __attribute__((aligned(4096)));
+enum { use_page_tags = 0 };
+enum { clear_word_tags = 1 };
 
 uint32_t moncall_dummy;
 uint32_t cur_stack_base;
@@ -130,12 +132,12 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 	const void *xaddr = addr + i;
 	uint32_t ppn = pa2ppn(kva2pa(xaddr));
 
-	if (!PGOFF(xaddr) && n - i >= PGSIZE) {
+	if (use_page_tags && !PGOFF(xaddr) && n - i >= PGSIZE) {
 	    tag_table[ppn] = dtag;
 	    changed_tagtable = 1;
 	    i += PGSIZE;
 	} else {
-	    if (tag_table[ppn] != DTAG_PERWORD) {
+	    if (use_page_tags && tag_table[ppn] != DTAG_PERWORD) {
 		uint32_t old_tag = tag_table[ppn];
 		tag_table[ppn] = DTAG_PERWORD;
 		sta_mmuflush(0x400);
@@ -268,7 +270,7 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
 	const void *xaddr = addr + i;
 	uint32_t ppn = pa2ppn(kva2pa(xaddr));
 
-	if (tag_table[ppn] == DTAG_PERWORD) {
+	if (!use_page_tags || tag_table[ppn] == DTAG_PERWORD) {
 	    uint32_t cur_tag = read_dtag(xaddr);
 	    if (last_dtag != cur_tag && tag_compare(cur_tag, 1) < 0)
 		ok = 0;
@@ -691,12 +693,18 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
     uint32_t cause = (et >> ET_CAUSE_SHIFT) & ET_CAUSE_MASK;
     uint32_t dtag = read_etag();
 
-    if (tag_trap_debug)
+    if (tag_trap_debug) {
 	cprintf("  data tag = 0x%x, cause = %s (%d), pc = 0x%x, "
 		"et = 0x%x, psr = 0x%x\n",
 		dtag,
 		cause <= ET_CAUSE_EXEC ? cause_table[cause] : "unknown",
 		cause, tf->tf_pc, et, tf->tf_psr);
+	if (use_page_tags && cause == ET_CAUSE_EXEC && tf->tf_pc >= PHYSBASE) {
+	    int ppn = pa2ppn(kva2pa((void *) tf->tf_pc));
+	    cprintf("  page-level tag at PC = 0x%x [ppn 0x%x]\n",
+		    tag_table[ppn], ppn);
+	}
+    }
 
     if (!(tf->tf_psr & PSR_ET))
 	cprintf("*** tag trap (tag 0x%x) with traps disabled\n", dtag);
@@ -711,6 +719,12 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
     if (!(tf->tf_psr & PSR_ET)) {
 	trapframe_print(tf);
 	panic("tag trap with traps disabled");
+    }
+
+    if (dtag == 0xdeadbeef) {
+	cprintf("bad tag trap (tag 0x%x)\n", dtag);
+	trapframe_print(tf);
+	panic("deadbeef tag trap");
     }
 
     if (dtag == DTAG_MONCALL)
@@ -790,14 +804,21 @@ tag_init(void)
     write_rma((uintptr_t) &tag_trap_entry);
     write_tsr(TSR_T);
 
-    cprintf("Initializing page tag table.. ");
+    cprintf("Initializing tags.. ");
     assert(global_npages <= sizeof(tag_table) / sizeof(tag_table[0]));
     for (uint32_t i = 0; i < sizeof(tag_table) / sizeof(tag_table[0]); i++)
 	tag_table[i] = DTAG_NOACCESS;
 
-    write_tb(kva2pa(&tag_table[0]));
-    cprintf("[TB = %x] ", read_tb());
+    if (use_page_tags && clear_word_tags)
+	for (uint32_t i = 0; i < global_npages * PGSIZE / 4; i++)
+	    write_dtag((void *) (PHYSBASE + i * 4), 0xdeadbeef);
 
+    if (use_page_tags) {
+	write_tb(kva2pa(&tag_table[0]));
+	cprintf("[TB = %x] ", read_tb());
+    }
+
+    tag_set((void *) PHYSBASE, DTAG_NOACCESS, global_npages * PGSIZE);
     tag_set(&stext[0],   DTAG_KEXEC, &etext[0]   - &stext[0]);
     tag_set(&srodata[0], DTAG_KRO,   &erodata[0] - &srodata[0]);
     tag_set(&sdata[0],   DTAG_KRO,   &edata[0]   - &sdata[0]);
