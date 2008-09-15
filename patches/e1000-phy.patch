@@ -1,0 +1,68 @@
+Index: kern/dev/e1000.c
+===================================================================
+--- kern/dev/e1000.c	(revision 7098)
++++ kern/dev/e1000.c	(working copy)
+@@ -4,6 +4,7 @@
+ #include <dev/pci.h>
+ #include <dev/e1000.h>
+ #include <dev/e1000reg.h>
++#include <dev/mii.h>
+ #include <kern/segment.h>
+ #include <kern/lib.h>
+ #include <kern/kobj.h>
+@@ -216,6 +217,41 @@
+     return 0;
+ }
+ 
++static int32_t
++e1000_phy_read(struct e1000_card *c, uint32_t reg)
++{
++    e1000_io_write(c, WMREG_MDIC,
++		   MDIC_REGADD(reg) | MDIC_PHYADD(1) | MDIC_OP_READ);
++    for (uint32_t i = 0; i < 100; i++) {
++	if (e1000_io_read(c, WMREG_MDIC) & MDIC_READY)
++	    break;
++	timer_delay(50000);
++    }
++
++    uint32_t mdic = e1000_io_read(c, WMREG_MDIC);
++    if (!(mdic & MDIC_READY)) {
++	cprintf("e1000_phy_read: timeout\n");
++	return -1;
++    }
++
++    return MDIC_DATA(mdic);
++}
++
++static int
++e1000_phy_write(struct e1000_card *c, uint32_t reg, uint16_t val)
++{
++    e1000_io_write(c, WMREG_MDIC,
++		   val | MDIC_REGADD(reg) | MDIC_PHYADD(1) | MDIC_OP_WRITE);
++    for (uint32_t i = 0; i < 100; i++) {
++	if (e1000_io_read(c, WMREG_MDIC) & MDIC_READY)
++	    return 0;
++	timer_delay(50000);
++    }
++
++    cprintf("e1000_phy_write: timeout\n");
++    return -1;
++}
++
+ static void __attribute__((unused))
+ e1000_dump_stats(struct e1000_card *c)
+ {
+@@ -317,6 +353,13 @@
+     for (int i = 0; i < WM_MC_TABSIZE; i++)
+ 	e1000_io_write(c, WMREG_CORDOVA_MTA + i * 4, 0);
+ 
++    // Reset the PHY
++    e1000_phy_write(c, MII_ADVERTISE, ADVERTISE_10HALF | ADVERTISE_100HALF |
++				      ADVERTISE_10FULL | ADVERTISE_100FULL);
++    e1000_phy_write(c, MII_CTRL1000, ADVERTISE_1000FULL);
++    e1000_phy_write(c, MII_BMCR, e1000_phy_read(c, MII_BMCR) |
++				 BMCR_ANENABLE | BMCR_ANRESTART);
++
+     // Enable RX, TX
+     e1000_io_write(c, WMREG_RCTL,
+ 		   RCTL_EN | RCTL_RDMTS_1_2 | RCTL_DPF | RCTL_BAM);
