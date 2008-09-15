@@ -7,8 +7,9 @@
 #include <kern/lib.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
+#include <machine/tag.h>
 
-const struct Address_space *cur_as;
+const struct Address_space *cur_as __krw__;
 const struct Pagemap *cur_pgmap;
 
 enum { as_debug = 0 };
@@ -18,7 +19,7 @@ int
 as_alloc(const struct Label *l, struct Address_space **asp)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_address_space, l, &ko);
+    int r = kobject_alloc(kobj_address_space, l, 0, &ko);
     if (r < 0)
 	return r;
 
@@ -98,7 +99,7 @@ as_get_segmap(const struct Address_space *as,
 	return r;
 
     if (p == 0) {
-	r = page_alloc((void **) &p);
+	r = page_alloc((void **) &p, &dtag_label[DTAG_KRW]);
 	if (r < 0)
 	    return r;
 

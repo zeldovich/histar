@@ -67,8 +67,10 @@ extern struct page_stats {
     uint64_t failures;
 } page_stats;
 
+struct Label;
+
 void page_alloc_init(void);
-int  page_alloc(void **p)
+int  page_alloc(void **p, const struct Label *l)
     __attribute__ ((warn_unused_result));
 void page_free(void *p);
 

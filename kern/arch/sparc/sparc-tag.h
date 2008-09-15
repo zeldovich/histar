@@ -8,7 +8,7 @@
 
 SPARC_TAG_INST_ATTR void wrtpcv(uint32_t pctag, uint32_t validbit);
 SPARC_TAG_INST_ATTR void wrtdv(uint32_t dtag, uint32_t validbit);
-SPARC_TAG_INST_ATTR void wrtperm(uint32_t pctag, uint32_t dtag, uint32_t permbits);
+SPARC_TAG_INST_ATTR void wrtperm(uint32_t dtag, uint32_t permbits);
 SPARC_TAG_INST_ATTR uint32_t read_dtag(const void *addr);
 SPARC_TAG_INST_ATTR void write_dtag(const void *addr, uint32_t tag);
 SPARC_TAG_INST_ATTR uint32_t read_pctag(void);
@@ -27,10 +27,9 @@ wrtdv(uint32_t dtag, uint32_t validbit)
 }
 
 void
-wrtperm(uint32_t pctag, uint32_t dtag, uint32_t permbits)
+wrtperm(uint32_t dtag, uint32_t permbits)
 {
-    uint32_t mergetag = (pctag << TAG_DATA_BITS) | dtag;
-    __asm __volatile("wrtperm %0, [%1]" : : "r" (permbits), "r" (mergetag));
+    __asm __volatile("wrtperm %0, [%1]" : : "r" (permbits), "r" (dtag));
 }
 
 uint32_t
@@ -89,6 +88,8 @@ TAG_REG_RW(tsr)
 TAG_REG_RW(rma)
 TAG_REG_RW(et)
 TAG_REG_RW(eoa)
+TAG_REG_RW(tb)		/* Tag table base address */
+TAG_REG_RW(etag)	/* Exception tag value */
 #undef TAG_REG_RW
 
 #endif

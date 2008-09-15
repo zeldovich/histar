@@ -13,9 +13,14 @@
 
 #include <sys/stat.h>
 
+enum { extra_correct_pipes = 1 };
+
 int
 pipe(int fds[2])
 {
+    if (extra_correct_pipes)
+	return socketpair(AF_INET, SOCK_STREAM, 0, fds);
+
     struct Fd *fd;
     int r = fd_alloc(&fd, "pipe fd");
     if (r < 0) {

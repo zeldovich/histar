@@ -2,6 +2,7 @@
 #include <kern/lib.h>
 #include <inc/bf60.h>
 #include <inc/intmacro.h>
+#include <machine/tag.h>
 
 enum { handle_encrypt = 1 };
 

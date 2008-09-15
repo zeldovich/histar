@@ -11,13 +11,15 @@
 #include <machine/sparc-common.h>
 #include <machine/trapcodes.h>
 #include <machine/psr.h>
+#include <machine/tag.h>
 #include <dev/irqmp.h>
 #include <inc/error.h>
+#include <machine/sparc-tag.h>
 
-static uint64_t trap_user_iret_tsc;
-static const struct Thread *trap_thread;
-static int trap_thread_syscall_writeback;
-static int in_idle;
+static uint64_t trap_user_iret_tsc __krw__;
+static const struct Thread *trap_thread __krw__;
+static int trap_thread_syscall_writeback __krw__;
+static int in_idle __krw__;
 
 static void
 print_state(const char *s, const struct Thread *t)
@@ -192,11 +194,16 @@ void __attribute__((__noreturn__, no_instrument_function))
 trap_handler(struct Trapframe *tf, uint32_t tbr)
 {
     uint32_t trapno = (tbr >> TBR_TT_SHIFT) & TBR_TT_MASK;
+    if (read_tsr() & TSR_T) {
+	cprintf("trap 0x%x @ pc 0x%x while trusted\n", trapno, tf->tf_pc);
+	__asm("ta 1");
+	panic("trusted in trap_handler");
+    }
 
     if (!in_idle && (tf->tf_psr & PSR_PS)) {
-	cprintf("trap in supervisor mode\n");
-	cprintf("trapno = 0x%x\n", trapno);
+	cprintf("trap 0x%x in supervisor mode\n", trapno);
 	trapframe_print(tf);
+	__asm("ta 1");
 	panic("cannot continue");
     }
 

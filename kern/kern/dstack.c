@@ -1,6 +1,7 @@
 #include <kern/arch.h>
 #include <kern/dstack.h>
 #include <kern/lib.h>
+#include <machine/tag.h>
 
 #define DSTACK_BUF_SIZE ((PGSIZE - sizeof(LIST_ENTRY(dstack_page))) \
                         / sizeof(uint64_t))
@@ -25,7 +26,7 @@ dstack_push(struct dstack *s, uint64_t n)
     struct dstack_page *p = LIST_FIRST(&s->pages);
 
     if (s->sp == 0) {
-	if ((r = page_alloc((void **) &p)) < 0)
+	if ((r = page_alloc((void **) &p, &dtag_label[DTAG_KRW])) < 0)
 	    return r;
 	LIST_INSERT_HEAD(&s->pages, p, page_link);
 	s->sp = DSTACK_BUF_SIZE;

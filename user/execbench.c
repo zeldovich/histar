@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 
@@ -41,6 +42,6 @@ main(int ac, char **av)
     uint64_t diff_usec =
 	(end.tv_sec - start.tv_sec) * 1000000 +
 	end.tv_usec - start.tv_usec;
-    printf("Total time: %ld usec\n", diff_usec);
-    printf("usec per rtt: %ld\n", diff_usec / count);
+    printf("Total time: %"PRIu64" usec\n", diff_usec);
+    printf("usec per rtt: %"PRIu64"\n", diff_usec / count);
 }

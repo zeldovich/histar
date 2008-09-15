@@ -1,7 +1,8 @@
 #include <kern/console.h>
+#include <machine/tag.h>
 
 static LIST_HEAD(cd_list, cons_device) cdevs;
-struct Thread_list console_waiting;
+struct Thread_list console_waiting __krw__;
 
 enum { cons_bufsize = 512 };
 
@@ -9,7 +10,7 @@ static struct {
     uint8_t buf[cons_bufsize];
     uint32_t rpos;
     uint32_t wpos;
-} cons_inq;
+} cons_inq __krw__;
 
 void
 cons_putc(int c)
@@ -25,6 +26,10 @@ cons_getc(void)
 {
     /* Check for input if interrupts are disabled */
     cons_probe();
+
+    if (cons_inq.rpos >= sizeof(cons_inq.buf) ||
+	cons_inq.wpos >= sizeof(cons_inq.buf))
+	return 0;
 
     if (cons_inq.rpos != cons_inq.wpos) {
 	int c = cons_inq.buf[cons_inq.rpos++];
@@ -55,6 +60,8 @@ cons_intr(int (*proc)(void*), void *arg)
     while ((c = (*proc)(arg)) != -1) {
 	if (c == 0)
 	    continue;
+	if (cons_inq.wpos >= sizeof(cons_inq.buf))
+	    cons_inq.wpos = 0;
 	cons_inq.buf[cons_inq.wpos++] = c;
 	if (cons_inq.wpos == sizeof(cons_inq.buf))
 	    cons_inq.wpos = 0;

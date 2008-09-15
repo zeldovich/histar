@@ -31,7 +31,7 @@ int  pgdir_walk(struct Pagemap *pgmap, const void *va,
 
 /* Physical address handling */
 void *pa2kva(physaddr_t pa);
-physaddr_t kva2pa(void *kva);
+physaddr_t kva2pa(const void *kva);
 ppn_t pa2ppn(physaddr_t pa);
 physaddr_t ppn2pa(ppn_t pn);
 

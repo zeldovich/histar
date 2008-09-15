@@ -4,6 +4,8 @@
 #include <kern/lib.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
+#include <machine/tag.h>
+#include <machine/sparc-tag.h>
 
 ////////////////////////////////
 // Level comparison functions
@@ -135,7 +137,7 @@ int
 label_alloc(struct Label **lp, uint8_t def)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_label, 0, &ko);
+    int r = kobject_alloc(kobj_label, 0, 0, &ko);
     if (r < 0)
 	return r;
 
@@ -340,6 +342,9 @@ label_compare(const struct Label *l1, const struct Label *l2,
     assert(l1);
     assert(l2);
 
+    if (cacheable && !(read_tsr() & TSR_T))
+	return monitor_call(MONCALL_LABEL_COMPARE, l1, l2, cmp);
+
     kobject_id_t lhs_id = l1->lb_ko.ko_id;
     kobject_id_t rhs_id = l2->lb_ko.ko_id;
 
@@ -350,8 +355,6 @@ label_compare(const struct Label *l1, const struct Label *l2,
 		compare_cache[i].cmp == cmp)
 		return 0;
     }
-
-    level_comparator_init(cmp);
 
     const uint64_t *entp;
     int r;
@@ -390,7 +393,7 @@ label_compare(const struct Label *l1, const struct Label *l2,
     if (r < 0)
 	return r;
 
-    if (cacheable) {
+    if (cacheable && (read_tsr() & TSR_T)) {
 	int cache_slot = (compare_cache_next++) % compare_cache_size;
 	compare_cache[cache_slot].lhs = lhs_id;
 	compare_cache[cache_slot].rhs = rhs_id;
@@ -404,8 +407,6 @@ int
 label_max(const struct Label *a, const struct Label *b,
 	  struct Label **dstp, level_comparator leq)
 {
-    level_comparator_init(leq);
-
     int r = label_alloc(dstp, leq->max[a->lb_def_level][b->lb_def_level]);
     if (r < 0)
 	return r;
@@ -470,4 +471,12 @@ label_cprint(const struct Label *l)
 	}
     }
     cprintf(" %d }\n", l->lb_def_level);
+}
+
+void
+label_init(void)
+{
+    level_comparator_init(label_leq_starlo);
+    level_comparator_init(label_leq_starhi);
+    level_comparator_init(label_eq);
 }

@@ -6,8 +6,10 @@
 uint64_t
 karch_get_tsc(void)
 {
-    /* XXX */
-    return timer_user_nsec();
+    if (the_timesrc)
+	return the_timesrc->ticks(the_timesrc->arg);
+
+    return 0;
 }
 
 uintptr_t
@@ -25,8 +27,8 @@ karch_jmpbuf_init(struct jos_jmp_buf *jb,
     jb->jb_pc = (uint32_t) fn - 8;
 }
 
-void __attribute__((noreturn))
+void
 karch_fp_init(struct Fpregs *fpreg)
 {
-    panic("no fp support");
+    cprintf("FP not supported\n");
 }

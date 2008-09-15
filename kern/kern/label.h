@@ -56,4 +56,7 @@ int  label_max(const struct Label *a, const struct Label *b,
 // debugging: print a label
 void label_cprint(const struct Label *l);
 
+// initialize lookup tables
+void label_init(void);
+
 #endif

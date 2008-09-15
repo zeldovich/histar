@@ -9,7 +9,6 @@
 #include <kern/gate.h>
 #include <kern/label.h>
 #include <kern/pagetree.h>
-#include <kern/kocache.h>
 #include <kern/thread.h>
 #include <kern/as.h>
 #include <kern/netdev.h>
@@ -40,8 +39,6 @@ struct kobject_mem {
     LIST_ENTRY(kobject) ko_hash;
     LIST_ENTRY(kobject) ko_gc_link;
 
-    struct kobj_weak_ptr ko_label_cache[kolabel_max];
-    struct kobj_weak_refs ko_weak_refs;
     union {
 	struct Thread_ephemeral ko_th_e;
     };
@@ -73,7 +70,12 @@ int  kobject_get(kobject_id_t id, const struct kobject **kpp,
 		 uint8_t type, info_flow_type iflow)
     __attribute__ ((warn_unused_result));
 int  kobject_alloc(uint8_t type, const struct Label *contaminate,
+		   const struct Label *clearance,
 		   struct kobject **kpp)
+    __attribute__ ((warn_unused_result));
+int  kobject_alloc_real(uint8_t type, const struct Label *contaminate,
+			const struct Label *clearance,
+			struct kobject **kpp)
     __attribute__ ((warn_unused_result));
 int  kobject_incore(kobject_id_t id)
     __attribute__ ((warn_unused_result));
@@ -117,6 +119,7 @@ void kobject_swapout(struct kobject *kp);
 
 // Perform a garbage-collection pass.
 void kobject_gc_scan(void);
+int64_t kobject_gc(struct kobject *ko);
 
 // Deallocate physical memory used for clean objects.
 void kobject_reclaim(void);

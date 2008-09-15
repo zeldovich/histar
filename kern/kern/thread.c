@@ -1,6 +1,8 @@
 #include <machine/types.h>
 #include <machine/pmap.h>
 #include <machine/trapcodes.h>
+#include <machine/tag.h>
+#include <machine/sparc-tag.h>
 #include <kern/utrap.h>
 #include <kern/segment.h>
 #include <kern/kobj.h>
@@ -17,9 +19,9 @@
 
 enum { thread_pf_debug = 0 };
 
-const struct Thread *cur_thread;
+const struct Thread *cur_thread __krw__;
 struct Thread_list *cur_waitlist;
-struct Thread_list thread_list_runnable;
+struct Thread_list thread_list_runnable __krw__;
 
 static void
 thread_pin(struct Thread *t)
@@ -43,6 +45,7 @@ static void
 thread_unlink(struct Thread *t)
 {
     if (t->th_linked) {
+	/* XXX need to do tag_is_kobject checks */
 	LIST_REMOVE(t, th_link);
 	t->th_linked = 0;
     }
@@ -55,6 +58,10 @@ static void
 thread_link(struct Thread *t, struct Thread_list *tlist)
 {
     assert(!t->th_linked);
+
+    if (LIST_FIRST(tlist))
+	tag_is_kobject(LIST_FIRST(tlist), kobj_thread);
+
     LIST_INSERT_HEAD(tlist, t, th_link);
     t->th_linked = 1;
 }
@@ -118,7 +125,7 @@ thread_alloc(const struct Label *contaminate,
 	     struct Thread **tp)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_thread, contaminate, &ko);
+    int r = kobject_alloc(kobj_thread, contaminate, clearance, &ko);
     if (r < 0)
 	return r;
 
@@ -126,9 +133,6 @@ thread_alloc(const struct Label *contaminate,
     t->th_sched_tickets = 1024;
     t->th_status = thread_not_started;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
-    r = kobject_set_label(&t->th_ko, kolabel_clearance, clearance);
-    if (r < 0)
-	return r;
 
     struct Segment *sg;
     r = segment_alloc(contaminate, &sg);
@@ -145,6 +149,12 @@ thread_alloc(const struct Label *contaminate,
 
     t->th_sg = sg->sg_ko.ko_id;
     thread_swapin(t);
+
+    /* XXX threads need to be allocated in the monitor anyway */
+    uint32_t old_tsr = read_tsr();
+    write_tsr(TSR_T);
+    tag_set(&t->th_krw_bits, DTAG_KRW, sizeof(t->th_krw_bits));
+    write_tsr(old_tsr);
 
     *tp = t;
     return 0;
@@ -243,7 +253,14 @@ thread_run(void)
 
     // Reload the AS, in case something changed
     thread_switch(cur_thread);
-    thread_arch_run(cur_thread);
+
+    // Should not return, will call thread_arch_run for us..
+    if (cur_thread == cur_mon_thread) {
+	thread_arch_run(cur_thread);
+    } else {
+	monitor_call(MONCALL_THREAD_SWITCH, cur_thread);
+	panic("MONCALL_THREAD_SWITCH returned");
+    }
 }
 
 int

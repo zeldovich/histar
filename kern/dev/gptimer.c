@@ -5,6 +5,7 @@
 #include <kern/sched.h>
 #include <machine/leon3.h>
 #include <machine/sparc-config.h>
+#include <machine/tag.h>
 #include <dev/gptimer.h>
 #include <dev/ambapp.h>
 #include <dev/amba.h>
@@ -29,6 +30,11 @@ gpt_tsval(struct gpt_ts *gpt)
     return gpt->mask - gpt->regs->val;
 }
 
+/*
+ * XXX
+ * This function may need to be a "subsystem" of some sort,
+ * which will have privileges over "last_read" & "ticks"..
+ */
 static uint64_t
 gpt_get_ticks(void *arg)
 {
@@ -90,12 +96,9 @@ gptimer_init(void)
     LEON3_GpTimer_Regs_Map *gpt_regs = pa2kva(dev.start);
     uint32_t irq = GPTIMER_CONFIG_IRQNT(gpt_regs->config);
 
-    /* 1 timer tick == 1 us */
-    uint32_t hz = 1000000;
-    uint32_t scalar_reload = (CLOCK_FREQ_KHZ / 1000) - 1;
-    gpt_regs->scalar_reload = scalar_reload;
-    gpt_regs->scalar = scalar_reload;
-  
+    gpt_regs->scalar_reload = 10 - 1;
+    gpt_regs->scalar = 10 - 1;
+
     /* Timer 0 for scheduler */
     LEON3_GpTimerElem_Regs_Map *sh_regs = 
 	(LEON3_GpTimerElem_Regs_Map *) &gpt_regs->e[0];
@@ -103,7 +106,7 @@ gptimer_init(void)
     sh_regs->rld = ~0;
 
     static struct gpt_sh gpt_sh;
-    gpt_sh.hz = hz;
+    gpt_sh.hz = CLOCK_FREQ_KHZ * 1000 / 10;
     gpt_sh.regs = sh_regs;
     gpt_sh.mask = sh_regs->rld;
 
@@ -132,10 +135,13 @@ gptimer_init(void)
     gpt_ts.last_read = gpt_tsval(&gpt_ts);
     gpt_ts.ticks = 0;
     gpt_ts.gpt_src.type = time_source_gpt;
-    gpt_ts.gpt_src.freq_hz = hz;
+    gpt_ts.gpt_src.freq_hz = CLOCK_FREQ_KHZ * 1000 / 10;
     gpt_ts.gpt_src.ticks = &gpt_get_ticks;
     gpt_ts.gpt_src.delay_nsec = &gpt_delay;
     gpt_ts.gpt_src.arg = &gpt_ts;
     if (!the_timesrc)
 	the_timesrc = &gpt_ts.gpt_src;
+
+    tag_set(&gpt_ts.ticks, DTAG_KRW, sizeof(gpt_ts.ticks));
+    tag_set(&gpt_ts.last_read, DTAG_KRW, sizeof(gpt_ts.last_read));
 }

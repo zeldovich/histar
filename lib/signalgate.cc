@@ -37,7 +37,8 @@ void
 signal_gate_close(void)
 {
     if (gs.object) {
-	sys_obj_unref(gs);
+	if (gs.container == start_env->shared_container)
+	    sys_obj_unref(gs);
 	gs.object = 0;
     }
 }

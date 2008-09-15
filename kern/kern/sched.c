@@ -5,16 +5,17 @@
 #include <kern/container.h>
 #include <kern/sync.h>
 #include <kern/arch.h>
+#include <machine/tag.h>
 #include <inc/error.h>
 
-static uint64_t global_tickets;
-static uint128_t global_pass;
+static uint64_t global_tickets __krw__;
+static uint128_t global_pass __krw__;
 static uint64_t stride1;
 
 static void
 global_pass_update(uint128_t new_global_pass)
 {
-    static uint64_t last_tsc;
+    static uint64_t last_tsc __krw__;
 
     uint64_t elapsed = karch_get_tsc() - last_tsc;
     last_tsc += elapsed;
@@ -34,9 +35,11 @@ schedule(void)
 
     do {
 	const struct Thread *t, *min_pass_th = 0;
-	LIST_FOREACH(t, &thread_list_runnable, th_link)
+	LIST_FOREACH(t, &thread_list_runnable, th_link) {
+	    tag_is_kobject(t, kobj_thread);
 	    if (!min_pass_th || t->th_sched_pass < min_pass_th->th_sched_pass)
 		min_pass_th = t;
+	}
 
 	cur_thread = min_pass_th;
 	if (!cur_thread) {

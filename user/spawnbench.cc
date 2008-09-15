@@ -5,6 +5,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <sys/time.h>
 }
 
@@ -44,7 +45,7 @@ main(int ac, char **av)
 	    int64_t ec;
 	    process_wait(&cp, &ec);
 	    if (ec)
-		throw basic_exception("Funny error-code %ld\n", ec);
+		throw basic_exception("Funny error-code %"PRIu64"\n", ec);
 	} catch (std::exception &e) {
 	    printf("spawn: %s\n", e.what());
 	}
@@ -56,6 +57,6 @@ main(int ac, char **av)
     uint64_t diff_usec =
 	(end.tv_sec - start.tv_sec) * 1000000 +
 	end.tv_usec - start.tv_usec;
-    printf("Total time: %ld usec\n", diff_usec);
-    printf("usec per rtt: %ld\n", diff_usec / count);
+    printf("Total time: %"PRIu64" usec\n", diff_usec);
+    printf("usec per rtt: %"PRIu64"\n", diff_usec / count);
 }

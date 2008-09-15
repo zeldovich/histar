@@ -293,16 +293,16 @@ str_val(struct tbl *vp)
 	else {				/* integer source */
 		/* worst case number length is when base=2, so use BITS(long) */
 		/* minus base #     number    null */
-		static char strbuf[1 + 2 + 1 + BITS(long) + 1];
+		static char strbuf[1 + 2 + 1 + BITS(int64_t) + 1];
 		const char *digits = (vp->flag & UCASEV_AL) ?
 		    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" :
 		    "0123456789abcdefghijklmnopqrstuvwxyz";
-		unsigned long n;
+		uint64_t n;
 		int base;
 
 		s = strbuf + sizeof(strbuf);
 		if (vp->flag & INT_U)
-			n = (unsigned long) vp->val.i;
+			n = (uint64_t) vp->val.i;
 		else
 			n = (vp->val.i < 0) ? -vp->val.i : vp->val.i;
 		base = (vp->type == 0) ? 10 : vp->type;
@@ -327,10 +327,10 @@ str_val(struct tbl *vp)
 }
 
 /* get variable integer value, with error checking */
-long
+int64_t
 intval(struct tbl *vp)
 {
-	long num;
+	int64_t num;
 	int base;
 
 	base = getint(vp, &num, false);
@@ -384,7 +384,7 @@ setstr(struct tbl *vq, const char *s, int error_ok)
 
 /* set variable to integer */
 void
-setint(struct tbl *vq, long int n)
+setint(struct tbl *vq, int64_t n)
 {
 	if (!(vq->flag&INTEGER)) {
 		struct tbl *vp = &vtemp;
@@ -402,13 +402,13 @@ setint(struct tbl *vq, long int n)
 }
 
 int
-getint(struct tbl *vp, long int *nump, bool arith)
+getint(struct tbl *vp, int64_t *nump, bool arith)
 {
 	char *s;
 	int c;
 	int base, neg;
 	int have_base = 0;
-	long num;
+	int64_t num;
 
 	if (vp->flag&SPECIAL)
 		getspec(vp);
@@ -471,7 +471,7 @@ struct tbl *
 setint_v(struct tbl *vq, struct tbl *vp, bool arith)
 {
 	int base;
-	long num;
+	int64_t num;
 
 	if ((base = getint(vp, &num, arith)) == -1)
 		return NULL;

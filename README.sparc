@@ -1,7 +1,7 @@
 * binutils
 
 Apply conf/leon/binutils-leon-nofpu-r3.patch,
-      conf/leon/binutils-raksha-taginsn-r24.patch,
+      conf/leon/binutils-raksha-taginsn-histar.patch,
       conf/leon/binutils-tag-memo-insns.patch
 
 ./configure --prefix=/usr/local --disable-nls --target=sparc-jos-linux
@@ -10,6 +10,7 @@ Apply conf/leon/binutils-leon-nofpu-r3.patch,
 
 Apply conf/leon/gcc-mrestore.patch, conf/leon/gcc-leon-nofpu-r3.patch
 
+rm -r libstdc++-v3
 ./configure --target=sparc-jos-linux --prefix=/usr/local \
 	--disable-nls --without-headers --with-newlib \
 	--disable-threads --disable-shared --disable-libmudflap \

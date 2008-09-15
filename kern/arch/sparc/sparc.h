@@ -65,6 +65,11 @@ lda(uint32_t regaddr, uint32_t asi)
 
     ASI_CASE(ASI_MMUREGS);
     ASI_CASE(ASI_BYPASS);
+
+    ASI_CASE(ASI_USER_TEXT);
+    ASI_CASE(ASI_SUPER_TEXT);
+    ASI_CASE(ASI_USER_DATA);
+    ASI_CASE(ASI_SUPER_DATA);
 #undef ASI_CASE
 
     default:
@@ -92,6 +97,11 @@ sta(uint32_t addr, uint32_t val, uint32_t asi)
     ASI_CASE(ASI_BYPASS);
     ASI_CASE(ASI_DFLUSH);
     ASI_CASE(ASI_MMUFLUSH);
+
+    ASI_CASE(ASI_USER_TEXT);
+    ASI_CASE(ASI_SUPER_TEXT);
+    ASI_CASE(ASI_USER_DATA);
+    ASI_CASE(ASI_SUPER_DATA);
 #undef ASI_CASE
 
     default:

@@ -4,6 +4,8 @@
 #include <kern/pstate.h>
 #include <kern/pageinfo.h>
 #include <kern/timer.h>
+#include <kern/label.h>
+#include <machine/tag.h>
 #include <inc/error.h>
 #include <inc/queue.h>
 
@@ -22,8 +24,7 @@ static TAILQ_HEAD(Page_list, Page_link) page_free_list;
 // Global page allocation stats
 struct page_stats page_stats;
 
-void
-page_free(void *v)
+PROT_FUNC(DTAG_P_ALLOC, void, page_free_real, void *v)
 {
     struct Page_link *pl = (struct Page_link *) v;
     if (PGOFF(pl))
@@ -41,8 +42,14 @@ page_free(void *v)
     page_stats.pages_used--;
 }
 
-int
-page_alloc(void **vp)
+void
+page_free(void *v)
+{
+    tag_set(v, DTAG_P_ALLOC, PGSIZE);
+    page_free_real(v);
+}
+
+PROT_FUNC(DTAG_P_ALLOC, int, page_alloc, void **vp, const struct Label *l)
 {
     struct Page_link *pl = TAILQ_FIRST(&page_free_list);
 
@@ -66,6 +73,8 @@ page_alloc(void **vp)
 
     if (scrub_free_pages)
 	memset(pl, 0xcd, PGSIZE);
+
+    tag_set(pl, label_to_tag(l), PGSIZE);
 
     struct page_info *pi = page_to_pageinfo(pl);
     assert(pi->pi_freepage);
@@ -92,4 +101,7 @@ page_alloc_init(void)
 	{ .pt_fn = &print_memstat, .pt_interval_sec = 5 };
     if (page_memstat_debug)
 	timer_add_periodic(&pt);
+
+    tag_set(&page_stats, DTAG_P_ALLOC, sizeof(page_stats));
+    tag_set(&page_free_list, DTAG_P_ALLOC, sizeof(page_free_list));
 }

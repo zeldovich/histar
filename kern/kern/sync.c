@@ -7,10 +7,11 @@
 #include <kern/arch.h>
 #include <kern/ht.h>
 #include <inc/error.h>
+#include <machine/tag.h>
 
-static struct Thread_list sync_time_waiting;
-static HASH_TABLE(addr_hash, struct sync_wait_list, 512) sync_addr_waiting;
-static HASH_TABLE(cobj_hash, struct sync_wait_list, 512) sync_cobj_waiting;
+static struct Thread_list sync_time_waiting __krw__;
+static HASH_TABLE(addr_hash, struct sync_wait_list, 512) sync_addr_waiting __krw__;
+static HASH_TABLE(cobj_hash, struct sync_wait_list, 512) sync_cobj_waiting __krw__;
 enum { sync_debug = 0 };
 
 static struct sync_wait_list *
@@ -120,10 +121,18 @@ sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t *refcts,
     }
 
     LIST_FOREACH(sw, &te->te_wait_slots, sw_thread_link) {
-	LIST_INSERT_HEAD(sync_addr_head(sw->sw_seg, sw->sw_offset),
-			 sw, sw_addr_link);
-	if (sw->sw_cobj.object)
-	    LIST_INSERT_HEAD(sync_cobj_head(sw->sw_cobj), sw, sw_cobj_link);
+	struct sync_wait_list *l;
+	l = sync_addr_head(sw->sw_seg, sw->sw_offset);
+	if (LIST_FIRST(l))
+	    tag_is_syncslot(LIST_FIRST(l));
+
+	LIST_INSERT_HEAD(l, sw, sw_addr_link);
+	if (sw->sw_cobj.object) {
+	    l = sync_cobj_head(sw->sw_cobj);
+	    if (LIST_FIRST(l))
+		tag_is_syncslot(LIST_FIRST(l));
+	    LIST_INSERT_HEAD(l, sw, sw_cobj_link);
+	}
     }
 
     te->te_wakeup_nsec = wakeup_nsec;
@@ -159,6 +168,7 @@ sync_wakeup_addr(uint64_t *addr)
     struct sync_wait_slot *prev = 0;
 
     while (sw != 0) {
+	tag_is_syncslot(sw);
 	if (sw->sw_seg == seg_id && sw->sw_offset == offset) {
 	    thread_set_runnable(sw->sw_t);
 	    sw = prev ? LIST_NEXT(prev, sw_addr_link) : LIST_FIRST(waithead);
@@ -183,6 +193,7 @@ sync_wakeup_segment(struct cobj_ref seg)
     struct sync_wait_slot *prev = 0;
 
     while (sw != 0) {
+	tag_is_syncslot(sw);
 	if (sw->sw_cobj.container == seg.container &&
 	    sw->sw_cobj.object == seg.object)
 	{
@@ -204,6 +215,7 @@ sync_wakeup_timer(void)
 
     struct Thread *t = LIST_FIRST(&sync_time_waiting);
     while (t != 0) {
+	tag_is_kobject(t, kobj_thread);
 	struct Thread *next = LIST_NEXT(t, th_link);
 	struct Thread_ephemeral *te = &kobject_ephemeral_dirty(&t->th_ko)->ko_th_e;
 
@@ -237,6 +249,7 @@ sync_remove_thread(const struct Thread *t)
 	if (!sw)
 	    break;
 
+	tag_is_syncslot(sw);
 	LIST_REMOVE(sw, sw_thread_link);
 	LIST_REMOVE(sw, sw_addr_link);
 	if (sw->sw_cobj.object)

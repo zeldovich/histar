@@ -784,10 +784,11 @@ shf_smprintf(const char *fmt, ...)
  *  ints before pushing them.
  */
 #define POP_INT(f, s, a) \
+	(((f) & FL_LLONG) ? va_arg((a), unsigned long long) :		\
 	(((f) & FL_LONG) ? va_arg((a), unsigned long) :			\
 	    (sizeof(int) < sizeof(long) ? ((s) ?			\
 	    (long) va_arg((a), int) : va_arg((a), unsigned)) :		\
-	    va_arg((a), unsigned)))
+	    va_arg((a), unsigned))))
 
 #define ABIGNUM		32000	/* big numer that will fit in a short */
 #define LOG2_10		3.321928094887362347870319429	/* log base 2 of 10 */
@@ -802,6 +803,7 @@ shf_smprintf(const char *fmt, ...)
 #define FL_DOT		0x080	/* '.' seen */
 #define FL_UPPER	0x100	/* format character was uppercase */
 #define FL_NUMBER	0x200	/* a number was formated %[douxefg] */
+#define FL_LLONG	0x400	/* `ll` */
 
 
 #ifdef FP
@@ -824,9 +826,9 @@ shf_vfprintf(struct shf *shf, const char *fmt, va_list args)
 	int		field, precision;
 	int		len;
 	int		flags;
-	unsigned long	lnum;
+	unsigned long long	lnum;
 					/* %#o produces the longest output */
-	char		numbuf[(BITS(long) + 2) / 3 + 1];
+	char		numbuf[(BITS(long long) + 2) / 3 + 1];
 	/* this stuff for dealing with the buffer */
 	int		nwritten = 0;
 #ifdef FP
@@ -897,7 +899,12 @@ shf_vfprintf(struct shf *shf, const char *fmt, va_list args)
 				continue;
 
 			case 'l':
-				flags |= FL_LONG;
+				if (flags & (FL_LONG | FL_LLONG)) {
+					flags |= FL_LLONG;
+					flags &= ~FL_LONG;
+				} else {
+					flags |= FL_LONG;
+				}
 				continue;
 
 			case 'h':
@@ -933,7 +940,7 @@ shf_vfprintf(struct shf *shf, const char *fmt, va_list args)
 
 		switch (c) {
 		case 'p': /* pointer */
-			flags &= ~(FL_LONG | FL_SHORT);
+			flags &= ~(FL_LONG | FL_LLONG | FL_SHORT);
 			if (sizeof(char *) > sizeof(int))
 				flags |= FL_LONG; /* hope it fits.. */
 			/* aaahhh... */
@@ -948,8 +955,8 @@ shf_vfprintf(struct shf *shf, const char *fmt, va_list args)
 			switch (c) {
 			case 'd':
 			case 'i':
-				if (0 > (long) lnum)
-					lnum = - (long) lnum, tmp = 1;
+				if (0 > (long long) lnum)
+					lnum = - (long long) lnum, tmp = 1;
 				else
 					tmp = 0;
 				/* aaahhhh..... */

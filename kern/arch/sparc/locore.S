@@ -11,6 +11,12 @@
 
 ENTRY(abort)
 	/*
+	 * Enable trusted mode.
+	 */
+	set	TSR_T, %g1
+	wrtr	%g1, %tsr
+
+	/*
 	 * Set full %wim and turn off traps to trigger a CPU error later.
 	 */
 	mov	0xff, %wim
@@ -19,11 +25,16 @@ ENTRY(abort)
 
 	/*
 	 * Disable the MMU, to simplify re-loading a new kernel with grmon.
-	 * This function is also located at 0x80001000, making it easy to
-	 * reset the MMU using "run 0x80001000".
+	 * This function is also located at 0x40001000, making it easy to
+	 * reset the MMU using "run 0x40001000".
 	 */
+	set	SRMMU_CTXTBL_PTR, %g1
+	set	SRMMU_CTX_REG, %g2
+
 	lda	[%g0] ASI_MMUREGS, %g3
 	andn	%g3, SRMMU_CTRL_E, %g3
+	sta	%g0, [%g2] ASI_MMUREGS
+	sta	%g0, [%g1] ASI_MMUREGS
 	sta	%g3, [%g0] ASI_MMUREGS
 
 1:	ba	1b
@@ -34,40 +45,13 @@ ENTRY(abort)
  */
 
 ENTRY(start)
-	/* Turn on Supervisor, EnableFloating, and all the PIL bits.
+	/* Turn on Supervisor and all the PIL bits.
 	 * Also puts us in register window zero with traps off.
 	 */
-	set	(PSR_S | PSR_PIL | PSR_EF), %g2
+	set	(PSR_S | PSR_PIL), %g2
 	wr	%g2, %psr
 	WRITE_PAUSE
-		
-	/* Set the first PTD of the Context Table to point to bootpt */
-	set	RELOC(bootpt), %g2 
-	srl	%g2, 4, %g2
-	or	%g2, PT_ET_PTD, %g2
-	set	RELOC(bootct), %g1
-	st	%g2, [%g1]
 
-	/* Set Context Table Pointer register */	
-	srl	%g1, 4, %g1
-	set	SRMMU_CTXTBL_PTR, %g2
-	sta	%g1, [%g2] ASI_MMUREGS
-
-	/* Set context register to 0 */
-	set	SRMMU_CTX_REG, %g2
-	sta	%g0, [%g2] ASI_MMUREGS
-
-	/* Enable MMU */
-	lda	[%g0] ASI_MMUREGS, %g3
-	or	%g3, SRMMU_CTRL_E, %g3
-	sta	%g3, [%g0] ASI_MMUREGS
-	WRITE_PAUSE
-
-	set	vm_enabled, %g1
-	jmpl	%g1, %g0
-	 nop
-
-vm_enabled:	
 	/* Make window 1 invalid */
 	mov	0x02, %wim
 	WRITE_PAUSE
@@ -94,9 +78,9 @@ vm_enabled:
  */
 
 #define TRAP_ENTRY \
-	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
+	nop; rd %psr, %l0; b def_trap; nop;
 #define WINDOW_ENTRY(label) \
-	rd %psr, %l0; mov %l1, %y; ba label; andcc %l0, PSR_PS, %g0;
+	nop; rd %psr, %l0; ba label; andcc %l0, PSR_PS, %g0;
 
 	/* The Trap Base Address (TBA) must be 4096 aligned */
 	.align 4096
@@ -110,7 +94,10 @@ t_wunf:	WINDOW_ENTRY(window_fill)	/* 6: Window Underflow */
 	TRAP_ENTRY
 	.endr
 
+.align 128
 def_trap:
+	rd	%wim, %l3
+
 	set	(kstack_top - TRAPFRAME_SZ), %l5
 
 	STORE_REG_SET(g, l5 + TF_G0)
@@ -198,7 +185,11 @@ ENTRY(thread_arch_idle_asm)
  * because it seems GCC assumes %g1 is preserved across function
  * calls in some places.
  */
+
+.align 128
 window_spill:	
+	mov	%l1, %y
+
 	bz	user_spill
 	 mov	%l2, %g5
 
@@ -228,7 +219,10 @@ user_spill:
 	jmp	%l7
 	 rett	%l7 + 4
 
-window_fill:	
+.align 128
+window_fill:
+	mov	%l1, %y
+
 	bz	user_fill
 	 mov	%l2, %g5
 
@@ -281,9 +275,28 @@ ENTRY(tag_trap_entry)
 	rd	%wim, %g2
 	mov	0, %wim
 
+	/* Store the original %wim value for debugging purposes */
+	st	%g2, [%g7 + TF_WIM]
+
+	/* Compute the ET bit for the PSR: bit 26 in TSR, bit 5 in PSR */
+	rdtr	%tsr, %g4
+	srl	%g4, 21, %g4
+	and	%g4, PSR_ET, %g4
+
 	/* Store the PSR, we'll change it to flush windows */
-	rd	%psr, %g3
+	rd	%psr, %g3	    /* ET disabled */
+	or	%g3, %g4, %g3	    /* Bring in the previous ET bit */
 	st	%g3, [%g7 + TF_PSR]
+
+	/* Save other special registers */
+	rdtr	%epc, %g1
+	st	%g1, [%g7 + TF_PC]
+	rdtr	%enpc, %g1
+	st	%g1, [%g7 + TF_NPC]
+	rd	%y, %g1
+	st	%g1, [%g7 + TF_Y]
+	rd	%tbr, %g1
+	st	%g1, [%g7 + TF_TBR]
 
 	/* Get the CWP out of the PSR, and bump it by one, to flush windows */
 	add	%g3, 1, %g3
@@ -292,7 +305,8 @@ ENTRY(tag_trap_entry)
 	sll	%g1, %g3, %g3		/* g3 = CWP mask bit */
 
 	/* Prepare for range checks in a bit */
-	set	kstack, %g6
+	set	cur_stack_base, %g6
+	ld	[%g6], %g6
 	set	(KSTACK_SIZE - STACKFRAME_SZ), %g5
 
 flush_more:
@@ -306,7 +320,7 @@ flush_more:
 
 	/* Check that the %sp is in the kstack range */
 	cmp	%g4, %g5
-	bg	flush_out_of_range
+	bgu	flush_out_of_range
 	 andcc	%sp, 7, %g0
 
 	/* Check alignment for %sp */
@@ -336,9 +350,9 @@ flush_error:
 	wr	%g4, %psr
 	mov	2, %wim
 	WRITE_PAUSE
-	mov	%g1, %o2
+	mov	%g1, %o1
 	ba	tag_call_up
-	 mov	%g2, %o3
+	 mov	%g2, %o2
 
 flush_done:
 	/* Store the new %wim after flushing */
@@ -350,22 +364,14 @@ flush_done:
 
 	/* Make window 1 invalid */
 	mov	2, %wim
+	WRITE_PAUSE
 
-	/* Save other special registers */
-	rdtr	%epc, %g1
-	st	%g1, [%g7 + TF_PC]
-	rdtr	%enpc, %g1
-	st	%g1, [%g7 + TF_NPC]
-	rd	%y, %g1
-	st	%g1, [%g7 + TF_Y]
-
-	mov	0, %o2		/* arg2: error code */
+	mov	0, %o1		/* arg1: error code */
 tag_call_up:
 	/* Set up stack and args, and call into C code */
 	mov	%g0, %fp
 	mov	%g7, %sp
 	mov	%g7, %o0	/* arg0: Trapframe */
-	rd	%tbr, %o1	/* arg1: tbr */
 
 	call	tag_trap
 	 sub	%sp, STACKFRAME_SZ, %sp
@@ -374,15 +380,27 @@ ENTRY(tag_trap_return)
 	mov	%g0, %wim
 
 	mov	%o0, %g6	/* arg0: Trapframe */
-	mov	%o1, %tbr	/* arg1: tbr */
 
 	ld	[%g6 + TF_PSR], %l0
 	ld	[%g6 + TF_WIM], %l1
 	ld	[%g6 + TF_Y],   %l2
+	ld	[%g6 + TF_TBR], %l5
+
+	andn	%l0, PSR_ET, %l3	/* PSR without ET */
+	and	%l0, PSR_ET, %l4	/* Just the ET bit */
+	or	%l4, (TSR_T >> 21), %l4	/* Keep the trust bit */
+
+	sll	%l4, 21, %l4		/* Shift PET for TSR */
+	rdtr	%tsr, %l6
+	set	TSR_PET, %l7
+	andn	%l6, %l7, %l6		/* Strip out present TSR_PET bit */
+	or	%l6, %l4, %l6		/* Use the one from the Trapframe */
+	wrtr	%l6, %tsr
 
 	mov	%l2, %y
 	mov	%l1, %wim
-	mov	%l0, %psr
+	mov	%l3, %psr
+	mov	%l5, %tbr
 
 	ld	[%g6 + TF_PC],  %g1
 	wrtr	%g1, %epc
@@ -394,7 +412,46 @@ ENTRY(tag_trap_return)
 	LOAD_REG_SET(o, g6 + TF_O0)
 	LOAD_REG_SET(g, g6 + TF_G0)
 
-	/* tret jumps to epc, enpc */
+	/* tret jumps to (epc,enpc), clears TSR_T, loads TSR_PET into PSR_ET */
 	tret
+	 nop
+
+ENTRY(monitor_call)
+	save	%sp, -STACKFRAME_SZ, %sp
+
+	/* Make sure we're not in trusted mode, otherwise this won't work */
+	rdtr	%tsr, %l1
+	set	0x2000000, %l2
+	andcc	%l1, %l2, %l1
+	bz	1f
+	 nop
+
+	ta 1
+	 nop
+
+1:
+	mov	%i0, %l0
+	set	moncall_dummy, %g1
+	st	%g0, [%g1]
+
+	ret
+	 restore
+
+ENTRY(pcall_trampoline)
+	mov	%i0, %o0
+	mov	%i1, %o1
+	mov	%i2, %o2
+	mov	%i3, %o3
+	mov	%i4, %o4
+	mov	%i5, %o5
+
+	call	%l3
+	 nop
+
+	set	MONCALL_PRETURN, %l0
+	set	moncall_dummy, %g1
+	st	%g0, [%g1]
+
+1:	ba	1b
 	 nop
 

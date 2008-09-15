@@ -6,6 +6,7 @@
 #include <kern/arch.h>
 #include <inc/hashtable.h>
 #include <inc/error.h>
+#include <machine/tag.h>
 
 struct entry {
     uint64_t count;
@@ -20,10 +21,12 @@ struct tentry {
 
 #define NTHREADS 32
 
-struct entry sysc_table[NSYSCALLS];
-struct entry trap_table[NTRAPS];
-struct entry user_table[2];
-struct tentry thread_table[NTHREADS];
+struct entry sysc_table[NSYSCALLS] __krw__;
+struct entry trap_table[NTRAPS] __krw__;
+struct entry user_table[2] __krw__;
+struct entry monc_table[MONCALL_MAX] __krw__;
+struct entry tagstuff_table[2] __krw__;
+struct tentry thread_table[NTHREADS] __krw__;
 
 static struct periodic_task prof_timer;
 static int prof_enable = 0;
@@ -82,6 +85,8 @@ prof_init(void)
     memset(sysc_table, 0, sizeof(sysc_table));
     memset(trap_table, 0, sizeof(trap_table));
     memset(thread_table, 0, sizeof(thread_table));
+    memset(monc_table, 0, sizeof(monc_table));
+    memset(tagstuff_table, 0, sizeof(tagstuff_table));
 
     memset(&cyg_data, 0, sizeof(cyg_data));
     hash_init(&cyg_data.stats_lookup, cyg_data.stats_lookup_back, NUM_SYMS);
@@ -139,6 +144,29 @@ prof_user(int idle, uint64_t time)
 }
 
 void
+prof_moncall(uint64_t num, uint64_t time)
+{
+    if (!prof_enable)
+	return;
+
+    if (num >= 256)
+	return;
+
+    monc_table[num].count++;
+    monc_table[num].time += time;
+}
+
+void
+prof_tagstuff(uint64_t num, uint64_t time)
+{
+    if (num >= 2)
+	return;
+
+    tagstuff_table[num].count++;
+    tagstuff_table[num].time += time;
+}
+
+void
 prof_thread(const struct Thread *th, uint64_t time)
 {
     const char *asname = "---";
@@ -186,6 +214,8 @@ prof_reset(void)
     memset(trap_table, 0, sizeof(trap_table));
     memset(user_table, 0, sizeof(user_table));
     memset(thread_table, 0, sizeof(thread_table));
+    memset(monc_table, 0, sizeof(monc_table));
+    memset(tagstuff_table, 0, sizeof(tagstuff_table));
 }
 
 static void
@@ -230,6 +260,14 @@ prof_print(void)
 	for (int i = 0; i < NTHREADS; i++)
 	    print_tentry(thread_table, i);
     }
+
+    cprintf("prof_print: moncalls\n");
+    for (int i = 0; i < MONCALL_MAX; i++)
+	print_entry(&monc_table[0], i, moncall_names[i]);
+
+    cprintf("prof_print: tag traps\n");
+    print_entry(&tagstuff_table[0], 0, "tag trap");
+    print_entry(&tagstuff_table[1], 0, "tag set");
 
     prof_reset();
 }

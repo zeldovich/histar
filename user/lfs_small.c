@@ -17,6 +17,7 @@ enum { lfs_iterations = 1 };
 #include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -24,8 +25,9 @@ enum { lfs_iterations = 1 };
 #if JOS64
 #include <inc/syscall.h>
 #include <inc/profiler.h>
+#include <inc/lib.h>
 
-#define time_msec() (NSEC_PER_SECOND / 1000 * sys_clock_nsec())
+#define time_msec() (sys_clock_nsec() * 1000 / NSEC_PER_SECOND)
 #endif // JOS64
 
 #if LINUX
@@ -69,7 +71,7 @@ creat_test(int n, int size)
 
     memset(buf, 0xab, size);
 
-    unsigned s = 0 , f = 0 ;
+    uint64_t s = 0 , f = 0 ;
     s = time_msec();
 
     for (i = 0, j = 0; i < n; i ++) {
@@ -121,7 +123,7 @@ creat_test(int n, int size)
 	sync();
 
     f = time_msec();
-    printf("%s: creat took %d msec\n",  prog_name,  f - s);
+    printf("%s: creat took %"PRIu64" msec\n",  prog_name,  f - s);
 }
 
 
@@ -132,7 +134,7 @@ write_test(const char *name, int n, int size)
     int i = 0 ;
     int r;
     int fd;
-    unsigned s = 0 , f = 0 ;
+    uint64_t s = 0 , f = 0 ;
     
     s = time_msec() ;
     
@@ -154,7 +156,7 @@ write_test(const char *name, int n, int size)
     
     f = time_msec() ;
     
-    printf("write_test: write took %d msec\n", f - s);
+    printf("write_test: write took %"PRIu64" msec\n", f - s);
 }
 #endif
 
@@ -175,7 +177,7 @@ read_test(int n, int size)
     int fd;
     int j;
 
-    unsigned s = 0 , f = 0 ;
+    uint64_t s = 0 , f = 0 ;
     s = time_msec();
     for (i = 0, j = 0; i < n; i ++) {
 
@@ -200,7 +202,7 @@ read_test(int n, int size)
     }
 
 	f = time_msec();
-    printf("read_test: read took %d msec\n", f - s);
+    printf("read_test: read took %"PRIu64" msec\n", f - s);
 }
 
 static void 
@@ -210,7 +212,7 @@ delete_test(int n)
     int r;
     int j;
  
-    unsigned s = 0 , f = 0;
+    uint64_t s = 0 , f = 0;
     s = time_msec();
     for (i = 0, j = 0; i < n; i ++) {
 
@@ -253,7 +255,7 @@ delete_test(int n)
 	sync();
 
     f = time_msec();
-    printf("delete_test: unlink took %d msec\n", f - s);
+    printf("delete_test: unlink took %"PRIu64" msec\n", f - s);
 }
 
 

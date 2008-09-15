@@ -35,10 +35,7 @@ struct Thread {
     uint8_t th_fp_enabled : 1;
     uint8_t th_fp_space : 1;
     uint8_t th_sched_joined : 1;
-    uint8_t th_sync_waiting : 1;
     uint8_t th_cache_flush : 1;
-    uint8_t th_linked : 1;
-    uint8_t th_unused_flag : 1;
 
     uint32_t th_sched_tickets;
     uint64_t th_multi_slots;
@@ -47,6 +44,14 @@ struct Thread {
     union {
 	uint128_t th_sched_pass;
 	int128_t th_sched_remain;
+    };
+
+    union {
+	uint32_t th_krw_bits;
+	struct {
+	    uint8_t th_sync_waiting : 1;
+	    uint8_t th_linked : 1;
+	};
     };
 
     LIST_ENTRY(Thread) th_link;

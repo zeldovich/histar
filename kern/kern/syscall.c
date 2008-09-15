@@ -17,14 +17,15 @@
 #include <kern/pstate.h>
 #include <kern/arch.h>
 #include <kern/thread.h>
+#include <machine/tag.h>
 #include <inc/error.h>
 #include <inc/thread.h>
 #include <inc/netdev.h>
 #include <inc/safeint.h>
 
 // Helper functions
-static const struct Label *cur_th_label;
-static const struct Label *cur_th_clearance;
+static const struct Label *cur_th_label __krw__;
+static const struct Label *cur_th_clearance __krw__;
 
 #define check(expr)					\
     ({							\
@@ -110,7 +111,7 @@ sys_net_create(uint64_t container, uint64_t card_idx,
     check(alloc_ulabel(ul, &l, 0));
 
     struct kobject *ko;
-    check(kobject_alloc(kobj_netdev, l, &ko));
+    check(kobject_alloc(kobj_netdev, l, 0, &ko));
     check(alloc_set_name(&ko->hdr, name));
     ko->nd.nd_idx = card_idx;
 
@@ -244,6 +245,7 @@ sys_container_get_slot_id(uint64_t ct, uint64_t slot)
 static int64_t __attribute__ ((warn_unused_result))
 sys_handle_create(void)
 {
+#if 0
     uint64_t handle = handle_alloc();
 
     // Compute new label and clearance..
@@ -265,6 +267,9 @@ sys_handle_create(void)
 			       kolabel_clearance, cur_th_clearance, c, &qr);
 
     return handle;
+#endif
+
+    return monitor_call(MONCALL_CATEGORY_ALLOC);
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -563,7 +568,11 @@ sys_gate_enter(struct cobj_ref gt,
 	memcpy(&te, &g->gt_te, sizeof(te));
     }
 
+#if 0
     check(thread_jump(cur_thread, new_label, new_clear, &te));
+#endif
+    check(monitor_call(MONCALL_GATE_ENTER, g, new_label, new_clear, &te));
+
     return 0;
 }
 
@@ -592,7 +601,11 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
     check(label_compare(new_label, new_clearance, label_leq_starlo, 0));
     check(label_compare(new_clearance, cur_th_clearance, label_leq_starhi, 0));
 
+#if 0
     check(thread_jump(t, new_label, new_clearance, &te));
+#endif
+    check(monitor_call(MONCALL_THREAD_START, t, new_label, new_clearance, &te));
+
     thread_set_sched_parents(t, thread.container, 0);
     thread_set_runnable(t);
     return 0;
@@ -670,9 +683,12 @@ sys_self_set_label(struct ulabel *ul)
     const struct Label *l;
     check(alloc_ulabel(ul, &l, 0));
 
+#if 0
     check(label_compare(cur_th_label, l, label_leq_starlo, 0));
     check(label_compare(l, cur_th_clearance, label_leq_starlo, 0));
     check(thread_change_label(cur_thread, l));
+#endif
+    check(monitor_call(MONCALL_SET_LABEL, l));
     return 0;
 }
 
@@ -682,6 +698,7 @@ sys_self_set_clearance(struct ulabel *uclear)
     const struct Label *clearance;
     check(alloc_ulabel(uclear, &clearance, 0));
 
+#if 0
     struct Label *clearance_bound;
     check(label_max(cur_th_clearance, cur_th_label,
 		    &clearance_bound, label_leq_starhi));
@@ -690,6 +707,8 @@ sys_self_set_clearance(struct ulabel *uclear)
     check(label_compare(clearance, clearance_bound, label_leq_starhi, 0));
     check(kobject_set_label(&kobject_dirty(&cur_thread->th_ko)->hdr,
 			    kolabel_clearance, clearance));
+#endif
+    check(monitor_call(MONCALL_SET_CLEAR, clearance));
     return 0;
 }
 

@@ -10,7 +10,6 @@ KERN_CFLAGS += -msoft-float -fno-builtin -DKERN_LOADADDR=$(KERN_LOADADDR)
 KERN_ARCH :=					\
 	$(ARCHDIR)/prom_stage1.S		\
 	$(ARCHDIR)/locore.S			\
-	$(ARCHDIR)/bootdata.c			\
 	$(ARCHDIR)/pmap.c			\
 	$(ARCHDIR)/page.c			\
 	$(ARCHDIR)/reboot.c			\

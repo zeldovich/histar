@@ -12,12 +12,14 @@
 #include <kern/arch.h>
 #include <inc/error.h>
 #include <inc/cksum.h>
+#include <machine/tag.h>
+#include <machine/sparc-tag.h>
 
-struct kobject_list ko_list;
-struct Thread_list kobj_snapshot_waiting;
+struct kobject_list ko_list __krw__;
+struct Thread_list kobj_snapshot_waiting __krw__;
 
-static HASH_TABLE(kobject_hash, struct kobject_list, kobj_hash_size) ko_hash;
-static struct kobject_list ko_gc_list;
+static HASH_TABLE(kobject_hash, struct kobject_list, kobj_hash_size) ko_hash __krw__;
+static struct kobject_list ko_gc_list __krw__;
 
 enum { kobject_reclaim_debug = 0 };
 enum { kobject_checksum_enable = 0 };
@@ -141,7 +143,8 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
     struct kobject_list *head = HASH_SLOT(&ko_hash, id);
     LIST_FOREACH(ko, head, ko_hash) {
 	if (ko->hdr.ko_id == id) {
-	    if (ko->hdr.ko_ref == 0)
+	    /* XXX hack to be able to get zero-refed infant labels.. */
+	    if (ko->hdr.ko_ref == 0 && ko->hdr.ko_type != kobj_label)
 		return -E_NOT_FOUND;
 
 	    int r = ko->hdr.ko_type == kobj_label ? 0 :
@@ -162,28 +165,22 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
     if (kobject_negative_contains(id))
 	return -E_NOT_FOUND;
 
-    return pstate_swapin(id);
+    // XXX we have no pstate in sparc yet
+    //return pstate_swapin(id);
+    return -E_NOT_FOUND;
 }
 
 int
 kobject_get_label(const struct kobject_hdr *kp, int idx,
 		  const struct Label **lpp)
 {
-    struct kobject *ko = kobject_const_h2k(kp);
-    const struct kobject *label_ko;
-
-    label_ko = ko->ko_label_cache[idx].wp_kobj;
-    if (label_ko && label_ko->hdr.ko_id == kp->ko_label[idx]) {
-	*lpp = &label_ko->lb;
-	return 0;
-    }
-
     if (kp->ko_label[idx]) {
-	int r = kobject_get(kp->ko_label[idx], &label_ko, kobj_label, iflow_none);
+	const struct kobject *label_ko = 0;
+	int r = kobject_get(kp->ko_label[idx], &label_ko,
+			    kobj_label, iflow_none);
 	if (r < 0)
 	    return r;
 
-	kobj_weak_put(&ko->ko_label_cache[idx], kobject_const_h2k(&label_ko->hdr));
 	*lpp = &label_ko->lb;
 	return 0;
     }
@@ -233,13 +230,33 @@ kobject_set_label_prepared(struct kobject_hdr *kp, int idx,
 }
 
 int
-kobject_alloc(uint8_t type, const struct Label *l,
+kobject_alloc(uint8_t type, const struct Label *l, const struct Label *clear,
 	      struct kobject **kp)
+{
+    if (read_tsr() & TSR_T)
+	return kobject_alloc_real(type, l, clear, kp);
+    else
+	return monitor_call(MONCALL_KOBJ_ALLOC, type, l, clear, kp);
+}
+
+uint64_t nkobjects;
+
+int
+kobject_alloc_real(uint8_t type, const struct Label *l,
+		   const struct Label *clear,
+		   struct kobject **kp)
 {
     assert(type == kobj_label || l != 0);
 
+    const struct Label *tag_label;
+    if (type == kobj_label) {
+	tag_label = &dtag_label[DTAG_KRW];
+    } else {
+	tag_label = l;
+    }
+
     void *p;
-    int r = page_alloc(&p);
+    int r = page_alloc(&p, tag_label);
     if (r < 0)
 	return r;
 
@@ -273,13 +290,38 @@ kobject_alloc(uint8_t type, const struct Label *l,
 	return r;
     }
 
-    kobject_negative_remove(kh->ko_id);
+    if (clear) {
+	r = kobject_set_label(kh, kolabel_clearance, clear);
+	if (r < 0) {
+	    kobject_set_label_prepared(kh, kolabel_contaminate, l, 0, 0);
+	    page_free(p);
+	    return r;
+	}
+    }
+
+    //kobject_negative_remove(kh->ko_id);
     struct kobject_list *hash_head = HASH_SLOT(&ko_hash, kh->ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
     LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
     LIST_INSERT_HEAD(hash_head, ko, ko_hash);
 
+    assert(read_tsr() & TSR_T);
+    tag_set(&kh->ko_id,     DTAG_TYPE_KOBJ, sizeof(kh->ko_id));
+    tag_set(&kh->ko_ref,    DTAG_KRW,       sizeof(kh->ko_ref));
+    tag_set(&kh->ko_parent, DTAG_KRW,       sizeof(kh->ko_parent));
+    tag_set(&kh->ko_label[kolabel_contaminate],
+	    DTAG_TYPE_KOBJ, sizeof(kh->ko_label[0]));
+    tag_set(&kh->ko_label[kolabel_clearance],
+	    DTAG_TYPE_KOBJ, sizeof(kh->ko_label[0]));
+    tag_set(&kh->ko_name,   DTAG_KRW,       sizeof(kh->ko_name));
+    tag_set(&kh->ko_type,   DTAG_TYPE_KOBJ, sizeof(kh->ko_type));
+
+    tag_set(&ko->ko_link,    DTAG_KRW,       sizeof(ko->ko_link));
+    tag_set(&ko->ko_hash,    DTAG_TYPE_KOBJ, sizeof(ko->ko_hash));
+    tag_set(&ko->ko_gc_link, DTAG_KRW,       sizeof(ko->ko_gc_link));
+
     *kp = ko;
+    nkobjects++;
     return 0;
 }
 
@@ -447,10 +489,19 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	    panic("kobject_set_nbytes: cannot drop page: %s", e2s(r));
     }
 
+    const struct Label *kl;
+    if (kp->ko_type == kobj_label) {
+	kl = &dtag_label[DTAG_KRW];
+    } else {
+	r = kobject_get_label(kp, kolabel_contaminate, &kl);
+	if (r < 0)
+	    return r;
+    }
+
     uint64_t maxalloc = curnpg;
     for (uint64_t i = curnpg; i < npages; i++) {
 	void *p;
-	r = page_alloc(&p);
+	r = page_alloc(&p, kl);
 	if (r == 0) {
 	    r = pagetree_put_page(&ko->ko_pt, i, p);
 	    if (r < 0)
@@ -536,7 +587,7 @@ kobject_swapin(struct kobject *ko)
 	    panic("kobject_swapin: duplicate %"PRIu64" (%s)",
 		  ko->hdr.ko_id, ko->hdr.ko_name);
 
-    kobject_negative_remove(ko->hdr.ko_id);
+    //kobject_negative_remove(ko->hdr.ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
     LIST_INSERT_HEAD(hash_head, ko, ko_hash);
     if (ko->hdr.ko_ref == 0)
@@ -648,16 +699,10 @@ kobject_unpin_page(const struct kobject_hdr *ko)
     kobject_unpin_hdr(ko);
 }
 
-static int
+int64_t
 kobject_gc(struct kobject *ko)
 {
-    int r;
-    const struct Label *l[kolabel_max];
-    for (int i = 0; i < kolabel_max; i++) {
-	r = kobject_get_label(&ko->hdr, i, &l[i]);
-	if (r < 0)
-	    return r;
-    }
+    int r = 0;
 
     if ((ko->hdr.ko_flags & KOBJ_DIRTY_LATER))
 	kobject_dirty_eval(ko);
@@ -688,15 +733,27 @@ kobject_gc(struct kobject *ko)
 	panic("kobject_gc: unknown kobject type %d", ko->hdr.ko_type);
     }
 
-    if (r < 0)
+    if (r < 0) {
+	cprintf("kobject_gc: %s (%d)\n", e2s(r), r);
 	return r;
-
-    for (int i = 0; i < kolabel_max; i++)
-	kobject_set_label_prepared(&ko->hdr, i, l[i], 0, 0);
+    }
 
     pagetree_free(&ko->ko_pt, 0);
     ko->hdr.ko_nbytes = 0;
-    ko->hdr.ko_type = kobj_dead;
+
+    LIST_REMOVE(ko, ko_link);
+    LIST_REMOVE(ko, ko_gc_link);
+
+    if (read_tsr() & TSR_T) {
+	for (int i = 0; i < kolabel_max; i++)
+	    assert(0 == kobject_set_label(&ko->hdr, i, 0));
+	LIST_REMOVE(ko, ko_hash);
+	page_free(ko);
+	nkobjects--;
+    } else {
+	monitor_call(MONCALL_KOBJ_FREE, ko);
+    }
+
     return 0;
 }
 
@@ -727,15 +784,15 @@ kobject_gc_scan(void)
 	    }
 
 	    if (ko->hdr.ko_type == kobj_dead) {
-		if (!(ko->hdr.ko_flags & KOBJ_ON_DISK))
-		    kobject_swapout(ko);
+		cprintf("kobj_dead should not exist\n");
 	    } else {
-		int r = kobject_gc(kobject_dirty(&ko->hdr));
+		//int r = kobject_gc(kobject_dirty(&ko->hdr));
+		int r = monitor_call(MONCALL_KOBJ_GC, ko);
 		if (r >= 0)
 		    progress = 1;
 		if (r < 0 && r != -E_RESTART)
-		    cprintf("kobject_gc_scan: %"PRIu64" type %d: %s\n",
-			    ko->hdr.ko_id, ko->hdr.ko_type, e2s(r));
+		    cprintf("kobject_gc_scan: %"PRIu64" type %d: %s (%d)\n",
+			    ko->hdr.ko_id, ko->hdr.ko_type, e2s(r), r);
 	    }
 	}
     } while (progress);
@@ -746,6 +803,8 @@ kobject_gc_scan(void)
 void
 kobject_swapout(struct kobject *ko)
 {
+    cprintf("kobject_swapout not supported\n");
+
     if (kobject_checksum_pedantic) {
 	uint64_t sum1 = ko->hdr.ko_cksum;
 	uint64_t sum2 = kobject_cksum(&ko->hdr);
@@ -763,15 +822,12 @@ kobject_swapout(struct kobject *ko)
     if (ko->hdr.ko_type == kobj_address_space)
 	as_swapout(&ko->as);
 
-    for (int i = 0; i < kolabel_max; i++)
-	kobj_weak_put(&ko->ko_label_cache[i], 0);
-    kobj_weak_drop(&ko->ko_weak_refs);
-
     LIST_REMOVE(ko, ko_link);
     if (ko->hdr.ko_ref == 0 && ko->hdr.ko_pin == 0)
 	LIST_REMOVE(ko, ko_gc_link);
     LIST_REMOVE(ko, ko_hash);
     pagetree_free(&ko->ko_pt, 0);
+
     page_free(ko);
 }
 
@@ -903,7 +959,8 @@ kobject_reclaim(void)
 	    cprintf("kobject_reclaim: swapping out %"PRIu64" (%s)\n",
 		    ko->hdr.ko_id, ko->hdr.ko_name);
 
-	kobject_swapout(ko);
+	/* XXX no swapout for now */
+	//kobject_swapout(ko);
     }
 
     cur_thread = t;

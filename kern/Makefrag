@@ -31,7 +31,6 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/sync.c \
 	    kern/kern/prof.c \
 	    kern/kern/dstack.c \
-	    kern/kern/kocache.c \
 	    kern/kern/stackwrap.c \
 	    kern/kern/thread.c \
 	    kern/kern/as.c \

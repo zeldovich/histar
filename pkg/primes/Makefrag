@@ -1,0 +1,12 @@
+OBJDIRS += pkg/primes
+
+PRIMES_SRCFILES := pattern.c pr_tbl.c primes.c
+PRIMES_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/primes/%.o, $(PRIMES_SRCFILES))
+
+$(OBJDIR)/pkg/primes/%.o: pkg/primes/%.c
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o $@ $<
+
+$(OBJDIR)/user/jprimes.debuginfo: $(PRIMES_OBJFILES) $(LDEPS)
+	$(CC) -o $@ $(LDFLAGS) $(PRIMES_OBJFILES)
+
