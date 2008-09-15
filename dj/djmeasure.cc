@@ -140,7 +140,31 @@ main (int ac, char **av)
     xdr2bytes(s, signed_cat_delegation);
     simple_msg0.dset.ents.push_back(s);
     simple_msg0.msg.setsize(0);
-    
+
+    dj_call_msg callmsg;
+    callmsg.return_host = pk0;
+    callmsg.return_ep.set_type(EP_SEGMENT);
+    *callmsg.return_ep.ep_segment = seg;
+    callmsg.return_cm = simple_msg0.catmap;
+    callmsg.return_ds = simple_msg0.dset;
+
+    struct dj_message rpc_msg0;
+    memset(&rpc_msg0, 0, sizeof(rpc_msg0));
+    rpc_msg0.to = pk1;
+    rpc_msg0.target.set_type(EP_SEGMENT);
+    *rpc_msg0.target.ep_segment = seg;
+    rpc_msg0.taint.ents.setsize(1);
+    rpc_msg0.taint.ents.push_back(meow);
+    rpc_msg0.glabel.ents.setsize(0);
+    rpc_msg0.gclear.ents.setsize(0);
+    rpc_msg0.catmap.ents.setsize(0);
+    rpc_msg0.catmap.ents.push_back(mapping);
+    rpc_msg0.dset.ents.setsize(0);
+    rpc_bytes<2147483647ul> s;
+    xdr2bytes(s, signed_cat_delegation);
+    rpc_msg0.dset.ents.push_back(s);
+    rpc_msg0.msg = xdr2str(callmsg);
+
     printf("size:\n");
     printf(" plain zlib what\n");
     print_size("dj_pubkey", xdr2str(pk0));
