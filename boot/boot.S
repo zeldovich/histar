@@ -41,12 +41,12 @@ start:		.code16				# This runs in real mode
 ####   address memory above 1MB.  This code undoes this.
 	
 seta20.1:	inb	$0x64,%al		# Get status
-		testb	$0x2,%al		# Busy?
+		testb	$0x1,%al		# Busy?
 		jnz	seta20.1		# Yes
 		movb	$0xd1,%al		# Command: Write
 		outb	%al,$0x64		#  output port
 seta20.2:	inb	$0x64,%al		# Get status
-		testb	$0x2,%al		# Busy?
+		testb	$0x1,%al		# Busy?
 		jnz	seta20.2		# Yes
 		movb	$0xdf,%al		# Enable
 		outb	%al,$0x60		#  A20
