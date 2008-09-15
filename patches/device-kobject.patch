@@ -1,0 +1,91 @@
+Index: kern/kern/device.c
+===================================================================
+--- kern/kern/device.c	(revision 7557)
++++ kern/kern/device.c	(working copy)
+@@ -3,8 +3,36 @@
+ #include <kern/kobj.h>
+ #include <inc/error.h>
+ 
++enum { device_idx_max = 4 };
++
++struct device_ctl *dctl[device_type_max][device_idx_max];
++
+ void
+ device_swapin(struct Device *dv)
+ {
+     LIST_INIT(&dv->dv_segmap_list);
+ }
++
++void
++device_register(struct device_ctl *dctl)
++{
++    if (dctl->dctl_type >= device_type_max ||
++	dctl->dctl_idx  >= device_idx_max)
++    {
++	cprintf("device_register(%d, %d): out of range\n",
++		dctl->dctl_type, dctl->dctl_idx);
++	return;
++    }
++
++    dctl[dctl->dctl_type][dctl->dctl_idx] = dctl;
++}
++
++struct device_ctl *
++device_lookup(struct Device *dv)
++{
++    if (dv->dv_type >= device_type_max ||
++	dv->dv_idx  >= device_idx_max)
++	return 0;
++
++    return dctl[dv->dv_type][dv->dv_idx];
++}
+Index: kern/kern/device.h
+===================================================================
+--- kern/kern/device.h	(revision 7557)
++++ kern/kern/device.h	(working copy)
+@@ -15,4 +15,29 @@
+ 
+ void	device_swapin(struct Device *dv);
+ 
++struct device_ctl_mmap {
++    uint64_t base_pa;
++    uint64_t npages;
++};
++
++struct device_ctl_io {
++    uint32_t port_addr;
++    uint32_t port_len;
++};
++
++struct device_ctl {
++    uint8_t  dctl_type;
++    uint64_t dctl_idx;
++
++    struct device_ctl_mmap dctl_mmap[6];
++    struct device_ctl_io dctl_io[6];
++
++    uint64_t dctl_intr_buf[16];
++    uint32_t dctl_intr_rpos;
++    uint32_t dctl_intr_wpos;
++};
++
++void	device_register(struct device_ctl *dctl);
++struct device_ctl *device_lookup(struct Device *dv);
++
+ #endif
+Index: inc/device.h
+===================================================================
+--- inc/device.h	(revision 7557)
++++ inc/device.h	(working copy)
+@@ -3,7 +3,10 @@
+ 
+ enum device_type_enum {
+     device_net,
+-    device_fb
++    device_fb,
++    device_pc_kbd,
++    device_pc_mouse,
++    device_type_max
+ };
+ 
+ #endif
