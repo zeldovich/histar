@@ -4,6 +4,6 @@ for ARCH in amd64 i386 sparc um ft arm; do
 done
 
 for ARCH in amd64 i386; do
-    make K_ARCH=$ARCH OBJSUFFIX=.full
+    make K_ARCH=$ARCH OBJSUFFIX=.full all obj.full.$ARCH/boot/boot.iso
 done
 
