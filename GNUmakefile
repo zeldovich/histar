@@ -79,6 +79,7 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libnetd.a \
 	   $(OBJDIR)/lib/liblwip.a \
 	   $(OBJDIR)/lib/libc.a \
+	   $(OBJDIR)/lib/libc_nonshared.a \
 	   $(OBJDIR)/lib/libm.a \
 	   $(OBJDIR)/lib/libcrypt.a \
 	   $(OBJDIR)/lib/libutil.a \

@@ -23,3 +23,11 @@ $(OBJDIR)/lib/libc.a: $(LIBC_OBJFILES)
 	@mkdir -p $(@D)
 	rm -f $@
 	$(AR) r $@ $(LIBC_OBJFILES)
+
+LIBC_NONSHARED_OBJS := $(OBJDIR)/pkg/uclibc/libc/sysdeps/linux/common/ssp-local.o
+
+$(OBJDIR)/lib/libc_nonshared.a: $(LIBC_NONSHARED_OBJS)
+	@mkdir -p $(@D)
+	rm -f $@
+	$(AR) r $@ $(LIBC_NONSHARED_OBJS)
+
