@@ -13,7 +13,7 @@ include conf/Makefrag.$(K_ARCH)
 
 ## Use multiple objdirs to build multiple architectures with same source tree
 ifeq ($(MULTIOBJ),yes)
-OBJDIR	:= obj.$(K_ARCH)$(OBJSUFFIX)
+OBJDIR	:= obj$(OBJSUFFIX).$(K_ARCH)
 else
 OBJDIR	:= obj
 endif
