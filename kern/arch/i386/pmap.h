@@ -6,6 +6,7 @@
 #include <machine/memlayout.h>
 #ifndef __ASSEMBLER__
 #include <machine/types.h>
+#include <machine/boot.h>
 #include <inc/intmacro.h>
 #endif /* !__ASSEMBLER__ */
 #endif /* JOS_KERNEL */
@@ -42,7 +43,8 @@ struct Pagemap {
     ptent_t pm_ent[NPTENTRIES];
 };
 
-void page_init(uint64_t lower_kb, uint64_t upper_kb);
+void page_init(uint64_t lower_kb, uint64_t upper_kb,
+	       struct e820entry *map, uint8_t n);
 void pmap_set_current_arch(struct Pagemap *pm);
 
 #endif /* !__ASSEMBLER__ && JOS_KERNEL */

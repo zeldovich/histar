@@ -10,7 +10,6 @@
 #include <dev/pci.h>
 #include <dev/picirq.h>
 #include <dev/kclock.h>
-#include <dev/apic.h>
 #include <dev/acpi.h>
 #include <dev/vesafb.h>
 #include <kern/sched.h>
@@ -109,11 +108,10 @@ init(uint32_t start_eax, uint32_t start_ebx)
     pic_init();
 
     acpi_init();	/* Picks up HPET, PM timer */
-    apic_init();	/* LAPIC timer for preemption */
     tsc_timer_init();	/* Optimization for PM timer */
     pit_init();		/* Fallback position */
 
-    page_init(lower_kb, upper_kb);
+    page_init(lower_kb, upper_kb, 0, 0);
     pci_init();
     part_init();
 

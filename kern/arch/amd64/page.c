@@ -1,11 +1,14 @@
 #include <machine/pmap.h>
 #include <machine/types.h>
+#include <machine/boot.h>
+#include <machine/memlayout.h>
 #include <dev/kclock.h>
 #include <kern/lib.h>
 #include <kern/pageinfo.h>
 #include <kern/arch.h>
 #include <inc/error.h>
 #include <inc/queue.h>
+#include <inc/safeint.h>
 
 // Limit of physical address space
 uint64_t pa_limit = UINT64(0x100000000);		
@@ -66,8 +69,11 @@ e820_detect_memory(struct e820entry *desc, uint8_t n)
 	// kernel's bss segment - i.e. the first virtual address that the 
 	// linker did _not_ assign to any kernel code or variables.
         if (s < RELOC(end) && RELOC(end) < e) {
-	    boot_freemem = (char *)(RELOC(end) + PHYSBASE);
-	    boot_endmem = (char *)(e + PHYSBASE);
+	    int of = 0;
+	    boot_freemem = end;
+	    boot_endmem = (char *) (safe_addptr(&of, e, KERNBASE));
+	    if (of)
+		boot_endmem = (char *) (uintptr_t) UINT64(~0);
 	}
         
 	// global_npages counts from 0 to the last RAM page.
@@ -117,7 +123,7 @@ e820_init(struct e820entry *map, uint8_t n)
 	    if (s != 0 && s != APBOOTSTRAP && s < IOPHYSMEM)
 		inuse = 0;
 	    
-	    if (s >= (uint64_t)boot_freemem - PHYSBASE)
+	    if (s >= RELOC (boot_freemem))
 		inuse = 0;
 
 	    if (!inuse)
@@ -125,7 +131,7 @@ e820_init(struct e820entry *map, uint8_t n)
 	}
     }
 
-    cprintf("Physical memory: %ldMB of %ldMB available\n", 
+    cprintf("Physical memory: %"PRIu64"MB of %"PRIu64"MB available\n", 
 	    (page_stats.pages_avail << PGSHIFT) / (1024 * 1024),
 	    membytes / (1024 * 1024));
 }

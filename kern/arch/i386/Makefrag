@@ -43,7 +43,6 @@ KERN_DEV :=					\
 	kern/dev/fxp.c				\
 	kern/dev/e1000.c			\
 	kern/dev/pnic.c				\
-	kern/dev/apic.c				\
 	kern/dev/acpi.c				\
 	kern/dev/hpet.c				\
 	kern/dev/vesafb.c
