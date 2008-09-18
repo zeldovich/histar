@@ -1,0 +1,5 @@
+obj
+obj.*
+qemu.sh
+bochs.log
+.bochsrc
