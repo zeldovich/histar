@@ -55,7 +55,7 @@ volatile uint64_t signal_counter;
 
 // BSD compat
 const char *sys_signame[_NSIG] = {
-    [0 ... _NSIG - 1]	= "",
+    [0] = "",
 #define SYS_SIGNAME(signame) [signame] = #signame + 3
     SYS_SIGNAME(SIGHUP),
     SYS_SIGNAME(SIGINT),
@@ -90,6 +90,7 @@ const char *sys_signame[_NSIG] = {
     SYS_SIGNAME(SIGSYS),
     SYS_SIGNAME(SIGINFO),
 #undef SYS_SIGNAME
+    [SIGINFO + 1 ... _NSIG - 1] = "",
 };
 
 // Thread which will receive traps to handle signals
