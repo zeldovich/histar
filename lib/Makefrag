@@ -135,11 +135,9 @@ $(OBJDIR)/lib/gcc.specs: conf/gcc.specs GNUmakefile $(OBJDIR)/lib/ld.script
 	cat conf/gcc.specs | sed -e "s,LDSOPATH,$(TOP)/$(OBJDIR)/user/ld.so," -e s,MAYBE_GCC_EH,$(shell $(CC) -dumpspecs | grep -q .lgcc_eh && echo -lgcc_eh), -e s,ARCH_SPECS_LDFLAGS,"$(ARCH_SPECS_LDFLAGS)", -e s,BUILD_SPECS_LDFLAGS,"$(BUILD_SPECS_LDFLAGS)", > $@
 
 $(OBJDIR)/lib/ld.script:
-	( $(LD) --verbose | \
+	$(LD) --verbose | \
 	    awk 'BEGIN{P=0;} /========/{P=1-P; next;} P==1 {print;}' | \
-	    grep -v SEARCH_DIR; \
-	  echo 'SEARCH_DIR("'$(TOP)/$(OBJDIR)/lib'");'; \
-	) > $@
+	    grep -v SEARCH_DIR > $@
 
 $(OBJDIR)/lib/libc.so: GNUmakefile
 	@mkdir -p $(@D)
