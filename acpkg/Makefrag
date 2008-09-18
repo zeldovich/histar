@@ -219,7 +219,7 @@ DISTURL_xdpyinfo-1.0.1	    := http://xorg.freedesktop.org/releases/X11R7.3/src/e
 AUTOCONF_openvpn-2.0.5	    := --disable-lzo --disable-ssl --disable-crypto
 AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared=no
 AUTOCONF_binutils-2.17.50.0.15 := --disable-nls --enable-64-bit-bfd --enable-shared=no
-AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --disable-threads --disable-shared --enable-languages=c,c++
+AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --disable-threads --disable-shared --enable-languages=c,c++ --prefix=$(TOP)/$(ACPKG_PREFIX).gcc
 AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_clamav-0.91.2	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep --disable-strip
@@ -511,7 +511,7 @@ $(OBJDIR)/acpkg/bin/less: $(ACPKG_BUILDDIR)/less-382/__build
 $(OBJDIR)/acpkg/bin/grep $(OBJDIR)/acpkg/bin/egrep $(OBJDIR)/acpkg/bin/fgrep: $(ACPKG_BUILDDIR)/grep-2.5.3/__build
 	@
 
-$(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: $(ACPKG_BUILDDIR)/gzip-1.2.4a/__build
+$(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip $(OBJDIR)/acpkg/bin/zcat: $(ACPKG_BUILDDIR)/gzip-1.2.4a/__build
 	@
 
 $(OBJDIR)/acpkg/bin/tar: $(ACPKG_BUILDDIR)/tar-1.15/__build
@@ -794,19 +794,19 @@ $(ACPKG_BUILDDIR)/gcc-3.4.5/Makefile: | $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/
 $(ACPKG_BUILDDIR)/gcc-3.4.5/__build: $(ACPKG_BUILDDIR)/gcc-3.4.5/Makefile
 	( cd $(ACPKG_BUILDDIR)/gcc-3.4.5 && sh -c "$(GCC_ACENV) $(MAKE)" )
 	( cd $(ACPKG_BUILDDIR)/gcc-3.4.5 && sh -c "$(ACENV) $(MAKE) install" )
-	cp $(ACPKG_BUILDDIR)/gcc-3.4.5/gcc/gsyslimits.h $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/include/syslimits.h
-	cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, -e s,MAYBE_GCC_EH,, -e s,ARCH_SPECS_LDFLAGS,"$(ARCH_SPECS_LDFLAGS)", -e s,BUILD_SPECS_LDFLAGS,, >> $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/specs
+	cp $(ACPKG_BUILDDIR)/gcc-3.4.5/gcc/gsyslimits.h $(ACPKG_PREFIX).gcc/lib/gcc/$(TARGET)/3.4.5/include/syslimits.h
+	cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, -e s,MAYBE_GCC_EH,, -e s,ARCH_SPECS_LDFLAGS,"$(ARCH_SPECS_LDFLAGS)", -e s,BUILD_SPECS_LDFLAGS,, >> $(ACPKG_PREFIX).gcc/lib/gcc/$(TARGET)/3.4.5/specs
 	touch $@
 
 $(OBJDIR)/user/gcc.tar: $(ACPKG_BUILDDIR)/gcc-3.4.5/__build $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build | $(LDEPS)
 	rm -f $@
 
 	rm -f $(OBJDIR)/user/.tmp.gcc.tar
-	cp $(OBJDIR)/lib/crt1.o $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/
-	cp $(OBJDIR)/lib/crti.o $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/
-	cp $(OBJDIR)/lib/crtn.o $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/
-	tar -cf $(OBJDIR)/user/.tmp.gcc.tar -C $(OBJDIR)/acpkg \
-		bin/gcc bin/g++ bin/ld bin/as \
+	cp $(OBJDIR)/lib/crt1.o $(ACPKG_PREFIX).gcc/lib/gcc/$(TARGET)/3.4.5/
+	cp $(OBJDIR)/lib/crti.o $(ACPKG_PREFIX).gcc/lib/gcc/$(TARGET)/3.4.5/
+	cp $(OBJDIR)/lib/crtn.o $(ACPKG_PREFIX).gcc/lib/gcc/$(TARGET)/3.4.5/
+	tar -cf $(OBJDIR)/user/.tmp.gcc.tar -C $(ACPKG_PREFIX).gcc \
+		bin/gcc bin/g++ \
 		libexec/gcc/$(TARGET)/3.4.5/cc1 \
 		libexec/gcc/$(TARGET)/3.4.5/cc1plus \
 		libexec/gcc/$(TARGET)/3.4.5/collect2 \
@@ -821,6 +821,9 @@ $(OBJDIR)/user/gcc.tar: $(ACPKG_BUILDDIR)/gcc-3.4.5/__build $(ACPKG_BUILDDIR)/bi
 		lib/gcc/$(TARGET)/3.4.5/libgcc.a \
 		lib/gcc/$(TARGET)/3.4.5/specs \
 		lib/gcc/$(TARGET)/3.4.5/include
+
+	tar -hrf $(OBJDIR)/user/.tmp.gcc.tar -C $(ACPKG_PREFIX) \
+		bin/ld bin/as
 
 	tar -hrf $(OBJDIR)/user/.tmp.gcc.tar -C $(OBJDIR) \
 		lib/libjos.a lib/libnetd.a lib/libc.a lib/libm.a \
