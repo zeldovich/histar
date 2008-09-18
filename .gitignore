@@ -3,3 +3,4 @@ obj.*
 qemu.sh
 bochs.log
 .bochsrc
+keys
