@@ -1,5 +1,6 @@
 # Should be in the first sector of the image at offset 0x1F0
 .data
+. = 0x1F0
 pad:		.byte 0
 setup_sects:	.byte ((ELFOFF - 512)/512) # sectors used by bsetup
 root_flags:	.word 0		

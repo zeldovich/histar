@@ -3,7 +3,7 @@
 # 
 # 0 ---------> +-----------------------------+ <--------+
 #              |                             |          |
-#              | jos64 boot loader and init  |          |
+#              |           unused            |          |
 #              |                             |          |
 # 497 -------> +-----------------------------+          | bbootsect
 #              |                             |          |
@@ -23,20 +23,13 @@
 #              |                             |
 #              +-----------------------------+
 #
-# The jos64 boot loader allows a bimage to be used as a part of a bootable 
-# disk image, which is useful for booting on qemu or Bochs.  However, a
-# bimage disk image will not support a partition table, which usually 
-# starts at 446.  A bimage can also be used with most Linux compatible 
-# boot loaders to boot on real hardware.
-#
 
 # Must be a multiple of 512 and fit bbootsect and bsetup
 ELFOFF := 4096
 
 OBJDIRS += boot
 
-BBS_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/diskboot.o \
-	    $(OBJDIR)/boot/bsdata.o
+BBS_OBJS := $(OBJDIR)/boot/bsdata.o
 SETUP_OBJS := $(OBJDIR)/boot/setup.o $(OBJDIR)/boot/csetup.o
 BOOT_CFLAGS := -m32 -DCODE32 -g -Os -MD -Wall -Werror -DJOS_KARCH_$(K_ARCH) \
 	       -DELFOFF=$(ELFOFF)
@@ -70,7 +63,7 @@ $(OBJDIR)/boot/bimage.%: $(OBJDIR)/boot/bbootsect $(OBJDIR)/boot/bsetup \
 	cat $^ > $@
 
 # Build the Bochs disk image
-$(OBJDIR)/boot/bochs.img: $(OBJDIR)/boot/bimage.init $(OBJDIR)/boot/bimage.base
+$(OBJDIR)/boot/bochs.img: $(OBJDIR)/boot/bimage.init $(OBJDIR)/boot/bimage.base boot/syslinux.cfg
 	dd if=/dev/zero of=$@~ bs=1024k count=128 2>/dev/null
 	mkdosfs $@~
 	syslinux $@~
