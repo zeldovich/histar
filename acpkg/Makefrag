@@ -810,9 +810,14 @@ $(OBJDIR)/user/gcc.tar: $(ACPKG_BUILDDIR)/gcc-3.4.5/__build $(ACPKG_BUILDDIR)/bi
 		libexec/gcc/$(TARGET)/3.4.5/cc1 \
 		libexec/gcc/$(TARGET)/3.4.5/cc1plus \
 		libexec/gcc/$(TARGET)/3.4.5/collect2 \
-		lib/gcc/$(TARGET)/3.4.5/crt{begin,end}{,S}.o \
+		lib/gcc/$(TARGET)/3.4.5/crtbegin.o \
+		lib/gcc/$(TARGET)/3.4.5/crtbeginS.o \
+		lib/gcc/$(TARGET)/3.4.5/crtend.o \
+		lib/gcc/$(TARGET)/3.4.5/crtendS.o \
 		lib/gcc/$(TARGET)/3.4.5/crtbeginT.o \
-		lib/gcc/$(TARGET)/3.4.5/crt{1,i,n}.o \
+		lib/gcc/$(TARGET)/3.4.5/crt1.o \
+		lib/gcc/$(TARGET)/3.4.5/crti.o \
+		lib/gcc/$(TARGET)/3.4.5/crtn.o \
 		lib/gcc/$(TARGET)/3.4.5/libgcc.a \
 		lib/gcc/$(TARGET)/3.4.5/specs \
 		lib/gcc/$(TARGET)/3.4.5/include
