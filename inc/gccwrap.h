@@ -9,7 +9,8 @@
     GCC_WRAP(__moddi3) \
     GCC_WRAP(__umoddi3) \
     GCC_WRAP(__divdi3) \
-    GCC_WRAP(__udivdi3)
+    GCC_WRAP(__udivdi3) \
+    GCC_WRAP(__popcountsi2)
 #else
 #define GCC_WRAPS_ARCH
 #endif
