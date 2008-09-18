@@ -70,9 +70,14 @@ $(OBJDIR)/boot/bimage.%: $(OBJDIR)/boot/bbootsect $(OBJDIR)/boot/bsetup \
 	cat $^ > $@
 
 # Build the Bochs disk image
-$(OBJDIR)/boot/bochs.img: $(OBJDIR)/boot/bimage.init
+$(OBJDIR)/boot/bochs.img: $(OBJDIR)/boot/bimage.init $(OBJDIR)/boot/bimage.base
 	dd if=/dev/zero of=$@~ bs=1024k count=128 2>/dev/null
-	dd if=$< of=$@~ conv=notrunc 2>/dev/null
+	mkdosfs $@~
+	syslinux $@~
+	echo "drive z: file=\"$@~\"" > $@.mtoolsrc
+	MTOOLSRC=$@.mtoolsrc mcopy $(OBJDIR)/boot/bimage.base z:histar.ker
+	MTOOLSRC=$@.mtoolsrc mcopy $(OBJDIR)/boot/bimage.init z:histar.ini
+	MTOOLSRC=$@.mtoolsrc mcopy boot/syslinux.cfg z:syslinux.cfg
 	mv $@~ $@
 
 # Build a pstate disk with a partition table
