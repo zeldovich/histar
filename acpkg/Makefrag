@@ -21,7 +21,7 @@ ACPKG_BUILD_SYS	:= $(shell $(TOP)/acpkg/config.guess)
 AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) \
 		   --build=$(ACPKG_BUILD_SYS) \
 		   --prefix=$(TOP)/$(ACPKG_PREFIX)
-BUILD_SPECS_LDFLAGS += -rpath-link $(TOP)/$(ACPKG_PREFIX)/lib
+BUILD_SPECS_LDFLAGS += -rpath $(TOP)/$(ACPKG_PREFIX)/lib
 
 ## autoconf terminology:
 ##
