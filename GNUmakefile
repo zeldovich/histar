@@ -49,7 +49,8 @@ ifeq ($(ARCH),amd64)
 OPTFLAG  += -march=athlon64
 endif
 
-BASECFLAGS  := -nostdinc -idirafter $(shell $(CC) -print-file-name=include)
+BASECFLAGS  := -nostdinc -idirafter $(shell $(CC) -print-file-name=include) \
+	       $(shell ./conf/gcc-flags.sh "$(CC)" -fno-stack-protector) \
 
 ifeq ($(K_ARCH),ft)
 BASECFLAGS :=
@@ -65,7 +66,8 @@ endif
 COMFLAGS    := $(BASECFLAGS) -g $(OPTFLAG) -fno-strict-aliasing \
 	       -Wall -MD -DJOS_ARCH_$(ARCH) \
 	       -DJOS_BUILD_VERSION=\"$(BUILD_VERSION)\"
-CSTD	    := -std=c99 -fms-extensions $(shell ./conf/gcc-flags.sh $(CC))
+CSTD	    := -std=c99 -fms-extensions \
+	       $(shell ./conf/gcc-flags.sh "$(CC)" -fgnu89-inline)
 INCLUDES    := -I$(TOP) -I$(TOP)/kern -I$(TOP)/$(OBJDIR)
 
 # Linker flags for user programs
