@@ -1,5 +1,5 @@
 config.version = "8"
-virtualHW.version = "6"
+virtualHW.version = "4"
 displayName = "HiStar VM"
 
 floppy0.present = FALSE
@@ -9,11 +9,10 @@ ethernet0.present = TRUE
 ethernet0.connectionType = nat
 ethernet0.virtualdev = e1000
 
-memsize = 256
-guestOS = other
+memsize = 512
+guestOS = other-64
 
 ide0:0.present = TRUE
 ide0:0.fileName = "kern.vmdk"
 ide0:1.present = TRUE
 ide0:1.fileName = "data.vmdk"
-
