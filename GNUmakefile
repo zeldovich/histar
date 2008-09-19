@@ -87,8 +87,7 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libutil.a \
 	   $(OBJDIR)/lib/libstdc++.a \
 	   $(OBJDIR)/lib/libintl.a \
-	   $(OBJDIR)/lib/gcc.specs \
-	   $(OBJDIR)/lib/ld.script
+	   $(OBJDIR)/lib/gcc.specs
 
 # Shared library stuff
 SHARED_ENABLE := no
