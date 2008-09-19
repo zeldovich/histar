@@ -21,7 +21,6 @@ ACPKG_BUILD_SYS	:= $(shell $(TOP)/acpkg/config.guess)
 AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) \
 		   --build=$(ACPKG_BUILD_SYS) \
 		   --prefix=$(TOP)/$(ACPKG_PREFIX)
-BUILD_SPECS_LDFLAGS += -rpath $(TOP)/$(ACPKG_PREFIX)/lib
 
 ## autoconf terminology:
 ##
@@ -314,24 +313,28 @@ $(ACPKG_WRAPS): | $(LDEPS)
 
 	( echo "#!/bin/sh"; \
 	  echo "PATH=$$PATH"; \
+	  echo "export LD_RUN_PATH=$(TOP)/$(ACPKG_PREFIX)/lib"; \
 	  echo "exec perl $(TOP)/$(ACPKG_WRAPDIR)/acpkg-filter-args.pl $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
 	> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
 
 	( echo "#!/bin/sh"; \
 	  echo "PATH=$$PATH"; \
+	  echo "export LD_RUN_PATH=$(TOP)/$(ACPKG_PREFIX)/lib"; \
 	  echo "exec perl $(TOP)/$(ACPKG_WRAPDIR)/acpkg-filter-args.pl $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
 	> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
 
 	( echo "#!/bin/sh"; \
 	  echo "PATH=$$PATH"; \
+	  echo "export LD_RUN_PATH=$(TOP)/$(ACPKG_PREFIX)/lib"; \
 	  echo "exec perl $(TOP)/$(ACPKG_WRAPDIR)/acpkg-filter-args.pl $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS) -lcprof" ) \
 	> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof
 
 	( echo "#!/bin/sh"; \
 	  echo "PATH=$$PATH"; \
+	  echo "export LD_RUN_PATH=$(TOP)/$(ACPKG_PREFIX)/lib"; \
 	  echo "exec perl $(TOP)/$(ACPKG_WRAPDIR)/acpkg-filter-args.pl $(ACPKG_CCACHE) $(CXX) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
 	> $(ACPKG_WRAPDIR)/acpkg-wrap-c++
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-c++
