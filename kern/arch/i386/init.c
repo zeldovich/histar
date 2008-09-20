@@ -97,10 +97,6 @@ init(uint32_t start_eax, uint32_t start_ebx)
 			sxi->vbe_mode);
     }
 
-    // Our boot sector passes in the upper memory size this way
-    if (start_eax == DIRECT_BOOT_EAX_MAGIC)
-	upper_kb = start_ebx;
-
     idt_init();
     cgacons_init();
     sercons_init();
