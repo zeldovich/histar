@@ -477,12 +477,12 @@ e1000_add_rxbuf(void *arg, const struct Segment *sg,
 
     memset(&c->rxds->rxd[slot], 0, sizeof(c->rxds->rxd[slot]));
     c->rxds->rxd[slot].wrx_addr = kva2pa(c->rx[slot].nb + 1);
-    e1000_io_write(c, WMREG_RDT, slot);
 
     c->rx_nextq = (slot + 1) % E1000_RX_SLOTS;
     if (c->rx_head == -1)
 	c->rx_head = slot;
 
+    e1000_io_write(c, WMREG_RDT, c->rx_nextq);
     return 0;
 }
 
