@@ -427,8 +427,9 @@ e1000_add_txbuf(void *arg, const struct Segment *sg,
 {
     struct e1000_card *c = arg;
     int slot = c->tx_nextq;
+    int next_slot = (slot + 1) % E1000_TX_SLOTS;
 
-    if (slot == c->tx_head)
+    if (slot == c->tx_head || next_slot == c->tx_head)
 	return -E_NO_SPACE;
 
     if (size > 1522) {
@@ -445,11 +446,11 @@ e1000_add_txbuf(void *arg, const struct Segment *sg,
     c->txds->txd[slot].wtx_cmdlen = size | WTX_CMD_RS | WTX_CMD_EOP | WTX_CMD_IFCS;
     memset(&c->txds->txd[slot].wtx_fields, 0, sizeof(&c->txds->txd[slot].wtx_fields));
 
-    c->tx_nextq = (slot + 1) % E1000_TX_SLOTS;
+    c->tx_nextq = next_slot;
     if (c->tx_head == -1)
 	c->tx_head = slot;
 
-    e1000_io_write(c, WMREG_TDT, c->tx_nextq);
+    e1000_io_write(c, WMREG_TDT, next_slot);
     return 0;
 }
 
@@ -459,8 +460,9 @@ e1000_add_rxbuf(void *arg, const struct Segment *sg,
 {
     struct e1000_card *c = arg;
     int slot = c->rx_nextq;
+    int next_slot = (slot + 1) % E1000_RX_SLOTS;
 
-    if (slot == c->rx_head)
+    if (slot == c->rx_head || next_slot == c->rx_head)
 	return -E_NO_SPACE;
 
     // The receive buffer size is hard-coded in the RCTL register as 2K.
@@ -478,11 +480,11 @@ e1000_add_rxbuf(void *arg, const struct Segment *sg,
     memset(&c->rxds->rxd[slot], 0, sizeof(c->rxds->rxd[slot]));
     c->rxds->rxd[slot].wrx_addr = kva2pa(c->rx[slot].nb + 1);
 
-    c->rx_nextq = (slot + 1) % E1000_RX_SLOTS;
+    c->rx_nextq = next_slot;
     if (c->rx_head == -1)
 	c->rx_head = slot;
 
-    e1000_io_write(c, WMREG_RDT, c->rx_nextq);
+    e1000_io_write(c, WMREG_RDT, next_slot);
     return 0;
 }
 
