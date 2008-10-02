@@ -364,9 +364,8 @@ idec_init(struct ide_channel *idec)
 	    udma_mode = i;
 
     if (ide_verbose)
-	cprintf("IDE device (%d sectors, UDMA %d%s): %1.40s\n",
+	cprintf("IDE device (%d sectors, UDMA %d): %1.40s\n",
 		identify_buf.id.lba_sectors, udma_mode,
-		idec->bm_addr ? ", bus-master" : "",
 		identify_buf.id.model);
 
     if (!(identify_buf.id.hwreset & IDE_HWRESET_CBLID)) {
@@ -374,16 +373,17 @@ idec_init(struct ide_channel *idec)
 	udma_mode = -1;
     }
 
-    if (udma_mode >= 0) {
-	outb(idec->cmd_addr + IDE_REG_DEVICE, idec->diskno << 4);
-	outb(idec->cmd_addr + IDE_REG_FEATURES, IDE_FEATURE_XFER_MODE);
-	outb(idec->cmd_addr + IDE_REG_SECTOR_COUNT, IDE_XFER_MODE_UDMA | udma_mode);
-	outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_SETFEATURES);
+    // Set DMA mode
+    outb(idec->cmd_addr + IDE_REG_DEVICE, idec->diskno << 4);
+    outb(idec->cmd_addr + IDE_REG_FEATURES, IDE_FEATURE_XFER_MODE);
+    outb(idec->cmd_addr + IDE_REG_SECTOR_COUNT,
+	 (udma_mode < 0) ? IDE_XFER_MODE_WDMA
+			 : (IDE_XFER_MODE_UDMA | udma_mode));
+    outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_SETFEATURES);
 
-	ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
-	if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
-	    cprintf("IDE: Unable to enable UDMA\n");
-    }
+    ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
+    if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
+	cprintf("IDE: Unable to enable DMA\n");
 
     // Enable write-caching
     outb(idec->cmd_addr + IDE_REG_DEVICE, idec->diskno << 4);
@@ -477,6 +477,11 @@ ide_init(struct pci_func *pcif)
     idec->bm_addr = pcif->reg_base[4];
     idec->irq = 14;	// PCI IRQ routing is too complicated
 
+    if (!idec->bm_addr) {
+	cprintf("ide_init: bus-master missing, cannot support.\n");
+	goto out;
+    }
+
     // Try to initialize the second IDE drive (secondary) first
     idec->diskno = 1;
     if (idec_init(idec) >= 0)
@@ -487,6 +492,7 @@ ide_init(struct pci_func *pcif)
     if (idec_init(idec) >= 0)
 	return 1;
 
+ out:
     // Doesn't seem to work
     page_free(idec);
     return 0;
