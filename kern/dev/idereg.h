@@ -105,7 +105,7 @@ struct ide_prd {	// PRD must be 4-byte-aligned and not cross 64K
 #define IDE_BM_PRDT_REG		0x04
 
 // Command register bits
-#define IDE_BM_CMD_WRITE	0x0c
+#define IDE_BM_CMD_WRITE	0x08
 #define IDE_BM_CMD_START	0x01
 
 // Status register bits
