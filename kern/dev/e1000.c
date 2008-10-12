@@ -1,6 +1,7 @@
 #include <machine/types.h>
 #include <machine/pmap.h>
 #include <machine/x86.h>
+#include <machine/io.h>
 #include <dev/pci.h>
 #include <dev/e1000.h>
 #include <dev/e1000reg.h>
@@ -538,7 +539,9 @@ e1000_attach(struct pci_func *pcif)
     // Register card with kernel
     c->ih.ih_func = &e1000_intr;
     c->ih.ih_arg = c;
-    irq_register(c->irq_line, &c->ih);
+    c->ih.ih_tbdp = pcif->tbdp;
+    c->ih.ih_irq = c->irq_line;
+    irq_register(&c->ih);
 
     c->netdev.arg = c;
     c->netdev.add_buf_tx = &e1000_add_txbuf;

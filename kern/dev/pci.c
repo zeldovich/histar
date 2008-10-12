@@ -1,4 +1,5 @@
 #include <machine/x86.h>
+#include <machine/io.h>
 #include <dev/pci.h>
 #include <dev/pcireg.h>
 #include <dev/ide.h>
@@ -128,7 +129,7 @@ pci_scan_bus(struct pci_bus *bus)
 
 	    uint32_t intr = pci_conf_read(&af, PCI_INTERRUPT_REG);
 	    af.irq_line = PCI_INTERRUPT_LINE(intr);
-
+	    af.tbdp = MKBUS(BUS_PCI, bus->busno, df.dev, PCI_INTERRUPT_PIN(intr));
 	    af.dev_class = pci_conf_read(&af, PCI_CLASS_REG);
 	    if (pci_show_devs)
 		cprintf("PCI: %02x:%02x.%d: %04x:%04x: class %x.%x irq %d\n",

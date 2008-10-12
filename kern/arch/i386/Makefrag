@@ -12,6 +12,7 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/bootdata.c			\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/pmap.c			\
+	$(ARCHDIR)/irq.c			\
 	$(ARCHDIR)/misc.c			\
 	$(ARCHDIR)/trap.c			\
 	$(ARCHDIR)/locore.S

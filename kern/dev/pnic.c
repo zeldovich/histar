@@ -1,6 +1,7 @@
 #include <machine/types.h>
 #include <machine/pmap.h>
 #include <machine/x86.h>
+#include <machine/io.h>
 #include <dev/pci.h>
 #include <dev/pnic.h>
 #include <dev/pnicreg.h>
@@ -194,6 +195,8 @@ pnic_attach(struct pci_func *pcif)
     c->iobase = pcif->reg_base[4];
     c->ih.ih_func = &pnic_intr;
     c->ih.ih_arg = c;
+    c->ih.ih_tbdp = pcif->tbdp;
+    c->ih.ih_irq = c->irq_line;
 
     pnic_buffer_reset(c);
 
@@ -209,7 +212,7 @@ pnic_attach(struct pci_func *pcif)
     insb(c->iobase + PNIC_REG_DATA, &c->netdev.mac_addr[0], 6);
 
     pnic_intr_enable(c);
-    irq_register(c->irq_line, &c->ih);
+    irq_register(&c->ih);
 
     c->netdev.arg = c;
     c->netdev.add_buf_tx = &pnic_add_txbuf;

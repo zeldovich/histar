@@ -3,6 +3,7 @@
 
 #include <machine/leon3.h>
 #include <machine/leon.h>
+#include <machine/trapcodes.h>
 
 #include <dev/irqmp.h>
 #include <dev/amba.h>
@@ -10,20 +11,21 @@
 
 static LEON3_IrqCtrl_Regs_Map *irq_regs;
 
-void
-irq_arch_enable(uint32_t irqno)
+uint32_t
+irq_arch_enable(uint32_t irqno, tbdp_t x)
 {
     assert(irq_regs);
-    assert(irqno > 0 && irqno < MAX_IRQS);
+    assert(irqno > 0 && irqno < NIRQS);
     uint32_t m = irq_regs->mask[0];
     m |= (1 << irqno);
     irq_regs->mask[0] = m;
+    return T_IRQOFFSET + irqno;
 }
 
 void
-irqmp_clear(uint32_t irqno)
+irq_arch_eoi(uint32_t trapno)
 {
-    uint32_t c = (1 << irqno);
+    uint32_t c = (1 << (trapno - T_IRQOFFSET));
     irq_regs->iclear = c;
 }
 

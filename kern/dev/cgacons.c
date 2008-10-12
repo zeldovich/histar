@@ -1,3 +1,5 @@
+#include <machine/x86.h>
+#include <machine/io.h>
 #include <kern/console.h>
 #include <kern/arch.h>
 #include <kern/intr.h>
@@ -353,10 +355,14 @@ kbd_init(void)
     // Drain the kbd buffer so that Bochs generates interrupts.
     kbd_intr(0);
 
-    static struct interrupt_handler ih = {.ih_func = &kbd_intr };
-    irq_register(1, &ih);
+    static struct interrupt_handler ih = {
+	.ih_func = &kbd_intr,
+	.ih_irq  = IRQ_KBD,
+	.ih_tbdp = BUSUNKNOWN,
+    };
+    
+    irq_register(&ih);
 }
-
 
 void
 cgacons_init(void)

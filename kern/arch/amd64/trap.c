@@ -53,13 +53,17 @@ idt_init (void)
     SET_TRAP_GATE(T_BRKPT, 3);
     
     // Error-code-generating traps
-    SET_TRAP_CODE(T_DBLFLT, ec);
     SET_TRAP_CODE(T_TSS,    ec);
     SET_TRAP_CODE(T_SEGNP,  ec);
     SET_TRAP_CODE(T_STACK,  ec);
     SET_TRAP_CODE(T_GPFLT,  ec);
     SET_TRAP_CODE(T_PGFLT,  ec);
     SET_TRAP_CODE(T_FPERR,  ec);
+
+    // Some chips don't bother returning an EC and the trapframe 
+    // pointer might run off the top of the stack.  It is safe to
+    // ignore the EC because it is always 0.
+    // SET_TRAP_CODE(T_DBLFLT, ec);
 
     // All ready
     lidt(&idtdesc.pd_lim);
@@ -122,16 +126,14 @@ static void
 trap_dispatch(int trapno, const struct Trapframe *tf)
 {
     int64_t r;
-
+    
     if (trapno == T_NMI) {
 	uint8_t reason = inb(0x61);
 	panic("NMI, reason code 0x%x\n", reason);
     }
 
-    if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + MAX_IRQS) {
-	uint32_t irqno = trapno - IRQ_OFFSET;
-	irq_eoi(irqno);
-	irq_handler(irqno);
+    if (trapno != T_SYSCALL && trapno >= T_PIC) {
+	irq_handler(trapno);
 	return;
     }
 

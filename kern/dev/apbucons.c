@@ -77,7 +77,8 @@ apbucons_init(void)
     
     static struct interrupt_handler ih = { .ih_func = &serial_intr };
     ih.ih_arg = uart_regs;
-    irq_register(dev.irq, &ih);
+    ih.ih_irq = dev.irq;
+    irq_register(&ih);
 
     static struct cons_device cd = {
 	.cd_pollin = &serial_proc_data,

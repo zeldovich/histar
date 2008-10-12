@@ -24,6 +24,7 @@
 #include <kern/thread.h>
 #include <kern/arch.h>
 #include <kern/part.h>
+#include <kern/intr.h>
 
 char boot_cmdline[256];
 
@@ -146,8 +147,10 @@ init (uint32_t start_eax, uint32_t start_ebx)
     cgacons_init();
     sercons_init();
     lptcons_init();
-    mp_init();
+
     pic_init();
+    mp_init();
+    irq_init();		/* Interrupt controller is ready */
     
     acpi_init();	/* Picks up HPET, PM timer */
     apic_init();	/* LAPIC timer for preemption */

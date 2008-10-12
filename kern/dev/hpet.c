@@ -1,3 +1,4 @@
+#include <machine/io.h>
 #include <dev/hpet.h>
 #include <dev/hpetreg.h>
 #include <kern/timer.h>
@@ -88,8 +89,12 @@ hpet_attach(struct acpi_table_hdr *th)
     /* Reset main counter to ensure the periodic counter starts */
     hpet->reg->counter = 0;
 
-    static struct interrupt_handler irq0_ih = { .ih_func = &hpet_intr };
-    irq_register(0, &irq0_ih);
+    static struct interrupt_handler irq0_ih = { 
+	.ih_func = &hpet_intr,
+	.ih_irq  = IRQ_CLOCK,
+	.ih_tbdp = BUSUNKNOWN,
+    };
+    irq_register(&irq0_ih);
 
     hpet->timesrc.type = time_source_hpet;
     hpet->timesrc.arg = hpet;

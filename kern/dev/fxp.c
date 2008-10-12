@@ -1,6 +1,7 @@
 #include <machine/types.h>
 #include <machine/pmap.h>
 #include <machine/x86.h>
+#include <machine/io.h>
 #include <dev/pci.h>
 #include <dev/fxp.h>
 #include <dev/fxpreg.h>
@@ -445,6 +446,8 @@ fxp_attach(struct pci_func *pcif)
     c->iobase = pcif->reg_base[1];
     c->ih.ih_func = &fxp_intr;
     c->ih.ih_arg = c;
+    c->ih.ih_tbdp = pcif->tbdp;
+    c->ih.ih_irq = c->irq_line;
 
     for (int i = 0; i < FXP_TX_SLOTS; i++) {
 	int next = (i + 1) % FXP_TX_SLOTS;
@@ -511,7 +514,7 @@ fxp_attach(struct pci_func *pcif)
     fxp_waitcomplete(&cb_ias.cb_status);
 
     // Register card with kernel
-    irq_register(c->irq_line, &c->ih);
+    irq_register(&c->ih);
 
     c->netdev.arg = c;
     c->netdev.add_buf_tx = &fxp_add_txbuf;

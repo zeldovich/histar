@@ -1,5 +1,7 @@
 #include <machine/x86.h>
 #include <machine/mp.h>
+#include <machine/trapcodes.h>
+#include <machine/io.h>
 #include <dev/apic.h>
 #include <dev/apicreg.h>
 #include <dev/picirq.h>
@@ -92,6 +94,12 @@ apic_start_ap(uint32_t apicid, physaddr_t pa)
     }
 }
 
+void
+apic_eoi(void)
+{
+    apic_write(LAPIC_EOI, 0);
+}
+
 static void
 apic_schedule(void *arg, uint64_t nsec)
 {
@@ -111,10 +119,8 @@ void
 apic_init(void)
 {
     int r = mtrr_set(LAPIC_BASE, PGSIZE, MTRR_BASE_UC);
-    if (r < 0) {
-	cprintf("apic_init: out of MTRRs\n");
+    if (r < 0)
 	return;
-    }
 
     uint32_t id = (apic_read(LAPIC_ID) & LAPIC_ID_MASK) >> LAPIC_ID_SHIFT;
 
@@ -153,7 +159,8 @@ apic_init(void)
 
 	apic_write(LAPIC_DCR_TIMER, LAPIC_DCRT_DIV1);
 	apic_write(LAPIC_ICR_TIMER, 0xffffffff);
-	apic_write(LAPIC_LVTT, IRQ_OFFSET + 8);
+
+	apic_write(LAPIC_LVTT, T_PIC + IRQ_TIMER);
 
 	/* We only need this calibration to be approximate.. */
 	uint64_t ccr0 = apic_read(LAPIC_CCR_TIMER);
@@ -165,8 +172,12 @@ apic_init(void)
 	ap->pt.schedule_nsec = &apic_schedule;
 	the_schedtmr = &ap->pt;
 
-	static struct interrupt_handler apic_ih = { .ih_func = &apic_intr };
-	irq_register(8, &apic_ih);
+	static struct interrupt_handler apic_ih = { 
+	    .ih_func = &apic_intr,
+	    .ih_irq  = IRQ_TIMER,
+	    .ih_tbdp = BUSUNKNOWN,
+	};
+	irq_register(&apic_ih);
 
 	cprintf("LAPIC: %"PRIu64" Hz\n", ap->freq_hz);
     }

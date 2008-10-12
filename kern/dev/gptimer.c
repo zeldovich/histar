@@ -107,6 +107,7 @@ gptimer_init(void)
     static struct interrupt_handler gpt_ih;
     gpt_ih.ih_func = &gpt_intr;
     gpt_ih.ih_arg = sh_regs;
+    gpt_ih.ih_irq = irq;
 
     static struct preemption_timer gpt_preempt;
     gpt_preempt.schedule_nsec = &gpt_schedule;
@@ -114,7 +115,7 @@ gptimer_init(void)
 
     if (!the_schedtmr)
 	the_schedtmr = &gpt_preempt;
-    irq_register(irq, &gpt_ih);
+    irq_register(&gpt_ih);
 
     /* Timer 1 for time source */
     LEON3_GpTimerElem_Regs_Map *ts_regs = 

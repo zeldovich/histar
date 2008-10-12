@@ -113,10 +113,8 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	panic("NMI, reason code 0x%x\n", reason);
     }
 
-    if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + MAX_IRQS) {
-	uint32_t irqno = trapno - IRQ_OFFSET;
-	irq_eoi(irqno);
-	irq_handler(irqno);
+    if (trapno != T_SYSCALL && trapno >= T_PIC) {
+	irq_handler(trapno);
 	return;
     }
 

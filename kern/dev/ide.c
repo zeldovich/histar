@@ -1,4 +1,5 @@
 #include <machine/x86.h>
+#include <machine/io.h>
 #include <dev/ide.h>
 #include <dev/idereg.h>
 #include <kern/disk.h>
@@ -426,7 +427,9 @@ idec_init(struct ide_channel *idec)
 
     idec->ih.ih_func = &ide_intr;
     idec->ih.ih_arg = idec;
-    irq_register(idec->irq, &idec->ih);
+    idec->ih.ih_tbdp = BUSUNKNOWN;
+    idec->ih.ih_irq = idec->irq;
+    irq_register(&idec->ih);
 
     disk_register(&idec->dk);
     return 0;
@@ -475,7 +478,7 @@ ide_init(struct pci_func *pcif)
     idec->cmd_addr = pcif->reg_size[0] ? pcif->reg_base[0] : 0x1f0;
     idec->ctl_addr = pcif->reg_size[1] ? pcif->reg_base[1] + 2 : 0x3f6;
     idec->bm_addr = pcif->reg_base[4];
-    idec->irq = 14;	// PCI IRQ routing is too complicated
+    idec->irq = IRQ_ATA0;	// PCI IRQ routing is too complicated
 
     // Try to initialize the second IDE drive (secondary) first
     idec->diskno = 1;

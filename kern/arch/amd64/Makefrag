@@ -22,7 +22,9 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/reboot.c			\
 	$(ARCHDIR)/tsctimer.c			\
 	$(ARCHDIR)/arch-x86.c			\
-	$(ARCHDIR)/mp.c
+	$(ARCHDIR)/irq.c			\
+	$(ARCHDIR)/mp.c				\
+	$(ARCHDIR)/mpsearch.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/strlen.S			\
@@ -52,6 +54,7 @@ KERN_DEV :=					\
 	kern/dev/e1000.c			\
 	kern/dev/pnic.c				\
 	kern/dev/apic.c				\
+	kern/dev/ioapic.c			\
 	kern/dev/acpi.c				\
 	kern/dev/hpet.c				\
 	kern/dev/vesafb.c

@@ -120,10 +120,8 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 {
     int64_t r;
 
-    if (trapno >= T_IRQOFFSET && trapno < T_IRQOFFSET + MAX_IRQS) {
-	uint32_t irqno = trapno - T_IRQOFFSET;
-	irqmp_clear(irqno);
-	irq_handler(irqno);
+    if (trapno >= T_IRQOFFSET && trapno < T_IRQOFFSET + NIRQS) {
+	irq_handler(trapno);
 	return;
     }
 

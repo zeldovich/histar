@@ -1,6 +1,12 @@
 #include <machine/x86.h>
 #include <kern/arch.h>
 
+uint32_t
+arch_cpu(void)
+{
+    return (KSTACKTOP(0) - read_rsp()) / (3 * PGSIZE);
+}
+
 uintptr_t
 karch_get_sp(void)
 {

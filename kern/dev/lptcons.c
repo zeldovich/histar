@@ -1,3 +1,5 @@
+#include <machine/x86.h>
+#include <machine/io.h>
 #include <kern/console.h>
 #include <kern/arch.h>
 #include <kern/intr.h>
@@ -38,9 +40,6 @@ lpt_intr(void *arg)
 void
 lptcons_init(void)
 {
-    static struct interrupt_handler ih = {.ih_func = &lpt_intr };
-    irq_register(7, &ih);
-
     int lpt_enable = 1;
     if (strstr(&boot_cmdline[0], "lpt=off"))
 	lpt_enable = 0;
@@ -55,6 +54,13 @@ lptcons_init(void)
     }
 
     static struct cons_device cd = { .cd_output = &lpt_putc };
-    if (lpt_enable)
+    if (lpt_enable) {
+	static struct interrupt_handler ih = {
+	    .ih_func = &lpt_intr,
+	    .ih_irq  = IRQ_LPT,
+	    .ih_tbdp = BUSUNKNOWN,
+	};
+	irq_register(&ih);
 	cons_register(&cd);
+    }
 }

@@ -22,6 +22,7 @@
 #include <kern/thread.h>
 #include <kern/arch.h>
 #include <kern/part.h>
+#include <kern/intr.h>
 
 char boot_cmdline[256];
 
@@ -102,6 +103,7 @@ init(uint32_t start_eax, uint32_t start_ebx)
     sercons_init();
     lptcons_init();
     pic_init();
+    irq_init();
 
     acpi_init();	/* Picks up HPET, PM timer */
     tsc_timer_init();	/* Optimization for PM timer */

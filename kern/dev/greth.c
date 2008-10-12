@@ -382,7 +382,8 @@ greth_attach(struct amba_apb_device *dev)
     /* Register card with kernel */
     c->ih.ih_func = &greth_intr;
     c->ih.ih_arg = c;
-    irq_register(c->irq_line, &c->ih);
+    c->ih.ih_irq = c->irq_line;
+    irq_register(&c->ih);
       
     c->netdev.arg = c;
     c->netdev.add_buf_tx = &greth_add_txbuf;

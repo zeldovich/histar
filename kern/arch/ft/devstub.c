@@ -38,12 +38,12 @@ irq_setmask_8259A(uint16_t mask)
 }
 
 void
-irq_arch_enable(uint32_t irq)
+irq_arch_enable(uint32_t irq, tbdp_t tbdp)
 {
 }
 
 void
-irq_eoi(int irqno)
+irq_arch_eoi(int irqno)
 {
     printf("irq_eoi(%d)\n", irqno);
 }

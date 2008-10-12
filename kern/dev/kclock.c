@@ -1,4 +1,5 @@
 #include <machine/x86.h>
+#include <machine/io.h>
 #include <dev/isareg.h>
 #include <dev/timerreg.h>
 #include <dev/kclock.h>
@@ -97,11 +98,14 @@ pit_init(void)
     pit_state.pit_tval = TIMER_DIV(pit_hz);
     outb(IO_TIMER1, pit_state.pit_tval % 256);
     outb(IO_TIMER1, pit_state.pit_tval / 256);
-    irq_setmask_8259A(irq_mask_8259A & ~(1 << 0));
 
-    static struct interrupt_handler pit_ih =
-	{ .ih_func = &pit_intr, .ih_arg = &pit_state };
-    irq_register(0, &pit_ih);
+    static struct interrupt_handler pit_ih = { 
+	.ih_func = &pit_intr, 
+	.ih_arg  = &pit_state,
+	.ih_irq  = IRQ_CLOCK,
+	.ih_tbdp = BUSUNKNOWN,
+    };
+    irq_register(&pit_ih);
 
     pit_state.pit_timesrc.type = time_source_pit;
     pit_state.pit_timesrc.freq_hz = pit_hz;

@@ -1,4 +1,5 @@
 #include <machine/x86.h>
+#include <machine/io.h>
 #include <kern/console.h>
 #include <kern/arch.h>
 #include <kern/intr.h>
@@ -23,8 +24,8 @@ static struct serial_port {
     uint16_t io;
     uint8_t irq;
 } serial_ports[] = {
-    { 0x3f8, 4 },   /* COM1 */
-    { 0x2f8, 3 },   /* COM2 */
+    { 0x3f8, IRQ_UART0 },   /* COM1 */
+    { 0x2f8, IRQ_UART1 },   /* COM2 */
 };
 
 #define COM_RX		0	// In:  Receive buffer (DLAB=0)
@@ -117,9 +118,11 @@ sercons_init(void)
 
     // Enable serial interrupts
     if (serial_exists) {
-	static struct interrupt_handler ih = {.ih_func = &serial_intr };
+	static struct interrupt_handler ih = { .ih_func = &serial_intr };
 	ih.ih_arg = com_port;
-	irq_register(com_port->irq, &ih);
+	ih.ih_irq = com_port->irq;
+	ih.ih_tbdp = BUSUNKNOWN;
+	irq_register(&ih);
     } else {
 	cprintf("Serial port does not exist\n");
 	return;

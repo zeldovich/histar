@@ -40,7 +40,7 @@
 
 /*
  * Registers and constants for the 82489DX and Pentium (and up) integrated
- * "local" APIC.
+ * "local" APIC.  The IOAPIC redirection table uses DLMODE_* and VT_*.
  */
 
 #define	LAPIC_ID		0x020		/* ID. RW */
@@ -80,6 +80,10 @@
 #define LAPIC_IRR	0x200
 #define LAPIC_ESR	0x280			/* Err status. R */
 
+#define LAPIC_VT_MASKED		0x00010000	/* Masked vector */
+#define LAPIC_VT_LEVTRIG	0x00008000	/* Level trigger mode */
+#define LAPIC_VT_DELIVS		0x00001000	/* Delivery status */
+
 #define LAPIC_ICRLO	0x300			/* Int. cmd. RW */
 #	define LAPIC_DLMODE_MASK	0x00000700
 #	define LAPIC_DLMODE_FIXED	0x00000000
@@ -93,12 +97,12 @@
 
 #	define LAPIC_DSTMODE_LOG	0x00000800
 
-#	define LAPIC_DLSTAT_BUSY	0x00001000
+#	define LAPIC_DLSTAT_BUSY	LAPIC_VT_DELIVS
 
 #	define LAPIC_LVL_ASSERT		0x00004000
 #	define LAPIC_LVL_DEASSERT	0x00000000
 
-#	define LAPIC_LVL_TRIG		0x00008000
+#	define LAPIC_LVL_TRIG		LAPIC_VT_LEVTRIG
 
 #	define LAPIC_RRSTAT_MASK	0x00030000
 #	define LAPIC_RRSTAT_INPROG	0x00010000
@@ -118,18 +122,18 @@
 
 #define LAPIC_LVTT	0x320			/* Loc.vec.(timer) RW */
 #	define LAPIC_LVTT_VEC_MASK	0x000000ff
-#	define LAPIC_LVTT_DS		0x00001000
-#	define LAPIC_LVTT_M		0x00010000
+#	define LAPIC_LVTT_DS		LAPIC_VT_DELIVS
+#	define LAPIC_LVTT_M		LAPIC_VT_MASKED
 #	define LAPIC_LVTT_TM		0x00020000
 
 #define LAPIC_PCINT	0x340
 #define LAPIC_LVINT0	0x350			/* Loc.vec (LINT0) RW */
 #	define LAPIC_LVT_PERIODIC	0x00020000
-#	define LAPIC_LVT_MASKED		0x00010000
-#	define LAPIC_LVT_LEVTRIG	0x00008000
+#	define LAPIC_LVT_MASKED		LAPIC_VT_MASKED
+#	define LAPIC_LVT_LEVTRIG	LAPIC_VT_LEVTRIG
 #	define LAPIC_LVT_REMOTE_IRR	0x00004000
 #	define LAPIC_INP_POL		0x00002000
-#	define LAPIC_PEND_SEND		0x00001000
+#	define LAPIC_PEND_SEND		LAPIC_VT_DELIVS
 
 #define LAPIC_LVINT1	0x360			/* Loc.vec (LINT1) RW */
 #define LAPIC_LVERR	0x370			/* Loc.vec (ERROR) RW */

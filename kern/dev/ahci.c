@@ -1,3 +1,4 @@
+#include <machine/io.h>
 #include <kern/disk.h>
 #include <dev/ahci.h>
 #include <dev/pcireg.h>
@@ -378,7 +379,9 @@ ahci_init(struct pci_func *f)
 
     a->ih.ih_func = &ahci_intr;
     a->ih.ih_arg = a;
-    irq_register(a->irq, &a->ih);
+    a->ih.ih_tbdp = f->tbdp;
+    a->ih.ih_irq = a->irq;
+    irq_register(&a->ih);
 
     return 1;
 }

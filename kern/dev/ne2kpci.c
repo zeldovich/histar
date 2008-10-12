@@ -1,5 +1,6 @@
 #include <machine/types.h>
 #include <machine/x86.h>
+#include <machine/io.h>
 #include <dev/ne2kpci.h>
 #include <dev/dp8390reg.h>
 #include <kern/intr.h>
@@ -333,7 +334,9 @@ ne2kpci_attach(struct pci_func *pcif)
     c->iobase = pcif->reg_base[0];
     c->ih.ih_func = &ne2kpci_intr;
     c->ih.ih_arg = c;
-
+    c->ih.ih_tbdp = pcif->tbdp;
+    c->ih.ih_irq = c->irq_line;
+    
     ne2kpci_buffer_reset(c);
 
     if (pcif->reg_size[0] < 16) {
@@ -348,7 +351,7 @@ ne2kpci_attach(struct pci_func *pcif)
 	return r;
     }
 
-    irq_register(c->irq_line, &c->ih);
+    irq_register(&c->ih);
 
     c->netdev.arg = c;
     c->netdev.add_buf_tx = &ne2kpci_add_txbuf;
