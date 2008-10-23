@@ -77,7 +77,7 @@ __MATHCALL (sinh,, (_Mdouble_ __x));
 __MATHCALL (tanh,, (_Mdouble_ __x));
 _Mdouble_END_NAMESPACE
 
-#if 0 /*def __USE_GNU*/
+#ifdef __USE_GNU
 /* Cosine and sine of X.  */
 __MATHDECL (void,sincos,,
 	    (_Mdouble_ __x, _Mdouble_ *__sinx, _Mdouble_ *__cosx));
