@@ -749,6 +749,7 @@ $(LINUX_SRC)/__build: $(LINUX_SRC)/include/asm-lind \
 	  OS=jos64 \
 	  O=$(TOP)/$(LINUX_OUT) \
 	  CROSS_COMPILE=$(GCCPREFIX) \
+	  CC=acpkg-wrap-gcc \
 	  LIND_CFLAGS="$(LINUX_CFLAGS)" \
 	  LIND_LDFLAGS="$(LINUX_LDFLAGS)" )
 	touch $@
