@@ -168,8 +168,10 @@ label::from_string(const char *src)
     int i;
     // get default
     for (i = len - 1; 
-	 i >= 0 && (str[i] < '0' || str[i] > '9') && str[i] != '*'; i--);
-    for (; i >= 0 && str[i] != ' '; i--);
+	 i >= 0 && (str[i] < '0' || str[i] > '9') && str[i] != '*'; i--) {
+    }
+    for (; i >= 0 && str[i] != ' '; i--) {
+    }
     if (i < 0)
 	throw error(-E_INVAL, "bad label string: %s", src);
 
