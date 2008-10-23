@@ -1,0 +1,13 @@
+ARCH    := llvm
+TARGET  := llvm
+OBJTYPE := llvm
+
+CC      := llvm-gcc -emit-llvm
+CXX     := llvm-g++ -emit-llvm
+AS      := llvm-as
+AR      := llvm-ar
+LD      := llvm-ld
+OBJCOPY := no-llvm-objcopy
+OBJDUMP := no-llvm-objdump
+NM      := llvm-nm
+STRIP   := true
