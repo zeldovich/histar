@@ -103,7 +103,7 @@ DISTURL_gdb-6.5		    := ftp://ftp.gnu.org/gnu/gdb/gdb-6.5.tar.gz
 DISTURL_wget-1.9.1	    := ftp://ftp.gnu.org/gnu/wget/wget-1.9.1.tar.gz
 DISTURL_diffutils-2.8.1	    := ftp://ftp.gnu.org/gnu/diffutils/diffutils-2.8.1.tar.gz
 DISTURL_patch-2.5.4	    := ftp://ftp.gnu.org/gnu/patch/patch-2.5.4.tar.gz
-DISTURL_ed-0.8		    := ftp://ftp.gnu.org/gnu/ed/ed-0.8.tar.bz2
+DISTURL_ed-1.1	            := ftp://ftp.gnu.org/gnu/ed/ed-1.1.tar.bz2
 DISTURL_termcap-1.3.1	    := ftp://ftp.gnu.org/gnu/termcap/termcap-1.3.1.tar.gz
 
 DISTURL_openssl-0.9.8a	    := ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
@@ -499,7 +499,7 @@ $(OBJDIR)/acpkg/bin/diff $(OBJDIR)/acpkg/bin/cmp: $(ACPKG_BUILDDIR)/diffutils-2.
 $(OBJDIR)/acpkg/bin/patch: $(ACPKG_BUILDDIR)/patch-2.5.4/__build
 	@
 
-$(OBJDIR)/acpkg/bin/ed: $(ACPKG_BUILDDIR)/ed-0.8/__build
+$(OBJDIR)/acpkg/bin/ed: $(ACPKG_BUILDDIR)/ed-1.1/__build
 	@
 
 $(OBJDIR)/acpkg/bin/sed: $(ACPKG_BUILDDIR)/sed-4.1.5/__build
