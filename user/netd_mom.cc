@@ -3,7 +3,6 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/assert.h>
 #include <inc/fs.h>
-#include <udev/jnic.h>
 #include <udev/udev.h>
 
 #include <stdio.h>
@@ -16,13 +15,13 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static int netd_mom_debug = 0;
-static int use_udevice = 0;
+static int use_udevice = 1;
 
 static uint64_t
 find_udev_nic(uint64_t *key)
 {
     for (uint64_t i = 0; sys_udev_get_key(i, key) == 0; i++)
-	if (jnic_match(0, COBJ(0, 0), *key) == 0)
+	if (KEYTYPE(*key) == device_net)
 	    return i;
     panic("could not find a nic");
 }
