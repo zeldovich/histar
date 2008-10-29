@@ -24,12 +24,12 @@ struct jnic_device {
     int64_t (*net_wait)(void *arg, uint64_t waiter_id,
 			int64_t waitgen);
 } devices[] = {
-    { UINT64(~0),
+    { KEYKERNEL,
       knic_init, 
       knic_macaddr, 
       knic_buf, 
       knic_wait },
-    { PCI_KEY(0x10ec, 0x8029), 
+    { MK_PCIKEY(device_net, 0x10ec, 0x8029), 
       ne2kpci_init, 
       ne2kpci_macaddr, 
       ne2kpci_buf, 
@@ -92,6 +92,7 @@ int
 jnic_match(struct jnic* jnic, struct cobj_ref obj, uint64_t key)
 {
     int r = 0;
+
     for (uint32_t i = 0; i < array_size(devices); i++) {
 	if (devices[i].key == key) {
 	    if (jnic && !(r = devices[i].init(obj, &jnic->arg)))

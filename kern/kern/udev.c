@@ -1,6 +1,4 @@
 /* XXX
- * key should include some sort of device TYPE, like NIC, fbcons, etc...
- *   maybe have a union in udev/udev.h?
  * jnic should really be part of lwip.
  * inb outb...
  */

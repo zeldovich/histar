@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/assert.h>
 #include <inc/fs.h>
 #include <udev/jnic.h>
+#include <udev/udev.h>
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -15,7 +16,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static int netd_mom_debug = 0;
-static int use_udevice = 1;
+static int use_udevice = 0;
 
 static uint64_t
 find_udev_nic(uint64_t *key)
@@ -107,7 +108,7 @@ try
     int64_t netdev_grant = handle_alloc();
     int64_t netdev_taint = handle_alloc();
     int64_t inet_taint = handle_alloc();
-    uint64_t udev_key;
+    uint64_t udev_key = KEYKERNEL;
 
     error_check(netdev_grant);
     error_check(netdev_taint);

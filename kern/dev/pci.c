@@ -11,6 +11,7 @@
 #include <kern/lib.h>
 #include <kern/udev.h>
 #include <inc/error.h>
+#include <inc/device.h>
 #include <udev/udev.h>
 
 // Flag to do "lspci" at bootup
@@ -47,7 +48,7 @@ struct pci_driver pci_attach_class[] = {
 };
 
 struct pci_driver pci_attach_vendor[] = {
-    //{ 0x10ec, 0x8029, &ne2kpci_attach },
+    //    { 0x10ec, 0x8029, &ne2kpci_attach },
     { 0x8086, 0x1229, &fxp_attach },
     { 0xfefe, 0xefef, &pnic_attach },
     { 0x8086, 0x100e, &e1000_attach },
@@ -58,6 +59,17 @@ struct pci_driver pci_attach_vendor[] = {
     { 0x8086, 0x1079, &e1000_attach },
     { 0, 0, 0 },
 };
+
+static uint8_t 
+pci_class_to_device(uint8_t class)
+{
+    switch (class) {
+    case PCI_CLASS_NETWORK:
+	return device_net;
+    default:
+	return 0xFF;
+    }
+}
 
 // PCI udev fuctions
 static int
@@ -142,7 +154,10 @@ pci_attach(struct pci_func *f)
     struct pci_udevice *d = &pciudev[pciudev_num++];
     memcpy(&d->func, f, sizeof(d->func));
     d->udev.arg = d;
-    d->udev.key = PCI_KEY(PCI_VENDOR(f->dev_id), (uint64_t)PCI_PRODUCT(f->dev_id));
+    d->udev.key = MK_PCIKEY(pci_class_to_device(PCI_CLASS(f->dev_class)),
+			    PCI_VENDOR(f->dev_id), 
+			    (uint64_t)PCI_PRODUCT(f->dev_id));
+
     d->udev.get_base = pci_get_base;
     
     d->udev.ih.ih_tbdp = f->tbdp;
