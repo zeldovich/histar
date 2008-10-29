@@ -31,6 +31,6 @@ int	udev_out_port(uint64_t key, uint64_t port, uint64_t val);
 int	udev_intr_enable(struct udevice* udev);
 int	udev_intr_disable(struct udevice* udev);
 
-struct udevice* udev_get(uint64_t key);
+struct udevice* udev_get(uint64_t idx);
 
 #endif

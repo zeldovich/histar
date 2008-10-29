@@ -11,6 +11,7 @@
 #include <kern/lib.h>
 #include <kern/udev.h>
 #include <inc/error.h>
+#include <udev/udev.h>
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 0;
@@ -141,7 +142,7 @@ pci_attach(struct pci_func *f)
     struct pci_udevice *d = &pciudev[pciudev_num++];
     memcpy(&d->func, f, sizeof(d->func));
     d->udev.arg = d;
-    d->udev.key = ((uint64_t)PCI_PRODUCT(f->dev_id) << 32) | PCI_VENDOR(f->dev_id);
+    d->udev.key = PCI_KEY(PCI_VENDOR(f->dev_id), (uint64_t)PCI_PRODUCT(f->dev_id));
     d->udev.get_base = pci_get_base;
     
     d->udev.ih.ih_tbdp = f->tbdp;

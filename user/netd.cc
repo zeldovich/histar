@@ -72,23 +72,14 @@ main(int ac, char **av)
 	    n = strlen("netdev=");
 	    if (!strncmp(av[i], "netdev=", n)) {
 		char *ctid = av[i] + n;
-		char *dot = strchr(ctid, '.');
-		if (dot) {
+		char *dot0 = strchr(ctid, '.');
+		char *dot1 = strchr(dot0 + 1, '.');
+		if (dot0 && dot1) {
+		    uint64_t key;
 		    error_check(strtou64(ctid, 0, 10, &netdev.container));
-		    error_check(strtou64(dot+1, 0, 10, &netdev.object));
-		    error_check(jnic_init(&jnic, netdev, "kernel"));
-		    continue;
-		}
-	    }
-
-	    n = strlen("ne2kpci=");
-	    if (!strncmp(av[i], "ne2kpci=", n)) {
-		char *ctid = av[i] + n;
-		char *dot = strchr(ctid, '.');
-		if (dot) {
-		    error_check(strtou64(ctid, 0, 10, &netdev.container));
-		    error_check(strtou64(dot+1, 0, 10, &netdev.object));
-		    error_check(jnic_init(&jnic, netdev, "ne2kpci"));
+		    error_check(strtou64(dot0+1, 0, 10, &netdev.object));
+		    error_check(strtou64(dot1+1, 0, 10, &key));
+		    error_check(jnic_match(&jnic, netdev, key));
 		    continue;
 		}
 	    }

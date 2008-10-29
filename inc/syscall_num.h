@@ -13,6 +13,7 @@
     SYSCALL_ENTRY(net_buf)			\
     SYSCALL_ENTRY(net_macaddr)			\
 						\
+    SYSCALL_ENTRY(udev_get_key)			\
     SYSCALL_ENTRY(udev_get_base)		\
     SYSCALL_ENTRY(udev_in_port)			\
     SYSCALL_ENTRY(udev_out_port)		\

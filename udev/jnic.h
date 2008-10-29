@@ -7,10 +7,10 @@
 struct jnic
 {
     void*    arg;
-    uint32_t idx;
+    uint32_t idx;	/* index into user-level devices array */
 };
 
-int	jnic_init(struct jnic* jnic, struct cobj_ref obj, const char *type);
+int	jnic_match(struct jnic* jnic, struct cobj_ref obj, uint64_t key);
 int	jnic_net_macaddr(struct jnic* jnic, uint8_t* macaddr);
 int	jnic_net_buf(struct jnic* jnic, struct cobj_ref seg,
 		     uint64_t offset, netbuf_type type);

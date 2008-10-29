@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/assert.h>
 #include <inc/fs.h>
+#include <udev/jnic.h>
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -16,8 +17,18 @@ extern "C" {
 static int netd_mom_debug = 0;
 static int use_udevice = 1;
 
+static uint64_t
+find_udev_nic(uint64_t *key)
+{
+    for (uint64_t i = 0; sys_udev_get_key(i, key) == 0; i++)
+	if (jnic_match(0, COBJ(0, 0), *key) == 0)
+	    return i;
+    panic("could not find a nic");
+}
+
 static void
-netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t inet_taint, cobj_ref *ndev)
+netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, 
+	    uint64_t inet_taint, cobj_ref *ndev, uint64_t *udev_key)
 {
     int64_t netdev_id = container_find(ct, kobj_device, 0);
     if (netdev_id < 0) {
@@ -26,10 +37,11 @@ netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t 
 	net_label.set(netdev_taint, 3);
 	net_label.set(inet_taint, 2);
 	if (use_udevice) {
-	    uint64_t idx = (UINT64(0x8029) << 32) | 0x10ec;
+	    uint64_t idx = find_udev_nic(udev_key);
 	    netdev_id = sys_device_create(ct, idx, net_label.to_ulabel(), "jif0",
 					  device_udev);
 	} else {
+	    *udev_key = UINT64(~0);
 	    netdev_id = sys_device_create(ct, 0, net_label.to_ulabel(), "jif0",
 					  device_net);
 	}
@@ -95,13 +107,14 @@ try
     int64_t netdev_grant = handle_alloc();
     int64_t netdev_taint = handle_alloc();
     int64_t inet_taint = handle_alloc();
+    uint64_t udev_key;
 
     error_check(netdev_grant);
     error_check(netdev_taint);
     error_check(inet_taint);
 
     netdev_init(start_env->shared_container,
-		netdev_grant, netdev_taint, inet_taint, &ndev_obj);
+		netdev_grant, netdev_taint, inet_taint, &ndev_obj, &udev_key);
 
     label ds(3);
     ds.set(netdev_grant, LB_LEVEL_STAR);
@@ -117,12 +130,8 @@ try
     sprintf(grant_arg, "netdev_grant=%"PRIu64, netdev_grant);
     sprintf(taint_arg, "netdev_taint=%"PRIu64, netdev_taint);
     sprintf(inet_arg,  "inet_taint=%"PRIu64, inet_taint);
-    if (use_udevice)
-	sprintf(netdev, "ne2kpci=%"PRIu64".%"PRIu64,
-		ndev_obj.container, ndev_obj.object);
-    else
-	sprintf(netdev, "netdev=%"PRIu64".%"PRIu64,
-		ndev_obj.container, ndev_obj.object);
+    sprintf(netdev, "netdev=%"PRIu64".%"PRIu64".%"PRIu64,
+	    ndev_obj.container, ndev_obj.object, udev_key);
 
     if (netd_mom_debug)
 	printf("netd_mom: decontaminate-send %s\n", ds.to_string());

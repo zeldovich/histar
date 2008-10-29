@@ -58,15 +58,9 @@ sys_net_macaddr(struct cobj_ref nd, uint8_t *addrbuf)
 }
 
 int
-sys_udev_in_port(struct cobj_ref udev, uint64_t port, uint64_t *val)
+sys_udev_get_key(uint64_t idx, uint64_t *key)
 {
-    return syscall(SYS_udev_in_port, SOBJ(udev), port, SPTR(val), 0, 0, 0);
-}
-
-int
-sys_udev_out_port(struct cobj_ref udev, uint64_t port, uint64_t val)
-{
-    return syscall(SYS_udev_out_port, SOBJ(udev), port, val, 0, 0, 0);
+    return syscall(SYS_udev_get_key, idx, SPTR(key), 0, 0, 0, 0, 0);
 }
 
 int
@@ -79,6 +73,18 @@ int64_t
 sys_udev_wait(struct cobj_ref udev, uint64_t waiterid, int64_t waitgen)
 {
     return syscall(SYS_udev_wait, SOBJ(udev), waiterid, waitgen, 0, 0, 0);
+}
+
+int
+sys_udev_in_port(struct cobj_ref udev, uint64_t port, uint64_t *val)
+{
+    return syscall(SYS_udev_in_port, SOBJ(udev), port, SPTR(val), 0, 0, 0);
+}
+
+int
+sys_udev_out_port(struct cobj_ref udev, uint64_t port, uint64_t val)
+{
+    return syscall(SYS_udev_out_port, SOBJ(udev), port, val, 0, 0, 0);
 }
 
 int

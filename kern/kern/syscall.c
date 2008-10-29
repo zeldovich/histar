@@ -194,6 +194,18 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
     return 0;
 }
 
+static int __attribute__ ((warn_unused_result))
+sys_udev_get_key(uint64_t idx, uint64_t *key)
+{
+    struct udevice *udev = udev_get(idx);
+    if (udev == 0)
+	return -E_INVAL;
+
+    check(check_user_access(key, sizeof(*key), SEGMAP_WRITE));
+    *key = udev->key;
+    return 0;
+}
+
 static int64_t __attribute__ ((warn_unused_result))
 sys_udev_get_base(struct cobj_ref udevref, uint64_t base, uint64_t *val)
 {
@@ -1170,6 +1182,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(fb_get_mode, COBJ(a1, a2), p3);
 	SYSCALL(net_macaddr, COBJ(a1, a2), p3);
 	SYSCALL(net_buf, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
+	SYSCALL(udev_get_key, a1, p2);
 	SYSCALL(udev_get_base, COBJ(a1, a2), a3, p4);
 	SYSCALL(udev_in_port, COBJ(a1, a2), a3, p4);
 	SYSCALL(udev_out_port, COBJ(a1, a2), a3, a4);

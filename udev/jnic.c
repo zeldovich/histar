@@ -2,6 +2,7 @@
 #include <inc/syscall.h>
 #include <inc/error.h>
 
+#include <udev/udev.h>
 #include <udev/jnic.h>
 #include <udev/ne2kpci.h>
 
@@ -15,7 +16,7 @@ static int knic_buf(void *arg, struct cobj_ref seg,
 static int64_t knic_wait(void *arg, uint64_t waiter_id, int64_t waitgen);
 
 struct jnic_device {
-    char type[16];
+    uint64_t key;
     int (*init)(struct cobj_ref obj, void** arg);
     int	(*net_macaddr)(void *arg, uint8_t* macaddr);
     int	(*net_buf)(void *arg, struct cobj_ref seg,
@@ -23,9 +24,16 @@ struct jnic_device {
     int64_t (*net_wait)(void *arg, uint64_t waiter_id,
 			int64_t waitgen);
 } devices[] = {
-    { "kernel", knic_init, knic_macaddr, knic_buf, knic_wait },
-    { "ne2kpci", ne2kpci_init, ne2kpci_macaddr, ne2kpci_buf, ne2kpci_wait },
-    { "fxp", 0, 0, 0, 0 },
+    { UINT64(~0),
+      knic_init, 
+      knic_macaddr, 
+      knic_buf, 
+      knic_wait },
+    { PCI_KEY(0x10ec, 0x8029), 
+      ne2kpci_init, 
+      ne2kpci_macaddr, 
+      ne2kpci_buf, 
+      ne2kpci_wait },
 };
 
 static int
@@ -81,12 +89,12 @@ jnic_net_wait(struct jnic* jnic, uint64_t waiter_id, int64_t waitgen)
 }
 
 int
-jnic_init(struct jnic* jnic, struct cobj_ref obj, const char *type)
+jnic_match(struct jnic* jnic, struct cobj_ref obj, uint64_t key)
 {
-    int r;
+    int r = 0;
     for (uint32_t i = 0; i < array_size(devices); i++) {
-	if (!strcmp(type, devices[i].type)) {
-	    if (!(r = devices[i].init(obj, &jnic->arg)))
+	if (devices[i].key == key) {
+	    if (jnic && !(r = devices[i].init(obj, &jnic->arg)))
 		jnic->idx = i;
 	    return r;
 	}

@@ -1,22 +1,29 @@
+/* XXX
+ * key should include some sort of device TYPE, like NIC, fbcons, etc...
+ *   maybe have a union in udev/udev.h?
+ * jnic should really be part of lwip.
+ * inb outb...
+ */
+
 #include <kern/udev.h>
 #include <kern/lib.h>
 #include <kern/arch.h>
 #include <inc/error.h>
 
-static LIST_HEAD(udev_list, udevice) udevs;
+enum { udevs_max = 32 };
+static struct udevice* udevs[udevs_max];
+static uint64_t	       udevs_num;
 
 struct udevice*
-udev_get(uint64_t key)
+udev_get(uint64_t idx)
 {
-    struct udevice *ud;
-    LIST_FOREACH(ud, &udevs, link)
-	if (ud->key == key)
-	    return ud;
-    return 0;
+    if (idx >= udevs_num)
+	return 0;
+    return udevs[idx];
 }
 
 static void
-udev_intr(void *x)
+udev_intr(void* x)
 {
     struct udevice *udev = x;
     if (udev->intr_pend)
@@ -27,13 +34,13 @@ udev_intr(void *x)
 }
 
 int
-udev_get_base(struct udevice *udev, uint64_t base, uint64_t *val)
+udev_get_base(struct udevice* udev, uint64_t base, uint64_t* val)
 {
     return udev->get_base(udev->arg, base, val);
 }
 
 int64_t
-udev_thread_wait(struct udevice* udev, const struct Thread *t, 
+udev_thread_wait(struct udevice* udev, const struct Thread* t, 
 		 uint64_t waiter, int64_t gen)
 {
     if (!udev->ih.ih_trapno)
@@ -58,7 +65,7 @@ udev_thread_wait(struct udevice* udev, const struct Thread *t,
 }
 
 void
-udev_thread_wakeup(struct udevice *udev)
+udev_thread_wakeup(struct udevice* udev)
 {
     if (udev->wait_gen <= 0)
 	udev->wait_gen = 1;
@@ -89,10 +96,15 @@ udev_out_port(uint64_t key, uint64_t port, uint64_t val)
 void
 udev_register(struct udevice* udev)
 {
+    if (udevs_num >= udevs_max) {
+	cprintf("udev_register: out of udev slots\n");
+	return;
+    }
+
     assert(udev->ih.ih_tbdp);
     udev->ih.ih_func = &udev_intr;
     udev->ih.ih_arg = udev;
     /* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX */
     udev->intr_level = 1;
-    LIST_INSERT_HEAD(&udevs, udev, link);
+    udevs[udevs_num++] = udev;
 }
