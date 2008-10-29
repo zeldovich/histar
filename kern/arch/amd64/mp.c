@@ -17,7 +17,7 @@
 #include <kern/intr.h>
 
 enum { mp_debug   = 0 };
-enum { irq_print  = 1 };
+enum { irq_print  = 0 };
 
 enum { MAX_APICNO = 31 };
 
@@ -32,6 +32,7 @@ static uint32_t mpvnoref;
 static struct bus* mpbus;
 static struct bus* mpbuslast;
 static struct apic mpapic[MAX_APICNO + 1];
+static struct aintr *mpintr[MAX_T_APIC + 1];
 
 static const char* buses[] = {
     "CBUSI ",
@@ -157,8 +158,8 @@ mpintrenablex(uint32_t irq, tbdp_t tbdp)
     struct bus *bus;
     struct aintr *aintr;
     struct apic *apic;
-    uint32_t type, bno, dno, lo, vno, n;
-    
+    uint32_t type, bno, dno, lo, n;
+
     /*
      * Find the bus.
      */
@@ -175,7 +176,8 @@ mpintrenablex(uint32_t irq, tbdp_t tbdp)
     }
 
     if (!bus) {
-	cprintf("ioapicirq: can't find bus type %d\n", type);
+	if (irq_print)
+	    cprintf("ioapicirq: can't find bus type %d\n", type);
 	return -1;
     }
 
@@ -202,59 +204,68 @@ mpintrenablex(uint32_t irq, tbdp_t tbdp)
 	if (aintr->intr.irq != irq)
 	    continue;
 
-	/*
-	 * Check if already enabled. Multifunction devices may share
-	 * INT[A-D]# so, if already enabled, check the polarity matches
-	 * and the trigger is level.
-	 *
-	 * Should check the devices differ only in the function number,
-	 * but that can wait for the planned enable/disable rewrite.
-	 * The RDT read here is safe for now as currently interrupts
-	 * are never disabled once enabled.
-	 */
 	apic = aintr->apic;
-	ioapic_rdtr(apic, aintr->intr.intin, 0, &lo);
 
-	if (!(lo & LAPIC_VT_MASKED)) {
-	    panic("sbw hasn't tested me, but I should work!\n");
-	    vno = lo & 0xFF;
-	    n = mpintrinit(bus, &aintr->intr, vno);
-	    lo &= ~(LAPIC_DLMODE_RR | LAPIC_VT_DELIVS);
-	    if (n != lo || !(n & LAPIC_VT_LEVTRIG)){
-		cprintf("mpintrenable: multiple botch irq%d, tbdp %x, lo %x, n %x\n",
-			irq, tbdp, lo, n);
+	if (!aintr->vno) {
+	    uint32_t vno;
+	    /*
+	     * Check if already enabled. Multifunction devices may share
+	     * INT[A-D]# so, if already enabled, check the polarity matches
+	     * and the trigger is level.
+	     *
+	     * Should check the devices differ only in the function number,
+	     * but that can wait for the planned enable/disable rewrite.
+	     * The RDT read here is safe for now as currently interrupts
+	     * are never disabled once enabled.
+	     */
+	    ioapic_rdtr(apic, aintr->intr.intin, 0, &lo);
+	    
+	    if (!(lo & LAPIC_VT_MASKED)) {
+		vno = lo & 0xFF;
+		n = mpintrinit(bus, &aintr->intr, vno);
+		lo &= ~(LAPIC_DLMODE_RR | LAPIC_VT_DELIVS);
+		if (n != lo || !(n & LAPIC_VT_LEVTRIG)){
+		    cprintf("mpintrenable: multiple botch irq%d,"
+			    " tbdp %x, lo %x, n %x\n",
+			    irq, tbdp, lo, n);
+		    return -1;
+		}
+		aintr->vno = vno;
+		return vno;
+	    }
+
+	    /*
+	     * With the APIC a unique vector can be assigned to each
+	     * request to enable an interrupt. There are two reasons this
+	     * is a good idea:
+	     * 1) to prevent lost interrupts, no more than 2 interrupts
+	     *    should be assigned per block of 16 vectors (there is an
+	     *    in-service entry and a holding entry for each priority
+	     *    level and there is one priority level per block of 16
+	     *    interrupts).  See Intel Arch. manual 3a, section 9.8.4.
+	     * 2) each input pin on the IOAPIC will receive a different
+	     *    vector regardless of whether the devices on that pin use
+	     *    the same IRQ as devices on another pin.
+	     */
+	    
+	    vno = T_APIC + (mpvnoref++) * 8;
+	    if (vno > MAX_T_APIC) {
+		cprintf("mpintrenable: vno %d, irq %d, tbdp %uX\n",
+			vno, irq, tbdp);
 		return -1;
 	    }
-	    return vno;
+	    aintr->vno = vno;
+	    mpintr[vno] = aintr;
 	}
 
-	/*
-	 * With the APIC a unique vector can be assigned to each
-	 * request to enable an interrupt. There are two reasons this
-	 * is a good idea:
-	 * 1) to prevent lost interrupts, no more than 2 interrupts
-	 *    should be assigned per block of 16 vectors (there is an
-	 *    in-service entry and a holding entry for each priority
-	 *    level and there is one priority level per block of 16
-	 *    interrupts).  See Intel Arch. manual 3a, section 9.8.4.
-	 * 2) each input pin on the IOAPIC will receive a different
-	 *    vector regardless of whether the devices on that pin use
-	 *    the same IRQ as devices on another pin.
-	 */
-	
-	vno = T_APIC + (mpvnoref++) * 8;
-	if (vno > MAX_T_APIC) {
-	    cprintf("mpintrenable: vno %d, irq %d, tbdp %uX\n",
-		    vno, irq, tbdp);
-	    return -1;
-	}
-	lo = mpintrinit(bus, &aintr->intr, vno);
+	lo = mpintrinit(bus, &aintr->intr, aintr->vno);
 	if (lo & LAPIC_VT_MASKED)
 	    return -1;
 
 	if (irq_print)
-	    cprintf("lo 0x%x: busno %d intr %d vno %d irq %d intin %d\n",
-		    lo, bus->busno, aintr->intr.irq, vno,
+	    cprintf("lo 0x%x: busno %d type %d intr %d vno %d "
+		    "irq %d intin %d\n",
+		    lo, bus->busno, bus->type, aintr->intr.irq, aintr->vno,
 		    irq, aintr->intr.intin);
 
 	if ((apic->flags & PCMP_EN) && apic->type == PCMP_IOAPIC)
@@ -265,7 +276,7 @@ mpintrenablex(uint32_t irq, tbdp_t tbdp)
 	    return -1;
 	}
 
-	return vno;
+	return aintr->vno;
     }
 
     cprintf("mpintrenablex: no interrupt for IRQ %x, busno %u\n",
@@ -286,7 +297,7 @@ mp_intrenable(uint32_t irq, tbdp_t tbdp)
 	return vno;
     
     if (irq > MAX_IRQ_PIC)
-	panic("mp_intrenable: irq %d out of range", irq);
+	panic("irq %u out of range", irq);
 
     if (mpeisabus != -1) {
 	vno = mpintrenablex(irq, MKBUS(BUS_EISA, 0, 0, 0));
@@ -300,6 +311,20 @@ mp_intrenable(uint32_t irq, tbdp_t tbdp)
     }
     panic("mp_intrenable: out of choices eisa %d isa %d tbdp 0x%x irq %d",
 	  mpeisabus, mpisabus, tbdp, irq);
+}
+
+void
+mp_intrdisable(uint32_t trapno)
+{
+    /*
+     * This function masks the interrupt on all CPUs.
+     */
+    if (trapno < T_PIC || trapno > MAX_T_APIC)
+	panic("trapno %u out of range", trapno);
+
+    struct aintr *aintr = mpintr[trapno];
+    assert(aintr);
+    ioapic_rdtw(aintr->apic, aintr->intr.intin, 0, LAPIC_VT_MASKED);    
 }
 
 static void

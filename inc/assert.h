@@ -14,9 +14,14 @@ void _panic(const char*, int, const char*, ...)
 #define assert(x)		\
 	do { if (!(x)) panic("assertion failed: %s", #x); } while (0)
 
-/*
- * static_assert(x) will generate a compile-time error if 'x' is false.
- */
-#define static_assert(x) do { switch (x) { default: case 0: case (x): break; } } while (0)
+
+/* Force a compilation error if condition is false, but also produce a
+   result (of value 0 and type size_t), so the expression can be used
+   e.g. in a structure initializer (or where-ever else comma expressions
+   aren't permitted). */
+#define static_assert_zero(e) (sizeof(char[1 - 2 * !(e)]) - 1)
+
+/* Generate a compile-time error if 'e' is false. */
+#define static_assert(e) ((void)sizeof(char[1 - 2 * !(e)]))
 
 #endif /* !JOS_INC_ASSERT_H */

@@ -41,6 +41,7 @@ irq_register(struct interrupt_handler *ih)
     if (init) {
 	uint32_t tno = irq_arch_enable(ih->ih_irq, ih->ih_tbdp);
 	LIST_INSERT_HEAD(&irq_handlers[tno], ih, ih_link);
+	ih->ih_trapno = tno;
     } else 
 	LIST_INSERT_HEAD(&preinit_handlers, ih, ih_link);
 }

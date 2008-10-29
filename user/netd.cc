@@ -10,6 +10,8 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+
+#include <udev/jnic.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -35,7 +37,8 @@ main(int ac, char **av)
     }
 
     struct cobj_ref netdev;
-
+    struct jnic jnic;
+    
     try {
 	error_check(fs_clone_mtab(start_env->shared_container));
 
@@ -73,6 +76,19 @@ main(int ac, char **av)
 		if (dot) {
 		    error_check(strtou64(ctid, 0, 10, &netdev.container));
 		    error_check(strtou64(dot+1, 0, 10, &netdev.object));
+		    error_check(jnic_init(&jnic, netdev, "kernel"));
+		    continue;
+		}
+	    }
+
+	    n = strlen("ne2kpci=");
+	    if (!strncmp(av[i], "ne2kpci=", n)) {
+		char *ctid = av[i] + n;
+		char *dot = strchr(ctid, '.');
+		if (dot) {
+		    error_check(strtou64(ctid, 0, 10, &netdev.container));
+		    error_check(strtou64(dot+1, 0, 10, &netdev.object));
+		    error_check(jnic_init(&jnic, netdev, "ne2kpci"));
 		    continue;
 		}
 	    }
@@ -106,5 +122,5 @@ main(int ac, char **av)
 	panic("%s", e.what());
     }
 
-    netd_lwip_init(&ready_cb, 0, netd_if_jif, &netdev, 0, 0, 0);
+    netd_lwip_init(&ready_cb, 0, netd_if_jif, &jnic, 0, 0, 0);
 }

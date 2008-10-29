@@ -8,6 +8,7 @@
 void		mp_init(void);
 struct mp_fptr* mp_search(void);
 uint32_t	mp_intrenable(uint32_t irq, tbdp_t tbdp);
+void		mp_intrdisable(uint32_t trapno);
 
 struct cpu {
     uint8_t		apicid;
@@ -29,6 +30,7 @@ struct aintr {
     struct apic*	apic;
     struct aintr*	next;
     struct mp_intr	intr;
+    int			vno;		/* vector number if one has been assigned */
 };
 
 struct bus {
@@ -37,7 +39,7 @@ struct bus {
     uint8_t		po;
     uint8_t		el;
     
-    struct aintr*	aintr;			/* interrupts tied to this bus */
+    struct aintr*	aintr;		/* interrupts tied to this bus */
     struct bus*		next;
 };
 

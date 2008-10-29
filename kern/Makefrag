@@ -8,7 +8,7 @@
 OBJDIRS += kern
 
 ARCHDIR	:= kern/arch/$(K_ARCH)
-EMBEDBINS_DEFAULT := default
+EMBEDBINS_DEFAULT := tiny
 include $(ARCHDIR)/Makefrag
 
 KERN_GEN := kern/kern/printf.c \
@@ -41,7 +41,8 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/pagealloc.c \
 	    kern/kern/console.c \
 	    kern/kern/fb.c \
-	    kern/kern/disk.c
+	    kern/kern/disk.c \
+	    kern/kern/udev.c
 
 KERN_BTREE := \
 	    kern/btree/btree.c \

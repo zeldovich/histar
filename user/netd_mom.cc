@@ -14,6 +14,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static int netd_mom_debug = 0;
+static int use_udevice = 1;
 
 static void
 netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t inet_taint, cobj_ref *ndev)
@@ -24,13 +25,20 @@ netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t 
 	net_label.set(netdev_grant, 0);
 	net_label.set(netdev_taint, 3);
 	net_label.set(inet_taint, 2);
-	netdev_id = sys_device_create(ct, 0, net_label.to_ulabel(), "jif0",
-                                      device_net);
+	if (use_udevice) {
+	    uint64_t idx = (UINT64(0x8029) << 32) | 0x10ec;
+	    netdev_id = sys_device_create(ct, idx, net_label.to_ulabel(), "jif0",
+					  device_udev);
+	} else {
+	    netdev_id = sys_device_create(ct, 0, net_label.to_ulabel(), "jif0",
+					  device_net);
+	}
 	error_check(netdev_id);
-
+	
 	if (netd_mom_debug)
-	    printf("netd_mom: netdev %"PRIu64" grant %"PRIu64" taint %"PRIu64" inet %"PRIu64"\n",
-		   netdev_id, netdev_grant, netdev_taint, inet_taint);
+		printf("netd_mom: netdev %"PRIu64" grant %"PRIu64
+		       " taint %"PRIu64" inet %"PRIu64"\n",
+		       netdev_id, netdev_grant, netdev_taint, inet_taint);
 
 	*ndev = COBJ(ct, netdev_id);
     }
@@ -109,8 +117,12 @@ try
     sprintf(grant_arg, "netdev_grant=%"PRIu64, netdev_grant);
     sprintf(taint_arg, "netdev_taint=%"PRIu64, netdev_taint);
     sprintf(inet_arg,  "inet_taint=%"PRIu64, inet_taint);
-    sprintf(netdev, "netdev=%"PRIu64".%"PRIu64,
-	    ndev_obj.container, ndev_obj.object);
+    if (use_udevice)
+	sprintf(netdev, "ne2kpci=%"PRIu64".%"PRIu64,
+		ndev_obj.container, ndev_obj.object);
+    else
+	sprintf(netdev, "netdev=%"PRIu64".%"PRIu64,
+		ndev_obj.container, ndev_obj.object);
 
     if (netd_mom_debug)
 	printf("netd_mom: decontaminate-send %s\n", ds.to_string());

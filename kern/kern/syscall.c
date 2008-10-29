@@ -18,6 +18,7 @@
 #include <kern/arch.h>
 #include <kern/thread.h>
 #include <kern/fb.h>
+#include <kern/udev.h>
 #include <inc/error.h>
 #include <inc/thread.h>
 #include <inc/netdev.h>
@@ -190,6 +191,67 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
 
     check(check_user_access(addrbuf, 6, SEGMAP_WRITE));
     netdev_macaddr(ndev, addrbuf);
+    return 0;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_udev_get_base(struct cobj_ref udevref, uint64_t base, uint64_t *val)
+{
+    const struct kobject *ko;
+    check(cobj_get(udevref, kobj_device, &ko, iflow_read));
+
+    if (ko->dv.dv_type != device_udev)
+	return -E_INVAL;
+
+    struct udevice *udev = udev_get(ko->dv.dv_idx);
+    if (udev == 0)
+	return -E_INVAL;
+
+    check(check_user_access(val, sizeof(*val), SEGMAP_WRITE));
+    check(udev_get_base(udev, base, val));
+    return 0;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_udev_wait(struct cobj_ref udevref, uint64_t waiterid, int64_t waitgen)
+{
+    const struct kobject *ko;
+    check(cobj_get(udevref, kobj_device, &ko, iflow_read));
+
+    if (ko->dv.dv_type != device_udev)
+	return -E_INVAL;
+
+    struct udevice *udev = udev_get(ko->dv.dv_idx);
+    if (udev == 0)
+	return -E_INVAL;
+
+    return udev_thread_wait(udev, cur_thread, waiterid, waitgen);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_udev_in_port(struct cobj_ref udevref, uint64_t port, uint64_t *val)
+{
+    const struct kobject *ko;
+    check(cobj_get(udevref, kobj_device, &ko, iflow_read));
+
+    if (ko->dv.dv_type != device_udev)
+	return -E_INVAL;
+
+    check(check_user_access(val, sizeof(*val), SEGMAP_WRITE));
+    check(udev_in_port(ko->dv.dv_idx, port, val));
+    return 0;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_udev_out_port(struct cobj_ref udevref, uint64_t port, uint64_t val)
+{
+    const struct kobject *ko;
+    check(cobj_get(udevref, kobj_device, &ko, iflow_read));
+
+    if (ko->dv.dv_type != device_udev)
+	return -E_INVAL;
+
+    check(udev_out_port(ko->dv.dv_idx, port, val));
     return 0;
 }
 
@@ -1108,6 +1170,9 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(fb_get_mode, COBJ(a1, a2), p3);
 	SYSCALL(net_macaddr, COBJ(a1, a2), p3);
 	SYSCALL(net_buf, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
+	SYSCALL(udev_get_base, COBJ(a1, a2), a3, p4);
+	SYSCALL(udev_in_port, COBJ(a1, a2), a3, p4);
+	SYSCALL(udev_out_port, COBJ(a1, a2), a3, a4);
 	SYSCALL(machine_reboot);
 	SYSCALL(container_move_quota, a1, a2, a3);
 	SYSCALL(obj_unref, COBJ(a1, a2));
@@ -1155,6 +1220,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(cons_probe);
 	SYSCALL(device_create, a1, a2, p3, p4, a5);
 	SYSCALL(net_wait, COBJ(a1, a2), a3, a4);
+	SYSCALL(udev_wait, COBJ(a1, a2), a3, a4);
 	SYSCALL(handle_create);
 	SYSCALL(obj_get_quota_total, COBJ(a1, a2));
 	SYSCALL(obj_get_quota_avail, COBJ(a1, a2));

@@ -48,6 +48,7 @@ void karch_fp_init(struct Fpregs *fpreg);
 
 /* Returns a trap number */
 uint32_t irq_arch_enable(uint32_t irqno, tbdp_t tbdp);
+void	 irq_arch_disable(uint32_t trapno);
 void	 irq_arch_eoi(uint32_t trapno);
 
 /*

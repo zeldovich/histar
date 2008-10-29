@@ -9,6 +9,8 @@
 #include <dev/e1000.h>
 #include <dev/ahci.h>
 #include <kern/lib.h>
+#include <kern/udev.h>
+#include <inc/error.h>
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 0;
@@ -27,6 +29,15 @@ struct pci_driver {
     int (*attachfn) (struct pci_func *pcif);
 };
 
+// PCI udevs
+enum { pciudevs_max = 32 };
+struct pci_udevice {
+    struct pci_func func;
+    struct udevice  udev;
+};
+static struct pci_udevice pciudev[pciudevs_max];
+static uint64_t pciudev_num;
+
 struct pci_driver pci_attach_class[] = {
     { PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI, &pci_bridge_attach },
     { PCI_CLASS_MASS_STORAGE, PCI_SUBCLASS_MASS_STORAGE_IDE, &ide_init },
@@ -35,7 +46,7 @@ struct pci_driver pci_attach_class[] = {
 };
 
 struct pci_driver pci_attach_vendor[] = {
-    { 0x10ec, 0x8029, &ne2kpci_attach },
+    //{ 0x10ec, 0x8029, &ne2kpci_attach },
     { 0x8086, 0x1229, &fxp_attach },
     { 0xfefe, 0xefef, &pnic_attach },
     { 0x8086, 0x100e, &e1000_attach },
@@ -46,6 +57,18 @@ struct pci_driver pci_attach_vendor[] = {
     { 0x8086, 0x1079, &e1000_attach },
     { 0, 0, 0 },
 };
+
+// PCI udev fuctions
+static int
+pci_get_base(void *a, uint64_t base, uint64_t *val)
+{
+    if (base >= 6)
+	return -E_INVAL;
+
+    struct pci_udevice *pciud = a;
+    *val = pciud->func.reg_base[base];
+    return 0;
+}
 
 static void
 pci_conf1_set_addr(uint32_t bus,
@@ -99,11 +122,34 @@ pci_attach_match(uint32_t key1, uint32_t key2,
 static int
 pci_attach(struct pci_func *f)
 {
-    return
+    int r =
 	pci_attach_match(PCI_CLASS(f->dev_class), PCI_SUBCLASS(f->dev_class),
 			 &pci_attach_class[0], f) ||
 	pci_attach_match(PCI_VENDOR(f->dev_id), PCI_PRODUCT(f->dev_id),
 			 &pci_attach_vendor[0], f);
+    
+    if (r)
+	return r;
+	
+    if (pciudev_num == pciudevs_max) {
+	cprintf("pci_attach_match: no enough pciudevs\n");
+	return 0;
+    }
+
+    pci_func_enable(f);
+
+    struct pci_udevice *d = &pciudev[pciudev_num++];
+    memcpy(&d->func, f, sizeof(d->func));
+    d->udev.arg = d;
+    d->udev.key = ((uint64_t)PCI_PRODUCT(f->dev_id) << 32) | PCI_VENDOR(f->dev_id);
+    d->udev.get_base = pci_get_base;
+    
+    d->udev.ih.ih_tbdp = f->tbdp;
+    d->udev.ih.ih_irq = f->irq_line;
+    /* udev_register fills out the rest of ih */
+
+    udev_register(&d->udev);
+    return 1;
 }
 
 static void

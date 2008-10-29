@@ -10,6 +10,7 @@ struct interrupt_handler {
     void*    ih_arg;
     tbdp_t   ih_tbdp;
     uint32_t ih_irq;
+    uint32_t ih_trapno;
 
     LIST_ENTRY(interrupt_handler) ih_link;
 };

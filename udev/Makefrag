@@ -1,0 +1,24 @@
+OBJDIRS += udev
+
+UDEV_SRCFILES := \
+	udev/jnic.c \
+	udev/ne2kpci.c
+
+UDEV_OBJFILES := $(UDEV_SRCFILES)
+UDEV_OBJFILES := $(patsubst udev/%.c, $(OBJDIR)/udev/%.o, $(UDEV_OBJFILES))
+UDEV_OBJFILES := $(patsubst udev/%.cc, $(OBJDIR)/udev/%.o, $(UDEV_OBJFILES))
+
+UDEV_CFLAGS	= $(USER_CFLAGS) $(UCLIBC_COMFLAGS)
+UDEV_CXXFLAGS	= $(USER_CXXFLAGS) $(UCLIBC_COMFLAGS)
+
+$(OBJDIR)/udev/%.o: udev/%.c
+	@mkdir -p $(@D)
+	$(CC) $(UDEV_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
+
+$(OBJDIR)/udev/%.o: udev/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(UDEV_CXXFLAGS) -Werror -c -o $@ $<
+
+$(OBJDIR)/lib/libudev.a: $(UDEV_OBJFILES)
+	rm -f $@
+	$(AR) r $@ $(UDEV_OBJFILES)

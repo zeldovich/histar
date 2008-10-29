@@ -17,6 +17,17 @@ irq_arch_enable(uint32_t irq, tbdp_t tbdp)
 }
 
 void
+irq_arch_disable(uint32_t trapno)
+{
+    if (!use_ioapic)
+	panic("not supported w/o IOAPIC");
+    if (trapno >= T_LAPIC && trapno <= T_LAPIC + MAX_IRQ_LAPIC)
+	panic("APIC trapno %u not supported", trapno);
+
+    mp_intrdisable(trapno);
+}
+
+void
 irq_arch_eoi(uint32_t trapno)
 {
     uint32_t x = trapno - T_PIC;

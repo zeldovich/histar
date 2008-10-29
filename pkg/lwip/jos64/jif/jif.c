@@ -34,6 +34,7 @@
 #include <inc/lib.h>
 #include <inc/memlayout.h>
 #include <inc/error.h>
+#include <udev/jnic.h>
 
 #include <string.h>
 
@@ -51,7 +52,8 @@
 #define JIF_BUFS	64
 
 struct jif {
-    struct cobj_ref ndev;
+    struct jnic *jnic;
+    //struct cobj_ref ndev;
     struct eth_addr *ethaddr;
 
     int64_t waiter_id;
@@ -68,18 +70,20 @@ struct jif {
     void *buf_base;
 };
 
+//low_level_init(struct netif *netif, struct cobj_ref netdev)
+
 static void
-low_level_init(struct netif *netif, struct cobj_ref netdev)
+low_level_init(struct netif *netif, struct jnic *jnic)
 {
     struct jif *jif = netif->state;
 
-    jif->ndev = netdev;
+    jif->jnic = jnic;
 
     netif->hwaddr_len = 6;
     netif->mtu = 1500;
     netif->flags = NETIF_FLAG_BROADCAST;
 
-    int r = sys_net_macaddr(jif->ndev, &netif->hwaddr[0]);
+    int r = jnic_net_macaddr(jif->jnic, &netif->hwaddr[0]);
     if (r < 0)
 	panic("jif: cannot read MAC address");
 
@@ -157,9 +161,10 @@ low_level_output(struct netif *netif, struct pbuf *p)
     jif->tx[txslot]->size = txsize;
     jif->tx[txslot]->actual_count = 0;
 
-    int r = sys_net_buf(jif->ndev, jif->buf_seg,
-			(uint64_t) (txbase - jif->buf_base),
-			netbuf_tx);
+    int r = jnic_net_buf(jif->jnic, jif->buf_seg,
+			 (uint64_t) (txbase - jif->buf_base),
+			 netbuf_tx);
+    
     if (r < 0) {
 	cprintf("jif: can't setup tx slot: %s\n", e2s(r));
 	return ERR_MEM;
@@ -191,8 +196,11 @@ jif_rxbuf_feed(struct jif *jif)
     for (int i = ss; i != jif->rx_head; i = (i + 1) % JIF_BUFS) {
 	void *bufaddr = jif->rx[i];
 	jif->rx[i]->actual_count = 0;
-	int r = sys_net_buf(jif->ndev, jif->buf_seg,
-			    (uint64_t) (bufaddr - jif->buf_base), netbuf_rx);
+	
+	int r = jnic_net_buf(jif->jnic, jif->buf_seg,
+			     (uint64_t) (bufaddr - jif->buf_base), 
+			     netbuf_rx);
+	
 	if (r < 0) {
 	    cprintf("jif: cannot feed rx packet: %s\n", e2s(r));
 	    break;
@@ -213,7 +221,8 @@ low_level_input(struct netif *netif)
 	jif_rxbuf_feed(jif);
 
 	lwip_core_unlock();
-	jif->waitgen = sys_net_wait(jif->ndev, jif->waiter_id, jif->waitgen);
+	jif->waitgen = jnic_net_wait(jif->jnic, jif->waiter_id, jif->waitgen);
+
 	lwip_core_lock();
 	if (jif->waitgen == -E_AGAIN) {
 	    // All buffers have been cleared
@@ -368,8 +377,7 @@ jif_input(struct netif *netif)
 err_t
 jif_init(struct netif *netif)
 {
-    struct cobj_ref *netdev_p = (struct cobj_ref *) netif->state;
-    struct cobj_ref netdev = *netdev_p;
+    struct jnic *jnic = netif->state;
 
     struct jif *jif;
 
@@ -387,7 +395,7 @@ jif_init(struct netif *netif)
 
     jif->ethaddr = (struct eth_addr *)&(netif->hwaddr[0]);
 
-    low_level_init(netif, netdev);
+    low_level_init(netif, jnic);
 
     etharp_init();
 

@@ -79,6 +79,7 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libjos.a \
 	   $(OBJDIR)/lib/32/libjos.a \
 	   $(OBJDIR)/lib/libnetd.a \
+	   $(OBJDIR)/lib/libudev.a \
 	   $(OBJDIR)/lib/liblwip.a \
 	   $(OBJDIR)/lib/libc.a \
 	   $(OBJDIR)/lib/libc_nonshared.a \
@@ -164,6 +165,7 @@ conf/gcc.$(K_ARCH).mk:
 include kern/Makefrag
 include lib/Makefrag
 include netd/Makefrag
+include udev/Makefrag
 include dj/Makefrag
 include pkg/Makefrag
 include acpkg/Makefrag

@@ -30,6 +30,13 @@ int	sys_net_buf(struct cobj_ref ndev, struct cobj_ref seg,
 		    uint64_t offset, netbuf_type type);
 int	sys_net_macaddr(struct cobj_ref ndev, uint8_t *buf);
 
+int	sys_udev_get_base(struct cobj_ref udev, uint64_t base, uint64_t *val);
+int	sys_udev_in_port(struct cobj_ref udev, uint64_t port, uint64_t *val);
+int	sys_udev_out_port(struct cobj_ref udev, uint64_t port, uint64_t val);
+int64_t sys_udev_wait(struct cobj_ref udev, uint64_t waiterid, int64_t waitgen);
+int	sys_udev_intr_enable(struct cobj_ref udev);
+int	sys_udev_intr_disable(struct cobj_ref udev);
+
 int     sys_machine_reboot(void);
 
 int64_t	sys_container_alloc(uint64_t parent, const struct ulabel *l,
