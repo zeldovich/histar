@@ -1,5 +1,5 @@
 *lib:
-%{static:-ljos -lnetd -ludev -llwip -lc -lstdc++} %{!static:-lc_nonshared LDSOPATH --dynamic-linker /bin/ld.so} --as-needed -lm -lutil --no-as-needed
+%{static:-ljos -lnetd -llwip -lc -lstdc++} %{!static:-lc_nonshared LDSOPATH --dynamic-linker /bin/ld.so} --as-needed -lm -lutil --no-as-needed
 
 *libgcc:
 %{!static:LDSOPATH --as-needed -lgcc_wrap --no-as-needed} %{static:-lgcc MAYBE_GCC_EH}

@@ -1,10 +1,10 @@
 #include <inc/array.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
+#include <inc/udev.h>
 
-#include <udev/udev.h>
-#include <udev/jnic.h>
-#include <udev/ne2kpci.h>
+#include <jdev/jnic.h>
+#include <jdev/ne2kpci.h>
 
 #include <string.h>
 #include <malloc.h>

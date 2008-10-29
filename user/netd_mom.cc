@@ -3,7 +3,7 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/assert.h>
 #include <inc/fs.h>
-#include <udev/udev.h>
+#include <inc/udev.h>
 
 #include <stdio.h>
 #include <inttypes.h>

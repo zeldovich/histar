@@ -34,7 +34,7 @@
 #include <inc/lib.h>
 #include <inc/memlayout.h>
 #include <inc/error.h>
-#include <udev/jnic.h>
+#include <jdev/jnic.h>
 
 #include <string.h>
 

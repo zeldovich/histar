@@ -11,7 +11,8 @@ OBJDIRS += \
 	pkg/lwip/netif \
 	pkg/lwip/jos64/arch \
 	pkg/lwip/jos64/jif \
-	pkg/lwip/jos64/api
+	pkg/lwip/jos64/api \
+	pkg/lwip/jos64/jdev
 
 USER_INC += $(LWIP_INCLUDES)
 
@@ -43,7 +44,9 @@ LWIP_SRCFILES += \
 	pkg/lwip/jos64/arch/sys_arch.c \
 	pkg/lwip/jos64/jif/jif.c \
 	pkg/lwip/jos64/jif/tun.c \
-	pkg/lwip/jos64/api/event.c
+	pkg/lwip/jos64/api/event.c \
+	pkg/lwip/jos64/jdev/jnic.c \
+	pkg/lwip/jos64/jdev/ne2kpci.c
 
 LWIP_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LWIP_SRCFILES))
 

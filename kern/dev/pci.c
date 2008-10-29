@@ -12,7 +12,7 @@
 #include <kern/udev.h>
 #include <inc/error.h>
 #include <inc/device.h>
-#include <udev/udev.h>
+#include <inc/udev.h>
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 0;

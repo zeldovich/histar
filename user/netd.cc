@@ -11,7 +11,7 @@ extern "C" {
 #include <string.h>
 #include <inttypes.h>
 
-#include <udev/jnic.h>
+#include <jdev/jnic.h>
 }
 
 #include <inc/gatesrv.hh>

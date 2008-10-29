@@ -2,7 +2,7 @@
 #include <dev/ne2kpci.h>
 #include <dev/dp8390reg.h>
 
-#include <udev/ne2kpci.h>
+#include <jdev/ne2kpci.h>
 #include <inc/error.h>
 #include <inc/arch.h>
 #include <inc/syscall.h>
