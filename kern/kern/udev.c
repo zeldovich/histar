@@ -50,8 +50,13 @@ udev_thread_wait(struct udevice* udev, const struct Thread* t,
 	return -E_AGAIN;
     }
 
-    if (gen != udev->wait_gen)
+    if (gen != udev->wait_gen) {
+	if (udev->intr_pend && !udev->intr_level) {
+	    irq_arch_enable(udev->ih.ih_irq, udev->ih.ih_tbdp);
+	    udev->intr_pend = 0;
+	}
 	return udev->wait_gen;
+    }
 
     if (udev->intr_level) {
 	irq_arch_enable(udev->ih.ih_irq, udev->ih.ih_tbdp);
