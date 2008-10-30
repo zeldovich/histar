@@ -13,6 +13,7 @@
 #include <inc/error.h>
 #include <inc/device.h>
 #include <inc/udev.h>
+#include <inc/bitops.h>
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 0;
@@ -60,6 +61,7 @@ struct pci_driver pci_attach_vendor[] = {
     { 0, 0, 0 },
 };
 
+// PCI udev fuctions
 static uint8_t 
 pci_class_to_device(uint8_t class)
 {
@@ -71,7 +73,6 @@ pci_class_to_device(uint8_t class)
     }
 }
 
-// PCI udev fuctions
 static int
 pci_get_base(void *a, uint64_t base, uint64_t *val)
 {
@@ -81,6 +82,43 @@ pci_get_base(void *a, uint64_t base, uint64_t *val)
     struct pci_udevice *pciud = a;
     *val = pciud->func.reg_base[base];
     return 0;
+}
+
+static int
+pci_udev_attach(struct pci_func *f)
+{
+    if (pciudev_num == pciudevs_max) {
+	cprintf("pci_attach_match: no enough pciudevs\n");
+	return 0;
+    }
+    
+    pci_func_enable(f);
+    
+    void *iomap;
+    if (page_alloc(&iomap) < 0)
+	return 0;
+    
+    for (uint32_t i = 0; i < 6; i++)
+	if (f->reg_type[i] == pci_res_io)
+	    for (uint32_t k = 0; k < f->reg_size[i]; k++)
+		bit_set(iomap, k + f->reg_base[i]);
+
+    struct pci_udevice *d = &pciudev[pciudev_num++];
+    memcpy(&d->func, f, sizeof(d->func));
+    d->udev.arg = d;
+    d->udev.key = MK_PCIKEY(pci_class_to_device(PCI_CLASS(f->dev_class)),
+			    PCI_VENDOR(f->dev_id), 
+			    (uint64_t)PCI_PRODUCT(f->dev_id));
+    d->udev.get_base = pci_get_base;
+    d->udev.iomap = iomap;
+    d->udev.iomax = PGSIZE * 8;
+    
+    d->udev.ih.ih_tbdp = f->tbdp;
+    d->udev.ih.ih_irq = f->irq_line;
+    /* udev_register fills out the rest of ih */
+
+    udev_register(&d->udev);
+    return 1;
 }
 
 static void
@@ -143,29 +181,8 @@ pci_attach(struct pci_func *f)
     
     if (r)
 	return r;
-	
-    if (pciudev_num == pciudevs_max) {
-	cprintf("pci_attach_match: no enough pciudevs\n");
-	return 0;
-    }
 
-    pci_func_enable(f);
-
-    struct pci_udevice *d = &pciudev[pciudev_num++];
-    memcpy(&d->func, f, sizeof(d->func));
-    d->udev.arg = d;
-    d->udev.key = MK_PCIKEY(pci_class_to_device(PCI_CLASS(f->dev_class)),
-			    PCI_VENDOR(f->dev_id), 
-			    (uint64_t)PCI_PRODUCT(f->dev_id));
-
-    d->udev.get_base = pci_get_base;
-    
-    d->udev.ih.ih_tbdp = f->tbdp;
-    d->udev.ih.ih_irq = f->irq_line;
-    /* udev_register fills out the rest of ih */
-
-    udev_register(&d->udev);
-    return 1;
+    return pci_udev_attach(f);
 }
 
 static void
@@ -256,19 +273,21 @@ pci_func_enable(struct pci_func *f)
 	    continue;
 
 	int regnum = PCI_MAPREG_NUM(bar);
-	uint32_t base, size;
+	uint32_t base, size, type;
 	if (PCI_MAPREG_TYPE(rv) == PCI_MAPREG_TYPE_MEM) {
 	    if (PCI_MAPREG_MEM_TYPE(rv) == PCI_MAPREG_MEM_TYPE_64BIT)
 		bar_width = 8;
 
 	    size = PCI_MAPREG_MEM_SIZE(rv);
 	    base = PCI_MAPREG_MEM_ADDR(oldv);
+	    type = pci_res_mem;
 	    if (pci_show_addrs)
 		cprintf("  mem region %d: %d bytes at 0x%x\n",
 			regnum, size, base);
 	} else {
 	    size = PCI_MAPREG_IO_SIZE(rv);
 	    base = PCI_MAPREG_IO_ADDR(oldv);
+	    type = pci_res_io;
 	    if (pci_show_addrs)
 		cprintf("  io region %d: %d bytes at 0x%x\n",
 			regnum, size, base);
@@ -277,6 +296,7 @@ pci_func_enable(struct pci_func *f)
 	pci_conf_write(f, bar, oldv);
 	f->reg_base[regnum] = base;
 	f->reg_size[regnum] = size;
+	f->reg_type[regnum] = type;
 
 	if (size && !base)
 	    cprintf("PCI device %02x:%02x.%d (%04x:%04x) may be misconfigured: "

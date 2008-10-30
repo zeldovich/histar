@@ -365,7 +365,7 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 	trap_thread_syscall_writeback = 0;
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
-    t->th_tf.tf_rflags = FL_IF | (3 << 12);
+    t->th_tf.tf_rflags = FL_IF;
     t->th_tf.tf_cs = GD_UT_NMASK | 3;
     t->th_tf.tf_ss = GD_UD | 3;
     t->th_tf.tf_ds = GD_UD | 3;

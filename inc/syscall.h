@@ -33,8 +33,10 @@ int	sys_net_macaddr(struct cobj_ref ndev, uint8_t *buf);
 int	sys_udev_get_key(uint64_t idx, uint64_t *key);
 int	sys_udev_get_base(struct cobj_ref udev, uint64_t base, uint64_t *val);
 int64_t sys_udev_wait(struct cobj_ref udev, uint64_t waiterid, int64_t waitgen);
-int	sys_udev_in_port(struct cobj_ref udev, uint64_t port, uint64_t *val);
-int	sys_udev_out_port(struct cobj_ref udev, uint64_t port, uint64_t val);
+int	sys_udev_in_port(struct cobj_ref udev, uint64_t port, uint8_t width,
+			 uint8_t *val, uint64_t n);
+int	sys_udev_out_port(struct cobj_ref udev, uint64_t port, uint8_t width,
+			  uint8_t *val, uint64_t n);
 
 int     sys_machine_reboot(void);
 

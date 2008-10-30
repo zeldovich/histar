@@ -4,7 +4,7 @@
 #include <machine/types.h>
 
 // PCI subsystem interface
-enum { pci_res_bus, pci_res_mem, pci_res_io, pci_res_max };
+enum { pci_res_none, pci_res_bus, pci_res_mem, pci_res_io, pci_res_max };
 
 struct pci_bus;
 
@@ -19,6 +19,7 @@ struct pci_func {
 
     uint32_t reg_base[6];
     uint32_t reg_size[6];
+    uint32_t reg_type[6];
     uint8_t irq_line;
     uint32_t tbdp;
 };

@@ -1,5 +1,4 @@
 #include <machine/x86.h>
-#include <dev/ne2kpci.h>
 #include <dev/dp8390reg.h>
 
 #include <jdev/ne2kpci.h>
@@ -7,6 +6,7 @@
 #include <inc/arch.h>
 #include <inc/syscall.h>
 #include <inc/lib.h>
+#include <inc/assert.h>
 
 #include <assert.h>
 #include <malloc.h>
@@ -48,30 +48,64 @@ struct ne2kpci_card {
     uint64_t seg_bytes;
 };
 
+static void 
+coutb(struct ne2kpci_card* c, uint32_t regoff, uint64_t val)
+{
+    int r = sys_udev_out_port(c->obj, c->iobase + regoff, 1, (uint8_t *)&val, 1);
+    if (r < 0)
+	panic("sys_udev_out_port error: %s", e2s(r));
+}
+
+static uint8_t
+cinb(struct ne2kpci_card* c, uint32_t regoff)
+{
+    uint8_t val;
+    int r = sys_udev_in_port(c->obj, c->iobase + regoff, 1, &val, 1);
+    if (r < 0)
+	panic("sys_udev_in_port error: %s", e2s(r));
+    return val;
+}
+
+static void 
+coutsb(struct ne2kpci_card* c, uint32_t regoff, uint8_t *buf, uint16_t size)
+{
+    int r = sys_udev_out_port(c->obj, c->iobase + regoff, 1, buf, size);
+    if (r < 0)
+	panic("sys_udev_out_port error: %s", e2s(r));
+}
+
+static void
+cinsb(struct ne2kpci_card* c, uint32_t regoff, uint8_t *buf, uint16_t size)
+{
+    int r = sys_udev_in_port(c->obj, c->iobase + regoff, 1, buf, size);
+    if (r < 0)
+	panic("sys_udev_in_port error: %s", e2s(r));
+}
+
 static void
 ne2kpci_rmt_read(struct ne2kpci_card* c, uint8_t* buf,
 		 uint16_t size, uint16_t ad)
 {
-    outb(c->iobase + ED_P0_RBCR0, size & 0x00FF);
-    outb(c->iobase + ED_P0_RBCR1, (size >> 8) & 0x00FF);
-    outb(c->iobase + ED_P0_RSAR0, ad & 0x00FF);
-    outb(c->iobase + ED_P0_RSAR1, (ad >> 8) & 0x00FF);
-    outb(c->iobase + ED_P0_CR, ED_CR_RD0 | ED_CR_STA);
+    coutb(c, ED_P0_RBCR0, size & 0x00FF);
+    coutb(c, ED_P0_RBCR1, (size >> 8) & 0x00FF);
+    coutb(c, ED_P0_RSAR0, ad & 0x00FF);
+    coutb(c, ED_P0_RSAR1, (ad >> 8) & 0x00FF);
+    coutb(c, ED_P0_CR, ED_CR_RD0 | ED_CR_STA);
 
-    insb(c->iobase + NE2KPCI_IOPORT, buf, size);
+    cinsb(c, NE2KPCI_IOPORT, buf, size);
 }
 
 static void
 ne2kpci_rmt_write(struct ne2kpci_card *c, uint8_t *buf,
 		  uint16_t size, uint16_t ad)
 {
-    outb(c->iobase + ED_P0_RBCR0, size & 0x00FF);
-    outb(c->iobase + ED_P0_RBCR1, (size >> 8) & 0x00FF);
-    outb(c->iobase + ED_P0_RSAR0, ad & 0x00FF);
-    outb(c->iobase + ED_P0_RSAR1, (ad >> 8) & 0x00FF);
-    outb(c->iobase + ED_P0_CR, ED_CR_RD1 | ED_CR_STA);
+    coutb(c, ED_P0_RBCR0, size & 0x00FF);
+    coutb(c, ED_P0_RBCR1, (size >> 8) & 0x00FF);
+    coutb(c, ED_P0_RSAR0, ad & 0x00FF);
+    coutb(c, ED_P0_RSAR1, (ad >> 8) & 0x00FF);
+    coutb(c, ED_P0_CR, ED_CR_RD1 | ED_CR_STA);
 
-    outsb(c->iobase + NE2KPCI_IOPORT, buf, size);
+    coutsb(c, NE2KPCI_IOPORT, buf, size);
 }
 
 static void
@@ -82,7 +116,7 @@ ne2kpci_flush_packet(struct ne2kpci_card *c, struct dp8390_ring *rrd)
     uint8_t boundary = c->next_pkt - 1;
     if (boundary < NE2KPCI_PSTART)
 	boundary = NE2KPCI_PSTOP - 1;
-    outb(c->iobase + ED_P0_BNRY, boundary);
+    coutb(c, ED_P0_BNRY, boundary);
 }
 
 static void
@@ -107,10 +141,10 @@ ne2kpci_reset(struct ne2kpci_card *c)
     // init procedure as specified in NS reference
 
     // reset
-    outb(c->iobase + NE2KPCI_RESET, inb(c->iobase + NE2KPCI_RESET));
+    coutb(c, NE2KPCI_RESET, cinb(c, NE2KPCI_RESET));
     uint64_t tsc_start = arch_read_tsc();
     for (;;) {
-	uint8_t isr = inb(c->iobase + ED_P0_ISR);
+	uint8_t isr = cinb(c, ED_P0_ISR);
 	if (isr & ED_ISR_RST)
 	    break;
 
@@ -122,29 +156,30 @@ ne2kpci_reset(struct ne2kpci_card *c)
 	}
     }
 
-    outb(c->iobase + ED_P0_CR, ED_CR_STP | ED_CR_RD2);
-    outb(c->iobase + ED_P0_DCR, ED_DCR_LS | ED_DCR_FT1);
+    coutb(c, ED_P0_CR, ED_CR_STP | ED_CR_RD2);
+    coutb(c, ED_P0_DCR, ED_DCR_LS | ED_DCR_FT1);
 
-    outb(c->iobase + ED_P0_RBCR0, 0);
-    outb(c->iobase + ED_P0_RBCR1, 0);
-    outb(c->iobase + ED_P0_RCR, ED_RCR_AB | ED_RCR_PRO);
+    coutb(c, ED_P0_RBCR0, 0);
+    coutb(c, ED_P0_RBCR1, 0);
+    coutb(c, ED_P0_RCR, ED_RCR_AB | ED_RCR_PRO);
 
-    outb(c->iobase + ED_P0_TCR, ED_TCR_LB0);
+    coutb(c, ED_P0_TCR, ED_TCR_LB0);
+
 
     // initialize receive buffer ring.
-    outb(c->iobase + ED_P0_BNRY, NE2KPCI_PSTART);
-    outb(c->iobase + ED_P0_PSTART, NE2KPCI_PSTART);
-    outb(c->iobase + ED_P0_PSTOP, NE2KPCI_PSTOP);
+    coutb(c, ED_P0_BNRY, NE2KPCI_PSTART);
+    coutb(c, ED_P0_PSTART, NE2KPCI_PSTART);
+    coutb(c, ED_P0_PSTOP, NE2KPCI_PSTOP);
 
-    outb(c->iobase + ED_P0_CR, ED_CR_PAGE_1 | ED_CR_RD2 | ED_CR_STP);
-    outb(c->iobase + ED_P1_CURR, NE2KPCI_PSTART + 1);
+    coutb(c, ED_P0_CR, ED_CR_PAGE_1 | ED_CR_RD2 | ED_CR_STP);
+    coutb(c, ED_P1_CURR, NE2KPCI_PSTART + 1);
     c->next_pkt = NE2KPCI_PSTART + 1;
-    outb(c->iobase + ED_P0_CR, ED_CR_PAGE_0 | ED_CR_RD2 | ED_CR_STP);
-
+    coutb(c, ED_P0_CR, ED_CR_PAGE_0 | ED_CR_RD2 | ED_CR_STP);
+    
     // interrupts
-    outb(c->iobase + ED_P0_ISR, 0xFF);
-    outb(c->iobase + ED_P0_IMR, (ED_IMR_PRXE | ED_IMR_RXEE |
-				 ED_IMR_TXEE | ED_IMR_OVWE));
+    coutb(c, ED_P0_ISR, 0xFF);
+    coutb(c, ED_P0_IMR, (ED_IMR_PRXE | ED_IMR_RXEE |
+			 ED_IMR_TXEE | ED_IMR_OVWE));
 
     // read station address
     uint8_t buf[12];
@@ -153,16 +188,16 @@ ne2kpci_reset(struct ne2kpci_card *c)
 	c->mac_addr[i] = buf[i * 2];
 
     // set the station address
-    outb(c->iobase + ED_P0_CR, ED_CR_PAGE_1 | ED_CR_RD2 | ED_CR_STP);
+    coutb(c, ED_P0_CR, ED_CR_PAGE_1 | ED_CR_RD2 | ED_CR_STP);
     for (int i = 0; i < 6; i++)
-	outb(c->iobase + ED_P1_PAR0 + i, c->mac_addr[i]);
+	coutb(c, ED_P1_PAR0 + i, c->mac_addr[i]);
 
     // accept all multicast
     for (int i = 0; i < 8; i++)
-	outb(c->iobase + ED_P1_MAR0 + i, 0xFF);
-    outb(c->iobase + ED_P0_CR, ED_CR_PAGE_0 | ED_CR_RD2 | ED_CR_STA);
+	coutb(c, ED_P1_MAR0 + i, 0xFF);
+    coutb(c, ED_P0_CR, ED_CR_PAGE_0 | ED_CR_RD2 | ED_CR_STA);
 
-    outb(c->iobase + ED_P0_TCR, 0);
+    coutb(c, ED_P0_TCR, 0);
     return 0;
 }
 
@@ -172,18 +207,18 @@ ne2kpci_add_txbuf(void *arg, struct netbuf_hdr *nb, uint16_t size)
     struct ne2kpci_card *c = arg;
 
     // txp queue?
-    if (inb(c->iobase + ED_P0_CR) & ED_CR_TXP) {
+    if (cinb(c, ED_P0_CR) & ED_CR_TXP) {
 	printf("ne2kpci_add_txbuf: txp queue?");
-	while (inb(c->iobase + ED_P0_CR) & ED_CR_TXP) ;
+	while (cinb(c, ED_P0_CR) & ED_CR_TXP) ;
     }
 
     ne2kpci_rmt_write(c, (uint8_t *) (nb + 1), size,
 		      NE2KPCI_TXP_BUF << ED_PAGE_SHIFT);
 
-    outb(c->iobase + ED_P0_TPSR, NE2KPCI_TXP_BUF);
-    outb(c->iobase + ED_P0_TBCR0, size & 0x00ff);
-    outb(c->iobase + ED_P0_TBCR1, size >> 8);
-    outb(c->iobase + ED_P0_CR, ED_CR_STA | ED_CR_TXP | ED_CR_RD2);
+    coutb(c, ED_P0_TPSR, NE2KPCI_TXP_BUF);
+    coutb(c, ED_P0_TBCR0, size & 0x00ff);
+    coutb(c, ED_P0_TBCR1, size >> 8);
+    coutb(c, ED_P0_CR, ED_CR_STA | ED_CR_TXP | ED_CR_RD2);
 
     nb->actual_count |= NETHDR_COUNT_DONE;
     return 0;
@@ -247,17 +282,17 @@ ne2kpci_buf(void* arg, struct cobj_ref seg,
 static void
 ne2kpci_stop(struct ne2kpci_card *c)
 {
-    outb(c->iobase + ED_P0_CR, ED_CR_PAGE_0 | ED_CR_STP);
-    while ((inb(c->iobase + ED_P0_ISR) & ED_ISR_RST) == 0) ;
+    coutb(c, ED_P0_CR, ED_CR_PAGE_0 | ED_CR_STP);
+    while ((cinb(c, ED_P0_ISR) & ED_ISR_RST) == 0) ;
 }
 
 static void
 ne2kpci_rintr(struct ne2kpci_card *c)
 {
     for (;;) {
-	outb(c->iobase + ED_P0_CR, ED_CR_PAGE_1 | ED_CR_STA);
-	uint8_t current = inb(c->iobase + ED_P1_CURR);
-	outb(c->iobase + ED_P0_CR, ED_CR_PAGE_0 | ED_CR_STA);
+	coutb(c, ED_P0_CR, ED_CR_PAGE_1 | ED_CR_STA);
+	uint8_t current = cinb(c, ED_P1_CURR);
+	coutb(c, ED_P0_CR, ED_CR_PAGE_0 | ED_CR_STA);
 
 	if (c->next_pkt == current)
 	    break;
@@ -308,11 +343,11 @@ ne2kpci_wait(void* arg, uint64_t waiterid, int64_t waitgen)
 	return r;
     }
 
-    uint8_t status = inb(c->iobase + ED_P0_ISR);
+    uint8_t status = cinb(c, ED_P0_ISR);
 
     if (status & (ED_ISR_PRX | ED_ISR_OVW)) {
-	outb(c->iobase + ED_P0_ISR, ED_ISR_PRX);
-	outb(c->iobase + ED_P0_ISR, ED_ISR_OVW);
+	coutb(c, ED_P0_ISR, ED_ISR_PRX);
+	coutb(c, ED_P0_ISR, ED_ISR_OVW);
 
 	if (status & ED_ISR_OVW) {
 	    // how netbsd handles overwrite
@@ -328,7 +363,7 @@ ne2kpci_wait(void* arg, uint64_t waiterid, int64_t waitgen)
     if (status & ED_ISR_TXE)
 	printf("ne2kpci_intr: packet tx error\n");
 
-    outb(c->iobase + ED_P0_ISR, 0xFF);
+    coutb(c, ED_P0_ISR, 0xFF);
     return r;
 }
 

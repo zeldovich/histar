@@ -241,7 +241,8 @@ sys_udev_wait(struct cobj_ref udevref, uint64_t waiterid, int64_t waitgen)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_udev_in_port(struct cobj_ref udevref, uint64_t port, uint64_t *val)
+sys_udev_in_port(struct cobj_ref udevref, uint64_t port, uint8_t width,
+		 uint8_t *val, uint64_t n)
 {
     const struct kobject *ko;
     check(cobj_get(udevref, kobj_device, &ko, iflow_read));
@@ -249,13 +250,18 @@ sys_udev_in_port(struct cobj_ref udevref, uint64_t port, uint64_t *val)
     if (ko->dv.dv_type != device_udev)
 	return -E_INVAL;
 
+    struct udevice *udev = udev_get(ko->dv.dv_idx);
+    if (udev == 0)
+	return -E_INVAL;
+
     check(check_user_access(val, sizeof(*val), SEGMAP_WRITE));
-    check(udev_in_port(ko->dv.dv_idx, port, val));
+    check(udev_in_port(udev, port, width, val, n));
     return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_udev_out_port(struct cobj_ref udevref, uint64_t port, uint64_t val)
+sys_udev_out_port(struct cobj_ref udevref, uint64_t port, uint8_t width,
+		  uint8_t *val, uint64_t n)
 {
     const struct kobject *ko;
     check(cobj_get(udevref, kobj_device, &ko, iflow_read));
@@ -263,7 +269,11 @@ sys_udev_out_port(struct cobj_ref udevref, uint64_t port, uint64_t val)
     if (ko->dv.dv_type != device_udev)
 	return -E_INVAL;
 
-    check(udev_out_port(ko->dv.dv_idx, port, val));
+    struct udevice *udev = udev_get(ko->dv.dv_idx);
+    if (udev == 0)
+	return -E_INVAL;
+
+    check(udev_out_port(udev, port, width, val, n));
     return 0;
 }
 
@@ -1184,8 +1194,8 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(net_buf, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
 	SYSCALL(udev_get_key, a1, p2);
 	SYSCALL(udev_get_base, COBJ(a1, a2), a3, p4);
-	SYSCALL(udev_in_port, COBJ(a1, a2), a3, p4);
-	SYSCALL(udev_out_port, COBJ(a1, a2), a3, a4);
+	SYSCALL(udev_in_port, COBJ(a1, a2), a3, a4, p5, a6);
+	SYSCALL(udev_out_port, COBJ(a1, a2), a3, a4, p5, a6);
 	SYSCALL(machine_reboot);
 	SYSCALL(container_move_quota, a1, a2, a3);
 	SYSCALL(obj_unref, COBJ(a1, a2));

@@ -1,12 +1,12 @@
 /* XXX
- * jnic should really be part of lwip.
- * inb outb...
+ * some way to get level or edge.
  */
 
 #include <kern/udev.h>
 #include <kern/lib.h>
 #include <kern/arch.h>
 #include <inc/error.h>
+#include <inc/bitops.h>
 
 enum { udevs_max = 32 };
 static struct udevice* udevs[udevs_max];
@@ -80,15 +80,29 @@ udev_thread_wakeup(struct udevice* udev)
 }
 
 int
-udev_in_port(uint64_t key, uint64_t port, uint64_t *val)
+udev_in_port(struct udevice* udev, uint64_t port, uint8_t width, 
+	     uint8_t* val, uint64_t n)
 {
-    return -1;
+    if (!udev->iomap || n > udev->iomax)
+	return -E_INVAL;
+    for (uint8_t i = 0; i < width; i++)
+	if (bit_get(udev->iomap, port + i) == 0)
+	    return -E_INVAL;
+
+    return arch_in_port(port, width, val, n);
 }
 
 int
-udev_out_port(uint64_t key, uint64_t port, uint64_t val)
+udev_out_port(struct udevice* udev, uint64_t port, uint8_t width, 
+	      uint8_t* val, uint64_t n)
 {
-    return -1;
+    if (!udev->iomap || n > udev->iomax)
+	return -E_INVAL;
+    for (uint8_t i = 0; i < width; i++)
+	if (bit_get(udev->iomap, port + i) == 0)
+	    return -E_INVAL;
+
+    return arch_out_port(port, width, val, n);
 }
 
 void
