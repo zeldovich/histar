@@ -15,7 +15,7 @@ K_ARCH	:= sparc
 #K_ARCH	:= um
 
 ## Use multiple objdirs to build multiple architectures with same source tree
-OBJDIR	:= obj
+OBJDIR	:= obj.loki
 #OBJDIR	:= obj.$(K_ARCH)
 
 -include conf/gcc.$(K_ARCH).mk
