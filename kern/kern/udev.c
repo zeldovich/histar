@@ -1,7 +1,3 @@
-/* XXX
- * some way to get level or edge.
- */
-
 #include <kern/udev.h>
 #include <kern/lib.h>
 #include <kern/arch.h>
