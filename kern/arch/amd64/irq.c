@@ -16,8 +16,8 @@ enum { use_ioapic = 1 };
  *    vector regardless of whether the devices on that pin use
  *    the same IRQ as devices on another pin.
  *
- * We split the trap space into a kernel area and a user area.
- * All kernel traps have a higher priority than all user traps.
+ * The trap space is split into a kernel area and a user area.
+ * All kernel traps have a higher priority than user traps.
  * the_schedtmr is the only driver that must use a kernel trap,
  * while all untrusted drivers must use user traps.  This allows 
  * the kernel to emulate cli for user-level drivers using 
@@ -88,4 +88,21 @@ irq_arch_eoi(uint32_t trapno)
 	apic_eoi();
     else
 	pic_eoi();
+}
+
+void
+irq_arch_umask_enable(void)
+{
+    /*
+     * priority = trapno / 16
+     * The processor will service only those interrupts that 
+     * have a priority higher than that specified in APIC.TPR.
+     */
+    apic_set_tpr((T_KERNDEV / 16) - 1);
+}
+
+void
+irq_arch_umask_disable(void)
+{
+    apic_set_tpr(0);
 }

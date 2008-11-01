@@ -7,5 +7,6 @@ void apic_init(void);
 void apic_eoi(void);
 void apic_send_ipi(uint32_t target, uint32_t vector);
 void apic_start_ap(uint32_t apicid, physaddr_t pa);
+void apic_set_tpr(uint8_t priority);
 
 #endif

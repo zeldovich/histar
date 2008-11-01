@@ -219,7 +219,7 @@ void
 mp_intrenable(trapno_t tno)
 {
     /*
-     * This function enables interrupt on CPU 0.
+     * This function unmasks the interrupt on CPU 0.
      */
 
     struct aintr* aintr;

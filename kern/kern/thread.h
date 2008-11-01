@@ -39,6 +39,7 @@ struct Thread {
     uint8_t th_cache_flush : 1;
     uint8_t th_linked : 1;
     uint8_t th_unused_flag : 1;
+    uint8_t th_umask_enabled : 1;
 
     uint32_t th_sched_tickets;
     uint64_t th_multi_slots;
@@ -100,6 +101,8 @@ void thread_change_as(const struct Thread *t, struct cobj_ref as);
 int  thread_enable_fp(const struct Thread *t)
     __attribute__ ((warn_unused_result));
 void thread_disable_fp(const struct Thread *t);
+void thread_enable_umask(const struct Thread *t);
+void thread_disable_umask(const struct Thread *t);
 int  thread_set_waitslots(const struct Thread *t, uint64_t nslots)
     __attribute__ ((warn_unused_result));
 void thread_set_sched_parents(const struct Thread *t, uint64_t p1, uint64_t p2);

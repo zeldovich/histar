@@ -100,6 +100,13 @@ apic_eoi(void)
     apic_write(LAPIC_EOI, 0);
 }
 
+void
+apic_set_tpr(uint8_t priority)
+{
+    assert(priority <= 15);
+    apic_write(LAPIC_TPRI, LAPIC_TPRI_MASK & (priority << 4));
+}
+
 static void
 apic_schedule(void *arg, uint64_t nsec)
 {

@@ -51,6 +51,8 @@ void	 irq_arch_enable(trapno_t trapno);
 void	 irq_arch_disable(uint32_t trapno);
 void	 irq_arch_eoi(uint32_t trapno);
 trapno_t irq_arch_init(uint32_t irqno, tbdp_t tbdp, bool_t user);
+void	 irq_arch_umask_enable(void);
+void	 irq_arch_umask_disable(void);
 
 int	 arch_out_port(uint64_t port, uint8_t width, uint8_t *val, uint64_t n);
 int	 arch_in_port(uint64_t port, uint8_t width, uint8_t *val, uint64_t n);

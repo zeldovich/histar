@@ -343,6 +343,8 @@ ne2kpci_wait(void* arg, uint64_t waiterid, int64_t waitgen)
 	return r;
     }
 
+    assert(sys_self_umask_enable(c->obj) == 0);
+
     uint8_t status = cinb(c, ED_P0_ISR);
 
     if (status & (ED_ISR_PRX | ED_ISR_OVW)) {
@@ -364,6 +366,9 @@ ne2kpci_wait(void* arg, uint64_t waiterid, int64_t waitgen)
 	printf("ne2kpci_intr: packet tx error\n");
 
     coutb(c, ED_P0_ISR, 0xFF);
+
+    assert(sys_self_umask_disable() == 0);
+
     return r;
 }
 

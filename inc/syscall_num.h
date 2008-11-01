@@ -64,6 +64,8 @@
     SYSCALL_ENTRY(self_set_as)			\
     SYSCALL_ENTRY(self_fp_enable)		\
     SYSCALL_ENTRY(self_fp_disable)		\
+    SYSCALL_ENTRY(self_umask_enable)		\
+    SYSCALL_ENTRY(self_umask_disable)		\
     SYSCALL_ENTRY(self_set_waitslots)		\
     SYSCALL_ENTRY(self_set_sched_parents)	\
     SYSCALL_ENTRY(self_set_cflush)		\

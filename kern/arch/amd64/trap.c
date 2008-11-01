@@ -271,6 +271,11 @@ thread_arch_run(const struct Thread *t)
 	lcr0(rcr0() | CR0_TS);
     }
 
+    if (t->th_umask_enabled)
+	irq_arch_umask_enable();
+    else
+	irq_arch_umask_disable();
+
     if (t->th_tf.tf_ds != read_ds())
 	write_ds(t->th_tf.tf_ds);
     if (t->th_tf.tf_es != read_es())

@@ -276,6 +276,20 @@ thread_disable_fp(const struct Thread *const_t)
     t->th_fp_enabled = 0;
 }
 
+void
+thread_enable_umask(const struct Thread *const_t)
+{
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
+    t->th_umask_enabled = 1;
+}
+
+void
+thread_disable_umask(const struct Thread *const_t)
+{
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
+    t->th_umask_enabled = 0;
+}
+
 int
 thread_set_waitslots(const struct Thread *const_t, uint64_t nslots)
 {

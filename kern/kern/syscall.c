@@ -264,7 +264,7 @@ sys_udev_out_port(struct cobj_ref udevref, uint64_t port, uint8_t width,
 		  uint8_t *val, uint64_t n)
 {
     const struct kobject *ko;
-    check(cobj_get(udevref, kobj_device, &ko, iflow_read));
+    check(cobj_get(udevref, kobj_device, &ko, iflow_rw));
 
     if (ko->dv.dv_type != device_udev)
 	return -E_INVAL;
@@ -935,6 +935,31 @@ sys_self_fp_disable(void)
     return 0;
 }
 
+static int __attribute__ ((warn_unused_result))
+sys_self_umask_enable(struct cobj_ref udevref)
+{
+    const struct kobject *ko;
+    check(cobj_get(udevref, kobj_device, &ko, iflow_rw));
+
+    if (ko->dv.dv_type != device_udev)
+	return -E_INVAL;
+
+    struct udevice *udev = udev_get(ko->dv.dv_idx);
+    if (udev == 0)
+	return -E_INVAL;
+
+    udev_intr_enable(udev);
+    thread_enable_umask(cur_thread);
+    return 0;
+}
+
+static int __attribute__ ((warn_unused_result))
+sys_self_umask_disable(void)
+{
+    thread_disable_umask(cur_thread);
+    return 0;
+}
+
 static int64_t __attribute__ ((warn_unused_result))
 sys_self_set_waitslots(uint64_t nslots)
 {
@@ -1223,6 +1248,8 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(self_get_verify, p1, p2);
 	SYSCALL(self_fp_enable);
 	SYSCALL(self_fp_disable);
+	SYSCALL(self_umask_enable, COBJ(a1, a2));
+	SYSCALL(self_umask_disable);
 	SYSCALL(self_set_waitslots, a1);
 	SYSCALL(self_set_sched_parents, a1, a2);
 	SYSCALL(self_set_cflush, a1);

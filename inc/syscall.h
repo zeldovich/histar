@@ -99,6 +99,8 @@ int	sys_self_set_verify(const struct ulabel *l, const struct ulabel *c);
 int	sys_self_get_verify(struct ulabel *l, struct ulabel *c);
 int	sys_self_fp_enable(void);
 int	sys_self_fp_disable(void);
+int	sys_self_umask_enable(struct cobj_ref udev);
+int	sys_self_umask_disable(void);
 int	sys_self_set_waitslots(uint64_t nslots);
 int	sys_self_set_sched_parents(uint64_t p0, uint64_t p1);
 int	sys_self_set_cflush(int cflush);

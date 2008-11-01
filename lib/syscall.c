@@ -352,6 +352,18 @@ sys_self_fp_disable(void)
 }
 
 int
+sys_self_umask_enable(struct cobj_ref udev)
+{
+    return syscall(SYS_self_umask_enable, SOBJ(udev), 0, 0, 0, 0, 0);    
+}
+
+int
+sys_self_umask_disable(void)
+{
+    return syscall(SYS_self_umask_disable, 0, 0, 0, 0, 0, 0, 0);    
+}
+
+int
 sys_self_set_waitslots(uint64_t nslots)
 {
     return syscall(SYS_self_set_waitslots, nslots, 0, 0, 0, 0, 0, 0);

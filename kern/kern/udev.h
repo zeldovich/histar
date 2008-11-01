@@ -16,7 +16,6 @@ struct udevice {
 
     struct interrupt_handler ih;
     int			     intr_pend;
-    bool_t		     intr_level;
 
     void*		     iomap;
     uint64_t		     iomax;
@@ -35,8 +34,7 @@ int	udev_in_port(struct udevice* udev, uint64_t port, uint8_t width,
 		     uint8_t* val, uint64_t n);
 int	udev_out_port(struct udevice* udev, uint64_t port, uint8_t width,
 		      uint8_t* val, uint64_t n);
-int	udev_intr_enable(struct udevice* udev);
-int	udev_intr_disable(struct udevice* udev);
+void	udev_intr_enable(struct udevice* udev);
 
 struct udevice* udev_get(uint64_t idx);
 
