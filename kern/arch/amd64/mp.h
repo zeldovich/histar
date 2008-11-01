@@ -7,8 +7,10 @@
 
 void		mp_init(void);
 struct mp_fptr* mp_search(void);
-uint32_t	mp_intrenable(uint32_t irq, tbdp_t tbdp);
-void		mp_intrdisable(uint32_t trapno);
+void		mp_intrenable(trapno_t tno);
+void		mp_intrdisable(trapno_t tno);
+trapno_t	mp_intrinit(irqno_t irq, tbdp_t tbdp, trapno_t trapno)
+		__attribute__((warn_unused_result));
 
 struct cpu {
     uint8_t		apicid;

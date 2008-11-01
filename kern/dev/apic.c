@@ -160,7 +160,7 @@ apic_init(void)
 	apic_write(LAPIC_DCR_TIMER, LAPIC_DCRT_DIV1);
 	apic_write(LAPIC_ICR_TIMER, 0xffffffff);
 
-	apic_write(LAPIC_LVTT, T_PIC + IRQ_TIMER);
+	apic_write(LAPIC_LVTT, APIC_TRAPNO(IRQ_TIMER));
 
 	/* We only need this calibration to be approximate.. */
 	uint64_t ccr0 = apic_read(LAPIC_CCR_TIMER);

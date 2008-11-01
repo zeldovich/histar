@@ -11,6 +11,7 @@ struct interrupt_handler {
     tbdp_t   ih_tbdp;
     uint32_t ih_irq;
     uint32_t ih_trapno;
+    bool_t   ih_user;	/* user-level driver? */
 
     LIST_ENTRY(interrupt_handler) ih_link;
 };

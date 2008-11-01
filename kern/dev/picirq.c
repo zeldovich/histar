@@ -39,7 +39,7 @@ pic_init(void)
 {
     didinit = 1;
 
-    // mask all interrupts
+    /* mask all interrupts */
     outb(IO_PIC1+1, 0xFF);
     outb(IO_PIC2+1, 0xFF);
 

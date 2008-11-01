@@ -52,14 +52,14 @@ udev_thread_wait(struct udevice* udev, const struct Thread* t,
 
     if (gen != udev->wait_gen) {
 	if (udev->intr_pend && !udev->intr_level) {
-	    irq_arch_enable(udev->ih.ih_irq, udev->ih.ih_tbdp);
+	    irq_arch_enable(udev->ih.ih_trapno);
 	    udev->intr_pend = 0;
 	}
 	return udev->wait_gen;
     }
 
     if (udev->intr_level) {
-	irq_arch_enable(udev->ih.ih_irq, udev->ih.ih_tbdp);
+	irq_arch_enable(udev->ih.ih_trapno);
 	udev->intr_pend = 0;
     }
 
@@ -74,7 +74,7 @@ udev_thread_wakeup(struct udevice* udev)
 	udev->wait_gen = 1;
 
     if (!udev->intr_level && !LIST_EMPTY(&udev->wait_list)) {
-	irq_arch_enable(udev->ih.ih_irq, udev->ih.ih_tbdp);
+	irq_arch_enable(udev->ih.ih_trapno);
 	udev->intr_pend = 0;
     }
     
@@ -121,6 +121,7 @@ udev_register(struct udevice* udev)
     assert(udev->ih.ih_tbdp);
     udev->ih.ih_func = &udev_intr;
     udev->ih.ih_arg = udev;
+    udev->ih.ih_user = 1;
     /* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX */
     udev->intr_level = 1;
     udevs[udevs_num++] = udev;

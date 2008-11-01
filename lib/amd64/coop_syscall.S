@@ -38,16 +38,16 @@ ENTRY(cooperate_syscall)
 	 * execute the actual system call.
 	 */
 
-	int	$T_SYSCALL
+	int	$SYSCALL_TRAP
 	movq	%rax, COOP_RETVAL
 	movq	$1, COOP_STATUS
 
 	movq	$SYS_sync_wakeup, %rdi
 	movq	$COOP_STATUS, %rsi
-	int	$T_SYSCALL
+	int	$SYSCALL_TRAP
 
 	movq	$SYS_self_halt, %rdi
-	int	$T_SYSCALL
+	int	$SYSCALL_TRAP
 1:	jmp	1b
 
 ENTRY(cooperate_syscall_end)

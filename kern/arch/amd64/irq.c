@@ -5,23 +5,75 @@
 
 enum { use_ioapic = 1 };
 
-uint32_t
-irq_arch_enable(uint32_t irq, tbdp_t tbdp)
+/*
+ * With the APIC a unique vector can be assigned to each
+ * request to enable an interrupt. There are two reasons this
+ * is a good idea:
+ * 1) to prevent lost interrupts, no more than 2 interrupts
+ *    should be assigned per block of 16 vectors See Intel Arch. 
+ *    manual 3a, section 9.8.4.
+ * 2) each input pin on the IOAPIC will receive a different
+ *    vector regardless of whether the devices on that pin use
+ *    the same IRQ as devices on another pin.
+ *
+ * We split the trap space into a kernel area and a user area.
+ * All kernel traps have a higher priority than all user traps.
+ * the_schedtmr is the only driver that must use a kernel trap,
+ * while all untrusted drivers must use user traps.  This allows 
+ * the kernel to emulate cli for user-level drivers using 
+ * APIC.TPR, but still preempt long running drivers.
+ *
+ * If there is no IOAPIC or devices do not support MSI we can't 
+ * do this trick.
+ */
+
+static uint32_t kern_trapno = T_KERNDEV;
+static uint32_t user_trapno = T_USERDEV;
+
+void
+irq_arch_enable(trapno_t trapno)
 {
-    /* Assume apic code set local interrupts */
-    if(irq >= IRQ_LINT0 && irq <= MAX_IRQ_LAPIC)
-	return T_PIC + irq;
+    /* Assume APIC code enables local interrupts */
+    if (trapno >= T_LAPIC && trapno <= T_LAPIC_MAX)
+	return;
+
     if (use_ioapic)
-	return mp_intrenable(irq, tbdp);
-    return pic_intrenable(irq);
+	mp_intrenable(trapno);
+    else 
+	pic_intrenable(trapno);
+}
+
+trapno_t
+irq_arch_init(uint32_t irq, tbdp_t tbdp, bool_t user)
+{
+    trapno_t* x_trapno, r;
+
+    if (!use_ioapic)
+	return PIC_TRAPNO(irq);
+
+    if (user) {
+	if (user_trapno > T_USERDEV_MAX)
+	    panic("out of user traps");
+	x_trapno = &user_trapno;
+    } else {
+	if (kern_trapno > T_KERNDEV_MAX)
+	    panic("out of kern traps");
+	x_trapno = &kern_trapno;
+    }
+
+    r = mp_intrinit(irq, tbdp, *x_trapno);
+    if (r == *x_trapno)
+	*x_trapno += 8;
+
+    return r;
 }
 
 void
 irq_arch_disable(uint32_t trapno)
 {
     if (!use_ioapic)
-	panic("not supported w/o IOAPIC");
-    if (trapno >= T_LAPIC && trapno <= T_LAPIC + MAX_IRQ_LAPIC)
+	panic("not supported without IOAPIC");
+    if (trapno >= T_LAPIC && trapno <= T_LAPIC_MAX)
 	panic("APIC trapno %u not supported", trapno);
 
     mp_intrdisable(trapno);
@@ -30,10 +82,9 @@ irq_arch_disable(uint32_t trapno)
 void
 irq_arch_eoi(uint32_t trapno)
 {
-    uint32_t x = trapno - T_PIC;
-    if (x == IRQ_SPURIOUS)
+    if (APIC_IRQNO(trapno) == IRQ_SPURIOUS)
 	return;
-    if((x >= IRQ_LINT0 && x <= MAX_IRQ_LAPIC) || use_ioapic)
+    if ((trapno >= T_LAPIC && trapno <= T_LAPIC_MAX) || use_ioapic)
 	apic_eoi();
     else
 	pic_eoi();

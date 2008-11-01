@@ -47,9 +47,10 @@ void karch_jmpbuf_init(struct jos_jmp_buf *jb, void *fn, void *stackbase);
 void karch_fp_init(struct Fpregs *fpreg);
 
 /* Returns a trap number */
-uint32_t irq_arch_enable(uint32_t irqno, tbdp_t tbdp);
+void	 irq_arch_enable(trapno_t trapno);
 void	 irq_arch_disable(uint32_t trapno);
 void	 irq_arch_eoi(uint32_t trapno);
+trapno_t irq_arch_init(uint32_t irqno, tbdp_t tbdp, bool_t user);
 
 int	 arch_out_port(uint64_t port, uint8_t width, uint8_t *val, uint64_t n);
 int	 arch_in_port(uint64_t port, uint8_t width, uint8_t *val, uint64_t n);

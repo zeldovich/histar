@@ -6,16 +6,16 @@
 #include <inc/intmacro.h>
 
 LIST_HEAD(ih_list, interrupt_handler);
-struct ih_list irq_handlers[NTRAPS];
+struct ih_list irq_handlers[MAX_TRAP + 1];
 struct ih_list preinit_handlers;
-static uint64_t irq_warnings[NTRAPS];
+static uint64_t irq_warnings[MAX_TRAP + 1];
 
 static bool_t init;
 
 void
 irq_handler(uint32_t trapno)
 {
-    if (trapno >= NTRAPS)
+    if (trapno > MAX_TRAP)
 	panic("irq_handler: invalid trapno %d", trapno);
 
     if (LIST_FIRST(&irq_handlers[trapno]) == 0) {
@@ -35,11 +35,12 @@ irq_handler(uint32_t trapno)
 void
 irq_register(struct interrupt_handler *ih)
 {
-    if (ih->ih_irq >= NIRQS)
+    if (ih->ih_irq > MAX_IRQ)
 	panic("irq_register: invalid IRQ %d", ih->ih_irq);
 
     if (init) {
-	uint32_t tno = irq_arch_enable(ih->ih_irq, ih->ih_tbdp);
+	uint32_t tno = irq_arch_init(ih->ih_irq, ih->ih_tbdp, ih->ih_user);
+	irq_arch_enable(tno);
 	LIST_INSERT_HEAD(&irq_handlers[tno], ih, ih_link);
 	ih->ih_trapno = tno;
     } else 

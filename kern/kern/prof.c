@@ -21,7 +21,7 @@ struct tentry {
 #define NTHREADS 32
 
 struct entry sysc_table[NSYSCALLS];
-struct entry trap_table[NTRAPS];
+struct entry trap_table[MAX_TRAP + 1];
 struct entry user_table[2];
 struct tentry thread_table[NTHREADS];
 
@@ -118,7 +118,7 @@ prof_trap(uint64_t num, uint64_t time)
     if (!prof_enable)
 	return;
 
-    if (num >= NTRAPS)
+    if (num > MAX_TRAP)
 	return;
 
     trap_table[num].count++;
@@ -218,7 +218,7 @@ prof_print(void)
 	print_entry(&sysc_table[0], i, syscall2s(i));
 
     cprintf("prof_print: traps\n");
-    for (int i = 0; i < NTRAPS; i++)
+    for (int i = 0; i <= MAX_TRAP; i++)
 	print_entry(&trap_table[0], i, "trap");
 
     cprintf("prof_print: user\n");
