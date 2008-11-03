@@ -920,16 +920,8 @@ sys_self_fp_disable(void)
 static int __attribute__ ((warn_unused_result))
 sys_self_umask_enable(struct cobj_ref udevref)
 {
-    const struct kobject *ko;
-    check(cobj_get(udevref, kobj_device, &ko, iflow_rw));
-
-    if (ko->dv.dv_type != device_udev)
-	return -E_INVAL;
-
-    struct udevice *udev = udev_get(ko->dv.dv_idx);
-    if (udev == 0)
-	return -E_INVAL;
-
+    struct udevice *udev = 0;
+    check(get_udev(udevref, iflow_rw, &udev));
     udev_intr_enable(udev);
     thread_enable_umask(cur_thread);
     return 0;
