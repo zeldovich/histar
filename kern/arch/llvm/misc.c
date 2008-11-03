@@ -67,3 +67,15 @@ lnxtimer_init(void)
 
     schedtmr.schedule_nsec = &lnx_schedtmr;
 }
+
+void
+jos_longjmp(volatile struct jos_jmp_buf *buf, int val)
+{
+    panic("jos_longjmp");
+}
+
+int
+jos_setjmp(volatile struct jos_jmp_buf *buf)
+{
+    panic("jos_setjmp");
+}

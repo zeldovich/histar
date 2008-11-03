@@ -453,7 +453,7 @@ fxp_attach(struct pci_func *pcif)
 	int next = (i + 1) % FXP_TX_SLOTS;
 	memset(&c->txs->tx[i], 0, sizeof(c->txs->tx[i]));
 	c->txs->tx[i].tcb.link_addr = kva2pa(&c->txs->tx[next].tcb);
-	c->txs->tx[i].tcb.tbd_array_addr = kva2pa(&c->txs->tx[next].tbd);
+	c->txs->tx[i].tcb.tbd_array_addr = kva2pa(&c->txs->tx[i].tbd);
 	c->txs->tx[i].tcb.tbd_number = 1;
 	c->txs->tx[i].tcb.tx_threshold = 4;
     }

@@ -102,6 +102,6 @@ pa2ppn(physaddr_t pa)
 physaddr_t
 ppn2pa(ppn_t pn)
 {
-    assert(pn < global_npages);
+    assert(pn <= global_npages);
     return pn << PGSHIFT;
 }

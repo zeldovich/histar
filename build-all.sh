@@ -1,5 +1,5 @@
 #!/bin/sh -ex
-for ARCH in amd64 i386 sparc um ft arm; do
+for ARCH in amd64 i386 sparc um llvm arm; do
     make EMBEDBINS_DEFAULT=empty K_ARCH=$ARCH OBJSUFFIX=.kbuild
 done
 

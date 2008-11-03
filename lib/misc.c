@@ -1,5 +1,6 @@
 #include <inc/syscall.h>
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -73,3 +74,12 @@ ioperm(unsigned long from, unsigned long num, int turn_on)
     return -1;
 }
 #endif
+
+void *__tls_get_addr(void);
+
+void *
+__tls_get_addr(void)
+{
+    fprintf(stderr, "__tls_get_addr: not implemented\n");
+    exit(-1);
+}

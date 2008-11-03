@@ -49,11 +49,13 @@ ifeq ($(ARCH),amd64)
 OPTFLAG  += -march=athlon64
 endif
 
-BASECFLAGS  := -nostdinc -idirafter $(shell $(CC) -print-file-name=include) \
+BASECFLAGS  := -nostdinc \
+	       -idirafter $(shell $(CC) -print-file-name=include) \
+	       -idirafter $(shell $(CC) -print-file-name=include-fixed) \
 	       $(shell ./conf/gcc-flags.sh "$(CC)" -fno-stack-protector) \
 
-ifeq ($(K_ARCH),ft)
-BASECFLAGS :=
+ifeq ($(K_ARCH),llvm)
+BASECFLAGS := 
 COMWARNS   := 
 CWARNS	   := 
 OPTFLAG	   := 

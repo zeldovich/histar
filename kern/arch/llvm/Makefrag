@@ -14,13 +14,12 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/devstub.c
 
 KERN_LIB :=					\
-	lib/$(ARCH)/longjmp.S			\
 	lib/sysstring.c				\
 	lib/cksum.c				\
 	lib/bf60.c				\
 	lib/hashtable.c
 
-KERN_DEV :=					\
+KERN_DEV_DISABLED :=				\
 	kern/dev/pci.c				\
 	kern/dev/ne2kpci.c			\
 	kern/dev/fxp.c				\

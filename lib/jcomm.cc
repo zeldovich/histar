@@ -319,7 +319,7 @@ jcomm_read_bytes(struct jcomm_ref jr)
     scope_guard<void, void*> unmap(jcomm_links_unmap, links);
     PF_CATCH_BLOCK;
 
-    struct jlink *jl = &links[jr.jc.chan];
+    struct jlink *jl = &links[!!jr.jc.chan];
     return jlink_read_bytes(jl);
 }
 
@@ -333,7 +333,7 @@ jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt, int dowait)
     scope_guard<void, void*> unmap(jcomm_links_unmap, links);
     PF_CATCH_BLOCK;
 
-    struct jlink *jl = &links[jr.jc.chan];
+    struct jlink *jl = &links[!!jr.jc.chan];
     return jlink_read(jl, buf, cnt, jl->mode | (dowait ? 0 : JCOMM_NONBLOCK_RD));
 }
 
@@ -377,7 +377,7 @@ jcomm_probe(struct jcomm_ref jr, dev_probe_t probe)
 
     int rv;
     if (probe == dev_probe_read) {
-	struct jlink *jl = &links[jr.jc.chan];
+	struct jlink *jl = &links[!!jr.jc.chan];
     	jthread_mutex_lock(&jl->mu);
         rv = (!jl->open || jl->bytes) ? 1 : 0;
         jthread_mutex_unlock(&jl->mu);
@@ -402,7 +402,7 @@ jcomm_shut(struct jcomm_ref jr, uint16_t how)
     PF_CATCH_BLOCK;
 
     if (how & JCOMM_SHUT_RD) {
-	struct jlink *jl = &links[jr.jc.chan];
+	struct jlink *jl = &links[!!jr.jc.chan];
 	jthread_mutex_lock(&jl->mu);
 	jl->open = 0;
 	jthread_mutex_unlock(&jl->mu);
@@ -436,7 +436,7 @@ jcomm_statsync_cb0(struct wait_stat *ws, dev_probe_t probe,
     
     struct jlink *jl;
     if (probe == dev_probe_read) {
-	jl = &links[jr.jc.chan];
+	jl = &links[!!jr.jc.chan];
 	jl->reader_waiting = 1;
     } else {
 	jl = &links[!jr.jc.chan];
@@ -476,7 +476,7 @@ jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe,
 
     struct jlink *jl;
     if (probe == dev_probe_read)
-	jl = &links[jr.jc.chan];	
+	jl = &links[!!jr.jc.chan];	
     else
 	jl = &links[!jr.jc.chan];
 

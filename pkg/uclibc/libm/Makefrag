@@ -17,7 +17,7 @@ LIBM_CSRC = \
          w_log.c w_log10.c w_pow.c w_remainder.c w_scalb.c w_sinh.c\
          w_sqrt.c fpmacros.c nan.c fenv.c \
 	 s_lround.c s_lrint.c s_round.c s_trunc.c \
-	 libm_stubs.c
+	 libm_stubs.c sincos.c
 LIBM_CSRC := $(patsubst %.c, pkg/uclibc/libm/%.c, $(LIBM_CSRC))
 LIBM_COBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LIBM_CSRC))
 
