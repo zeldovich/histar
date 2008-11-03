@@ -206,19 +206,25 @@ sys_udev_get_key(uint64_t idx, uint64_t *key)
     return 0;
 }
 
-static int64_t __attribute__ ((warn_unused_result))
-sys_udev_get_base(struct cobj_ref udevref, uint64_t base, uint64_t *val)
+static int
+get_udev(struct cobj_ref udevref, info_flow_type iflow, struct udevice **udev)
 {
     const struct kobject *ko;
-    check(cobj_get(udevref, kobj_device, &ko, iflow_read));
+    check(cobj_get(udevref, kobj_device, &ko, iflow));
 
     if (ko->dv.dv_type != device_udev)
 	return -E_INVAL;
 
-    struct udevice *udev = udev_get(ko->dv.dv_idx);
-    if (udev == 0)
-	return -E_INVAL;
+    if ((*udev = udev_get(ko->dv.dv_idx)))
+	return 0;
+    return -E_INVAL;
+}
 
+static int64_t __attribute__ ((warn_unused_result))
+sys_udev_get_base(struct cobj_ref udevref, uint64_t base, uint64_t *val)
+{
+    struct udevice *udev = 0;
+    check(get_udev(udevref, iflow_read, &udev));
     check(check_user_access(val, sizeof(*val), SEGMAP_WRITE));
     check(udev_get_base(udev, base, val));
     return 0;
@@ -227,16 +233,8 @@ sys_udev_get_base(struct cobj_ref udevref, uint64_t base, uint64_t *val)
 static int64_t __attribute__ ((warn_unused_result))
 sys_udev_wait(struct cobj_ref udevref, uint64_t waiterid, int64_t waitgen)
 {
-    const struct kobject *ko;
-    check(cobj_get(udevref, kobj_device, &ko, iflow_read));
-
-    if (ko->dv.dv_type != device_udev)
-	return -E_INVAL;
-
-    struct udevice *udev = udev_get(ko->dv.dv_idx);
-    if (udev == 0)
-	return -E_INVAL;
-
+    struct udevice *udev = 0;
+    check(get_udev(udevref, iflow_read, &udev));
     return udev_thread_wait(udev, cur_thread, waiterid, waitgen);
 }
 
@@ -244,16 +242,8 @@ static int64_t __attribute__ ((warn_unused_result))
 sys_udev_in_port(struct cobj_ref udevref, uint64_t port, uint8_t width,
 		 uint8_t *val, uint64_t n)
 {
-    const struct kobject *ko;
-    check(cobj_get(udevref, kobj_device, &ko, iflow_read));
-
-    if (ko->dv.dv_type != device_udev)
-	return -E_INVAL;
-
-    struct udevice *udev = udev_get(ko->dv.dv_idx);
-    if (udev == 0)
-	return -E_INVAL;
-
+    struct udevice *udev = 0;
+    check(get_udev(udevref, iflow_read, &udev));
     check(check_user_access(val, sizeof(*val), SEGMAP_WRITE));
     check(udev_in_port(udev, port, width, val, n));
     return 0;
@@ -263,16 +253,8 @@ static int64_t __attribute__ ((warn_unused_result))
 sys_udev_out_port(struct cobj_ref udevref, uint64_t port, uint8_t width,
 		  uint8_t *val, uint64_t n)
 {
-    const struct kobject *ko;
-    check(cobj_get(udevref, kobj_device, &ko, iflow_rw));
-
-    if (ko->dv.dv_type != device_udev)
-	return -E_INVAL;
-
-    struct udevice *udev = udev_get(ko->dv.dv_idx);
-    if (udev == 0)
-	return -E_INVAL;
-
+    struct udevice *udev = 0;
+    check(get_udev(udevref, iflow_rw, &udev));
     check(udev_out_port(udev, port, width, val, n));
     return 0;
 }
