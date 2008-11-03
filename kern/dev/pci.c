@@ -37,6 +37,7 @@ enum { pciudevs_max = 32 };
 struct pci_udevice {
     struct pci_func func;
     struct udevice  udev;
+    uint8_t iomap[PGSIZE * 2]; // enough for 64K IO-space
 };
 static struct pci_udevice pciudev[pciudevs_max];
 static uint64_t pciudev_num;
@@ -93,25 +94,22 @@ pci_udev_attach(struct pci_func *f)
     }
     
     pci_func_enable(f);
-    
-    void *iomap;
-    if (page_alloc(&iomap) < 0)
-	return 0;
+
+    struct pci_udevice *d = &pciudev[pciudev_num++];    
     
     for (uint32_t i = 0; i < 6; i++)
 	if (f->reg_type[i] == pci_res_io)
 	    for (uint32_t k = 0; k < f->reg_size[i]; k++)
-		bit_set(iomap, k + f->reg_base[i]);
+		bit_set(d->iomap, k + f->reg_base[i]);
 
-    struct pci_udevice *d = &pciudev[pciudev_num++];
     memcpy(&d->func, f, sizeof(d->func));
     d->udev.arg = d;
     d->udev.key = MK_PCIKEY(pci_class_to_device(PCI_CLASS(f->dev_class)),
 			    PCI_VENDOR(f->dev_id), 
 			    (uint64_t)PCI_PRODUCT(f->dev_id));
     d->udev.get_base = pci_get_base;
-    d->udev.iomap = iomap;
-    d->udev.iomax = PGSIZE * 8;
+    d->udev.iomap = d->iomap;
+    d->udev.iomax = 8 * PGSIZE * 2;
     
     d->udev.ih.ih_tbdp = f->tbdp;
     d->udev.ih.ih_irq = f->irq_line;

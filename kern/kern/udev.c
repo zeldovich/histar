@@ -65,30 +65,33 @@ udev_thread_wakeup(struct udevice* udev)
     }
 }
 
+static int
+check_port(struct udevice* udev, uint64_t port, uint8_t width)
+{
+    if (!udev->iomap || port + width > udev->iomax)
+	return 0;
+    for (uint8_t i = 0; i < width; i++)
+	if (bit_get(udev->iomap, port + i) == 0)
+	    return 0;
+    return 1;
+}
+
 int
 udev_in_port(struct udevice* udev, uint64_t port, uint8_t width, 
 	     uint8_t* val, uint64_t n)
 {
-    if (!udev->iomap || n > udev->iomax)
-	return -E_INVAL;
-    for (uint8_t i = 0; i < width; i++)
-	if (bit_get(udev->iomap, port + i) == 0)
-	    return -E_INVAL;
-
-    return arch_in_port(port, width, val, n);
+    if (check_port(udev, port, width))
+	return arch_in_port(port, width, val, n);
+    return -E_INVAL;
 }
 
 int
 udev_out_port(struct udevice* udev, uint64_t port, uint8_t width, 
 	      uint8_t* val, uint64_t n)
 {
-    if (!udev->iomap || n > udev->iomax)
-	return -E_INVAL;
-    for (uint8_t i = 0; i < width; i++)
-	if (bit_get(udev->iomap, port + i) == 0)
-	    return -E_INVAL;
-
-    return arch_out_port(port, width, val, n);
+    if (check_port(udev, port, width))    
+	return arch_out_port(port, width, val, n);
+    return -E_INVAL;
 }
 
 void
