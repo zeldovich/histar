@@ -311,7 +311,6 @@ mp_intrinit(irqno_t irq, tbdp_t tbdp, trapno_t trapno)
     else
 	panic("wierd APIC flags %x type %u", apic->flags, apic->type);
 
-    aintr->vno = trapno;
     mpintr[trapno] = aintr;
     return trapno;
 }

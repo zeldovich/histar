@@ -32,7 +32,6 @@ struct aintr {
     struct apic*	apic;
     struct aintr*	next;
     struct mp_intr	intr;
-    int			vno;		/* vector number if one has been assigned */
 };
 
 struct bus {
