@@ -38,6 +38,12 @@ sys_device_create(uint64_t container, uint64_t idx,
 		   type, 0, 0);
 }
 
+int
+sys_device_set_as(struct cobj_ref device, struct cobj_ref as)
+{
+    return syscall(SYS_device_set_as, SOBJ(device), SOBJ(as), 0, 0, 0);
+}
+
 int64_t
 sys_net_wait(struct cobj_ref nd, uint64_t waiter_id, int64_t waitgen)
 {

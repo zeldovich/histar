@@ -18,7 +18,7 @@
 
 enum { mp_debug     = 0 };
 enum { irq_print    = 1 };
-enum { enable_print = 1 };
+enum { enable_print = 0 };
 
 enum { MAX_APICNO = 31 };
 

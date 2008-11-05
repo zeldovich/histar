@@ -30,7 +30,17 @@ udev_intr(void* x)
 int
 udev_get_base(struct udevice* udev, uint64_t base, uint64_t* val)
 {
-    return udev->get_base(udev->arg, base, val);
+    if (udev->get_base)
+	return udev->get_base(udev->arg, base, val);
+    return -E_INVAL;
+}
+
+int
+udev_get_page(struct udevice* udev, uint64_t page_num, void** pp)
+{
+    if (udev->get_page)
+	return udev->get_page(udev->arg, page_num, pp);
+    return -E_INVAL;
 }
 
 int64_t

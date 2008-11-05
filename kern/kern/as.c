@@ -6,6 +6,7 @@
 #include <kern/as.h>
 #include <kern/arch.h>
 #include <kern/lib.h>
+#include <kern/udev.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
 
@@ -14,6 +15,8 @@ const struct Pagemap *cur_pgmap;
 
 enum { as_debug = 0 };
 enum { as_courtesy_pages = 8 };
+
+static int as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags);
 
 int
 as_alloc(const struct Label *l, struct Address_space **asp)
@@ -127,6 +130,43 @@ as_resize(struct Address_space *as, uint64_t nent)
     return kobject_set_nbytes(&as->as_ko, nbytes);
 }
 
+static int
+as_populate_usegmap(struct Address_space *as, 
+		    const struct u_segment_mapping *usm)
+{
+    int r;
+
+    if (!as->as_pgmap)
+	if ((r = page_map_alloc(&as->as_pgmap)) < 0)
+	    return r;
+
+    // Inefficient but it is probably OK to be slow
+    for (uint64_t i = usm->start_page; i < usm->start_page + usm->num_pages; i++)
+	if ((r = as_pmap_fill(as, usm->va + i * PGSIZE, usm->flags)) < 0)
+	    return r;
+
+    return 0;
+}
+
+static int
+as_populate_all(struct Address_space *as)
+{
+    int r;
+
+    for (uint64_t i = 0; i < as_nents(as); i++) {
+	const struct u_segment_mapping *usm;
+	if ((r = as_get_usegmap(as, &usm, i, page_shared_ro)) < 0)
+	    return r;
+	
+	if (!(usm->flags & SEGMAP_READ))
+	    continue;
+	
+	if ((r = as_populate_usegmap(as, usm)) < 0)
+	    return r;
+    }
+    return 0;
+}
+
 int
 as_to_user(const struct Address_space *as, struct u_address_space *uas)
 {
@@ -227,6 +267,10 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
     as->as_utrap_stack_top = (uintptr_t) uas->trap_stack_top;
 out:
     as_invalidate(as);
+
+    if (as->as_ko.ko_flags & KOBJ_DEVICE_DEPENDS)
+	r = as_populate_all(as);
+
     return r;
 }
 
@@ -284,8 +328,11 @@ as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
     }
 
     *usm = usm_copy;
-
-    return 0;
+    
+    if (as->as_ko.ko_flags & KOBJ_DEVICE_DEPENDS)
+	r = as_populate_usegmap(as, usm);
+    
+    return r;
 }
 
 void
@@ -430,6 +477,14 @@ as_pmap_fill_kobj(const struct Address_space *as,
 
 		pp = pa2kva(fbdev->fb_base + segpage * PGSIZE);
 		r = 0;
+	    } else if (ko->dv.dv_type == device_udev) {
+		struct udevice *udev = udev_get(ko->dv.dv_idx);
+		if (!udev) {
+		    r = -E_INVAL;
+		    break;
+		}
+		    
+		r = udev_get_page(udev, segpage, &pp);
 	    } else {
 		r = -E_INVAL;
 	    }

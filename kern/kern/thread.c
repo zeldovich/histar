@@ -491,6 +491,9 @@ thread_load_as(const struct Thread *t)
     if (r < 0)
 	return r;
 
+    if (ko->hdr.ko_flags & KOBJ_DEVICE_DEPENDS)
+	return -E_INVAL;
+
     const struct Address_space *as = &ko->as;
     kobject_ephemeral_dirty(&t->th_ko)->th.th_as = as;
     kobject_pin_hdr(&t->th_as->as_ko);

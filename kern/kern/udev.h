@@ -20,13 +20,15 @@ struct udevice {
     void*		     iomap;
     uint64_t		     iomax;
 
-    int     (*get_base)(void *a, uint64_t base, uint64_t *val);
+    int     (*get_base)(void* a, uint64_t base, uint64_t* val);
+    int     (*get_page)(void* a, uint64_t page_num, void** pp);
 
     LIST_ENTRY(udevice) link;
 };
 
 void	udev_register(struct udevice* udev);
 int	udev_get_base(struct udevice* udev, uint64_t base, uint64_t* val);
+int	udev_get_page(struct udevice* udev, uint64_t page_num, void** pp);
 int64_t udev_thread_wait(struct udevice* udev, const struct Thread* t, 
 			 uint64_t waiter, int64_t gen);
 void	udev_thread_wakeup(struct udevice* udev);

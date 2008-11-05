@@ -86,6 +86,12 @@ pci_get_base(void *a, uint64_t base, uint64_t *val)
 }
 
 static int
+pci_get_page(void *a, uint64_t page_num, void **pp)
+{
+    return -E_INVAL;
+}
+
+static int
 pci_udev_attach(struct pci_func *f)
 {
     if (pciudev_num == pciudevs_max) {
@@ -108,6 +114,7 @@ pci_udev_attach(struct pci_func *f)
 			    PCI_VENDOR(f->dev_id), 
 			    (uint64_t)PCI_PRODUCT(f->dev_id));
     d->udev.get_base = pci_get_base;
+    d->udev.get_page = pci_get_page;
     d->udev.iomap = d->iomap;
     d->udev.iomax = 8 * PGSIZE * 2;
     

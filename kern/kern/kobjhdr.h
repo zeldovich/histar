@@ -24,6 +24,7 @@ enum {
 #define KOBJ_DIRTY_LATER	0x0100	// Need to collect dirty bits
 #define KOBJ_READONLY		0x0200	// Cannot be modified
 #define KOBJ_SNAP_SHARE_PIN	0x0400	// Snapshot shares pinned RW pages
+#define KOBJ_DEVICE_DEPENDS	0x0800  // Depended on by a device
 
 struct kobject_hdr {
     kobject_id_t ko_id;
