@@ -67,7 +67,7 @@ irq_arch_init(uint32_t irq, tbdp_t tbdp, bool_t user)
     r = mp_intrinit(irq, tbdp, *x_trapno);
     if (r == *x_trapno)
 	*x_trapno += 8;
-
+    
     return r;
 }
 

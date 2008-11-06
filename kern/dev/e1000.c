@@ -16,8 +16,8 @@
 #include <inc/netdev.h>
 #include <inc/error.h>
 
-#define E1000_RX_SLOTS	64
-#define E1000_TX_SLOTS	64
+#define E1000_RX_SLOTS	65
+#define E1000_TX_SLOTS	65
 
 struct e1000_buffer_slot {
     struct netbuf_hdr *nb;

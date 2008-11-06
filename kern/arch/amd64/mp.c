@@ -234,7 +234,8 @@ mp_intrenable(trapno_t tno)
 	cprintf("tno %u enabled\n", tno);
 
     ioapic_rdtr(apic, aintr->intr.intin, 0, &lo);
-    ioapic_rdtw(apic, aintr->intr.intin, 0, lo & ~LAPIC_VT_MASKED);
+    if (lo & LAPIC_VT_MASKED)
+	ioapic_rdtw(apic, aintr->intr.intin, 0, lo & ~LAPIC_VT_MASKED);
 }
 
 void
@@ -254,9 +255,10 @@ mp_intrdisable(uint32_t tno)
 
     if (enable_print)
 	cprintf("tno %u disabled\n", tno);
-    
+
     ioapic_rdtr(apic, aintr->intr.intin, 0, &lo);
-    ioapic_rdtw(aintr->apic, aintr->intr.intin, 0, lo | LAPIC_VT_MASKED);    
+    if (!(lo & LAPIC_VT_MASKED))
+	ioapic_rdtw(aintr->apic, aintr->intr.intin, 0, lo | LAPIC_VT_MASKED);    
 }
 
 trapno_t

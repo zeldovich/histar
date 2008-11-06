@@ -94,6 +94,39 @@ apic_start_ap(uint32_t apicid, physaddr_t pa)
     }
 }
 
+static void __attribute__((unused))
+apic_print_error(void)
+{
+    static const char *error[8] = {
+	"Send checksum error",
+	"Recieve checksum error",
+	"Send accept error",
+	"Recieve accept error",
+	"Reserved",
+	"Send illegal vector",
+	"Recieve illegal vector",
+	"Illegal register address"
+    };
+
+    char header = 0;
+
+    // write once to reload ESR
+    apic_write(LAPIC_ESR, 0);
+    uint32_t e = apic_read(LAPIC_ESR);
+
+    for (uint32_t i = 0; i < 8; i++) {
+	if (i == 4)
+	    continue;
+	if (e & (1 << i)) {
+	    if (!header) {
+		header = 1;
+		cprintf("apic error:\n");
+	    }
+	    cprintf(" %s\n", error[i]);
+	}
+    }
+}
+
 void
 apic_eoi(void)
 {
@@ -139,15 +172,17 @@ apic_init(void)
     apic_write(LAPIC_SVR, LAPIC_SVR_FDIS | LAPIC_SVR_ENABLE | APIC_SPURIOUS);
 
     if (&cpus[arch_cpu()] == bcpu) {
-	apic_write(LAPIC_LVINT0, LAPIC_DLMODE_EXTINT);
-	apic_write(LAPIC_LVINT1, LAPIC_DLMODE_NMI);
+	apic_write(LAPIC_LVINT0, LAPIC_DLMODE_EXTINT | APIC_TRAPNO(IRQ_LINT0));
+	apic_write(LAPIC_LVINT1, LAPIC_DLMODE_NMI | APIC_TRAPNO(IRQ_LINT1));
     } else {
-	apic_write(LAPIC_LVINT0, LAPIC_DLMODE_EXTINT | LAPIC_LVT_MASKED);
-	apic_write(LAPIC_LVINT1, LAPIC_DLMODE_NMI | LAPIC_LVT_MASKED);
+	apic_write(LAPIC_LVINT0, LAPIC_DLMODE_EXTINT | APIC_TRAPNO(IRQ_LINT0) | LAPIC_LVT_MASKED);
+	apic_write(LAPIC_LVINT1, LAPIC_DLMODE_NMI | APIC_TRAPNO(IRQ_LINT0) | LAPIC_LVT_MASKED);
     }
 
     if (((v >> LAPIC_VERSION_LVT_SHIFT) & 0x0FF) >= 4)
-	apic_write(LAPIC_PCINT, LAPIC_LVT_MASKED);
+	apic_write(LAPIC_PCINT, LAPIC_LVT_MASKED | APIC_TRAPNO(IRQ_PCINT));
+
+    apic_write(LAPIC_LVERR, APIC_TRAPNO(IRQ_ERROR));
 
     // Clear error status register (requires back-to-back writes).
     apic_write(LAPIC_ESR, 0);
