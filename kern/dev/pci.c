@@ -11,6 +11,7 @@
 #include <kern/lib.h>
 #include <kern/udev.h>
 #include <kern/arch.h>
+#include <kern/pageinfo.h>
 #include <inc/error.h>
 #include <inc/device.h>
 #include <inc/udev.h>
@@ -116,13 +117,13 @@ pci_udev_attach(struct pci_func *f)
     pci_func_enable(f);
 
     /*
-     * XXX don't support devices with MMIO not page aligned by the BIOS
+     * XXX don't support devices with MMIO not page aligned..
      */
     for (uint32_t i = 0; i < 6; i++)
 	if (f->reg_type[i] == pci_res_mem && 
 	    (f->reg_base[i] % PGSIZE || f->reg_size[i] % PGSIZE))
 	    return 0;
-    
+
     struct pci_udevice *d = &pciudev[pciudev_num++];    
     
     for (uint32_t i = 0; i < 6; i++)
@@ -252,16 +253,9 @@ pci_scan_bus(struct pci_bus *bus)
 static int
 pci_bridge_attach(struct pci_func *pcif)
 {
-    uint32_t ioreg  = pci_conf_read(pcif, PCI_BRIDGE_STATIO_REG);
     uint32_t busreg = pci_conf_read(pcif, PCI_BRIDGE_BUS_REG);
-
-    if (PCI_BRIDGE_IO_32BITS(ioreg)) {
-	cprintf("PCI: %02x:%02x.%d: 32-bit bridge IO not supported.\n",
-		pcif->bus->busno, pcif->dev, pcif->func);
-	return 0;
-    }
-
     struct pci_bus nbus;
+
     memset(&nbus, 0, sizeof(nbus));
     nbus.parent_bridge = pcif;
     nbus.busno = (busreg >> PCI_BRIDGE_BUS_SECONDARY_SHIFT) & 0xff;

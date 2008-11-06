@@ -18,15 +18,14 @@
 
 #include <unistd.h>
 
-#define E1000_RX_SLOTS	64
-#define E1000_TX_SLOTS	64
+#define E1000_RX_SLOTS	65
+#define E1000_TX_SLOTS	65
 
 // The mapping only needs to be big enough to cover the MMIO registers
 #define E1000_MMIO_PAGES 16
 
 struct e1000_buffer_slot {
     struct netbuf_hdr *nb;
-    //const struct Segment *sg;
 };
 
 // Static allocation ensures contiguous memory.
@@ -44,11 +43,11 @@ struct e1000_card {
     struct cobj_ref desc_seg;
 
     void *vabase;
+    uint8_t mac_addr[6];
 
     uint32_t iobase;
     uint8_t irq_line;
     uint16_t pci_dev_id;
-    //struct interrupt_handler ih;
 
     struct e1000_tx_descs *txds;
     struct e1000_rx_descs *rxds;
@@ -61,6 +60,10 @@ struct e1000_card {
 
     int tx_head;	// card transmitting from tx_head, -1 if none
     int tx_nextq;	// next slot for tx buffer
+
+    void*		seg_va;
+    struct cobj_ref	seg;
+    uint64_t		seg_bytes;
 };
 
 #define echeck(expr)								\
@@ -106,7 +109,8 @@ e1000_as_map(struct e1000_card *c, struct cobj_ref seg, void *va, uint64_t bytes
     uas.ents[i].num_pages = ROUNDUP(bytes, PGSIZE) / PGSIZE;
     uas.ents[i].flags = SEGMAP_READ | SEGMAP_WRITE;
     uas.ents[i].va = va;
-
+    uas.nent = i + 1;
+    
     return sys_as_set(c->as, &uas);
 }
 
@@ -306,7 +310,12 @@ e1000_reset(struct e1000_card *c)
 	printf("e1000_reset: cannot read EEPROM MAC addr: %s\n", e2s(r));
 	return r;
     }
-    
+
+    for (int i = 0; i < 3; i++) {
+	c->mac_addr[2*i + 0] = myaddr[i] & 0xff;
+	c->mac_addr[2*i + 1] = myaddr[i] >> 8;
+    }
+
     e1000_io_write(c, WMREG_RCTL, 0);
     e1000_io_write(c, WMREG_TCTL, 0);
 
@@ -379,17 +388,15 @@ e1000_reset(struct e1000_card *c)
     e1000_io_write(c, WMREG_IMC, ~0);
     e1000_io_write(c, WMREG_IMS, ICR_TXDW | ICR_RXO | ICR_RXT0);
 
-#if 0
-
     // MAC address filters
     e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + 0,
-		   (c->netdev.mac_addr[0]) |
-		   (c->netdev.mac_addr[1] << 8) |
-		   (c->netdev.mac_addr[2] << 16) |
-		   (c->netdev.mac_addr[3] << 24));
+		   (c->mac_addr[0]) |
+		   (c->mac_addr[1] << 8) |
+		   (c->mac_addr[2] << 16) |
+		   (c->mac_addr[3] << 24));
     e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + 4,
-		   (c->netdev.mac_addr[4]) |
-		   (c->netdev.mac_addr[5] << 8) | RAL_AV);
+		   (c->mac_addr[4]) |
+		   (c->mac_addr[5] << 8) | RAL_AV);
 
     for (int i = 2; i < WM_RAL_TABSIZE * 2; i++)
 	e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + i * 4, 0);
@@ -403,54 +410,185 @@ e1000_reset(struct e1000_card *c)
 		   TCTL_EN | TCTL_PSP | TCTL_CT(TX_COLLISION_THRESHOLD) |
 		   TCTL_COLD(TX_COLLISION_DISTANCE_FDX));
 
-    for (int i = 0; i < E1000_TX_SLOTS; i++) {
-	if (c->tx[i].sg) {
-	    kobject_unpin_page(&c->tx[i].sg->sg_ko);
-	    pagetree_decpin_write(c->tx[i].nb);
-	    kobject_dirty(&c->tx[i].sg->sg_ko);
-	}
-	c->tx[i].sg = 0;
-    }
-
-    for (int i = 0; i < E1000_RX_SLOTS; i++) {
-	if (c->rx[i].sg) {
-	    kobject_unpin_page(&c->rx[i].sg->sg_ko);
-	    pagetree_decpin_write(c->rx[i].nb);
-	    kobject_dirty(&c->rx[i].sg->sg_ko);
-	}
-	c->rx[i].sg = 0;
-    }
-
     c->rx_head = -1;
     c->rx_nextq = 0;
 
     c->tx_head = -1;
     c->tx_nextq = 0;
 
-    c->netdev.waiter_id = 0;
-    netdev_thread_wakeup(&c->netdev);
-#endif    
-    return -1;
+    return 0;
+}
+
+static void
+e1000_intr_rx(struct e1000_card *c)
+{
+    for (;;) {
+	int i = c->rx_head;
+	if (i == -1 || !(c->rxds->rxd[i].wrx_status & WRX_ST_DD))
+	    break;
+
+	//kobject_unpin_page(&c->rx[i].sg->sg_ko);
+	//pagetree_decpin_write(c->rx[i].nb);
+	//kobject_dirty(&c->rx[i].sg->sg_ko);
+	//c->rx[i].sg = 0;
+	c->rx[i].nb->actual_count = c->rxds->rxd[i].wrx_len;
+	c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE;
+	if (c->rxds->rxd[i].wrx_errors)
+	    c->rx[i].nb->actual_count |= NETHDR_COUNT_ERR;
+
+	c->rx_head = (i + 1) % E1000_RX_SLOTS;
+	if (c->rx_head == c->rx_nextq)
+	    c->rx_head = -1;
+    }
+}
+
+static void
+e1000_intr_tx(struct e1000_card *c)
+{
+    for (;;) {
+	int i = c->tx_head;
+	if (i == -1 || !(c->txds->txd[i].wtx_fields.wtxu_status & WTX_ST_DD))
+	    break;
+
+	//kobject_unpin_page(&c->tx[i].sg->sg_ko);
+	//pagetree_decpin_write(c->tx[i].nb);
+	//kobject_dirty(&c->tx[i].sg->sg_ko);
+	//c->tx[i].sg = 0;
+	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
+
+	c->tx_head = (i + 1) % E1000_TX_SLOTS;
+	if (c->tx_head == c->tx_nextq)
+	    c->tx_head = -1;
+    }
 }
 
 static int64_t
-e1000_wait(void *arg, uint64_t waiter_id,
-	   int64_t waitgen)
+e1000_wait(void *arg, uint64_t waiterid, int64_t waitgen)
 {
-    return -1;
+    struct e1000_card* c = arg;
+    int64_t r = sys_udev_wait(c->obj, waiterid, waitgen);
+    if (r == -E_AGAIN) {
+	e1000_reset(c);
+	return r;
+    } else if (r < 0) {
+	return r;
+    }
+
+    assert(sys_self_umask_enable(c->obj) == 0);
+
+    uint32_t icr = e1000_io_read(c, WMREG_ICR);
+
+    if (icr & ICR_TXDW)
+	e1000_intr_tx(c);
+
+    if (icr & ICR_RXT0)
+	e1000_intr_rx(c);
+
+    if (icr & ICR_RXO) {
+	cprintf("e1000_intr: receiver overrun\n");
+	e1000_reset(c);
+    }
+
+    assert(sys_self_umask_disable() == 0);
+    return r;
+}
+
+static int
+e1000_add_txbuf(void *arg, struct netbuf_hdr *nb, uint16_t size)
+{
+    struct e1000_card *c = arg;
+    int slot = c->tx_nextq;
+    int next_slot = (slot + 1) % E1000_TX_SLOTS;
+
+    if (slot == c->tx_head || next_slot == c->tx_head)
+	return -E_NO_SPACE;
+
+    if (size > 1522) {
+	printf("e1000_add_txbuf: oversize buffer, %d bytes\n", size);
+	return -E_INVAL;
+    }
+
+    c->tx[slot].nb = nb;
+
+    c->txds->txd[slot].wtx_addr = e1000_pa(c, c->tx[slot].nb + 1);
+    c->txds->txd[slot].wtx_cmdlen = size | WTX_CMD_RS | WTX_CMD_EOP | WTX_CMD_IFCS;
+    memset(&c->txds->txd[slot].wtx_fields, 0, sizeof(&c->txds->txd[slot].wtx_fields));
+
+    c->tx_nextq = next_slot;
+    if (c->tx_head == -1)
+	c->tx_head = slot;
+
+    e1000_io_write(c, WMREG_TDT, next_slot);
+    return 0;
+}
+
+static int
+e1000_add_rxbuf(void *arg, struct netbuf_hdr *nb, uint16_t size)
+{
+    struct e1000_card *c = arg;
+    int slot = c->rx_nextq;
+    int next_slot = (slot + 1) % E1000_RX_SLOTS;
+
+    if (slot == c->rx_head || next_slot == c->rx_head)
+	return -E_NO_SPACE;
+
+    // The receive buffer size is hard-coded in the RCTL register as 2K.
+    // However, we configure it to reject packets over 1522 bytes long.
+    if (size < 1522) {
+	printf("e1000_add_rxbuf: buffer too small, %d bytes\n", size);
+	return -E_INVAL;
+    }
+
+    c->rx[slot].nb = nb;
+
+    memset(&c->rxds->rxd[slot], 0, sizeof(c->rxds->rxd[slot]));
+    c->rxds->rxd[slot].wrx_addr = e1000_pa(c, c->rx[slot].nb + 1);
+
+    c->rx_nextq = next_slot;
+    if (c->rx_head == -1)
+	c->rx_head = slot;
+
+    e1000_io_write(c, WMREG_RDT, next_slot);
+    return 0;
 }
 
 static int
 e1000_buf(void *arg, struct cobj_ref seg,
 	  uint64_t offset, netbuf_type type)
 {
-    return -1;
+    int r;
+    struct e1000_card* c = arg;
+    // XXX client can only use one segment
+    if (!c->seg_va) {
+	c->seg = seg;
+	r = segment_map(c->seg, 0, SEGMAP_READ | SEGMAP_WRITE, 
+			&c->seg_va, &c->seg_bytes, 0);
+	if (r < 0)
+	    return r;
+	r = e1000_as_map(c, c->seg, c->seg_va, c->seg_bytes);
+	if (r < 0)
+	    return r;
+    }
+
+    struct netbuf_hdr* nb = c->seg_va + offset;
+    uint16_t size = nb->size;
+    
+    switch (type) {
+    case netbuf_rx:
+	return e1000_add_rxbuf(c, nb, size);
+    case netbuf_tx:
+	return e1000_add_txbuf(c, nb, size);
+    default:
+	return -E_INVAL;
+    }
 }
 
 static int 
 e1000_macaddr(void *arg, uint8_t* macaddr)
 {
-    return -1;
+    struct e1000_card *c = arg;
+    memcpy(macaddr, c->mac_addr, 6);
+    return 0;
 }
 
 static int

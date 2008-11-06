@@ -23,6 +23,7 @@ struct {
     { MK_PCIKEY(device_net, 0x8086, 0x108c), &e1000_jnic },
     { MK_PCIKEY(device_net, 0x8086, 0x109a), &e1000_jnic },
     { MK_PCIKEY(device_net, 0x8086, 0x1079), &e1000_jnic },
+    { MK_PCIKEY(device_net, 0x8086, 0x105e), &e1000_jnic },
 };
 
 int

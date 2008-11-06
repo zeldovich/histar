@@ -24,6 +24,7 @@ static uint64_t preferred_keys[] = {
     MK_PCIKEY(device_net, 0x8086, 0x108c), 
     MK_PCIKEY(device_net, 0x8086, 0x109a), 
     MK_PCIKEY(device_net, 0x8086, 0x1079), 
+    MK_PCIKEY(device_net, 0x8086, 0x105e),
     0
 };
 

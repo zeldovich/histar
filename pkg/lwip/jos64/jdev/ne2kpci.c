@@ -343,6 +343,8 @@ ne2kpci_wait(void* arg, uint64_t waiterid, int64_t waitgen)
     if (r == -E_AGAIN) {
 	ne2kpci_reset(c);
 	return r;
+    } else if (r < 0) {
+	return r;
     }
 
     assert(sys_self_umask_enable(c->obj) == 0);
