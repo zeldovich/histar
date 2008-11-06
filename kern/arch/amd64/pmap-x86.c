@@ -227,7 +227,7 @@ uva2pa(struct Pagemap *pgmap, void *va, physaddr_t *pa)
     if (ptep == 0 || !(*ptep & PTE_P))
 	return -E_NOT_FOUND;
 
-    *pa = PTE_ADDR(*ptep);
+    *pa = PTE_ADDR(*ptep) + PGOFF(va);
     return 0;
 }
 
