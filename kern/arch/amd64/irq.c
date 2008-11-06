@@ -3,7 +3,7 @@
 #include <dev/picirq.h>
 #include <dev/apic.h>
 
-enum { use_ioapic = 0 };
+enum { use_ioapic = 1 };
 
 /*
  * With the APIC a unique vector can be assigned to each
@@ -71,7 +71,7 @@ irq_arch_init(uint32_t irq, tbdp_t tbdp, bool_t user)
     return r;
 }
 
-void __attribute__((noreturn))
+void
 irq_arch_disable(uint32_t trapno)
 {
     if (!use_ioapic)
