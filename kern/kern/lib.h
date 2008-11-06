@@ -71,5 +71,6 @@ void page_alloc_init(void);
 int  page_alloc(void **p)
     __attribute__ ((warn_unused_result));
 void page_free(void *p);
+void page_reserve(void *p);
 
 #endif /* !JOS_KERN_LIB_H */

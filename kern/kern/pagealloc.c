@@ -74,6 +74,14 @@ page_alloc(void **vp)
     return 0;
 }
 
+void
+page_reserve(void *v)
+{
+    struct page_info *pi = page_to_pageinfo(v);
+    if (pi)
+	pi->pi_reserved = 1;
+}
+
 static void
 print_memstat(void)
 {
