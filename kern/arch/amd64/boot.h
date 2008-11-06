@@ -9,6 +9,7 @@
 #define E820_RESERVED	2
 #define E820_ACPI	3
 #define E820_NVS	4
+#define E820_GAP	5	/* HiStar specific, not standard */
 
 #define E820MAX	128
 

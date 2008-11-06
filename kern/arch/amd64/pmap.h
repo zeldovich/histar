@@ -41,7 +41,7 @@ struct Pagemap {
 };
 
 void page_init(uint64_t lower_kb, uint64_t upper_kb, 
-	       struct e820entry *map, uint8_t n);
+	       struct e820entry *map, uint32_t n);
 void pmap_set_current_arch(struct Pagemap *pm);
 
 /* page.c */

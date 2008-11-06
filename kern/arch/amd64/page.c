@@ -20,6 +20,40 @@ static char *boot_endmem;	// Pointer to first unusable byte
 // Keep track of various page metadata
 struct page_info *page_infos;
 
+// e820 map with gaps marked
+static struct e820entry clean_map[2 * E820MAX];
+static uint32_t		clean_n;
+
+static void __attribute__((unused))
+e820_print(struct e820entry *desc, uint32_t n)
+{
+    for (uint32_t i = 0; i < n; i++) {
+        cprintf(" e820: %016lx - %016lx ", 
+                desc[i].addr,
+                desc[i].addr + desc[i].size);
+        switch (desc[i].type) {
+        case E820_RAM:
+	    cprintf("(usable)\n");
+            break;
+        case E820_RESERVED:
+            cprintf("(reserved)\n");
+            break;
+        case E820_ACPI:
+            cprintf("(ACPI data)\n");
+            break;
+        case E820_NVS:
+            cprintf("(ACPI NVS)\n");
+            break;
+	case E820_GAP:
+	    cprintf("(gap)\n");
+            break;
+        default:
+            cprintf("type %u\n", desc[i].type);
+            break;
+        }
+    }
+}
+
 static int
 nvram_read(int r)
 {
@@ -49,7 +83,7 @@ boot_alloc(uint32_t n, uint32_t align)
 }
 
 static void
-e820_detect_memory(struct e820entry *desc, uint8_t n)
+e820_detect_memory(struct e820entry *desc, uint32_t n)
 {
     extern char end[];
     for (uint8_t i = 0; i < n; i++) {
@@ -84,7 +118,7 @@ e820_detect_memory(struct e820entry *desc, uint8_t n)
 }
 
 static void
-e820_init(struct e820entry *map, uint8_t n)
+e820_init(struct e820entry *map, uint32_t n)
 {
     e820_detect_memory(map, n);
 
@@ -110,13 +144,21 @@ e820_init(struct e820entry *map, uint8_t n)
     // Align to another page boundary.
     boot_alloc(0, PGSIZE);
 
-    for (uint8_t i = 0; i < n; i++) {
-        if (map[i].type != E820_RAM)
-            continue;
-        
+    for (uint32_t i = 0; i < n; i++) {
         uint64_t s = ROUNDUP(map[i].addr, PGSIZE);
         uint64_t e = ROUNDDOWN(map[i].addr + map[i].size, PGSIZE);
 
+	// We only have global_npages page_infos.
+	if (e > ppn2pa(global_npages))
+	    break;
+
+	// We need to "reserve" all non-E820_RAM pages < global_npages.
+        if (map[i].type != E820_RAM) {
+	    for(; s < e; s += PGSIZE)
+		page_reserve(pa2kva(s));
+            continue;
+	}
+        
 	int inuse;
 	for(; s < e; s += PGSIZE) {
 	    // Off-limits until proven otherwise.
@@ -138,8 +180,27 @@ e820_init(struct e820entry *map, uint8_t n)
 	    membytes / (1024 * 1024));
 }
 
+static void
+e820_sanitize(struct e820entry *map, uint32_t n)
+{
+    /* We assume that the e820 map is ordered from lowest to highest 
+     * addr and has non-overlapping memory segments.  We don't add 
+     * an E820_GAP from the last entry to the end of the physical
+     * address space because it is unnecessary.
+     */
+    for (uint32_t i = 0; i < n; i++, clean_n++) {
+	clean_map[clean_n] = map[i];
+	if (i != n - 1 && map[i].addr + map[i].size != map[i + 1].addr) {
+	    clean_n++;
+	    clean_map[clean_n].addr = map[i].addr + map[i].size;
+	    clean_map[clean_n].size = map[i + 1].addr - clean_map[clean_n].addr;
+	    clean_map[clean_n].type = E820_GAP;
+	}
+    }
+}
+
 void
-page_init(uint64_t lower_kb, uint64_t upper_kb, struct e820entry *map, uint8_t n)
+page_init(uint64_t lower_kb, uint64_t upper_kb, struct e820entry *map, uint32_t n)
 {
     struct e820entry fm[2];
 
@@ -150,7 +211,7 @@ page_init(uint64_t lower_kb, uint64_t upper_kb, struct e820entry *map, uint8_t n
 	if (!lower_kb)
 	    lower_kb = nvram_read(NVRAM_BASELO);
 	if (!upper_kb)
-	    upper_kb = nvram_read (NVRAM_EXTLO);
+	    upper_kb = nvram_read(NVRAM_EXTLO);
 	
 	fm[0].addr = 0;
 	fm[0].size = ROUNDDOWN(lower_kb * 1024, PGSIZE);
@@ -164,8 +225,10 @@ page_init(uint64_t lower_kb, uint64_t upper_kb, struct e820entry *map, uint8_t n
 	n = 2;
 	map = fm;
     }
-	
-    e820_init(map, n);
-    
+
+    e820_sanitize(map, n);
+    //e820_print(map, n);
+    //e820_print(clean_map, clean_n);
+    e820_init(clean_map, clean_n);
     page_stats.pages_used = 0;
 }
