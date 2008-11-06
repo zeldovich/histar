@@ -10,6 +10,7 @@
 #include <dev/ahci.h>
 #include <kern/lib.h>
 #include <kern/udev.h>
+#include <kern/arch.h>
 #include <inc/error.h>
 #include <inc/device.h>
 #include <inc/udev.h>
@@ -17,7 +18,7 @@
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 0;
-static int pci_show_addrs = 0;
+static int pci_show_addrs = 1;
 
 // PCI "configuration mechanism one"
 static uint32_t pci_conf1_addr_ioport = 0x0cf8;
@@ -50,15 +51,15 @@ struct pci_driver pci_attach_class[] = {
 };
 
 struct pci_driver pci_attach_vendor[] = {
-    //    { 0x10ec, 0x8029, &ne2kpci_attach },
+    //{ 0x10ec, 0x8029, &ne2kpci_attach },
     { 0x8086, 0x1229, &fxp_attach },
     { 0xfefe, 0xefef, &pnic_attach },
-    { 0x8086, 0x100e, &e1000_attach },
-    { 0x8086, 0x100f, &e1000_attach },
-    { 0x8086, 0x107c, &e1000_attach },
-    { 0x8086, 0x108c, &e1000_attach },
-    { 0x8086, 0x109a, &e1000_attach },
-    { 0x8086, 0x1079, &e1000_attach },
+    //{ 0x8086, 0x100e, &e1000_attach },
+    //{ 0x8086, 0x100f, &e1000_attach },
+    //{ 0x8086, 0x107c, &e1000_attach },
+    //{ 0x8086, 0x108c, &e1000_attach },
+    //{ 0x8086, 0x109a, &e1000_attach },
+    //{ 0x8086, 0x1079, &e1000_attach },
     { 0, 0, 0 },
 };
 
@@ -88,6 +89,19 @@ pci_get_base(void *a, uint64_t base, uint64_t *val)
 static int
 pci_get_page(void *a, uint64_t page_num, void **pp)
 {
+    struct pci_udevice *pciud = a;
+    uint64_t byte_num = page_num * PGSIZE;
+    
+    for (int i = 0; i < 6; i++) {
+	if (pciud->func.reg_type[i] != pci_res_mem)
+	    continue;
+	if (byte_num < pciud->func.reg_size[i]) {
+	    *pp = pa2kva(pciud->func.reg_base[i] + byte_num);
+	    return 0;
+	}
+	byte_num -= ROUNDUP(pciud->func.reg_size[i], PGSIZE);
+    }
+	
     return -E_INVAL;
 }
 
@@ -101,6 +115,14 @@ pci_udev_attach(struct pci_func *f)
     
     pci_func_enable(f);
 
+    /*
+     * XXX don't support devices with MMIO not page aligned by the BIOS
+     */
+    for (uint32_t i = 0; i < 6; i++)
+	if (f->reg_type[i] == pci_res_mem && 
+	    (f->reg_base[i] % PGSIZE || f->reg_size[i] % PGSIZE))
+	    return 0;
+    
     struct pci_udevice *d = &pciudev[pciudev_num++];    
     
     for (uint32_t i = 0; i < 6; i++)

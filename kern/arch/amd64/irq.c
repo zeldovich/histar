@@ -3,7 +3,7 @@
 #include <dev/picirq.h>
 #include <dev/apic.h>
 
-enum { use_ioapic = 1 };
+enum { use_ioapic = 0 };
 
 /*
  * With the APIC a unique vector can be assigned to each
@@ -48,6 +48,9 @@ irq_arch_init(uint32_t irq, tbdp_t tbdp, bool_t user)
 {
     trapno_t* x_trapno, r;
 
+    if (irq > MAX_IRQ_PIC && irq <= MAX_IRQ_LAPIC)
+	return APIC_TRAPNO(irq);
+
     if (!use_ioapic)
 	return PIC_TRAPNO(irq);
 
@@ -68,7 +71,7 @@ irq_arch_init(uint32_t irq, tbdp_t tbdp, bool_t user)
     return r;
 }
 
-void
+void __attribute__((noreturn))
 irq_arch_disable(uint32_t trapno)
 {
     if (!use_ioapic)

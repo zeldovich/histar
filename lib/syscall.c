@@ -507,3 +507,9 @@ sys_as_set_slot(struct cobj_ref as, struct u_segment_mapping *usm)
 {
     return syscall(SYS_as_set_slot, SOBJ(as), SPTR(usm), 0, 0, 0, 0);
 }
+
+int
+sys_as_pa(struct cobj_ref as, void *va, physaddr_t *pa)
+{
+    return syscall(SYS_as_pa, SOBJ(as), SPTR(va), SPTR(pa), 0, 0, 0);
+}

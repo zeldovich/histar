@@ -12,6 +12,7 @@ device_swapin(struct Device *dv)
 int
 device_set_as(const struct Device *const_dv, struct cobj_ref asref)
 {
+    // XXX what happens if the AS is unrefed?
     const struct kobject *const_ko;
     int r = cobj_get(asref, kobj_address_space, &const_ko, iflow_rw);
     if (r < 0)
@@ -21,9 +22,11 @@ device_set_as(const struct Device *const_dv, struct cobj_ref asref)
 	return -E_INVAL;
 
     struct Device *dv = &kobject_dirty(&const_dv->dv_ko)->dv;
-    if (dv->dv_as)
+    if (dv->dv_as) {
+	dv->dv_ko.ko_flags &= ~KOBJ_DEVICE_DEPENDS;
 	kobject_unpin_hdr(&dv->dv_as->as_ko);
-    
+    }
+
     struct kobject *ko = kobject_dirty(&const_ko->hdr);
     ko->hdr.ko_flags |= KOBJ_DEVICE_DEPENDS;
     kobject_pin_hdr(&ko->hdr);

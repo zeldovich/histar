@@ -36,6 +36,9 @@ physaddr_t kva2pa(void *kva);
 ppn_t pa2ppn(physaddr_t pa);
 physaddr_t ppn2pa(ppn_t pn);
 
+/* XXX temporary hack */
+int uva2pa(struct Pagemap *pgmap, void *va, physaddr_t *pa);
+
 /*
  * Miscellaneous
  */

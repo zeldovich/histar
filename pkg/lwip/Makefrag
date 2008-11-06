@@ -46,7 +46,9 @@ LWIP_SRCFILES += \
 	pkg/lwip/jos64/jif/tun.c \
 	pkg/lwip/jos64/api/event.c \
 	pkg/lwip/jos64/jdev/jnic.c \
-	pkg/lwip/jos64/jdev/ne2kpci.c
+	pkg/lwip/jos64/jdev/knic.c \
+	pkg/lwip/jos64/jdev/ne2kpci.c \
+	pkg/lwip/jos64/jdev/e1000.c
 
 LWIP_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LWIP_SRCFILES))
 

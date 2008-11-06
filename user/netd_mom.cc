@@ -17,13 +17,36 @@ extern "C" {
 static int netd_mom_debug = 0;
 static int use_udevice = 1;
 
+static uint64_t preferred_keys[] = {
+    MK_PCIKEY(device_net, 0x8086, 0x100e), // e1000s
+    MK_PCIKEY(device_net, 0x8086, 0x100f), 
+    MK_PCIKEY(device_net, 0x8086, 0x107c), 
+    MK_PCIKEY(device_net, 0x8086, 0x108c), 
+    MK_PCIKEY(device_net, 0x8086, 0x109a), 
+    MK_PCIKEY(device_net, 0x8086, 0x1079), 
+    0
+};
+
 static uint64_t
 find_udev_nic(uint64_t *key)
 {
-    for (uint64_t i = 0; sys_udev_get_key(i, key) == 0; i++)
-	if (KEYTYPE(*key) == device_net)
-	    return i;
-    panic("could not find a nic");
+    int64_t firsti = -1;
+    uint64_t firstkey = 0;
+    for (uint64_t i = 0; sys_udev_get_key(i, key) == 0; i++) {
+	for (uint64_t k = 0; preferred_keys[k]; k++)
+	    if (preferred_keys[k] == *key)
+		return i;
+	if (KEYTYPE(*key) == device_net && firsti == -1) {
+	    firsti = i;
+	    firstkey = *key;
+	}
+    }
+    
+    if (firsti == -1)
+	panic("could not find a nic");
+
+    *key = firstkey;
+    return firsti;
 }
 
 static void

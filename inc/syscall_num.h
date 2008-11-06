@@ -93,6 +93,7 @@
     SYSCALL_ENTRY(as_set)			\
     SYSCALL_ENTRY(as_get_slot)			\
     SYSCALL_ENTRY(as_set_slot)			\
+    SYSCALL_ENTRY(as_pa)			\
 
 #ifndef __ASSEMBLER__
 #define SYSCALL_ENTRY(name)	SYS_##name,

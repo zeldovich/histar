@@ -1161,6 +1161,16 @@ sys_as_set_slot(struct cobj_ref asref, struct u_segment_mapping *usm)
     return 0;
 }
 
+static int __attribute__ ((warn_unused_result))
+sys_as_pa(struct cobj_ref asref, void *va, physaddr_t *pa)
+{
+    const struct kobject *ko;
+    check(check_user_access(pa, sizeof(*pa), SEGMAP_WRITE));
+    check(cobj_get(asref, kobj_address_space, &ko, iflow_rw));
+    check(uva2pa(ko->as.as_pgmap, va, pa));
+    return 0;
+}
+
 static int64_t __attribute__ ((warn_unused_result))
 sys_pstate_timestamp(void)
 {
@@ -1248,6 +1258,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(as_set, COBJ(a1, a2), p3);
 	SYSCALL(as_get_slot, COBJ(a1, a2), p3);
 	SYSCALL(as_set_slot, COBJ(a1, a2), p3);
+	SYSCALL(as_pa, COBJ(a1, a2), p3, p4);
 	SYSCALL(pstate_sync, a1);
 
 	SYSCALL(cons_getc);

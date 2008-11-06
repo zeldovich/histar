@@ -211,6 +211,26 @@ ppn2pa(ppn_t pn)
     return (pn << PGSHIFT);
 }
 
+int
+uva2pa(struct Pagemap *pgmap, void *va, physaddr_t *pa)
+{
+    int r;
+    ptent_t *ptep;
+
+    if (!pgmap)
+	return -E_NOT_FOUND;
+    
+    r = pgdir_walk(pgmap, va, 0, &ptep);
+    if (r < 0)
+	panic("pgdir_walk(%p, create=0) failed: %d", va, r);
+
+    if (ptep == 0 || !(*ptep & PTE_P))
+	return -E_NOT_FOUND;
+
+    *pa = PTE_ADDR(*ptep);
+    return 0;
+}
+
 /*
  * Page table entry management.
  */

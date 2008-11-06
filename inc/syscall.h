@@ -1,6 +1,7 @@
 #ifndef JOS_INC_SYSCALL_H
 #define JOS_INC_SYSCALL_H
 
+#include <machine/types.h>
 #include <inc/types.h>
 #include <inc/syscall_num.h>
 #include <inc/container.h>
@@ -136,5 +137,7 @@ int	sys_as_get(struct cobj_ref as, struct u_address_space *uas);
 int	sys_as_set(struct cobj_ref as, struct u_address_space *uas);
 int	sys_as_get_slot(struct cobj_ref as, struct u_segment_mapping *usm);
 int	sys_as_set_slot(struct cobj_ref as, struct u_segment_mapping *usm);
+
+int	sys_as_pa(struct cobj_ref as, void *va, physaddr_t *pa);
 
 #endif

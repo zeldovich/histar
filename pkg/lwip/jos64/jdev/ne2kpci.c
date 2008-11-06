@@ -2,6 +2,8 @@
 #include <dev/dp8390reg.h>
 
 #include <jdev/ne2kpci.h>
+#include <jdev/jnic.h>
+
 #include <inc/error.h>
 #include <inc/arch.h>
 #include <inc/syscall.h>
@@ -30,7 +32,7 @@ struct ne2kpci_rx_slot {
 
 struct ne2kpci_card {
     struct cobj_ref obj;
-    bool_t running;
+    struct cobj_ref as;
 
     uint8_t irq_line;
     uint32_t iobase;
@@ -243,7 +245,7 @@ ne2kpci_add_rxbuf(void *arg, struct netbuf_hdr *nb, uint16_t size)
     return 0;
 }
 
-int
+static int
 ne2kpci_macaddr(void* arg, uint8_t* macaddr)
 {
     struct ne2kpci_card *c = arg;
@@ -251,7 +253,7 @@ ne2kpci_macaddr(void* arg, uint8_t* macaddr)
     return 0;
 }
 
-int
+static int
 ne2kpci_buf(void* arg, struct cobj_ref seg,
 	    uint64_t offset, netbuf_type type)
 {
@@ -333,7 +335,7 @@ ne2kpci_rintr(struct ne2kpci_card *c)
     }
 }
 
-int64_t
+static int64_t
 ne2kpci_wait(void* arg, uint64_t waiterid, int64_t waitgen)
 {
     struct ne2kpci_card* c = arg;
@@ -372,12 +374,53 @@ ne2kpci_wait(void* arg, uint64_t waiterid, int64_t waitgen)
     return r;
 }
 
-int
+static int
 ne2kpci_init(struct cobj_ref obj, void** arg)
 {
-    struct ne2kpci_card *c = malloc(sizeof(*c));
+    int64_t r;
+    struct ne2kpci_card *c;
+
+    c = malloc(sizeof(*c));
+    if (!c)
+	return -E_NO_MEM;
     memset(c, 0, sizeof(*c));
     c->obj = obj;
     *arg = c;
+    
+    // XXX just for testing...
+    r = sys_as_create(start_env->shared_container, 0, "ne2kpci-as");
+    assert(r > 0);
+    c->as = COBJ(start_env->shared_container, r);
+    assert(sys_device_set_as(c->obj, c->as) == 0);
+    
+    r = sys_segment_create(start_env->shared_container, 4096, 0, "ne2kpci-seg");
+    assert(r > 0);
+
+    struct u_address_space uas;
+    struct u_segment_mapping usm;
+    memset(&usm, 0, sizeof(usm));
+    memset(&uas, 0, sizeof(uas));
+    
+    usm.segment = COBJ(start_env->shared_container, r);
+    usm.start_page = 0;
+    usm.num_pages = 1;
+    usm.kslot = 0;
+    usm.flags = SEGMAP_WRITE | SEGMAP_READ;
+    usm.va = (void *)0x10000;
+    uas.size = 1;
+    uas.nent = 1;
+    uas.ents = &usm;
+    assert(sys_as_set(c->as, &uas) == 0);
+
+    physaddr_t pa;
+    assert(sys_as_pa(c->as, (void *)0x10000, &pa) == 0);
+    
     return ne2kpci_reset(c);
 }
+
+struct jnic_device ne2kpci_jnic = {
+    .init	   = ne2kpci_init, 
+    .net_macaddr   = ne2kpci_macaddr, 
+    .net_buf	   = ne2kpci_buf, 
+    .net_wait	   = ne2kpci_wait,
+};

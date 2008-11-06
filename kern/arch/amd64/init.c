@@ -158,6 +158,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
     pit_init();		/* Fallback position */
 
     page_init(lower_kb, upper_kb, sxi.e820_map, sxi.e820_nents);
+
     pci_init();
     part_init();
 
