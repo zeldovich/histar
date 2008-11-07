@@ -20,9 +20,13 @@ static char *boot_endmem;	// Pointer to first unusable byte
 // Keep track of various page metadata
 struct page_info *page_infos;
 
-// e820 map with gaps marked
-static struct e820entry clean_map[2 * E820MAX];
+// sorted e820 map
+static struct e820entry clean_map[E820MAX * 2];
 static uint32_t		clean_n;
+
+// Largest gap below 4G
+uint32_t pci_membase;
+uint32_t pci_memsize;
 
 static void __attribute__((unused))
 e820_print(struct e820entry *desc, uint32_t n)
@@ -183,18 +187,45 @@ e820_init(struct e820entry *map, uint32_t n)
 static void
 e820_sanitize(struct e820entry *map, uint32_t n)
 {
-    /* We assume that the e820 map is ordered from lowest to highest 
-     * addr and has non-overlapping memory segments.  We don't add 
-     * an E820_GAP from the last entry to the end of the physical
-     * address space because it is unnecessary.
-     */
-    for (uint32_t i = 0; i < n; i++, clean_n++) {
-	clean_map[clean_n] = map[i];
-	if (i != n - 1 && map[i].addr + map[i].size != map[i + 1].addr) {
+    // Insertion sort the e820 map.  We assume the BIOS e820 map 
+    // has non-overlapping entries.
+    for (uint32_t i = 0; i < n; i++) {    
+	uint32_t k;
+	struct e820entry *e = &map[i];
+
+	for (k = 0; k < i; k++)
+	    if (e->addr < clean_map[k].addr)
+		break;
+
+	memmove(&clean_map[k + 1], &clean_map[k], 
+		(i - k) * sizeof(struct e820entry));
+	clean_map[k] = *e;
+    }
+
+    clean_n = n;
+
+    // Mark all the gaps in the e820 map
+    for (uint32_t i = 0; i < clean_n - 1; i++) {
+	if (clean_map[i].addr + clean_map[i].size != clean_map[i + 1].addr) {
+	    uint64_t addr, size;
+
+	    addr = clean_map[i].addr + clean_map[i].size;
+	    size = clean_map[i + 1].addr - addr;
+
+	    memmove(&clean_map[i + 2], &clean_map[i + 1], 
+		    (clean_n - i - 1) * sizeof(struct e820entry));
+	    clean_map[i + 1].addr = addr;
+	    clean_map[i + 1].size = size;
+	    clean_map[i + 1].type = E820_GAP;
+
+	    // Remember the largest gap below 4GB for PCI MMIO
+	    if (size > pci_memsize && addr + size < 0x100000000) {
+		pci_membase = addr;
+		pci_memsize = size;
+	    }
+
 	    clean_n++;
-	    clean_map[clean_n].addr = map[i].addr + map[i].size;
-	    clean_map[clean_n].size = map[i + 1].addr - clean_map[clean_n].addr;
-	    clean_map[clean_n].type = E820_GAP;
+	    i++;
 	}
     }
 }

@@ -40,12 +40,15 @@ struct Pagemap {
     ptent_t pm_ent[NPTENTRIES];
 };
 
-void page_init(uint64_t lower_kb, uint64_t upper_kb, 
-	       struct e820entry *map, uint32_t n);
 void pmap_set_current_arch(struct Pagemap *pm);
 
 /* page.c */
 extern uint64_t pa_limit;
+extern uint32_t pci_membase;
+extern uint32_t pci_memsize;
+
+void page_init(uint64_t lower_kb, uint64_t upper_kb, 
+	       struct e820entry *map, uint32_t n);
 
 #endif /* !__ASSEMBLER__ && JOS_KERNEL */
 
