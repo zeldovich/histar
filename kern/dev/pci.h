@@ -28,9 +28,9 @@ struct pci_bus {
     struct pci_func *parent_bridge;
     uint32_t busno;
     uint32_t mem_base;
-    uint32_t mem_limit;
+    uint32_t mem_end;
     uint32_t pmem_base;
-    uint32_t pmem_limit;
+    uint32_t pmem_end;
 };
 
 void pci_init(void);

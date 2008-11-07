@@ -19,13 +19,14 @@
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 0;
-static int pci_show_addrs = 1;
+static int pci_show_addrs = 0;
 
 // PCI "configuration mechanism one"
 static uint32_t pci_conf1_addr_ioport = 0x0cf8;
 static uint32_t pci_conf1_data_ioport = 0x0cfc;
 
-// How much MMIO-space to reserve for 
+// How much MMIO-space to reserve for prefetchable memory
+static uint32_t pci_prefetch_reserve = 0x10000000;
 
 // Forward declarations
 static int pci_bridge_attach(struct pci_func *pcif);
@@ -54,10 +55,12 @@ struct pci_driver pci_attach_class[] = {
 };
 
 struct pci_driver pci_attach_vendor[] = {
-    //{ 0x10ec, 0x8029, &ne2kpci_attach },
+
     { 0x8086, 0x1229, &fxp_attach },
     { 0xfefe, 0xefef, &pnic_attach },
+
 #if 0
+    { 0x10ec, 0x8029, &ne2kpci_attach },
     { 0x8086, 0x100e, &e1000_attach },
     { 0x8086, 0x100f, &e1000_attach },
     { 0x8086, 0x107c, &e1000_attach },
@@ -237,9 +240,11 @@ pci_func_config_bar(struct pci_func *f)
 	 bar += bar_width)
     {
 	uint32_t oldv = pci_conf_read(f, bar);
+	uint32_t newv;
 
 	bar_width = 4;
 	pci_conf_write(f, bar, 0xffffffff);
+
 	uint32_t rv = pci_conf_read(f, bar);
 
 	if (rv == 0)
@@ -255,12 +260,18 @@ pci_func_config_bar(struct pci_func *f)
 	    base = PCI_MAPREG_MEM_ADDR(oldv);
 	    type = pci_res_mem;
 
-	    //uint32_t newbase = pci_alloc_mem(&f->bus->mem_limit, size);
+#if 0
+	    if (PCI_MAPREG_MEM_PREFETCHABLE(rv))
+		base = pci_alloc_mem(&f->bus->pmem_limit, size);
+	    else
+		base = pci_alloc_mem(&f->bus->mem_limit, size);
+#endif
 
 	    if (pci_show_addrs)
-		cprintf("  mem region %d: %d bytes at 0x%x   XXX 0x%x\n",
-			regnum, size, base, 0);
+		cprintf("  mem region %d: %d bytes at 0x%x\n",
+			regnum, size, base);
 
+	    newv = (oldv & ~PCI_MAPREG_MEM_ADDR_MASK) | base;
 	} else {
 	    size = PCI_MAPREG_IO_SIZE(rv);
 	    base = PCI_MAPREG_IO_ADDR(oldv);
@@ -268,9 +279,10 @@ pci_func_config_bar(struct pci_func *f)
 	    if (pci_show_addrs)
 		cprintf("  io region %d: %d bytes at 0x%x\n",
 			regnum, size, base);
+	    newv = oldv;
 	}
 
-	pci_conf_write(f, bar, oldv);
+	pci_conf_write(f, bar, newv);
 	f->reg_base[regnum] = base;
 	f->reg_size[regnum] = size;
 	f->reg_type[regnum] = type;
@@ -331,18 +343,12 @@ pci_bridge_attach(struct pci_func *pcif)
     memset(&nbus, 0, sizeof(nbus));
     nbus.parent_bridge = pcif;
     nbus.busno = (busreg >> PCI_BRIDGE_BUS_SECONDARY_SHIFT) & 0xff;
+  
+    nbus.mem_base = ROUNDUP(pcif->bus->mem_end, 0x100000);
+    nbus.mem_end = nbus.mem_base;
 
-    uint32_t memreg = pci_conf_read(pcif, PCI_BRIDGE_MEMORY_REG);
-    nbus.mem_base = (memreg >> PCI_BRIDGE_MEMORY_BASE_SHIFT) & 
-	PCI_BRIDGE_MEMORY_BASE_MASK;
-    nbus.mem_limit = (memreg >> PCI_BRIDGE_MEMORY_LIMIT_SHIFT) & 
-	PCI_BRIDGE_MEMORY_LIMIT_MASK;
-
-    uint32_t pmemreg = pci_conf_read(pcif, PCI_BRIDGE_PREFETCHMEM_REG);
-    nbus.pmem_base = (pmemreg >> PCI_BRIDGE_PREFETCHMEM_BASE_SHIFT) & 
-	PCI_BRIDGE_PREFETCHMEM_BASE_MASK;
-    nbus.pmem_limit = (pmemreg >> PCI_BRIDGE_PREFETCHMEM_LIMIT_SHIFT) & 
-	PCI_BRIDGE_PREFETCHMEM_LIMIT_MASK;
+    nbus.pmem_base = ROUNDUP(pcif->bus->pmem_end, 0x100000);
+    nbus.pmem_end = nbus.pmem_base;
     
     if (pci_show_devs)
 	cprintf("PCI: %02x:%02x.%d: bridge to PCI bus %d--%d\n",
@@ -350,13 +356,35 @@ pci_bridge_attach(struct pci_func *pcif)
 		nbus.busno,
 		(busreg >> PCI_BRIDGE_BUS_SUBORDINATE_SHIFT) & 0xff);
 
+    pci_scan_bus(&nbus);
+
+    nbus.mem_end = ROUNDUP(nbus.mem_end, 0x100000);
+
     if (pci_show_addrs)
 	cprintf(" busno %u mem: %08x %08x pmem: %08x %08x\n", 
 		nbus.busno, 
-		nbus.mem_base << 20, (nbus.mem_limit << 20) | 0xFFFFF,
-		nbus.pmem_base << 20, (nbus.pmem_limit << 20) | 0xFFFFF);
+		nbus.mem_base, nbus.mem_end,
+		nbus.pmem_base, nbus.pmem_end);
 
-    pci_scan_bus(&nbus);
+#if 0
+    if (nbus.mem_base != nbus.mem_limit) {
+	uint32_t memreg = 
+	    (nbus.mem_base >> 20) << PCI_BRIDGE_MEMORY_BASE_SHIFT |
+	    ((nbus.mem_end - 1) >> 20) << PCI_BRIDGE_MEMORY_LIMIT_SHIFT;
+	pci_conf_write(pcif, PCI_BRIDGE_MEMORY_REG, memreg);
+    }
+
+    if (nbus.pmem_base != nbus.pmem_limit) {
+	uint32_t pmemreg = 
+	    (nbus.pmem_base >> 20) << PCI_BRIDGE_PREFETCHMEM_BASE_SHIFT |
+	    ((nbus.pmem_end - 1) >> 20) << PCI_BRIDGE_PREFETCHMEM_LIMIT_SHIFT;
+	pci_conf_write(pcif, PCI_BRIDGE_PREFETCHMEM_REG, pmemreg);
+    }
+#endif
+
+    pcif->bus->mem_end = nbus.mem_end;
+    pcif->bus->pmem_end = nbus.pmem_end;
+    
     return 1;
 }
 
@@ -377,8 +405,19 @@ pci_init(void)
     static struct pci_bus root_bus;
     memset(&root_bus, 0, sizeof(root_bus));
 
-    //root_bus->mem_base = pci_membase;
-    //cprintf("pci_membase %x pci_memsize %x\n", pci_membase, pci_memsize);
+    if (pci_show_addrs)
+	cprintf("pci MMIO %08x %08x\n", pci_membase, pci_membase + pci_memsize);
 
+    root_bus.pmem_base = pci_membase;
+    root_bus.pmem_end = pci_membase;
+    root_bus.mem_base = pci_membase + pci_prefetch_reserve;
+    root_bus.mem_end = pci_membase + pci_prefetch_reserve;
     pci_scan_bus(&root_bus);
+
+    if (root_bus.pmem_end > pci_membase + pci_prefetch_reserve)
+	panic("oops, we over allocated MMIO prefetch by 0x%x", 
+	      root_bus.pmem_end - pci_membase - pci_prefetch_reserve);
+    if (root_bus.mem_end > pci_membase + pci_memsize)
+	panic("oops, we over allocated MMIO by 0x%x",
+	      root_bus.mem_end - pci_membase + pci_memsize);
 }
