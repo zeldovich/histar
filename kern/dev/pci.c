@@ -19,11 +19,13 @@
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 0;
-static int pci_show_addrs = 0;
+static int pci_show_addrs = 1;
 
 // PCI "configuration mechanism one"
 static uint32_t pci_conf1_addr_ioport = 0x0cf8;
 static uint32_t pci_conf1_data_ioport = 0x0cfc;
+
+// How much MMIO-space to reserve for 
 
 // Forward declarations
 static int pci_bridge_attach(struct pci_func *pcif);
@@ -216,6 +218,72 @@ pci_attach(struct pci_func *f)
     return pci_udev_attach(f);
 }
 
+static uint32_t __attribute__((unused))
+pci_alloc_mem(uint32_t *addrp, uint32_t size)
+{
+    size = ROUNDUP(size, PGSIZE);
+    uint32_t mask = size - 1;
+    *addrp = (*addrp + mask) & ~mask;
+    uint32_t alloc = *addrp;
+    *addrp += size;
+    return alloc;
+}
+
+static void
+pci_func_config_bar(struct pci_func *f)
+{
+    uint32_t bar_width;
+    for (uint32_t bar = PCI_MAPREG_START; bar < PCI_MAPREG_END;
+	 bar += bar_width)
+    {
+	uint32_t oldv = pci_conf_read(f, bar);
+
+	bar_width = 4;
+	pci_conf_write(f, bar, 0xffffffff);
+	uint32_t rv = pci_conf_read(f, bar);
+
+	if (rv == 0)
+	    continue;
+
+	int regnum = PCI_MAPREG_NUM(bar);
+	uint32_t base, size, type;
+	if (PCI_MAPREG_TYPE(rv) == PCI_MAPREG_TYPE_MEM) {
+	    if (PCI_MAPREG_MEM_TYPE(rv) == PCI_MAPREG_MEM_TYPE_64BIT)
+		bar_width = 8;
+
+	    size = PCI_MAPREG_MEM_SIZE(rv);
+	    base = PCI_MAPREG_MEM_ADDR(oldv);
+	    type = pci_res_mem;
+
+	    //uint32_t newbase = pci_alloc_mem(&f->bus->mem_limit, size);
+
+	    if (pci_show_addrs)
+		cprintf("  mem region %d: %d bytes at 0x%x   XXX 0x%x\n",
+			regnum, size, base, 0);
+
+	} else {
+	    size = PCI_MAPREG_IO_SIZE(rv);
+	    base = PCI_MAPREG_IO_ADDR(oldv);
+	    type = pci_res_io;
+	    if (pci_show_addrs)
+		cprintf("  io region %d: %d bytes at 0x%x\n",
+			regnum, size, base);
+	}
+
+	pci_conf_write(f, bar, oldv);
+	f->reg_base[regnum] = base;
+	f->reg_size[regnum] = size;
+	f->reg_type[regnum] = type;
+
+	if (size && !base)
+	    cprintf("PCI device %02x:%02x.%d (%04x:%04x) may be misconfigured: "
+		    "region %d: base 0x%x, size %d\n",
+		    f->bus->busno, f->dev, f->func,
+		    PCI_VENDOR(f->dev_id), PCI_PRODUCT(f->dev_id),
+		    regnum, base, size);
+    }
+}
+
 static void
 pci_scan_bus(struct pci_bus *bus)
 {
@@ -248,6 +316,7 @@ pci_scan_bus(struct pci_bus *bus)
 			PCI_CLASS(af.dev_class), PCI_SUBCLASS(af.dev_class),
 			af.irq_line);
 
+	    pci_func_config_bar(&af);
 	    pci_attach(&af);
 	}
     }
@@ -263,11 +332,29 @@ pci_bridge_attach(struct pci_func *pcif)
     nbus.parent_bridge = pcif;
     nbus.busno = (busreg >> PCI_BRIDGE_BUS_SECONDARY_SHIFT) & 0xff;
 
+    uint32_t memreg = pci_conf_read(pcif, PCI_BRIDGE_MEMORY_REG);
+    nbus.mem_base = (memreg >> PCI_BRIDGE_MEMORY_BASE_SHIFT) & 
+	PCI_BRIDGE_MEMORY_BASE_MASK;
+    nbus.mem_limit = (memreg >> PCI_BRIDGE_MEMORY_LIMIT_SHIFT) & 
+	PCI_BRIDGE_MEMORY_LIMIT_MASK;
+
+    uint32_t pmemreg = pci_conf_read(pcif, PCI_BRIDGE_PREFETCHMEM_REG);
+    nbus.pmem_base = (pmemreg >> PCI_BRIDGE_PREFETCHMEM_BASE_SHIFT) & 
+	PCI_BRIDGE_PREFETCHMEM_BASE_MASK;
+    nbus.pmem_limit = (pmemreg >> PCI_BRIDGE_PREFETCHMEM_LIMIT_SHIFT) & 
+	PCI_BRIDGE_PREFETCHMEM_LIMIT_MASK;
+    
     if (pci_show_devs)
 	cprintf("PCI: %02x:%02x.%d: bridge to PCI bus %d--%d\n",
 		pcif->bus->busno, pcif->dev, pcif->func,
 		nbus.busno,
 		(busreg >> PCI_BRIDGE_BUS_SUBORDINATE_SHIFT) & 0xff);
+
+    if (pci_show_addrs)
+	cprintf(" busno %u mem: %08x %08x pmem: %08x %08x\n", 
+		nbus.busno, 
+		nbus.mem_base << 20, (nbus.mem_limit << 20) | 0xFFFFF,
+		nbus.pmem_base << 20, (nbus.pmem_limit << 20) | 0xFFFFF);
 
     pci_scan_bus(&nbus);
     return 1;
@@ -282,53 +369,6 @@ pci_func_enable(struct pci_func *f)
 		   PCI_COMMAND_IO_ENABLE |
 		   PCI_COMMAND_MEM_ENABLE |
 		   PCI_COMMAND_MASTER_ENABLE);
-
-    uint32_t bar_width;
-    for (uint32_t bar = PCI_MAPREG_START; bar < PCI_MAPREG_END;
-	 bar += bar_width)
-    {
-	uint32_t oldv = pci_conf_read(f, bar);
-
-	bar_width = 4;
-	pci_conf_write(f, bar, 0xffffffff);
-	uint32_t rv = pci_conf_read(f, bar);
-
-	if (rv == 0)
-	    continue;
-
-	int regnum = PCI_MAPREG_NUM(bar);
-	uint32_t base, size, type;
-	if (PCI_MAPREG_TYPE(rv) == PCI_MAPREG_TYPE_MEM) {
-	    if (PCI_MAPREG_MEM_TYPE(rv) == PCI_MAPREG_MEM_TYPE_64BIT)
-		bar_width = 8;
-
-	    size = PCI_MAPREG_MEM_SIZE(rv);
-	    base = PCI_MAPREG_MEM_ADDR(oldv);
-	    type = pci_res_mem;
-	    if (pci_show_addrs)
-		cprintf("  mem region %d: %d bytes at 0x%x\n",
-			regnum, size, base);
-	} else {
-	    size = PCI_MAPREG_IO_SIZE(rv);
-	    base = PCI_MAPREG_IO_ADDR(oldv);
-	    type = pci_res_io;
-	    if (pci_show_addrs)
-		cprintf("  io region %d: %d bytes at 0x%x\n",
-			regnum, size, base);
-	}
-
-	pci_conf_write(f, bar, oldv);
-	f->reg_base[regnum] = base;
-	f->reg_size[regnum] = size;
-	f->reg_type[regnum] = type;
-
-	if (size && !base)
-	    cprintf("PCI device %02x:%02x.%d (%04x:%04x) may be misconfigured: "
-		    "region %d: base 0x%x, size %d\n",
-		    f->bus->busno, f->dev, f->func,
-		    PCI_VENDOR(f->dev_id), PCI_PRODUCT(f->dev_id),
-		    regnum, base, size);
-    }
 }
 
 void
@@ -336,6 +376,9 @@ pci_init(void)
 {
     static struct pci_bus root_bus;
     memset(&root_bus, 0, sizeof(root_bus));
+
+    //root_bus->mem_base = pci_membase;
+    //cprintf("pci_membase %x pci_memsize %x\n", pci_membase, pci_memsize);
 
     pci_scan_bus(&root_bus);
 }
