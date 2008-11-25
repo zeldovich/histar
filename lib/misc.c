@@ -75,7 +75,7 @@ ioperm(unsigned long from, unsigned long num, int turn_on)
 }
 #endif
 
-void *__tls_get_addr(void);
+void *__tls_get_addr(void) __attribute__((noreturn));
 
 void *
 __tls_get_addr(void)
