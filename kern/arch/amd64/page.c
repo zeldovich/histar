@@ -88,6 +88,7 @@ e820_init(struct e820entry *map, uint8_t n)
 {
     e820_detect_memory(map, n);
 
+#if defined(JOS_ARCH_amd64)
     // bootdata.c only maps the first 4 GBs.  Page mappings need to be added
     // to bootpdplo if the physical address space is larger than 4 GBs.
     if (pa_limit > UINT64(0x100000000)) {
@@ -96,6 +97,7 @@ e820_init(struct e820entry *map, uint8_t n)
 	for (uint64_t i = 4; i < gp; i++)
 	    bootpdplo.pm_ent[i] = (i * 0x40000000) + (PTE_P|PTE_W|PTE_PS|PTE_G);
     }
+#endif
 
     // Align boot_freemem to page boundary.
     boot_alloc(0, PGSIZE);
