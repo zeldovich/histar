@@ -200,3 +200,11 @@ possible answer: store all stars in a privstore; stars in thread label
 are a cache.  how to catch -E_LABEL errors and how to fetch the right
 handle?
 
+===
+
+how to combine privileges on declassification gates safely?  e.g. how
+does the caller know the declassifier will really only update the exit
+status segment, or only create a new file with a given label?  it's fine
+if the declassifier does other things, just not with the privileges we'll
+be giving it...
+

@@ -40,7 +40,7 @@ struct jcomm_ref {
 #define JCOMM_SHUT_RD  0x0001
 #define JCOMM_SHUT_WR  0x0002
 
-int jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode,
+int jcomm_alloc(uint64_t ct, struct new_ulabel *l, int16_t mode,
 		struct jcomm_ref *a, struct jcomm_ref *b);
 int jcomm_probe(struct jcomm_ref jr, dev_probe_t probe);
 int jcomm_shut(struct jcomm_ref jr, uint16_t how);

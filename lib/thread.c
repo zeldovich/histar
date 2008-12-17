@@ -121,7 +121,7 @@ thread_create_option(uint64_t container, void (*entry)(void*),
     e.te_stack = entry_top;
     e.te_arg[0] = (uintptr_t) ta;
 
-    int64_t tid = sys_thread_create(container, name);
+    int64_t tid = sys_thread_create(container, name, 0);
     if (tid < 0) {
 	segment_unmap_delayed(stackbase, 1);
 	sys_obj_unref(stack);
@@ -195,14 +195,6 @@ thread_halt(void)
 {
     sys_self_halt();
     panic("halt: still alive");
-}
-
-int
-thread_get_label(struct ulabel *ul)
-{
-    uint64_t tid = thread_id();
-
-    return sys_obj_get_label(COBJ(0, tid), ul);
 }
 
 void

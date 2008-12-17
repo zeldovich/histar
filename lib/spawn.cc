@@ -31,84 +31,55 @@ spawn(spawn_descriptor *sd)
     bool uinit_style = (sd->spawn_flags_ & SPAWN_UINIT_STYLE);
     bool copy_mtab = (sd->spawn_flags_ & SPAWN_COPY_MTAB);
 
-    // Compute clearance for new process
-    label thread_clear(2);
+    // Compute clearance, ownership, label for new process
+    label thread_clear;
+    if (sd->clear_)
+	thread_clear.add(*sd->clear_);
 
-    thread_cur_clearance(&tmp);
-    thread_clear.merge(&tmp, &out, label::min, label::leq_starhi);
-    thread_clear = out;
+    label thread_owner;
+    if (sd->owner_)
+	thread_owner.add(*sd->owner_);
 
-    if (sd->cr_) {
-	thread_clear.merge(sd->cr_, &out, label::min, label::leq_starhi);
-	thread_clear = out;
-    }
-    if (sd->dr_) {
-	thread_clear.merge(sd->dr_, &out, label::max, label::leq_starhi);
-	thread_clear = out;
-    }
+    label thread_label;
+    thread_cur_label(&thread_label);
+    thread_label.remove(thread_owner);
+    if (sd->taint_)
+	thread_label.add(*sd->taint_);
 
-    thread_cur_label(&tmp);
-    tmp.transform(label::star_to, 0);
-    thread_clear.merge(&tmp, &out, label::max, label::leq_starhi);
-    thread_clear = out;
-
-    // Compute label for new process
-    label thread_label(1);
-
-    thread_label.merge(&tmp, &out, label::max, label::leq_starlo);
-    thread_label = out;
-
-    if (sd->cs_) {
-	thread_label.merge(sd->cs_, &out, label::max, label::leq_starlo);
-	thread_label = out;
-    }
-    if (sd->ds_) {
-	thread_label.merge(sd->ds_, &out, label::min, label::leq_starlo);
-	thread_label = out;
-    }
-
-    // Objects for new process are effectively the same label, except
-    // we can drop the stars altogether -- they're discretionary.
+    // Objects for new process are almost the same label.
+    label base_object_label(thread_label);
     label integrity_object_label(thread_label);
-    integrity_object_label.transform(label::star_to,
-				     integrity_object_label.get_default());
     label proc_object_label(integrity_object_label);
-    if (sd->co_) {
-	proc_object_label.merge(sd->co_, &out, label::max, label::leq_starlo);
-	proc_object_label = out;
-    }
 
-    // Generate some private handles for the new process
-    int64_t process_grant = handle_alloc();
+    // Generate some private categories for the new process
+    int64_t process_grant = category_alloc(0);
     error_check(process_grant);
     scope_guard<void, uint64_t> pgrant_cleanup(thread_drop_star, process_grant);
 
-    int64_t process_taint = handle_alloc();
+    int64_t process_taint = category_alloc(1);
     error_check(process_taint);
     scope_guard2<void, uint64_t, uint64_t> ptaint_cleanup(thread_drop_starpair, process_taint, process_grant);
     pgrant_cleanup.dismiss();
 
     if (!uinit_style) {
-	thread_label.set(process_grant, LB_LEVEL_STAR);
-	thread_label.set(process_taint, LB_LEVEL_STAR);
-	thread_clear.set(process_grant, 3);
-	thread_clear.set(process_taint, 3);
+	thread_label.add(process_grant);
+	thread_label.add(process_taint);
+	thread_owner.add(process_grant);
+	thread_owner.add(process_taint);
     }
 
     if (autogrant && start_env->user_grant && start_env->user_taint) {
-	thread_label.set(start_env->user_grant, LB_LEVEL_STAR);
-	thread_label.set(start_env->user_taint, LB_LEVEL_STAR);
-	thread_clear.set(start_env->user_grant, 3);
-	thread_clear.set(start_env->user_taint, 3);
+	thread_owner.add(start_env->user_grant);
+	thread_owner.add(start_env->user_taint);
     }
 
     if (!uinit_style) {
-	proc_object_label.set(process_grant, 0);
-	proc_object_label.set(process_taint, 3);
-	integrity_object_label.set(process_grant, 0);
+	proc_object_label.add(process_grant);
+	proc_object_label.add(process_taint);
+	integrity_object_label.add(process_grant);
     } else {
-	proc_object_label.set(start_env->user_grant, 0);
-	integrity_object_label.set(start_env->user_grant, 0);
+	proc_object_label.add(start_env->user_grant);
+	integrity_object_label.add(start_env->user_grant);
     }
 
     // Now spawn with computed labels
@@ -141,20 +112,13 @@ spawn(spawn_descriptor *sd)
 	error_check(fd_lookup(fdnum[i], &fd, 0, 0));
 	error_check(dup2_as(fdnum[i], i, e.te_as, c_top));
 
-	thread_label.set(fd->fd_handle[fd_handle_taint], LB_LEVEL_STAR);
-	thread_clear.set(fd->fd_handle[fd_handle_taint], 3);
-	if (fd->fd_handle[fd_handle_extra_taint]) {
-	    thread_label.set(fd->fd_handle[fd_handle_extra_taint], LB_LEVEL_STAR);
-	    thread_clear.set(fd->fd_handle[fd_handle_extra_taint], 3);
-	}
-	if (!fd->fd_immutable) {
-	    thread_label.set(fd->fd_handle[fd_handle_grant], LB_LEVEL_STAR);
-	    thread_clear.set(fd->fd_handle[fd_handle_grant], 3);
-	}
-	if (!fd->fd_immutable && fd->fd_handle[fd_handle_extra_grant]) {
-	    thread_label.set(fd->fd_handle[fd_handle_extra_grant], LB_LEVEL_STAR);
-	    thread_clear.set(fd->fd_handle[fd_handle_extra_grant], 3);
-	}
+	thread_owner.add(fd->fd_handle[fd_handle_taint]);
+	if (fd->fd_handle[fd_handle_extra_taint])
+	    thread_owner.add(fd->fd_handle[fd_handle_extra_taint]);
+	if (!fd->fd_immutable)
+	    thread_owner.add(fd->fd_handle[fd_handle_grant]);
+	if (!fd->fd_immutable && fd->fd_handle[fd_handle_extra_grant])
+	    thread_owner.add(fd->fd_handle[fd_handle_extra_grant]);
     }
 
     uint64_t env_size = PGSIZE;
@@ -202,8 +166,8 @@ spawn(spawn_descriptor *sd)
 
     if (!uinit_style) {
 	uint64_t *child_pgid = 0;
-	label pgid_label(1); 
-	pgid_label.set(start_env->user_grant, 0);
+	label pgid_label(base_object_label);
+	pgid_label.add(start_env->user_grant);
 	try {
 	    error_check(segment_alloc(c_top, sizeof(uint64_t),
 				      &spawn_env->process_gid_seg, (void **) &child_pgid, 
@@ -211,11 +175,8 @@ spawn(spawn_descriptor *sd)
 	} catch (error &e) {
 	    if (e.err() != -E_LABEL)
 		throw e;
-	    thread_cur_label(&tmp);
-	    pgid_label.set(start_env->user_grant, 1);
-	    pgid_label.set(process_grant, 0);
-	    pgid_label.merge(&tmp, &out, label::max, label::leq_starlo);
-	    pgid_label = out;
+	    pgid_label = base_object_label;
+	    pgid_label.add(process_grant);
 	    error_check(segment_alloc(c_top, sizeof(uint64_t),
 				      &spawn_env->process_gid_seg, (void **) &child_pgid, 
 				      pgid_label.to_ulabel(), "process gid"));
@@ -247,7 +208,7 @@ spawn(spawn_descriptor *sd)
     spawn_env->envc = sd->envc_;
 
     uint64_t thread_ct = uinit_style ? c_top : c_proc;
-    int64_t thread = sys_thread_create(thread_ct, &name[0]);
+    int64_t thread = sys_thread_create(thread_ct, &name[0], thread_label.to_ulabel());
     error_check(thread);
     struct cobj_ref tobj = COBJ(thread_ct, thread);
 
@@ -255,11 +216,14 @@ spawn(spawn_descriptor *sd)
 	thread_cur_label(&tmp);
 	printf("spawn: current label %s\n", tmp.to_string());
 
+	thread_cur_ownership(&tmp);
+	printf("spawn: current ownership: %s\n", tmp.to_string());
+
 	thread_cur_clearance(&tmp);
 	printf("spawn: current clearance: %s\n", tmp.to_string());
 
-	printf("spawn: starting thread with label %s, clear %s\n",
-	       thread_label.to_string(), thread_clear.to_string());
+	printf("spawn: starting thread with owner %s, clear %s\n",
+	       thread_owner.to_string(), thread_clear.to_string());
     }
 
     if (uinit_style) {
@@ -271,7 +235,7 @@ spawn(spawn_descriptor *sd)
 	e.te_arg[1] = (uintptr_t) spawn_env_va;
     }
     error_check(sys_thread_start(tobj, &e,
-				 thread_label.to_ulabel(),
+				 thread_owner.to_ulabel(),
 				 thread_clear.to_ulabel()));
 
     struct child_process child;
@@ -287,8 +251,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
       int fd0, int fd1, int fd2,
       int ac, const char **av,
       int envc, const char **envv,
-      label *cs, label *ds, label *cr, label *dr,
-      label *contaminate_object,
+      label *taint, label *owner, label *clear,
       int spawn_flags, 
       struct cobj_ref fs_mtab_seg)
 {
@@ -302,11 +265,9 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     sd.av_ = av;
     sd.envc_ = envc;
     sd.envv_ = envv;
-    sd.cs_ = cs;
-    sd.ds_ = ds;
-    sd.cr_ = cr;
-    sd.dr_ = dr;
-    sd.co_ = contaminate_object;
+    sd.taint_ = taint;
+    sd.owner_ = owner;
+    sd.clear_ = clear;
     sd.spawn_flags_ = spawn_flags;
     sd.fs_mtab_seg_ = fs_mtab_seg;
     return spawn(&sd);
@@ -351,20 +312,8 @@ process_wait(const struct child_process *child, int64_t *exit_code)
 static int
 process_update_state(uint64_t state, int64_t exit_code, int64_t signo)
 {
-    label lseg, lcur;
-    try {
-	thread_cur_label(&lcur);
-	obj_get_label(start_env->process_status_seg, &lseg);
-    } catch (error &e) {
-	cprintf("process_update_state: %s\n", e.what());
-	return e.err();
-    } catch (std::exception &e) {
-	cprintf("process_update_state: %s\n", e.what());
-	return -E_INVAL;
-    }
-
-    int r = lcur.compare(&lseg, label::leq_starlo);
-    if (r < 0)
+    int r = sys_obj_write(start_env->process_status_seg, 0, 0, 0);
+    if (r == -E_LABEL || r == -E_NOT_FOUND)
 	return r;
 
     struct process_state *ps = 0;
@@ -402,10 +351,10 @@ process_report_exit(int64_t code, int64_t signo)
 
 	    // Grant the exit declassifier our process grant handle,
 	    // so that it can write to our process status segment.
-	    label ds(3);
-	    ds.set(start_env->process_grant, LB_LEVEL_STAR);
+	    label owner;
+	    owner.add(start_env->process_grant);
 
-	    gate_call(start_env->declassify_gate, 0, &ds, 0).call(&gcd, &ds);
+	    gate_call(start_env->declassify_gate, &owner, 0).call(&gcd, &owner);
 	} catch (std::exception &e) {
 	    cprintf("process_report_exit: %s\n", e.what());
 	    return -1;

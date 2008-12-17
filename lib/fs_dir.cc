@@ -351,7 +351,7 @@ fs_namei_flags(const char *pn, struct fs_inode *o, uint32_t flags)
 }
 
 int
-fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel *l)
+fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct new_ulabel *l)
 {
     uint64_t avoid_types = UINT64(~0);
     avoid_types &= ~(1 << kobj_segment);
@@ -384,7 +384,7 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel 
 }
 
 int
-fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct ulabel *l)
+fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct new_ulabel *l)
 {
     return fs_mknod(dir, fn, devfile.dev_id, 0, f, l);
 }
@@ -534,7 +534,7 @@ fs_dirbase(char *pn, const char **dirname, const char **basename)
 
 int  
 fs_mknod(struct fs_inode dir, const char *fn, uint32_t dev_id, uint32_t dev_opt,
-	 struct fs_inode *f, struct ulabel *l)
+	 struct fs_inode *f, struct new_ulabel *l)
 {
     int64_t id = sys_segment_create(dir.obj.object, 0, l, fn);
     if (id < 0) {
@@ -549,8 +549,8 @@ fs_mknod(struct fs_inode dir, const char *fn, uint32_t dev_id, uint32_t dev_opt,
 		     "%s", fn);
 
 	    label verify;
-	    thread_cur_label(&verify);
-	    gate_call(start_env->declassify_gate, 0, 0, 0).call(&gcd, &verify);
+	    thread_cur_ownership(&verify);
+	    gate_call(start_env->declassify_gate, 0, 0).call(&gcd, &verify);
 	    *f = darg->fs_create.new_file;
 	    return darg->status;
 	}

@@ -90,9 +90,9 @@ fs_resize(struct fs_inode f, uint64_t len)
 	    darg->fs_resize.len = len;
 
 	    label verify;
-	    thread_cur_label(&verify);
+	    thread_cur_ownership(&verify);
 
-	    gate_call(start_env->declassify_gate, 0, 0, 0).call(&gcd, &verify);
+	    gate_call(start_env->declassify_gate, 0, 0).call(&gcd, &verify);
 	    r = 0;
 	} catch (std::exception &e) {
 	    cprintf("fs_resize: declassifying: %s\n", e.what());

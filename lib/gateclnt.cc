@@ -56,11 +56,11 @@ return_stub(jos_jmp_buf *jb, uint64_t tid, void (*returncb)(void*), void *cbarg)
 }
 
 static void
-return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct,
+return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_i, uint64_t ct,
 	     void (*returncb)(void*), void *cbarg)
 {
-    label verify(3);
-    verify.set(return_handle, 0);
+    label verify;
+    verify.add(return_i);
 
     thread_entry te;
     memset(&te, 0, sizeof(te));
@@ -72,54 +72,40 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct,
     te.te_arg[3] = (uintptr_t) cbarg;
     error_check(sys_self_get_as(&te.te_as));
 
-    int64_t id = sys_gate_create(ct, &te, 0, 0, verify.to_ulabel(),
-				 "return gate", 0);
+    int64_t id = sys_gate_create(ct, &te, 0, 0, 0, verify.to_ulabel(),
+				 "return gate");
     if (id < 0)
 	throw error(id, "return_setup: creating return gate");
 
     *g = COBJ(ct, id);
 }
 
-gate_call::gate_call(cobj_ref gate,
-		     const label *cs, const label *ds, const label *dr)
-    : call_taint_(0), call_grant_(0),
-      gate_(gate), call_ct_obj_(COBJ(0, 0)),
-      taint_ct_obj_(COBJ(0, 0)), return_gate_(COBJ(0, 0)),
-      tgt_label_(0), tgt_clear_(0)
+gate_call::gate_call(cobj_ref gate, const label *owner, const label *clear)
+    : call_taint_(0), call_grant_(0), gate_(gate), call_ct_obj_(COBJ(0, 0)),
+      return_gate_(COBJ(0, 0)), owner_(0), clear_(0)
 {
     // Create a handle for the duration of this call
-    error_check(call_taint_ = handle_alloc());
+    error_check(call_taint_ = category_alloc(1));
     scope_guard<void, uint64_t> drop_star1(thread_drop_star, call_taint_);
 
-    error_check(call_grant_ = handle_alloc());
+    error_check(call_grant_ = category_alloc(0));
     scope_guard<void, uint64_t> drop_star2(thread_drop_star, call_grant_);
 
     // Compute the target labels
-    label new_ds(ds ? *ds : label(3));
-    new_ds.set(call_taint_, LB_LEVEL_STAR);
-    new_ds.set(call_grant_, LB_LEVEL_STAR);
+    owner_ = new label(owner ? *owner : label());
+    scope_guard<void, label*> del_o(delete_obj, owner_);
 
-    label new_dr(dr ? *dr : label(0));
-    new_dr.set(call_taint_, 3);
-    new_dr.set(call_grant_, 3);
+    clear_ = new label(clear ? *clear : label());
+    scope_guard<void, label*> del_c(delete_obj, clear_);
 
-    tgt_label_ = new label();
-    scope_guard<void, label*> del_tl(delete_obj, tgt_label_);
-    tgt_clear_ = new label();
-    scope_guard<void, label*> del_tc(delete_obj, tgt_clear_);
-    gate_compute_labels(gate, cs, &new_ds, &new_dr, tgt_label_, tgt_clear_);
+    owner_->add(call_taint_);
+    owner_->add(call_grant_);
 
     // Create a container to hold data across the gate call
     label call_obj_label_;
     thread_cur_label(&call_obj_label_);
-    call_obj_label_.transform(label::star_to, call_obj_label_.get_default());
-    if (cs) {
-	label tmp;
-	call_obj_label_.merge(cs, &tmp, label::max, label::leq_starlo);
-	call_obj_label_ = tmp;
-    }
-    call_obj_label_.set(call_taint_, 3);
-    call_obj_label_.set(call_grant_, 0);
+    call_obj_label_.add(call_taint_);
+    call_obj_label_.add(call_grant_);
 
     if (gate_client_debug)
 	cprintf("Gate call container label: %s\n", call_obj_label_.to_string());
@@ -131,49 +117,29 @@ gate_call::gate_call(cobj_ref gate,
 	throw error(call_ct, "gate_call: creating call container");
 
     call_ct_obj_ = COBJ(start_env->shared_container, call_ct);
-    scope_guard<int, cobj_ref> call_ct_cleanup(sys_obj_unref, call_ct_obj_);
-
-    // Create an MLT-like container for tainted data to live in
-    label taint_obj_label_;
-    call_obj_label_.merge(tgt_label_, &taint_obj_label_,
-			  label::max, label::leq_starlo);
-
-    if (gate_client_debug)
-	cprintf("Gate taint container label: %s\n", taint_obj_label_.to_string());
-
-    int64_t taint_ct = sys_container_alloc(call_ct, taint_obj_label_.to_ulabel(),
-					   "gate call taint", 0, CT_QUOTA_INF);
-    if (taint_ct < 0)
-	throw error(taint_ct, "gate_call: creating tainted container");
-
-    taint_ct_obj_ = COBJ(call_ct, taint_ct);
 
     // Let the destructor clean up after this point
     drop_star1.dismiss();
     drop_star2.dismiss();
-    del_tl.dismiss();
-    del_tc.dismiss();
-    call_ct_cleanup.dismiss();
+    del_o.dismiss();
+    del_c.dismiss();
 }
 
 void __attribute__((noinline))
-gate_call::set_verify(const label *vl, const label *vc)
+gate_call::set_verify(const label *vo, const label *vc)
 {
     // Set the verify label; prove ownership of call handles
-    label new_vl(vl ? *vl : label(3));
-    label new_vc(vc ? *vc : label(0));
-    new_vl.set(call_grant_, LB_LEVEL_STAR);
-    new_vl.set(call_taint_, LB_LEVEL_STAR);
-    new_vc.set(call_grant_, 3);
-    new_vc.set(call_taint_, 3);
-    error_check(sys_self_set_verify(new_vl.to_ulabel(), new_vc.to_ulabel()));
+    label new_vo(vo ? *vo : label());
+    new_vo.add(call_grant_);
+    new_vo.add(call_taint_);
+    error_check(sys_self_set_verify(new_vo.to_ulabel(), vc->to_ulabel_const()));
 }
 
 void
-gate_call::call(gate_call_data *gcd_param, const label *vl, const label *vc,
+gate_call::call(gate_call_data *gcd_param, const label *vo, const label *vc,
 		void (*returncb)(void*), void *cbarg, bool setup_return_gate)
 {
-    set_verify(vl, vc);
+    set_verify(vo, vc);
 
     // Create a return gate in the taint container
     jos_jmp_buf back_from_call;
@@ -186,7 +152,7 @@ gate_call::call(gate_call_data *gcd_param, const label *vl, const label *vc,
     if (gcd_param)
 	memcpy(d, gcd_param, sizeof(*d));
     d->return_gate = return_gate_;
-    d->taint_container = taint_ct_obj_.object;
+    d->taint_container = call_ct_obj_.object;
     d->thread_ref_ct = d->taint_container;
     d->call_taint = call_taint_;
     d->call_grant = call_grant_;
@@ -204,11 +170,11 @@ gate_call::call(gate_call_data *gcd_param, const label *vl, const label *vc,
     // Off into the gate!
     if (jos_setjmp(&back_from_call) == 0) {
 	if (gate_client_debug)
-	    cprintf("[%"PRIu64"] gate_call: invoking with label %s, clear %s\n",
-		    thread_id(), tgt_label_->to_string(), tgt_clear_->to_string());
+	    cprintf("[%"PRIu64"] gate_call: invoking with owner %s, clear %s\n",
+		    thread_id(), owner_->to_string(), clear_->to_string());
 
-	error_check(sys_gate_enter(gate_, tgt_label_->to_ulabel(),
-					  tgt_clear_->to_ulabel(), 0));
+	error_check(sys_gate_enter(gate_, owner_->to_ulabel(),
+					  clear_->to_ulabel(), 0));
 	throw basic_exception("gate_call: sys_gate_enter returned 0");
     }
 
@@ -236,10 +202,10 @@ gate_call::~gate_call()
 	if (return_gate_.object)
 	    sys_obj_unref(return_gate_);
 
-	if (tgt_label_)
-	    delete tgt_label_;
-	if (tgt_clear_)
-	    delete tgt_clear_;
+	if (owner_)
+	    delete owner_;
+	if (clear_)
+	    delete clear_;
 
 	thread_drop_starpair(call_taint_, call_grant_);
     } catch (std::exception &e) {

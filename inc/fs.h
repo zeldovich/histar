@@ -71,15 +71,15 @@ void fs_readdir_close(struct fs_readdir_state *s);
 
 void fs_dirbase(char *pn, const char **dirname, const char **basenam);
 
-int  fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel *l);
+int  fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct new_ulabel *l);
 int  fs_mkmlt(struct fs_inode dir, const char *fn, struct fs_inode *o);
 int  fs_mount(struct cobj_ref fs_mtab_seg, struct fs_inode dir, const char *mnt_name, struct fs_inode root);
 void fs_unmount(struct cobj_ref fs_mtab_seg, struct fs_inode dir, const char *mnt_name);
-int  fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct ulabel *l);
+int  fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct new_ulabel *l);
 int fs_move(struct fs_inode srcdir, struct fs_inode dstdir, struct fs_inode srcino, const char * old_fn, const char *new_fn);
 int  fs_remove(struct fs_inode dir, const char *fn, struct fs_inode f);
 int  fs_link(struct fs_inode dir, const char *fn, struct fs_inode f, int remove_old);
-int  fs_mknod(struct fs_inode dir, const char *fn, uint32_t dev_id, uint32_t dev_opt, struct fs_inode *ino, struct ulabel *l);
+int  fs_mknod(struct fs_inode dir, const char *fn, uint32_t dev_id, uint32_t dev_opt, struct fs_inode *ino, struct new_ulabel *l);
 
 int64_t fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off);
 int64_t fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off);

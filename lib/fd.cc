@@ -260,7 +260,7 @@ fd_alloc(struct Fd **fd_store, const char *name)
 }
 
 int
-fd_make_public(int fdnum, struct ulabel *ul_taint)
+fd_make_public(int fdnum, struct new_ulabel *ul_taint)
 {
     fd_handles_init();
 
@@ -289,18 +289,11 @@ fd_make_public(int fdnum, struct ulabel *ul_taint)
 
     label l;
     thread_cur_label(&l);
-    l.transform(label::star_to, 1);
-    l.set(fd_grant, 0);
-    l.set(fd_taint, 3);
+    l.add(fd_grant);
+    l.add(fd_taint);
 
-    if (ul_taint) {
-	label taint;
-	taint.from_ulabel(ul_taint);
-
-	label out;
-	l.merge(&taint, &out, label::max, label::leq_starlo);
-	l = out;
-    }
+    if (ul_taint)
+	l.add(ul_taint);
 
     char name[KOBJ_NAME_LEN];
     r = sys_obj_get_name(old_seg, &name[0]);

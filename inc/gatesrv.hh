@@ -12,18 +12,16 @@ class gatesrv_return {
  public:
     gatesrv_return(cobj_ref rgate, uint64_t tct, uint64_t gct,
 		   void *stack, uint64_t flags)
-	: rgate_(rgate), thread_ct_(tct), gate_tref_ct_(gct), stack_(stack), flags_(flags) {}
+	: rgate_(rgate), thread_ct_(tct), gate_tref_ct_(gct),
+	  stack_(stack), flags_(flags) {}
 
-    // ret will delete the three labels passed to it
-    void ret(label *contaminate_label,		// { 0 } for none
-	     label *decontaminate_label,	// { 3 } for none
-	     label *decontaminate_clearance,	// { 0 } for none
-	     label *verify_label = 0,		// { 3 } for none
-	     label *verify_clear = 0)		// { 0 } for none
+    // ret will delete any labels passed to it
+    void ret(label *owner, label *clear,
+	     label *verify_owner = 0, label *verify_clear = 0)
 	__attribute__((noreturn));
 
     void change_gate(cobj_ref newgate) { rgate_ = newgate; }
-    static void cleanup_stub(label *tgt_s, label *tgt_r, void *arg);
+    static void cleanup_stub(label *owner, label *clear, void *arg);
 
  private:
     gatesrv_return(const gatesrv_return&);
@@ -31,10 +29,10 @@ class gatesrv_return {
 
     static void ret_tls_stub(uint64_t a0, uint64_t a1, uint64_t a2)
 	__attribute__((noreturn));
-    void ret_tls(label *tgt_label, label *tgt_clear)
+    void ret_tls(label *owner, label *clear)
 	__attribute__((noreturn));
 
-    void cleanup(label *tgt_s, label *tgt_r);
+    void cleanup(label *owner, label *clear);
 
     cobj_ref rgate_;
     uint64_t thread_ct_;
@@ -49,16 +47,16 @@ class gatesrv_descriptor {
  public:
     gatesrv_descriptor()
 	: gate_container_(0), name_(0), as_(COBJ(0, 0)),
-	  label_(0), clearance_(0), verify_(0),
+	  owner_(0), clear_(0), guard_(0),
 	  func_(0), arg_(0), flags_(0) {};
 
     uint64_t gate_container_;
     const char *name_;
 
     cobj_ref as_;
-    label *label_;
-    label *clearance_;
-    label *verify_;
+    label *owner_;
+    label *clear_;
+    label *guard_;
 
     gatesrv_entry_t func_;
     uint64_t arg_;
@@ -75,7 +73,7 @@ class gatesrv_descriptor {
 
 cobj_ref gate_create(gatesrv_descriptor *dsc);
 cobj_ref gate_create(uint64_t gate_container, const char *name,
-		     label *label, label *clearance, label *verify,
+		     label *owner, label *clear, label *guard,
 		     gatesrv_entry_t func, uint64_t arg);
 
 void gatesrv_entry_tls(uint64_t fn, uint64_t arg, uint64_t flags)

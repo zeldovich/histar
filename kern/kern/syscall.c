@@ -639,7 +639,7 @@ sys_gate_enter(struct cobj_ref gt,
     if ((ute && !g->gt_te_unspec) || (!ute && g->gt_te_unspec))
 	return -E_INVAL;
 
-    // Verify that the caller has supplied valid verify labels, for bound gates
+    // For bound gates, check verify labels & grant all privs
     if (!ute) {
 	const struct Label *vo, *vc;
 	check(kobject_get_label(&cur_thread->th_ko,
@@ -650,6 +650,9 @@ sys_gate_enter(struct cobj_ref gt,
 	    check(label_subset(vo, cur_th_ownership, 0));
 	if (vc)
 	    check(label_subset(vc, cur_th_clearance, cur_th_ownership));
+
+	check(label_subset(gt_owner, new_owner, 0));
+	check(label_subset(gt_clear, new_clear, 0));
     }
 
     struct thread_entry te;

@@ -53,47 +53,14 @@ label::~label()
     ul_.ul_ent = (uint64_t *) 0xdeadbeef;
 }
 
-uint64_t *
-label::slot_find(uint64_t handle) const
-{
-    for (uint64_t i = 0; i < ul_.ul_nent; i++)
-	if (LB_HANDLE(ul_.ul_ent[i]) == handle)
-	    return &ul_.ul_ent[i];
-    return 0;
-}
-
-uint64_t *
-label::slot_grow(uint64_t handle)
-{
-    for (uint64_t i = 0; i < ul_.ul_nent; i++)
-	if (LB_LEVEL(ul_.ul_ent[i]) == ul_.ul_default)
-	    return &ul_.ul_ent[i];
-
-    uint64_t n = ul_.ul_nent;
-    if (n >= ul_.ul_size) {
-	ul_.ul_needed = MAX(ul_.ul_size, UINT64(8));
-	grow();
-    }
-
-    ul_.ul_nent++;
-    ul_.ul_ent[n] = LB_CODE(handle, ul_.ul_default);
-    return &ul_.ul_ent[n];
-}
-
-uint64_t *
-label::slot_alloc(uint64_t handle)
-{
-    return slot_find(handle) ? : slot_grow(handle);
-}
-
 void
 label::grow()
 {
     if (!dynamic_)
 	throw basic_exception("label::grow: statically allocated");
 
-    if (ul_.ul_needed) {
-	uint64_t newsize = ul_.ul_size + ul_.ul_needed;
+    if (ul_.ul_nent > ul_.ul_size) {
+	uint64_t newsize = ul_.ul_nent;
 	uint64_t newbytes = newsize * sizeof(ul_.ul_ent[0]);
 	uint64_t *newent = (uint64_t *) realloc(ul_.ul_ent, newbytes);
 	if (newent == 0) {
@@ -104,14 +71,6 @@ label::grow()
 	ul_.ul_ent = newent;
 	ul_.ul_size = newsize;
     }
-}
-
-void
-label::reset(level_t def)
-{
-    ul_.ul_nent = 0;
-    ul_.ul_default = def;
-    ul_.ul_needed = 0;
 }
 
 level_t

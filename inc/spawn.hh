@@ -17,7 +17,7 @@ struct spawn_descriptor {
 	ct_(0), ctname_(0), elf_ino_(),
 	fd0_(0), fd1_(0), fd2_(0),
 	ac_(0), av_(0), envc_(0), envv_(0),
-	cs_(0), ds_(0), cr_(0), dr_(0), co_(0),
+	taint_(0), owner_(0), clear_(0),
 	spawn_flags_(0), 
 	fs_mtab_seg_(COBJ(0,0)),
 	fs_root_(), fs_cwd_()
@@ -40,11 +40,9 @@ struct spawn_descriptor {
     int envc_;
     const char **envv_;
 
-    label *cs_;
-    label *ds_;
-    label *cr_;
-    label *dr_;
-    label *co_;
+    label *taint_;
+    label *owner_;
+    label *clear_;
 
     int spawn_flags_;
     struct cobj_ref fs_mtab_seg_;
@@ -61,11 +59,7 @@ struct child_process
 	  int fd0, int fd1, int fd2,
 	  int ac, const char **av,
 	  int envc, const char **envv,
-	  label *cs,	// null is effectively { * }
-	  label *ds,	// null is effectively { 3 }
-	  label *cr,	// null is effectively { 3 }
-	  label *dr,	// null is effectively { 0 }
-	  label *co,	// null is effectively { 0 } -- contaminate objects
+	  label *taint, label *owner, label *clear,
 	  int spawn_flags = 0,
 	  struct cobj_ref fs_mtab_seg = COBJ(0, 0)
 	);

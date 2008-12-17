@@ -197,9 +197,11 @@ ulabel_to_label(struct new_ulabel *ul, struct Label **lp, label_type t)
 
     struct Label *l = *lp;
     for (uint32_t i = 0; i < ul_nent; i++) {
-	r = label_add(l, ul_ent[i]);
-	if (r < 0)
-	    return r;
+	if (ul_ent[i]) {
+	    r = label_add(l, ul_ent[i]);
+	    if (r < 0)
+		return r;
+	}
     }
 
     return 0;

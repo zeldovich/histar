@@ -24,7 +24,7 @@ char*	readline(const char *prompt, int echo);
 
 int	segment_alloc(uint64_t container, uint64_t bytes,
 		      struct cobj_ref *cobj, void **va_p,
-		      const struct ulabel *label, const char *name);
+		      const struct new_ulabel *label, const char *name);
 int	segment_map_as(struct cobj_ref as, struct cobj_ref seg,
 		       uint64_t start_byteoff, uint64_t flags,
 		       void **vap, uint64_t *bytesp, uint64_t map_opts);
@@ -55,7 +55,7 @@ void	segment_map_print_cur(void);
 
 /* elf.c */
 int	elf_load(uint64_t container, struct cobj_ref seg,
-		 struct thread_entry *e, struct ulabel *label);
+		 struct thread_entry *e, struct new_ulabel *label);
 
 /* libmain.c */
 typedef struct {
@@ -147,7 +147,6 @@ int     thread_create_option(uint64_t container, void (*entry)(void*),
 			     struct thread_args *thargs, int options);
 uint64_t thread_id(void);
 void	thread_halt(void) __attribute__((noreturn));
-int	thread_get_label(struct ulabel *ul);
 void	thread_sleep_nsec(uint64_t nsec);
 int     thread_cleanup(struct thread_args *ta);
 
@@ -181,20 +180,12 @@ void	process_exit(int64_t rval, int64_t signo) __attribute__((noreturn));
 int64_t container_find(uint64_t container, uint8_t type, const char *name);
 
 /* label.c */
-typedef int (label_comparator)(level_t, level_t);
-label_comparator label_leq_starlo;
-label_comparator label_leq_starhi;
-
-struct ulabel *label_alloc(void);
-void label_free(struct ulabel *l);
-int  label_set_level(struct ulabel *l, uint64_t handle, level_t level,
-		     int grow);
-level_t label_get_level(struct ulabel *l, uint64_t handle);
-const char *label_to_string(const struct ulabel *l);
-int  label_grow(struct ulabel *l);
-int  label_compare(struct ulabel *a, struct ulabel *b, label_comparator cmp);
-
-void label_change_star(struct ulabel *l, level_t new_level);
+struct new_ulabel *label_alloc(void);
+void label_free(struct new_ulabel *l);
+int  label_add(struct new_ulabel *l, uint64_t cat, int grow);
+int  label_contains(struct new_ulabel *l, uint64_t cat);
+const char *label_to_string(const struct new_ulabel *l);
+int  label_grow(struct new_ulabel *l);
 
 /* debug.cc */
 void print_backtrace(int use_cprintf);

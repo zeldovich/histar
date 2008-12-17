@@ -3,14 +3,9 @@
 
 #include <inc/cpplabel.hh>
 
-typedef void (*gate_invoke_cb) (label *tgt_s, label *tgt_r,
-				void *arg);
+typedef void (*gate_invoke_cb) (label *owner, label *clear, void *arg);
 
-void gate_compute_labels(struct cobj_ref gate,
-			 const label *cs, const label *ds, const label *dr,
-			 label *tgt_s, label *tgt_r);
-
-void gate_invoke(struct cobj_ref gate, label *tgt_s, label *tgt_r,
+void gate_invoke(struct cobj_ref gate, label *owner, label *clear,
 		 gate_invoke_cb cb, void *arg)
     __attribute__((noreturn));
 

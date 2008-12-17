@@ -12,16 +12,18 @@ extern "C" {
 #include <inc/jthread.hh>
 
 static jthread_mutex_t label_ops_mu;
-static uint64_t cur_th_label_id, cur_th_clear_id;
-static label *cur_th_label, *cur_th_clear;
+static uint64_t cur_th_label_id, cur_th_owner_id, cur_th_clear_id;
+static label *cur_th_label, *cur_th_owner, *cur_th_clear;
 
-enum { handle_debug = 0 };
+enum { category_debug = 0 };
 
 static void
 label_cache_init(void)
 {
     if (!cur_th_label)
 	cur_th_label = new label();
+    if (!cur_th_owner)
+	cur_th_owner = new label();
     if (!cur_th_clear)
 	cur_th_clear = new label();
 }
@@ -42,6 +44,21 @@ thread_set_label(label *l)
 }
 
 int
+thread_set_ownership(label *l)
+{
+    scoped_jthread_lock x(&label_ops_mu);
+    label_cache_init();
+
+    int r = sys_self_set_ownership(l->to_ulabel());
+    if (r < 0)
+	return r;
+
+    *cur_th_owner = *l;
+    cur_th_owner_id = thread_id();
+    return 0;
+}
+
+int
 thread_set_clearance(label *l)
 {
     scoped_jthread_lock x(&label_ops_mu);
@@ -57,24 +74,17 @@ thread_set_clearance(label *l)
 }
 
 void
-thread_drop_star(uint64_t handle)
+thread_drop_star(uint64_t cat)
 {
-    if (handle_debug)
-	cprintf("[%"PRIu64"] handle: dropping %"PRIu64"\n", thread_id(), handle);
+    if (category_debug)
+	cprintf("[%"PRIu64"] category: dropping %"PRIu64"\n", thread_id(), cat);
 
     try {
-	label clear;
-	thread_cur_clearance(&clear);
-	if (clear.get(handle) != clear.get_default()) {
-	    clear.set(handle, clear.get_default());
-	    error_check(thread_set_clearance(&clear));
-	}
-
-	label self;
-	thread_cur_label(&self);
-	if (self.get(handle) != self.get_default()) {
-	    self.set(handle, self.get_default());
-	    error_check(thread_set_label(&self));
+	label o;
+	thread_cur_ownership(&o);
+	if (o.contains(cat)) {
+	    o.remove(cat);
+	    error_check(thread_set_ownership(&o));
 	}
     } catch (...) {
 	thread_label_cache_invalidate();
@@ -83,26 +93,18 @@ thread_drop_star(uint64_t handle)
 }
 
 void
-thread_drop_starpair(uint64_t h1, uint64_t h2)
+thread_drop_starpair(uint64_t c1, uint64_t c2)
 {
-    if (handle_debug)
-	cprintf("[%"PRIu64"] handle: dropping %"PRIu64", %"PRIu64"\n", thread_id(), h1, h2);
+    if (category_debug)
+	cprintf("[%"PRIu64"] category: dropping %"PRIu64", %"PRIu64"\n", thread_id(), c1, c2);
 
     try {
-	label clear;
-	thread_cur_clearance(&clear);
-	if (clear.get(h1) != clear.get_default() || clear.get(h2) != clear.get_default()) {
-	    clear.set(h1, clear.get_default());
-	    clear.set(h2, clear.get_default());
-	    error_check(thread_set_clearance(&clear));
-	}
-
-	label self;
-	thread_cur_label(&self);
-	if (self.get(h1) != self.get_default() || self.get(h2) != self.get_default()) {
-	    self.set(h1, self.get_default());
-	    self.set(h2, self.get_default());
-	    error_check(thread_set_label(&self));
+	label o;
+	thread_cur_label(&o);
+	if (o.contains(h1) || o.contains(h2)) {
+	    o.remove(h1);
+	    o.remove(h2);
+	    error_check(thread_set_ownership(&o));
 	}
     } catch (...) {
 	thread_label_cache_invalidate();
@@ -216,33 +218,25 @@ gate_get_clearance(struct cobj_ref o, label *l)
 }
 
 int64_t
-handle_alloc(void)
+category_alloc(int secrecy)
 {
     scoped_jthread_lock x(&label_ops_mu);
     label_cache_init();
 
-    int64_t h = sys_handle_create();
-    if (h < 0)
-	return h;
+    int64_t c = sys_category_alloc(secrecy);
+    if (c < 0)
+	return c;
 
-    if (cur_th_label_id == thread_id()) {
+    if (cur_th_owner_id == thread_id()) {
 	try {
-	    cur_th_label->set(h, LB_LEVEL_STAR);
+	    cur_th_owner->add(c);
 	} catch (...) {
-	    cur_th_label_id = 0;
+	    cur_th_owner_id = 0;
 	}
     }
 
-    if (cur_th_clear_id == thread_id()) {
-	try {
-	    cur_th_clear->set(h, 3);
-	} catch (...) {
-	    cur_th_clear_id = 0;
-	}
-    }
+    if (category_debug)
+	cprintf("[%"PRIu64"] category: allocated %"PRIu64"\n", thread_id(), c);
 
-    if (handle_debug)
-	cprintf("[%"PRIu64"] handle: allocated %"PRIu64"\n", thread_id(), h);
-
-    return h;
+    return c;
 }

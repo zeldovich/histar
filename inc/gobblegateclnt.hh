@@ -49,7 +49,7 @@ public:
 
     void call(gate_call_data *gcd_param, const label *vl, const label *vc) {
 	cobj_ref t;
-	uint64_t thread_ct = lo_.gc_->call_taint_ct();
+	uint64_t thread_ct = lo_.gc_->call_ct();
 	memcpy(&lo_.gcd_, gcd_param, sizeof(lo_.gcd_));
 
 	if (vl) {

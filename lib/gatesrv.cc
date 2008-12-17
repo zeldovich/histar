@@ -139,15 +139,15 @@ gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
 
 struct cobj_ref
 gate_create(uint64_t gate_ct, const char *name,
-	    label *label, label *clearance, label *verify,
+	    label *owner, label *clear, label *guard,
 	    gatesrv_entry_t func, uint64_t arg)
 {
     gatesrv_descriptor gd;
     gd.gate_container_ = gate_ct;
     gd.name_ = name;
-    gd.label_ = label;
-    gd.clearance_ = clearance;
-    gd.verify_ = verify;
+    gd.owner_ = owner;
+    gd.clear_ = clear;
+    gd.guard_ = guard;
     gd.func_ = func;
     gd.arg_ = arg;
 
@@ -176,11 +176,11 @@ gate_create(gatesrv_descriptor *gd)
     if (te.te_as.object == 0)
 	error_check(sys_self_get_as(&te.te_as));
 
-    int64_t gate_id = sys_gate_create(gd->gate_container_, &te,
-				      gd->label_ ? gd->label_->to_ulabel() : 0,
-				      gd->clearance_ ? gd->clearance_->to_ulabel() : 0,
-				      gd->verify_ ? gd->verify_->to_ulabel() : 0,
-				      gd->name_, 0);
+    int64_t gate_id = sys_gate_create(gd->gate_container_, &te, 0,
+				      gd->owner_ ? gd->owner_->to_ulabel() : 0,
+				      gd->clear_ ? gd->clear_->to_ulabel() : 0,
+				      gd->guard_ ? gd->guard_->to_ulabel() : 0,
+				      gd->name_);
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create");
 
@@ -188,52 +188,41 @@ gate_create(gatesrv_descriptor *gd)
 }
 
 void
-gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
+gatesrv_return::ret(label *owner, label *clear, label *vo, label *vc)
 {
     error_check(sys_self_set_sched_parents(thread_ct_, gate_tref_ct_));
     if ((flags_ & GATESRV_NO_THREAD_ADDREF))
 	error_check(sys_self_addref(thread_ct_));
 
     scoped_jthread_lock l(&fork_mu);
-    label *tgt_label = new label();
-    label *tgt_clear = new label();
-
-    gate_compute_labels(rgate_, cs, ds, dr, tgt_label, tgt_clear);
-
-    if (cs)
-	delete cs;
-    if (ds)
-	delete ds;
-    if (dr)
-	delete dr;
 
     { // GC scope
-	label blank_vl(3), blank_vc(0);
-	if (!vl)
-	    vl = &blank_vl;
+	label blank_vo, blank_vc;
+	if (!vo)
+	    vo = &blank_vo;
 	if (!vc)
 	    vc = &blank_vc;
 
-	error_check(sys_self_set_verify(vl->to_ulabel(), vc->to_ulabel()));
-	if (vl != &blank_vl)
-	    delete vl;
+	error_check(sys_self_set_verify(vo->to_ulabel(), vc->to_ulabel()));
+	if (vo != &blank_vo)
+	    delete vo;
 	if (vc != &blank_vc)
 	    delete vc;
 
-	label taint_ct_label, thread_label;
-	thread_cur_label(&thread_label);
-
-	thread_label.merge(tgt_label, &taint_ct_label, label::max, label::leq_starlo);
-	taint_ct_label.transform(label::star_to, taint_ct_label.get_default());
+	label ct_label;
+	thread_cur_label(&ct_label);
 
 	gate_call_data *gcd = &tls_data->tls_gate_args;
+	ct_label.add(gcd->call_taint);
+	ct_label.add(gcd->call_grant);
+
 	int64_t id = sys_container_alloc(gcd->taint_container,
-					 taint_ct_label.to_ulabel(),
-					 "gate return taint", 0, CT_QUOTA_INF);
+					 ct_label.to_ulabel(),
+					 "gate return", 0, CT_QUOTA_INF);
 	if (id < 0) {
 	    // Usually -E_NOT_FOUND means the caller died, so doesn't matter..
 	    if (id != -E_NOT_FOUND)
-		cprintf("gatesrv_return: allocating taint container "
+		cprintf("gatesrv_return: allocating return container "
 			"in %"PRIu64": %s\n",
 			gcd->taint_container, e2s(id));
 	    gcd->taint_container = 0;
@@ -244,13 +233,13 @@ gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
     }
 
     if (!(flags_ & GATESRV_KEEP_TLS_STACK))
-	stack_switch((uintptr_t) this, (uintptr_t) tgt_label,
-		     (uintptr_t) tgt_clear, 0,
+	stack_switch((uintptr_t) this, (uintptr_t) owner,
+		     (uintptr_t) clear, 0,
 		     tls_stack_top, (void *) &ret_tls_stub);
     else
 	ret_tls_stub((uintptr_t) this,
-		     (uintptr_t) tgt_label,
-		     (uintptr_t) tgt_clear);
+		     (uintptr_t) owner,
+		     (uintptr_t) clear);
 }
 
 void

@@ -284,7 +284,6 @@ user_bootstrap(void)
 
     // root integrity categories and label
     uint64_t user_root_cat_i = id_alloc();
-    uint64_t user_root_cat_s = id_alloc() | LB_SECRECY_FLAG;
 
     struct Label *obj_label;
     assert_check(label_alloc(&obj_label, label_track));
@@ -325,12 +324,10 @@ user_bootstrap(void)
     struct Label *init_label;
     assert_check(label_alloc(&init_label, label_track));
     assert_check(label_add(init_label, user_root_cat_i));
-    assert_check(label_add(init_label, user_root_cat_s));
 
     struct Label *init_priv;
     assert_check(label_alloc(&init_priv, label_priv));
     assert_check(label_add(init_priv, user_root_cat_i));
-    assert_check(label_add(init_priv, user_root_cat_s));
 
     thread_create_embed(rc, init_label, init_priv, "init",
 			rc->ct_ko.ko_id, user_root_cat_i);

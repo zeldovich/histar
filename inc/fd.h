@@ -200,7 +200,7 @@ int	dev_lookup(uint8_t devid, struct Dev **dev_store);
 void	fd_set_extra_handles(struct Fd *fd, uint64_t eg, uint64_t et);
 
 /* Allocates individual handles for this FD */
-int	fd_make_public(int fdnum, struct ulabel *taint);
+int	fd_make_public(int fdnum, struct new_ulabel *taint);
 
 extern struct Dev devcons;	/* type 'c' */
 extern struct Dev devsock;	/* type 's' */

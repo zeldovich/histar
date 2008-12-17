@@ -41,7 +41,7 @@ enum { elf_debug = 0 };
 
 int
 elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
-	 struct ulabel *label)
+	 struct new_ulabel *label)
 {
     char elfname[KOBJ_NAME_LEN], objname[KOBJ_NAME_LEN];
     int r = sys_obj_get_name(seg, &elfname[0]);
