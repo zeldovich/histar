@@ -89,7 +89,7 @@ label::add(uint64_t cat)
     }
 
     if (ul_.ul_nent == ul_.ul_size) {
-	ul_.ul_needed = ul_.ul_size * 2;
+	ul_.ul_needed = 1 + ul_.ul_size * 2;
 	grow();
     }
 
