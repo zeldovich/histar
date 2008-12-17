@@ -1,7 +1,9 @@
 #ifndef JOS_MACHINE_MMU_H
 #define JOS_MACHINE_MMU_H
 
+#ifndef __ASSEMBLER__
 #include <inc/thread.h>
+#endif
 
 #define PGSHIFT 12
 #define PGSIZE (1 << PGSHIFT)
@@ -14,6 +16,11 @@
 #define FEC_U 0x4		/* Fault occured in user mode */
 #define FEC_RSV 0x8		/* Fault caused by reserved PTE bit */
 #define FEC_I 0x10		/* Fault caused by instruction fetch */
+
+#define FL_TF 0x00000100      /* Trap Flag */
+
+#ifndef __ASSEMBLER__
+#include <inc/thread.h>
 
 struct Trapframe_aux {
   struct thread_entry_args tfa_entry_args;
@@ -52,5 +59,7 @@ struct Trapframe {
 
 struct Fpregs {
 };
+
+#endif
 
 #endif
