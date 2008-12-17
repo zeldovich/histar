@@ -83,6 +83,7 @@ trap_dispatch(int trapno, const struct Trapframe *tf, void *addr)
 	break;
     default:
 	trapframe_print(tf);
+	printf("trapno %u\n", trapno);
 	assert(0);
     }
 }
@@ -166,6 +167,10 @@ nacl_trap_init(void)
 
     assert(page_alloc(&va) == 0);
     assert(nacl_mmap((void *)USCRATCH, va, PGSIZE, PROT_READ | PROT_WRITE) == 0);
+
+    assert(page_alloc(&va) == 0);
+    assert(nacl_mmap((void *)USYSCALL, va, PGSIZE, PROT_EXEC | PROT_READ) == 0);
+    memcpy(va, nacl_usyscall, nacl_usyscall_end - nacl_usyscall);
 }
 
 static void

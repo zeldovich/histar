@@ -40,3 +40,12 @@ nacl_springboard:
 	jmp	*(USCRATCH + 8)
 .globl	nacl_springboard_end	
 nacl_springboard_end:
+
+/*
+ * The usyscall code gets copied to USYSCALL by the kernel.
+ */
+.globl	nacl_usyscall	
+nacl_usyscall:
+1:	jmp	1b
+.globl	nacl_usyscall_end	
+nacl_usyscall_end:

@@ -3,6 +3,7 @@
 
 #include <machine/mmu.h>
 
+#define USYSCALL	0x07003000
 #define USCRATCH	0x07002000
 #define USPRING		0x07001000
 #define ULIM		0x07000000

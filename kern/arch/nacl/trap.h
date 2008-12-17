@@ -8,4 +8,7 @@ void trapframe_pop(const struct Trapframe *)
 extern char nacl_springboard[];
 extern char nacl_springboard_end[];
 
+extern char nacl_usyscall[];
+extern char nacl_usyscall_end[];
+
 #endif
