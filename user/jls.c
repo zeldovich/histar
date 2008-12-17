@@ -95,7 +95,7 @@ main(int ac, char **av)
 	    if ((r >= 0) && (m.dev_id < 123) && (m.dev_id > 47))
 		dev_id = m.dev_id;
 
-	    struct ulabel *l = label_alloc();
+	    struct new_ulabel *l = label_alloc();
 	    const char *label = 0;
 	    r = sys_obj_get_label(de.de_inode.obj, l);
 	    for (int i = 0; i < 3 && r < 0; i++) {

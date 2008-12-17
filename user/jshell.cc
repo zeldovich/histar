@@ -162,8 +162,8 @@ do_spawn(int ac, char **av, struct child_process *childp)
 	return r;
     }
 
-    label my_label;
-    thread_cur_label(&my_label);
+    label my_ownership;
+    thread_cur_ownership(&my_ownership);
 
     try {
 	struct child_process child;
@@ -171,7 +171,7 @@ do_spawn(int ac, char **av, struct child_process *childp)
 		      0, 1, 2,
 		      ac, (const char **) av,
 		      0, 0,
-		      0, cmd_with_privs ? &my_label : 0, 0, 0, 0);
+		      0, cmd_with_privs ? &my_ownership : 0, 0);
 	*childp = child;
 	return child.container;
     } catch (std::exception &e) {

@@ -44,13 +44,12 @@ lwipext_init(char public_sockets)
     
     static const uint64_t nents = 2;
     uint64_t ents[nents];
-    struct ulabel label =
-	{ .ul_size = nents, .ul_ent = ents, .ul_nent = 0, .ul_default = 1 };
+    struct new_ulabel label = { .ul_size = nents, .ul_ent = ents, .ul_nent = 0 };
 
     int64_t r;
-    assert(0 == label_set_level(&label, start_env->process_grant, 0, 0));
+    assert(0 == label_add(&label, start_env->process_grant, 0));
     if (!public_sockets)
-	assert(0 == label_set_level(&label, start_env->process_taint, 3, 0));
+	assert(0 == label_add(&label, start_env->process_taint, 0));
 
     if ((r = segment_alloc(start_env->shared_container, bytes, &seg, 
 			   (void *)&sockets, &label, "sockets")) < 0)

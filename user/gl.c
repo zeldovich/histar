@@ -45,7 +45,7 @@ main(int ac, char **av)
     }
 
 
-    struct ulabel *l = label_alloc();
+    struct new_ulabel *l = label_alloc();
     int r;
 
 retry:
@@ -64,13 +64,28 @@ retry:
     }
 
     int type = sys_obj_get_type(o);
-    if (type >= 0 && type == kobj_gate) {
+    if (type >= 0 && (type == kobj_gate || type == kobj_thread)) {
 retry2:
-	r = sys_gate_clearance(o, l);
+	r = sys_obj_get_ownership(o, l);
 	if (r == -E_NO_SPACE) {
 	    r = label_grow(l);
 	    if (r == 0)
 		goto retry2;
+	}
+
+	if (r < 0) {
+	    printf("cannot get ownership: %s\n", e2s(r));
+	} else {
+	    printf("ownership for <%"PRIu64".%"PRIu64">: %s\n",
+		   o.container, o.object, label_to_string(l));
+	}
+
+retry3:
+	r = sys_obj_get_clearance(o, l);
+	if (r == -E_NO_SPACE) {
+	    r = label_grow(l);
+	    if (r == 0)
+		goto retry3;
 	}
 
 	if (r < 0) {

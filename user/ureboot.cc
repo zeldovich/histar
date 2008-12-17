@@ -54,18 +54,15 @@ ureboot_ct(uint64_t ct)
 	    error_check(sys_obj_unref(o));
     }
 
-    label ds(3);
-    ds.set(start_env->user_grant, LB_LEVEL_STAR);
-
-    label dr(0);
-    dr.set(start_env->user_grant, 3);
+    label owner;
+    owner.add(start_env->user_grant);
 
     child_process cp =
 	spawn(start_env->root_container, init_bin,
 	      0, 1, 2,
 	      0, 0,
 	      0, 0,
-	      0, &ds, 0, &dr, 0,
+	      0, &owner, 0,
 	      SPAWN_NO_AUTOGRANT | SPAWN_UINIT_STYLE);
 
     error_check(sys_obj_unref(ureboot_self));
@@ -91,7 +88,7 @@ main(int ac, char **av)
 		      0, 1, 2,
 		      2, &argv[0],
 		      0, 0,
-		      0, 0, 0, 0, 0);
+		      0, 0, 0);
 
 	    int64_t ec;
 	    error_check(process_wait(&cp, &ec));

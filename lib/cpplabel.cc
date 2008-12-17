@@ -98,6 +98,22 @@ label::add(uint64_t cat)
 }
 
 void
+label::add(const label &l)
+{
+    for (uint32_t i = 0; i < l.ul_.ul_nent; i++)
+	if (l.ul_.ul_ent[i])
+	    add(l.ul_.ul_ent[i]);
+}
+
+void
+label::add(const struct new_ulabel *ul)
+{
+    for (uint32_t i = 0; i < ul->ul_nent; i++)
+	if (ul->ul_ent[i])
+	    add(ul->ul_ent[i]);
+}
+
+void
 label::remove(uint64_t cat)
 {
     for (uint32_t i = 0; i < ul_.ul_nent; i++)

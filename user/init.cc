@@ -46,7 +46,7 @@ extern "C" int dl_iterate_phdr(void) { return 0; }
 
 static struct child_process
 spawn_fs(int flags, int fd, const char *pn, const char *a1, const char *a2,
-	 label *ds, label *dr, uint64_t ct = 0)
+	 label *owner, uint64_t ct = 0)
 {
     struct child_process cp;
     cp.container = 0;
@@ -65,10 +65,10 @@ spawn_fs(int flags, int fd, const char *pn, const char *a1, const char *a2,
 		   ino, fd, fd, fd,
 	           a1 ? a2 ? 3 : 2 : 1, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
-	           0, ds, 0, dr, 0, SPAWN_NO_AUTOGRANT);
+	           0, owner, 0, SPAWN_NO_AUTOGRANT);
 
 	if (init_debug)
-	    printf("init: spawned %s, ds = %s\n", pn, ds->to_string());
+	    printf("init: spawned %s, ownership = %s\n", pn, owner->to_string());
 
 	if (flags & SPAWN_WAIT_GC) {
 	    int64_t code;
@@ -97,7 +97,7 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     start_env->shared_container = c_self;
     start_env->root_container = c_root;
     start_env->process_grant = h_root;
-    start_env->process_taint = handle_alloc();
+    start_env->process_taint = category_alloc(1);
 
     start_env->user_grant = h_root;
     start_env->user_taint = 0;
@@ -105,9 +105,9 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(segment_alloc(c_self, sizeof(struct fs_mount_table),
 			      &start_env->fs_mtab_seg, 0, 0, "mount table"));
 
-    time_grant = handle_alloc();
-    label time_label(1);
-    time_label.set(time_grant, 0);
+    time_grant = category_alloc(0);
+    label time_label;
+    time_label.add(time_grant);
 
     struct time_of_day_seg *tods = 0;
     error_check(segment_alloc(c_self, sizeof(struct time_of_day_seg),
@@ -223,7 +223,7 @@ init_fs(int cons)
     symlink("/netd/proc/net", "/proc/net");
 
     // create /tmp
-    label ltmp(1);
+    label ltmp;
     error_check(fs_mkdir(start_env->fs_root, "tmp", &dummy_ino, ltmp.to_ulabel()));
 
     struct fs_inode etc;
@@ -255,17 +255,13 @@ init_fs(int cons)
     error_check(fs_pwrite(consfont, consfont_data, strlen(consfont_data), 0));
 
     // finish more FS initialization in a shell script
-    label root_ds(3);
-    root_ds.set(start_env->user_grant, LB_LEVEL_STAR);
-    root_ds.set(start_env->user_taint, LB_LEVEL_STAR);
-
-    label root_dr(0);
-    root_dr.set(start_env->user_grant, 3);
-    root_dr.set(start_env->user_taint, 3);
+    label root_owner;
+    root_owner.add(start_env->user_grant);
+    root_owner.add(start_env->user_taint);
 
     spawn_fs(SPAWN_WAIT_GC, cons,
 	     "/bin/ksh", "/bin/init.sh", 0,
-	     &root_ds, &root_dr);
+	     &root_owner);
 }
 
 static void
@@ -298,11 +294,11 @@ init_auth(int cons, const char *shroot)
     fs_inode uauth_dir;
     error_check(fs_namei("/uauth", &uauth_dir));
 
-    cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_log", 0, 0, 0, 0,
+    cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_log", 0, 0, 0,
 		  uauth_dir.obj.object);
     error_check(process_wait(&cp, &ec));
 
-    cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_dir", shroot, 0, 0, 0,
+    cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_dir", shroot, 0, 0,
 		  uauth_dir.obj.object);
     error_check(process_wait(&cp, &ec));
 
@@ -343,9 +339,9 @@ init_auth(int cons, const char *shroot)
     strcpy(&req->user[0], "root");
     req->user_gate = COBJ(cp.container, uauth_gate);
 
-    label verify(3);
-    verify.set(start_env->user_grant, 0);
-    gate_call(auth_dir_gt.obj, 0, 0, 0).call(&gcd, &verify);
+    label verify;
+    verify.add(start_env->user_grant);
+    gate_call(auth_dir_gt.obj, 0, 0).call(&gcd, &verify);
     error_check(reply->err);
     auth_chpass("root", "", "r");
 }
@@ -353,13 +349,9 @@ init_auth(int cons, const char *shroot)
 static void
 init_procs(int cons)
 {
-    label root_ds(3);
-    root_ds.set(start_env->user_grant, LB_LEVEL_STAR);
-    root_ds.set(start_env->user_taint, LB_LEVEL_STAR);
-
-    label root_dr(0);
-    root_dr.set(start_env->user_grant, 3);
-    root_dr.set(start_env->user_taint, 3);
+    label root_owner;
+    root_owner.add(start_env->user_grant);
+    root_owner.add(start_env->user_taint);
 
     char root_grant_buf[32];
     snprintf(&root_grant_buf[0], sizeof(root_grant_buf), "%"PRIu64,
@@ -371,10 +363,9 @@ init_procs(int cons)
 	printf("init_procs: cannot init auth system: %s\n", e.what());
     }
 
-    label time_ds(3), time_dr(0);
-    time_ds.set(time_grant, LB_LEVEL_STAR);
-    time_dr.set(time_grant, 3);
-    spawn_fs(0, cons, "/bin/jntpd", "pool.ntp.org", 0, &time_ds, &time_dr);
+    label time_owner;
+    time_owner.add(time_grant);
+    spawn_fs(0, cons, "/bin/jntpd", "pool.ntp.org", 0, &time_owner);
 
     FILE *inittab = fopen("/bin/inittab", "r");
     if (inittab) {
@@ -394,8 +385,7 @@ init_procs(int cons)
 
 	    spawn_fs(flag_ct ? SPAWN_ROOT_CT : 0, cons, fn,
 		     flag_args ? &root_grant_buf[0] : 0, 0,
-		     flag_root ? &root_ds : 0,
-		     flag_root ? &root_dr : 0);
+		     flag_root ? &root_owner : 0);
 	}
     }
 }
@@ -404,26 +394,22 @@ static void __attribute__((noreturn))
 run_shell(int cons)
 {
     int r;
-    label ds(3);
-    ds.set(start_env->user_grant, LB_LEVEL_STAR);
-    ds.set(start_env->user_taint, LB_LEVEL_STAR);
-
-    label dr(0);
-    dr.set(start_env->user_grant, 3);
-    dr.set(start_env->user_taint, 3);
+    label owner;
+    owner.add(start_env->user_grant);
+    owner.add(start_env->user_taint);
 
     for (;;) {
         struct child_process shell_proc;
 	try {
 	    shell_proc = spawn_fs(0, cons,
 				  "/bin/newpty", "/bin/ksh", "-l",
-				  &ds, &dr);
+				  &owner);
 	    if (!shell_proc.container)
 		throw basic_exception("newpty did not work");
 	} catch (...) {
 	    shell_proc = spawn_fs(0, cons,
 				  "/bin/ksh", "-l", 0,
-				  &ds, &dr);
+				  &owner);
 	}
 
         int64_t exit_code = 0;
@@ -445,15 +431,15 @@ run_shell_entry(void *arg)
 static int
 init_fbcons(int basecons, int *consp, int maxvt)
 {
-    int64_t fbc_grant = handle_alloc();
-    int64_t fbc_taint = handle_alloc();
+    int64_t fbc_grant = category_alloc(0);
+    int64_t fbc_taint = category_alloc(1);
 
     struct cobj_ref the_fb_dev;
     consp[0] = basecons;
 
-    label fb_label(1);
-    fb_label.set(fbc_grant, 0);
-    fb_label.set(fbc_taint, 3);
+    label fb_label;
+    fb_label.add(fbc_grant);
+    fb_label.add(fbc_taint);
 
     int64_t fbdev_id = sys_device_create(start_env->shared_container, 0,
 					 fb_label.to_ulabel(), "fbdev",
@@ -493,11 +479,9 @@ init_fbcons(int basecons, int *consp, int maxvt)
 	return 1;
     }
 
-    label ds(3), dr(0);
-    ds.set(fbc_grant, LB_LEVEL_STAR);
-    ds.set(fbc_taint, LB_LEVEL_STAR);
-    dr.set(fbc_grant, 3);
-    dr.set(fbc_taint, 3);
+    label fb_owner;
+    fb_owner.add(fbc_grant);
+    fb_owner.add(fbc_taint);
 
     char fontname[256];
     fontname[0] = '\0';
@@ -539,7 +523,7 @@ init_fbcons(int basecons, int *consp, int maxvt)
 		   ino, basecons, basecons, basecons,
 		   6, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
-		   0, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
+		   0, &fb_owner, 0, SPAWN_NO_AUTOGRANT);
 
     int64_t ec;
     error_check(process_wait(&cp, &ec));
@@ -552,7 +536,7 @@ init_fbcons(int basecons, int *consp, int maxvt)
 	spawn(start_env->process_pool, ino, basecons, basecons, basecons,
 	      sizeof(argv) / sizeof(*argv), &argv[0],
 	      sizeof(env) / sizeof(*env), &env[0],
-	      0, &ds, 0, &dr, 0, 0);
+	      0, &fb_owner, 0, 0);
     }
 
     for (int vt = 0; vt < maxvt; vt++) {
@@ -617,7 +601,7 @@ try
     assert(1 == dup2(0, 1));
     assert(2 == dup2(0, 2));
 
-    int64_t h_root_t = handle_alloc();
+    int64_t h_root_t = category_alloc(1);
     if (h_root_t < 0) {
 	cprintf("cannot allocate root taint handle: %s\n", e2s(h_root_t));
 	return -1;
