@@ -65,6 +65,10 @@ ifeq ($(K_ARCH),um)
 BASECFLAGS :=
 endif
 
+ifeq ($(K_ARCH),nacl)
+BASECFLAGS :=
+endif
+
 COMFLAGS    := $(BASECFLAGS) -g $(OPTFLAG) -fno-strict-aliasing \
 	       -Wall -MD -DJOS_ARCH_$(ARCH) \
 	       -DJOS_BUILD_VERSION=\"$(BUILD_VERSION)\"
