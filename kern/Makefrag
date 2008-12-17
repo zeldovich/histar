@@ -15,7 +15,7 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/syscall.c \
 	    kern/kern/intr.c \
 	    kern/kern/sched.c \
-	    kern/kern/handle.c \
+	    kern/kern/id.c \
 	    kern/kern/container.c \
 	    kern/kern/gate.c \
 	    kern/kern/label.c \

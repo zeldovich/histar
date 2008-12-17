@@ -24,6 +24,8 @@
     SYSCALL_ENTRY(obj_unref)			\
     SYSCALL_ENTRY(obj_get_type)			\
     SYSCALL_ENTRY(obj_get_label)		\
+    SYSCALL_ENTRY(obj_get_ownership)		\
+    SYSCALL_ENTRY(obj_get_clearance)		\
     SYSCALL_ENTRY(obj_get_name)			\
     SYSCALL_ENTRY(obj_get_quota_total)		\
     SYSCALL_ENTRY(obj_get_quota_avail)		\
@@ -38,7 +40,6 @@
 						\
     SYSCALL_ENTRY(gate_create)			\
     SYSCALL_ENTRY(gate_enter)			\
-    SYSCALL_ENTRY(gate_clearance)		\
     SYSCALL_ENTRY(gate_get_entry)		\
 						\
     SYSCALL_ENTRY(thread_create)		\
@@ -50,8 +51,8 @@
     SYSCALL_ENTRY(self_id)			\
     SYSCALL_ENTRY(self_addref)			\
     SYSCALL_ENTRY(self_set_label)		\
+    SYSCALL_ENTRY(self_set_ownership)		\
     SYSCALL_ENTRY(self_set_clearance)		\
-    SYSCALL_ENTRY(self_get_clearance)		\
     SYSCALL_ENTRY(self_set_verify)		\
     SYSCALL_ENTRY(self_get_verify)		\
     SYSCALL_ENTRY(self_get_as)			\
@@ -67,7 +68,7 @@
     SYSCALL_ENTRY(sync_wait_multi)		\
     SYSCALL_ENTRY(sync_wakeup)			\
     SYSCALL_ENTRY(clock_nsec)			\
-    SYSCALL_ENTRY(handle_create)		\
+    SYSCALL_ENTRY(category_alloc)		\
     SYSCALL_ENTRY(pstate_timestamp)		\
     SYSCALL_ENTRY(pstate_sync)			\
 						\

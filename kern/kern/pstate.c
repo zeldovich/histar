@@ -4,7 +4,7 @@
 #include <kern/disklayout.h>
 #include <kern/pstate.h>
 #include <kern/uinit.h>
-#include <kern/handle.h>
+#include <kern/id.h>
 #include <kern/timer.h>
 #include <kern/lib.h>
 #include <kern/log.h>
@@ -456,7 +456,7 @@ pstate_load2(void)
     memcpy(&system_key[0], &stable_hdr.ph_system_key, SYSTEM_KEY_SIZE);
     key_derive();
 
-    handle_counter = stable_hdr.ph_handle_counter;
+    id_counter     = stable_hdr.ph_id_counter;
     user_root_ct   = stable_hdr.ph_user_root_ct;
     pstate_counter = pstate_ts_decrypt(stable_hdr.ph_sync_ts);
 
@@ -465,8 +465,8 @@ pstate_load2(void)
 	timer_user_nsec_offset = stable_hdr.ph_user_nsec - now;
 
     if (pstate_load_debug)
-	cprintf("pstate_load2: handle_ctr %"PRIu64" root_ct %"PRIu64" nsec %"PRIu64"\n",
-		handle_counter, user_root_ct, now);
+	cprintf("pstate_load2: id_ctr %"PRIu64" root_ct %"PRIu64" nsec %"PRIu64"\n",
+		id_counter, user_root_ct, now);
 
     return 1;
 }
@@ -735,7 +735,7 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
     hdr->ph_magic = PSTATE_MAGIC;
     hdr->ph_version = PSTATE_VERSION;
     hdr->ph_sync_ts = pstate_ts_alloc();
-    hdr->ph_handle_counter = handle_counter;
+    hdr->ph_id_counter = id_counter;
     hdr->ph_user_root_ct = user_root_ct;
     hdr->ph_user_nsec = timer_user_nsec();
     hdr->ph_log_max = log_max;

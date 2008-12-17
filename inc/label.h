@@ -4,23 +4,14 @@
 #include <inc/types.h>
 #include <inc/intmacro.h>
 
-struct ulabel {
+struct new_ulabel {
     uint32_t ul_size;
     uint32_t ul_nent;
-
-    uint8_t ul_default;
-    uint32_t ul_needed;
-
     uint64_t *ul_ent;
 };
 
-#define LB_HANDLE(ent)		((ent) & UINT64(0x1fffffffffffffff))
-#define LB_LEVEL(ent)		((uint8_t) ((ent) >> 61))
-
-#define LB_LEVEL_STAR		4
-#define LB_LEVEL_UNDEF		5
-#define LB_CODE(h, level)	((h) | (((uint64_t) (level)) << 61))
-
-typedef uint8_t level_t;
+#define LB_SECRECY_FLAG		(UINT64(1) << 61)
+#define LB_SECRECY(cat)		(!!( (cat) & LB_SECRECY_FLAG ))
+#define LB_INTEGRITY(cat)	( !( (cat) & LB_SECRECY_FLAG ))
 
 #endif

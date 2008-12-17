@@ -6,7 +6,7 @@
 #include <kern/segment.h>
 #include <kern/container.h>
 #include <kern/lib.h>
-#include <kern/handle.h>
+#include <kern/id.h>
 #include <kern/pstate.h>
 #include <kern/embedbin.h>
 #include <kern/arch.h>
@@ -127,9 +127,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 
 static int
 thread_load_elf(struct Container *c, struct Thread *t,
-		struct Label *obj_label,
-		struct Label *th_label,
-		struct Label *th_clearance,
+		struct Label *label, struct Label *priv,
 		const uint8_t *binary, uint64_t size,
 		uint64_t arg0, uint64_t arg1)
 {
@@ -148,7 +146,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
 
     uint32_t segmap_i = 0;
     struct Address_space *as;
-    int r = as_alloc(obj_label, &as);
+    int r = as_alloc(label, &as);
     if (r < 0) {
 	cprintf("thread_load_elf: cannot allocate AS: %s\n", e2s(r));
 	return r;
@@ -182,7 +180,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	uint64_t mem_pages = ROUNDUP(page_offset + ph.p_memsz, PGSIZE) / PGSIZE;
 
 	struct Segment *s;
-	r = segment_create_embed(c, obj_label,
+	r = segment_create_embed(c, label,
 				 mem_pages * PGSIZE,
 				 binary + ph.p_offset - page_offset,
 				 page_offset + ph.p_filesz, &s);
@@ -203,7 +201,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
     // Map a stack
     int stackpages = 4;
     struct Segment *s;
-    r = segment_create_embed(c, obj_label, stackpages * PGSIZE, 0, 0, &s);
+    r = segment_create_embed(c, label, stackpages * PGSIZE, 0, 0, &s);
     if (r < 0) {
 	cprintf("ELF: cannot allocate stack segment: %s\n", e2s(r));
 	return r;
@@ -227,15 +225,14 @@ thread_load_elf(struct Container *c, struct Thread *t,
     te.te_arg[0] = 1;
     te.te_arg[1] = arg0;
     te.te_arg[2] = arg1;
-    assert_check(thread_jump(t, th_label, th_clearance, &te));
+    assert_check(thread_jump(t, label, priv, priv, &te));
     return 0;
 }
 
 static void
 thread_create_embed(struct Container *c,
-		    struct Label *obj_label,
-		    struct Label *th_label,
-		    struct Label *th_clearance,
+		    struct Label *label,
+		    struct Label *priv,
 		    const char *name,
 		    uint64_t arg0, uint64_t arg1)
 {
@@ -249,19 +246,18 @@ thread_create_embed(struct Container *c,
 	panic("thread_create_embed: cannot find binary for %s", name);
 
     struct Container *tc;
-    assert_check(container_alloc(obj_label, &tc));
+    assert_check(container_alloc(label, &tc));
     tc->ct_ko.ko_quota_total = (((uint64_t) 1) << 32);
     strncpy(&tc->ct_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     assert(container_put(c, &tc->ct_ko, 0) >= 0);
 
     struct Thread *t;
-    assert_check(thread_alloc(th_label, th_clearance, &t));
+    assert_check(thread_alloc(label, priv, priv, &t));
     strncpy(&t->th_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     thread_set_sched_parents(t, tc->ct_ko.ko_id, 0);
 
     assert_check(container_put(tc, &t->th_ko, 0));
-    assert_check(thread_load_elf(tc, t,
-				 obj_label, th_label, th_clearance,
+    assert_check(thread_load_elf(tc, t, label, priv,
 				 prog->buf, prog->size, arg0, arg1));
 
     thread_set_runnable(t);
@@ -286,17 +282,21 @@ user_bootstrap(void)
 {
     key_generate();
 
-    // root handle and a label
-    uint64_t user_root_handle = handle_alloc();
+    // root integrity categories and label
+    uint64_t user_root_cat_i = id_alloc();
+    uint64_t user_root_cat_s = id_alloc() | LB_SECRECY_FLAG;
 
     struct Label *obj_label;
-    assert_check(label_alloc(&obj_label, 1));
-    assert_check(label_set(obj_label, user_root_handle, 0));
+    assert_check(label_alloc(&obj_label, label_track));
+    assert_check(label_add(obj_label, user_root_cat_i));
 
     // root-parent container; not readable by anyone
+    uint64_t root_parent_cat_s = id_alloc() | LB_SECRECY_FLAG;
     struct Label *root_parent_label;
+    assert_check(label_alloc(&root_parent_label, label_track));
+    assert_check(label_add(root_parent_label, root_parent_cat_s));
+
     struct Container *root_parent;
-    assert_check(label_alloc(&root_parent_label, 3));
     assert_check(container_alloc(root_parent_label, &root_parent));
     root_parent->ct_ko.ko_quota_total = CT_QUOTA_INF;
     kobject_incref_resv(&root_parent->ct_ko, 0);
@@ -321,20 +321,19 @@ user_bootstrap(void)
 
     fs_init(fsc, obj_label);
 
-    // init: thread { uroot:* }, objects { uroot:0 1 }, clearance { uroot:3 2 }
-    struct Label *init_th_label;
-    struct Label *init_obj_label;
-    struct Label *init_th_clear;
-    assert_check(label_alloc(&init_th_label, 1));
-    assert_check(label_alloc(&init_obj_label, 1));
-    assert_check(label_alloc(&init_th_clear, 2));
+    // init process
+    struct Label *init_label;
+    assert_check(label_alloc(&init_label, label_track));
+    assert_check(label_add(init_label, user_root_cat_i));
+    assert_check(label_add(init_label, user_root_cat_s));
 
-    assert_check(label_set(init_th_label, user_root_handle, LB_LEVEL_STAR));
-    assert_check(label_set(init_obj_label, user_root_handle, 0));
-    assert_check(label_set(init_th_clear, user_root_handle, 3));
+    struct Label *init_priv;
+    assert_check(label_alloc(&init_priv, label_priv));
+    assert_check(label_add(init_priv, user_root_cat_i));
+    assert_check(label_add(init_priv, user_root_cat_s));
 
-    thread_create_embed(rc, init_obj_label, init_th_label, init_th_clear,
-			"init", rc->ct_ko.ko_id, user_root_handle);
+    thread_create_embed(rc, init_label, init_priv, "init",
+			rc->ct_ko.ko_id, user_root_cat_i);
 }
 
 static void

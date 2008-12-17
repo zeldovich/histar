@@ -10,7 +10,7 @@ int
 segment_alloc(const struct Label *l, struct Segment **sgp)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_segment, l, 0, &ko);
+    int r = kobject_alloc(kobj_segment, l, 0, 0, &ko);
     if (r < 0)
 	return r;
 
@@ -50,7 +50,7 @@ segment_set_nbytes(struct Segment *sg, uint64_t num_bytes)
 {
     if (sg->sg_ko.ko_nbytes > num_bytes) {
 	segment_invalidate(sg, 0);
-	if (sg->sg_ko.ko_pin_pg)
+	if (kobject_ephemeral_dirty(&sg->sg_ko)->ko_pin_pg)
 	    return -E_BUSY;
     }
 

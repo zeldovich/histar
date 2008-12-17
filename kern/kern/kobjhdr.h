@@ -8,8 +8,9 @@
 
 enum {
     kolabel_tracking,
+    kolabel_ownership,
     kolabel_clearance,
-    kolabel_verify_tracking,
+    kolabel_verify_ownership,
     kolabel_verify_clearance,
     kolabel_max
 };
@@ -63,10 +64,6 @@ struct kobject_hdr {
 
     // For verifying the persistence layer
     uint64_t ko_cksum;
-
-    // Ephemeral state (doesn't persist across swapout)
-    uint32_t ko_pin_pg;	// pages are pinned (DMA, PTE)
-    uint32_t ko_pin;	// header is pinned (linked lists)
 };
 
 typedef SAFE_TYPE(int) info_flow_type;

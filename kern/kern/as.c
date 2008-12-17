@@ -19,7 +19,7 @@ int
 as_alloc(const struct Label *l, struct Address_space **asp)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_address_space, l, 0, &ko);
+    int r = kobject_alloc(kobj_address_space, l, 0, 0, &ko);
     if (r < 0)
 	return r;
 

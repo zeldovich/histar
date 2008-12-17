@@ -10,13 +10,13 @@ struct Gate {
     struct kobject_hdr gt_ko;
 
     struct thread_entry gt_te;
-    uint8_t gt_te_visible;
     uint8_t gt_te_unspec;
 };
 
 int  gate_alloc(const struct Label *l,
+		const struct Label *ownership,
 		const struct Label *clearance,
-		const struct Label *verify,
+		const struct Label *guard,
 		struct Gate **gp)
     __attribute__ ((warn_unused_result));
 

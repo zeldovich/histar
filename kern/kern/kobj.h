@@ -16,7 +16,7 @@
 #include <kern/netdev.h>
 
 #define KOBJ_DISK_SIZE	512
-#define KOBJ_MEM_SIZE	1024
+#define KOBJ_MEM_SIZE	2048
 
 struct kobject_persistent {
     union {
@@ -43,6 +43,10 @@ struct kobject_mem {
 
     struct kobj_weak_ptr ko_label_cache[kolabel_max];
     struct kobj_weak_refs ko_weak_refs;
+
+    uint32_t ko_pin_pg;		// pages are pinned (DMA, PTE)
+    uint32_t ko_pin;		// header is pinned (linked lists)
+
     union {
 	struct Thread_ephemeral ko_th_e;
     };
@@ -74,7 +78,8 @@ int  kobject_get(kobject_id_t id, const struct kobject **kpp,
 		 uint8_t type, info_flow_type iflow)
     __attribute__ ((warn_unused_result));
 int  kobject_alloc(uint8_t type, const struct Label *tracking,
-		   const struct Label *clear,
+		   const struct Label *ownership,
+		   const struct Label *clearance,
 		   struct kobject **kpp)
     __attribute__ ((warn_unused_result));
 int  kobject_incore(kobject_id_t id)

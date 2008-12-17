@@ -5,7 +5,7 @@
 #include <kern/gate.h>
 #include <kern/kobj.h>
 #include <kern/pstate.h>
-#include <kern/handle.h>
+#include <kern/id.h>
 #include <kern/timer.h>
 #include <kern/ht.h>
 #include <kern/pageinfo.h>
@@ -84,8 +84,10 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
 	return 0;
 
     kobject_id_t th_label_id = cur_thread->th_ko.ko_label[kolabel_tracking];
+    kobject_id_t th_owner_id = cur_thread->th_ko.ko_label[kolabel_ownership];
     kobject_id_t th_clear_id = cur_thread->th_ko.ko_label[kolabel_clearance];
     kobject_id_t ko_label_id = ko->ko_label[kolabel_tracking];
+    kobject_id_t ko_owner_id = ko->ko_label[kolabel_ownership];
     kobject_id_t ko_clear_id = ko->ko_label[kolabel_clearance];
 
     assert(th_label_id && th_clear_id);
@@ -97,17 +99,20 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
 
     int r = 0;
     if (SAFE_EQUAL(iflow, iflow_read)) {
-	r = label_compare_id(ko_label_id, th_label_id, label_leq_starhi);
+	r = label_can_flow_id(ko_label_id, th_label_id, th_owner_id, 0);
     } else if (SAFE_EQUAL(iflow, iflow_rw)) {
-	r = (ko->ko_flags & KOBJ_READONLY) ? -E_READ_ONLY :
-	    label_compare_id(th_label_id, ko_label_id, label_leq_starlo) ? :
-	    label_compare_id(ko_label_id, th_label_id, label_leq_starhi);
+	r = r ?: (ko->ko_flags & KOBJ_READONLY) ? -E_READ_ONLY : 0;
+	r = r ?: label_can_flow_id(th_label_id, ko_label_id, th_owner_id, 0);
+	r = r ?: label_can_flow_id(ko_label_id, th_label_id, th_owner_id, 0);
     } else if (SAFE_EQUAL(iflow, iflow_alloc)) {
-	r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo) ? :
-	    ko_clear_id
-	    ? label_compare_id(ko_label_id, ko_clear_id, label_leq_starlo) ? :
-	      label_compare_id(ko_clear_id, th_clear_id, label_leq_starlo)
-	    : label_compare_id(ko_label_id, th_clear_id, label_leq_starlo);
+	r = r ?: label_can_flow_id(th_label_id, ko_label_id, th_owner_id, 0);
+	r = r ?: label_can_flow_id(ko_label_id, th_label_id, th_owner_id, th_clear_id);
+
+	if (ko_clear_id)
+	    r = r ?: label_subset_id(ko_clear_id, th_owner_id, th_clear_id);
+
+	if (ko_owner_id)
+	    r = r ?: label_subset_id(ko_owner_id, th_owner_id, 0);
     } else {
 	panic("kobject_get: unknown iflow type %d", SAFE_UNWRAP(iflow));
     }
@@ -179,6 +184,8 @@ kobject_get_label(const struct kobject_hdr *kp, int idx,
 
     label_ko = ko->ko_label_cache[idx].wp_kobj;
     if (label_ko && label_ko->hdr.ko_id == kp->ko_label[idx]) {
+	assert((idx == kolabel_tracking) ==
+	       SAFE_EQUAL(label_ko->lb.lb_type, label_track));
 	*lpp = &label_ko->lb;
 	return 0;
     }
@@ -188,6 +195,8 @@ kobject_get_label(const struct kobject_hdr *kp, int idx,
 	if (r < 0)
 	    return r;
 
+	assert((idx == kolabel_tracking) ==
+	       SAFE_EQUAL(label_ko->lb.lb_type, label_track));
 	kobj_weak_put(&ko->ko_label_cache[idx], kobject_const_h2k(&label_ko->hdr));
 	*lpp = &label_ko->lb;
 	return 0;
@@ -231,18 +240,25 @@ kobject_set_label_prepared(struct kobject_hdr *kp, int idx,
 	assert(kp->ko_label[idx] == 0);
     }
 
-    if (new_label)
+    if (new_label) {
 	kobject_incref_resv(&new_label->lb_ko, qr);
+	assert((idx == kolabel_tracking) ==
+	       SAFE_EQUAL(new_label->lb_type, label_track));
+    }
 
     kp->ko_label[idx] = new_label ? new_label->lb_ko.ko_id : 0;
 }
 
 int
-kobject_alloc(uint8_t type, const struct Label *l, const struct Label *c,
+kobject_alloc(uint8_t type,
+	      const struct Label *l,
+	      const struct Label *o,
+	      const struct Label *c,
 	      struct kobject **kp)
 {
     assert((type == kobj_label) ^ (l != 0));
     assert((type == kobj_thread || type == kobj_gate) ^ (c == 0));
+    assert((type == kobj_thread || type == kobj_gate) ^ (o == 0));
 
     void *p;
     int r = page_alloc(&p);
@@ -261,7 +277,7 @@ kobject_alloc(uint8_t type, const struct Label *l, const struct Label *c,
 
     struct kobject_hdr *kh = &ko->hdr;
     kh->ko_type = type;
-    kh->ko_id = handle_alloc();
+    kh->ko_id = id_alloc();
     kh->ko_flags = KOBJ_DIRTY;
     kh->ko_quota_used = KOBJ_DISK_SIZE;
     kh->ko_quota_total = kh->ko_quota_used;
@@ -270,14 +286,18 @@ kobject_alloc(uint8_t type, const struct Label *l, const struct Label *c,
     if (r < 0)
 	goto err_page;
 
+    r = kobject_set_label(kh, kolabel_ownership, o);
+    if (r < 0)
+	goto err_label_track;
+
     r = kobject_set_label(kh, kolabel_clearance, c);
     if (r < 0)
-	goto err_label;
+	goto err_label_owner;
 
     // Make sure that it's legal to allocate object at this label!
     r = (type == kobj_label) ? 0 : kobject_iflow_check(kh, iflow_alloc);
     if (r < 0)
-	goto err_clear;
+	goto err_label_clear;
 
     kobject_negative_remove(kh->ko_id);
     struct kobject_list *hash_head = HASH_SLOT(&ko_hash, kh->ko_id);
@@ -288,10 +308,12 @@ kobject_alloc(uint8_t type, const struct Label *l, const struct Label *c,
     *kp = ko;
     return 0;
 
- err_clear:
+ err_label_clear:
     kobject_set_label_prepared(kh, kolabel_clearance, c, 0, 0);
- err_label:
-    kobject_set_label_prepared(kh, kolabel_tracking, l, 0, 0);
+ err_label_owner:
+    kobject_set_label_prepared(kh, kolabel_ownership, o, 0, 0);
+ err_label_track:
+    kobject_set_label_prepared(kh, kolabel_tracking,  l, 0, 0);
  err_page:
     page_free(p);
     return r;
@@ -457,7 +479,7 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	return -E_RESOURCE;
 
     if (npages < curnpg)
-	assert(!kp->ko_pin_pg);
+	assert(!ko->ko_pin_pg);
 
     for (uint64_t i = npages; i < curnpg; i++) {
 	r = pagetree_put_page(&ko->ko_pt, i, 0);
@@ -560,8 +582,8 @@ kobject_swapin(struct kobject *ko)
     if (ko->hdr.ko_ref == 0)
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
 
-    ko->hdr.ko_pin = 0;
-    ko->hdr.ko_pin_pg = 0;
+    ko->ko_pin = 0;
+    ko->ko_pin_pg = 0;
     ko->hdr.ko_flags &= ~(KOBJ_SNAPSHOTING | KOBJ_DIRTY |
 			  KOBJ_SHARED_MAPPINGS | KOBJ_SNAPSHOT_DIRTY);
 
@@ -593,7 +615,7 @@ void
 kobject_incref_resv(const struct kobject_hdr *kh, struct kobject_quota_resv *qr)
 {
     struct kobject *ko = kobject_dirty(kh);
-    if (ko->hdr.ko_ref == 0 && ko->hdr.ko_pin == 0)
+    if (ko->hdr.ko_ref == 0 && ko->ko_pin == 0)
 	LIST_REMOVE(ko, ko_gc_link);
     ko->hdr.ko_ref++;
 
@@ -614,7 +636,7 @@ kobject_decref(const struct kobject_hdr *kh, struct kobject_hdr *refholder)
     if (refholder->ko_id == ko->hdr.ko_parent)
 	ko->hdr.ko_parent = 0;
 
-    if (ko->hdr.ko_ref == 0 && ko->hdr.ko_pin == 0)
+    if (ko->hdr.ko_ref == 0 && ko->ko_pin == 0)
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
 
     // Inform threads so that they can halt, even if pinned (on zero refs)
@@ -630,28 +652,28 @@ void
 kobject_pin_hdr(const struct kobject_hdr *ko)
 {
     struct kobject *m = kobject_const_h2k(ko);
-    if (m->hdr.ko_ref == 0 && m->hdr.ko_pin == 0)
+    if (m->hdr.ko_ref == 0 && m->ko_pin == 0)
 	LIST_REMOVE(m, ko_gc_link);
-    ++m->hdr.ko_pin;
+    ++m->ko_pin;
 }
 
 void
 kobject_unpin_hdr(const struct kobject_hdr *ko)
 {
     struct kobject *m = kobject_const_h2k(ko);
-    if (m->hdr.ko_pin == 0)
+    if (m->ko_pin == 0)
 	panic("kobject_unpin_hdr: not pinned: %"PRIu64" (%s)",
 	      m->hdr.ko_id, m->hdr.ko_name);
 
-    --m->hdr.ko_pin;
-    if (m->hdr.ko_ref == 0 && m->hdr.ko_pin == 0)
+    --m->ko_pin;
+    if (m->hdr.ko_ref == 0 && m->ko_pin == 0)
 	LIST_INSERT_HEAD(&ko_gc_list, m, ko_gc_link);
 }
 
 void
 kobject_pin_page(const struct kobject_hdr *ko)
 {
-    struct kobject_hdr *m = &kobject_const_h2k(ko)->hdr;
+    struct kobject *m = kobject_const_h2k(ko);
     ++m->ko_pin_pg;
 
     kobject_pin_hdr(ko);
@@ -660,7 +682,7 @@ kobject_pin_page(const struct kobject_hdr *ko)
 void
 kobject_unpin_page(const struct kobject_hdr *ko)
 {
-    struct kobject_hdr *m = &kobject_const_h2k(ko)->hdr;
+    struct kobject *m = kobject_const_h2k(ko);
     if (m->ko_pin_pg == 0)
 	panic("kobject_unpin_page: not pinned");
     --m->ko_pin_pg;
@@ -739,10 +761,10 @@ kobject_gc_scan(void)
 	for (ko = LIST_FIRST(&ko_gc_list); ko; ko = next) {
 	    next = LIST_NEXT(ko, ko_gc_link);
 
-	    if (ko->hdr.ko_ref || ko->hdr.ko_pin) {
+	    if (ko->hdr.ko_ref || ko->ko_pin) {
 		cprintf("kobject_gc_scan: referenced object on GC list: "
 			"ref=%"PRIu64" pin=%d\n",
-			ko->hdr.ko_ref, ko->hdr.ko_pin);
+			ko->hdr.ko_ref, ko->ko_pin);
 		continue;
 	    }
 
@@ -775,7 +797,7 @@ kobject_swapout(struct kobject *ko)
 		    ko->hdr.ko_id, ko->hdr.ko_name, sum1, sum2);
     }
 
-    assert(ko->hdr.ko_pin == 0);
+    assert(ko->ko_pin == 0);
     assert(!(ko->hdr.ko_flags & KOBJ_SNAPSHOTING));
 
     if (ko->hdr.ko_type == kobj_thread)
@@ -788,7 +810,7 @@ kobject_swapout(struct kobject *ko)
     kobj_weak_drop(&ko->ko_weak_refs);
 
     LIST_REMOVE(ko, ko_link);
-    if (ko->hdr.ko_ref == 0 && ko->hdr.ko_pin == 0)
+    if (ko->hdr.ko_ref == 0 && ko->ko_pin == 0)
 	LIST_REMOVE(ko, ko_gc_link);
     LIST_REMOVE(ko, ko_hash);
     pagetree_free(&ko->ko_pt, 0);
@@ -915,7 +937,7 @@ kobject_reclaim(void)
     for (struct kobject *ko = LIST_FIRST(&ko_list); ko != 0; ko = next) {
 	next = LIST_NEXT(ko, ko_link);
 
-	if (ko->hdr.ko_pin || kobject_initial(ko))
+	if (ko->ko_pin || kobject_initial(ko))
 	    continue;
 	if ((ko->hdr.ko_flags & (KOBJ_DIRTY | KOBJ_SNAPSHOT_DIRTY)))
 	    continue;

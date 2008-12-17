@@ -114,11 +114,12 @@ thread_halt(const struct Thread *const_t)
 
 int
 thread_alloc(const struct Label *tracking,
+	     const struct Label *ownership,
 	     const struct Label *clearance,
 	     struct Thread **tp)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_thread, tracking, clearance, &ko);
+    int r = kobject_alloc(kobj_thread, tracking, ownership, clearance, &ko);
     if (r < 0)
 	return r;
 
@@ -423,29 +424,45 @@ thread_change_as(const struct Thread *const_t, struct cobj_ref as)
 int
 thread_jump(const struct Thread *const_t,
 	    const struct Label *label,
+	    const struct Label *ownership,
 	    const struct Label *clearance,
 	    const struct thread_entry *te)
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
+    const struct Label *cur_ownership;
+    int r = kobject_get_label(&t->th_ko, kolabel_ownership, &cur_ownership);
+    if (r < 0)
+	return r;
+
     const struct Label *cur_clearance;
-    int r = kobject_get_label(&t->th_ko, kolabel_clearance, &cur_clearance);
+    r = kobject_get_label(&t->th_ko, kolabel_clearance, &cur_clearance);
     if (r < 0)
 	return r;
 
     struct kobject_quota_resv qr_th;
     kobject_qres_init(&qr_th, &t->th_ko);
 
-    r = kobject_qres_reserve(&qr_th, &clearance->lb_ko);
-    if (r < 0)
-	return r;
-
-    r = thread_change_label(t, label);
+    r = kobject_qres_reserve(&qr_th, &ownership->lb_ko);
     if (r < 0) {
 	kobject_qres_release(&qr_th);
 	return r;
     }
 
+    r = kobject_qres_reserve(&qr_th, &clearance->lb_ko);
+    if (r < 0) {
+	kobject_qres_release(&qr_th);
+	return r;
+    }
+
+    r = label ? thread_change_label(t, label) : 0;
+    if (r < 0) {
+	kobject_qres_release(&qr_th);
+	return r;
+    }
+
+    kobject_set_label_prepared(&t->th_ko, kolabel_ownership,
+			       cur_ownership, ownership, &qr_th);
     kobject_set_label_prepared(&t->th_ko, kolabel_clearance,
 			       cur_clearance, clearance, &qr_th);
     thread_change_as(t, te->te_as);

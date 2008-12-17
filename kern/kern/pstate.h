@@ -4,7 +4,7 @@
 #include <machine/types.h>
 #include <kern/kobj.h>
 #include <kern/freelist.h>
-#include <kern/handle.h>
+#include <kern/id.h>
 #include <kern/btree.h>
 #include <kern/part.h>
 
@@ -20,7 +20,7 @@ struct pstate_header {
 	    uint64_t ph_magic;
 	    uint64_t ph_version;
 
-	    uint64_t ph_handle_counter;
+	    uint64_t ph_id_counter;
 	    uint64_t ph_user_root_ct;
 	    uint64_t ph_user_nsec;
 	    uint8_t ph_system_key[SYSTEM_KEY_SIZE];

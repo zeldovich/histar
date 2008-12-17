@@ -78,6 +78,7 @@ extern struct Thread_list *cur_waitlist;
 extern const struct Thread *cur_thread;
 
 int  thread_alloc(const struct Label *tracking,
+		  const struct Label *ownership,
 		  const struct Label *clearance,
 		  struct Thread **tp)
     __attribute__ ((warn_unused_result));
@@ -89,6 +90,7 @@ void thread_on_decref(const struct Thread *t, uint64_t parent_ct);
 
 int  thread_jump(const struct Thread *t,
 		 const struct Label *tracking,
+		 const struct Label *ownership,
 		 const struct Label *clearance,
 		 const struct thread_entry *te)
     __attribute__ ((warn_unused_result));
