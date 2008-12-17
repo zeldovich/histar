@@ -161,6 +161,8 @@ nacl_trap_init(void)
 
     assert(sigaction(SIGSEGV, &sa, 0) == 0);
 
+    // XXX have a linker script do the code automatically
+    // and so we are sure of the Linux AS layout.
     assert(page_alloc(&va) == 0);
     assert(nacl_mmap((void *)USPRING, va, PGSIZE, PROT_EXEC | PROT_READ) == 0);
     memcpy(va, nacl_springboard, nacl_springboard_end - nacl_springboard);
