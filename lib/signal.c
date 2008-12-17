@@ -24,7 +24,7 @@
 #include <bits/signalgate.h>
 #include <bits/kernel_sigaction.h>
 
-#if defined(JOS_ARCH_amd64) || defined(JOS_ARCH_i386)
+#if defined(JOS_ARCH_amd64) || defined(JOS_ARCH_i386) || defined (JOS_ARCH_nacl)
  #include <machine/x86.h>
  #include <machine/trapcodes.h>
  #define ARCH_PGFLTD  T_PGFLT
@@ -131,7 +131,7 @@ utf_dump(struct UTrapframe *utf)
 	    utf->utf_r14, utf->utf_r15, utf->utf_rbp);
     cprintf("rip %016lx  rsp %016lx  rflags %016lx\n",
 	    utf->utf_rip, utf->utf_rsp, utf->utf_rflags);
-#elif defined(JOS_ARCH_i386)
+#elif defined(JOS_ARCH_i386) || defined(JOS_ARCH_nacl)
     cprintf("eax %08x  ebx %08x  ecx %08x  edx %08x\n",
             utf->utf_eax, utf->utf_ebx, utf->utf_ecx, utf->utf_edx);
     cprintf("esi %08x  edi %08x  ebp %08x  esp %08x\n",
@@ -637,7 +637,7 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
     utf_jump.utf_rsi = (uint64_t) sc_arg;
     utf_jump.utf_r14 = (uint64_t) utrap_chain;
     utf_jump.utf_r15 = (uint64_t) &signal_utrap_onstack;
-#elif defined(JOS_ARCH_i386)
+#elif defined(JOS_ARCH_i386) || defined(JOS_ARCH_nacl)
     utf_jump.utf_eflags = read_eflags();
     utf_jump.utf_eip = (uintptr_t) &utrap_chain_dwarf2;
     utf_jump.utf_esp = (uintptr_t) stackptr;

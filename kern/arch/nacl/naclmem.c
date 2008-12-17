@@ -94,6 +94,7 @@ nacl_mem_init(const char *memfn, const char *binfn)
 	    panic("read failed");
     }
 
+    // XXX this should be a stub stack in the untrusted region
     free_end -= SIGSTKSZ;
     if (free_end < mem_base)
 	panic("not enough mem for signal stack");

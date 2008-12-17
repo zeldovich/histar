@@ -82,6 +82,7 @@ trap_dispatch(int trapno, const struct Trapframe *tf, void *addr)
 	page_fault(trap_thread, addr, tf, tf->tf_err);
 	break;
     default:
+	trapframe_print(tf);
 	assert(0);
     }
 }
@@ -158,6 +159,7 @@ nacl_trap_init(void)
     sa.sa_flags = SA_SIGINFO | SA_ONSTACK;
 
     assert(sigaction(SIGSEGV, &sa, 0) == 0);
+
     assert(page_alloc(&va) == 0);
     assert(nacl_mmap((void *)USPRING, va, PGSIZE, PROT_EXEC | PROT_READ) == 0);
     memcpy(va, nacl_springboard, nacl_springboard_end - nacl_springboard);

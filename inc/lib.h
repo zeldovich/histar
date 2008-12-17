@@ -107,6 +107,9 @@ struct tls_layout {
 #ifdef JOS_ARCH_i386
     uint8_t tls_utrap_ret_buf[8];
 #endif
+#ifdef JOS_ARCH_nacl
+    uint8_t tls_utrap_ret_buf[8];
+#endif
 };
 
 extern void *tls_top;

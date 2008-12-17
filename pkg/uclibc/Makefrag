@@ -8,6 +8,10 @@ ifeq ($(ARCH),i386)
 UCLIBC_ARCH := i386
 endif
 
+ifeq ($(ARCH),nacl)
+UCLIBC_ARCH := i386
+endif
+
 ifeq ($(ARCH),sparc)
 UCLIBC_ARCH := sparc
 endif

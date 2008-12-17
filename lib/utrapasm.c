@@ -51,6 +51,23 @@ utrap_field_symbols(void)
     GEN_DEF(tls_utrap_ret_buf, &TLS_DATA->tls_utrap_ret_buf);
 #endif
 
+#ifdef JOS_ARCH_nacl
+    UTF_DEF(utf_eax);
+    UTF_DEF(utf_ebx);
+    UTF_DEF(utf_ecx);
+    UTF_DEF(utf_edx);
+
+    UTF_DEF(utf_esi);
+    UTF_DEF(utf_edi);
+    UTF_DEF(utf_ebp);
+    UTF_DEF(utf_esp);
+
+    UTF_DEF(utf_eip);
+    UTF_DEF(utf_eflags);
+
+    GEN_DEF(tls_utrap_ret_buf, &TLS_DATA->tls_utrap_ret_buf);
+#endif
+
 #ifdef JOS_ARCH_sparc
     UTF_DEF(utf_pc);
 #endif

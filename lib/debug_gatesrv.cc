@@ -92,7 +92,7 @@ debug_gate_singlestep(struct debug_args *da)
 {
 #if defined(JOS_ARCH_amd64)
     dinfo->utf.utf_rflags |= FL_TF;
-#elif defined(JOS_ARCH_i386)
+#elif defined(JOS_ARCH_i386) || defined(JOS_ARCH_nacl)
     dinfo->utf.utf_eflags |= FL_TF;
 #elif defined(JOS_ARCH_sparc)
     // XXX
@@ -372,7 +372,7 @@ debug_gate_on_signal(unsigned char signo, struct sigcontext *sc)
     memcpy(&dinfo->utf, utf, sizeof(dinfo->utf));
 #if defined(JOS_ARCH_amd64)
     dinfo->utf.utf_rflags &= ~FL_TF;
-#elif defined(JOS_ARCH_i386)
+#elif defined(JOS_ARCH_i386) || defined(JOS_ARCH_nacl)
     dinfo->utf.utf_eflags &= ~FL_TF;
 #elif defined(JOS_ARCH_sparc)
     // XXX
