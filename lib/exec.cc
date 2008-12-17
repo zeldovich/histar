@@ -129,14 +129,15 @@ do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
     // Reuse the top-level container and process taint/grant labels,
     // but create a new "process" container in the top-level container.
 
-    label thread_contaminate, thread_clearance;
-    thread_cur_label(&thread_contaminate);
-    thread_cur_clearance(&thread_clearance);
+    label thread_label, thread_owner, thread_clear;
+    thread_cur_label(&thread_label);
+    thread_cur_ownership(&thread_owner);
+    thread_cur_clearance(&thread_clear);
 
-    label secret_label(thread_contaminate);
-    secret_label.transform(label::star_to, secret_label.get_default());
-    secret_label.set(start_env->process_grant, 0);
-    secret_label.set(start_env->process_taint, 3);
+    label secret_label(thread_label);
+    secret_label.remove(thread_owner);
+    secret_label.add(start_env->process_grant);
+    secret_label.add(start_env->process_taint);
 
     // Figure out the name
     char name[KOBJ_NAME_LEN];
@@ -179,7 +180,7 @@ do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
     int r = elf_load(proc_ct, bin.obj, &e, 0);
     if (r < 0) {
 	error_check(script_load(proc_ct, bin.obj, &e, &sv));
-	
+
 	// replace argv[0] with guaranteed full pathname
 	sv.add(fn);
 	if (argv[0])
@@ -217,7 +218,7 @@ do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
     e.te_arg[1] = (uintptr_t) new_env_va;
 
     // Create a thread
-    int64_t tid = sys_thread_create(proc_ct, &name[0]);
+    int64_t tid = sys_thread_create(proc_ct, &name[0], thread_label.to_ulabel());
     error_check(tid);
     struct cobj_ref th_ref = COBJ(proc_ct, tid);
     
@@ -234,8 +235,8 @@ do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
     
     // Start it!
     error_check(sys_thread_start(th_ref, &e,
-				 thread_contaminate.to_ulabel(),
-				 thread_clearance.to_ulabel()));
+				 thread_owner.to_ulabel(),
+				 thread_clear.to_ulabel()));
 
     // Die
     proc_drop.dismiss();

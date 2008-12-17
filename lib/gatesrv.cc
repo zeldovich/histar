@@ -188,7 +188,7 @@ gate_create(gatesrv_descriptor *gd)
 }
 
 void
-gatesrv_return::ret(label *owner, label *clear, label *vo, label *vc)
+gatesrv_return::new_ret(label *owner, label *clear, label *vo, label *vc)
 {
     error_check(sys_self_set_sched_parents(thread_ct_, gate_tref_ct_));
     if ((flags_ & GATESRV_NO_THREAD_ADDREF))

@@ -105,6 +105,14 @@ label::remove(uint64_t cat)
 	    ul_.ul_ent[i] = 0;
 }
 
+void
+label::remove(const label &l)
+{
+    for (uint32_t i = 0; i < l.ul_.ul_nent; i++)
+	if (l.ul_.ul_ent[i])
+	    remove(l.ul_.ul_ent[i]);
+}
+
 label &
 label::operator=(const label &src)
 {

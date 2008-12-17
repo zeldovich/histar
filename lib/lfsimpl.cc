@@ -55,25 +55,15 @@ lfs_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 
     sys_obj_unref(arg_copy);
     gcd->param_obj = COBJ(copy_back_ct, copy_back_id);
-    rg->ret(0, 0, 0);
+    rg->new_ret(0, 0);
 }
 
 int
 lfs_server_init(lfs_request_handler h, struct cobj_ref *gate)
 {
     try {
-	label l(1);
-	label c(3);
-	label v(3);
-	
-	thread_cur_label(&l);
-	thread_cur_clearance(&c);	
-	
 	gatesrv_descriptor gd;
 	gd.gate_container_ = start_env->shared_container;
-	gd.label_ = &l;
-	gd.clearance_ = &c;
-	gd.verify_ = &v;
 
 	gd.arg_ = (uintptr_t) h;
 	gd.name_ = "lfs";
@@ -112,7 +102,7 @@ static int
 lfs_call(struct cobj_ref gate, struct lfs_op_args *a)
 {
     try {
-	gate_call c(gate, 0, 0, 0);
+	gate_call c(gate, 0, 0);
 	struct cobj_ref seg;
 	void *va = 0;
 	error_check(segment_alloc(c.call_ct(), sizeof(*a), &seg, &va,

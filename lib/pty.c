@@ -76,15 +76,14 @@ ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     fd->fd_isatty = 1;
     fd->fd_omode = O_RDWR;
     
-    int64_t taint = handle_alloc();
-    int64_t grant = handle_alloc();
+    int64_t taint = category_alloc(1);
+    int64_t grant = category_alloc(0);
     
     uint64_t ents[4];
     memset(ents, 0, sizeof(ents));
-    struct ulabel label = { .ul_size = 4, .ul_ent = ents,
-			    .ul_nent = 0, .ul_default = 1 } ;
-    label_set_level(&label, taint, 3, 0);
-    label_set_level(&label, grant, 0, 0);
+    struct new_ulabel label = { .ul_size = 4, .ul_ent = ents, .ul_nent = 0 };
+    label_add(&label, taint, 0);
+    label_add(&label, grant, 0);
 
     struct jcomm_ref master_jr, slave_jr;
     r = jcomm_alloc(PTY_CT, &label, 0, &master_jr, &slave_jr);

@@ -277,12 +277,12 @@ fd_make_public(int fdnum, struct new_ulabel *ul_taint)
     if (fd->fd_immutable)
 	return -E_LABEL;
 
-    int64_t fd_grant = handle_alloc();
+    int64_t fd_grant = category_alloc(0);
     if (fd_grant < 0)
 	return fd_grant;
     scope_guard<void, uint64_t> grant_drop(thread_drop_star, fd_grant);
 
-    int64_t fd_taint = handle_alloc();
+    int64_t fd_taint = category_alloc(1);
     if (fd_taint < 0)
 	return fd_taint;
     scope_guard<void, uint64_t> taint_drop(thread_drop_star, fd_taint);

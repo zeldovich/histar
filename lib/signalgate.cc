@@ -30,7 +30,7 @@ signal_gate_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *gr)
     static_assert(sizeof(*si) <= sizeof(gcd->param_buf));
 
     signal_gate_incoming(si);
-    gr->ret(0, 0, 0);
+    gr->new_ret(0, 0);
 }
 
 void
@@ -50,16 +50,16 @@ signal_gate_init(void)
 
     try {
 	// require user privileges for sending a signal
-	label verify(3);
+	label guard;
 	if (start_env->user_grant)
-	    verify.set(start_env->user_grant, 0);
+	    guard.add(start_env->user_grant);
 
 	gatesrv_descriptor gd;
 	gd.gate_container_ = start_env->shared_container;
 	gd.name_ = "signal";
-	gd.label_ = 0;
-	gd.clearance_ = 0;
-	gd.verify_ = &verify;
+	gd.owner_ = 0;
+	gd.clear_ = 0;
+	gd.guard_ = &guard;
 	gd.func_ = &signal_gate_entry;
 	gd.arg_ = 0;
 	gd.flags_ = GATESRV_KEEP_TLS_STACK;
@@ -77,7 +77,7 @@ signal_gate_send(struct cobj_ref gate, siginfo_t *si)
     memcpy(sip, si, sizeof(*sip));
 
     try {
-	gate_call(gate, 0, 0, 0).call(&gcd);
+	gate_call(gate, 0, 0).call(&gcd);
     } catch (std::exception &e) {
 	cprintf("kill: gate_call: %s\n", e.what());
 	__set_errno(EPERM);

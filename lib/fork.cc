@@ -47,42 +47,41 @@ do_fork()
     // New process gets the same label as this process,
     // except we take away our process taint&grant * and
     // instead give it its own process taint&grant *.
-    label thread_clearance, thread_contaminate;
-    thread_cur_clearance(&thread_clearance);
-    thread_cur_label(&thread_contaminate);
+
+    label thread_label, thread_owner, thread_clear;
+    thread_cur_label(&thread_label);
+    thread_cur_ownership(&thread_owner);
+    thread_cur_clearance(&thread_clear);
 
     if (fork_debug)
-	cprintf("fork: current labels %s / %s\n",
-		thread_contaminate.to_string(),
-		thread_clearance.to_string());
+	cprintf("fork: current labels %s / %s / %s\n",
+		thread_label.to_string(),
+		thread_owner.to_string(),
+		thread_clear.to_string());
 
-    thread_contaminate.set(start_env->process_grant, 1);
-    thread_contaminate.set(start_env->process_taint, 1);
+    thread_label.remove(thread_owner);
+    label base_label(thread_label);
 
-    // Compute the mandatory contamination for objects
-    label integrity_label(thread_contaminate);
-    integrity_label.transform(label::star_to, integrity_label.get_default());
-
-    label secret_label(integrity_label);
+    thread_owner.remove(start_env->process_grant);
+    thread_owner.remove(start_env->process_taint);
 
     // Generate handles for new process
-    int64_t process_grant = handle_alloc();
+    int64_t process_grant = category_alloc(0);
     error_check(process_grant);
     scope_guard<void, uint64_t> pgrant_cleanup(thread_drop_star, process_grant);
 
-    int64_t process_taint = handle_alloc();
+    int64_t process_taint = category_alloc(1);
     error_check(process_taint);
     scope_guard2<void, uint64_t, uint64_t> ptaint_cleanup(thread_drop_starpair, process_taint, process_grant);
     pgrant_cleanup.dismiss();
 
     // Grant process handles to the new process
-    thread_contaminate.set(process_grant, LB_LEVEL_STAR);
-    thread_contaminate.set(process_taint, LB_LEVEL_STAR);
-    thread_clearance.set(process_grant, 3);
-    thread_clearance.set(process_taint, 3);
-    secret_label.set(process_grant, 0);
-    secret_label.set(process_taint, 3);
-    integrity_label.set(process_grant, 0);
+    label integrity_label(base_label);
+    integrity_label.add(process_grant);
+    thread_label.add(process_grant);
+    thread_label.add(process_taint);
+    thread_owner.add(process_grant);
+    thread_owner.add(process_taint);
 
     // Start creating the new process
     char forkname[KOBJ_NAME_LEN];
@@ -109,7 +108,7 @@ do_fork()
     struct cobj_ref top_ref = COBJ(start_env->shared_container, top_ct);
     scope_guard<int, struct cobj_ref> top_drop(sys_obj_unref, top_ref);
 
-    int64_t proc_ct = sys_container_alloc(top_ct, secret_label.to_ulabel(),
+    int64_t proc_ct = sys_container_alloc(top_ct, thread_label.to_ulabel(),
 					  "process", 0, CT_QUOTA_INF);
     error_check(proc_ct);
 
@@ -125,8 +124,8 @@ do_fork()
     // Create a process gid for it
     struct cobj_ref process_gid_seg;
     uint64_t *child_pgid = 0;
-    label pgid_label(1);
-    pgid_label.set(start_env->user_grant, 0);
+    label pgid_label(base_label);
+    pgid_label.add(start_env->user_grant);
     try {
 	error_check(segment_alloc(top_ct, sizeof(uint64_t),
 				  &process_gid_seg, (void **) &child_pgid, 
@@ -135,12 +134,8 @@ do_fork()
 	if (e.err() != -E_LABEL)
 	    throw e;
 
-	label tmp, out;
-	thread_cur_label(&tmp);
-	pgid_label.set(start_env->user_grant, 1);
-	pgid_label.set(process_grant, 0);
-	pgid_label.merge(&tmp, &out, label::max, label::leq_starlo);
-	pgid_label = out;
+	pgid_label = base_label;
+	pgid_label.add(process_grant);
 	error_check(segment_alloc(top_ct, sizeof(uint64_t),
 				  &process_gid_seg, (void **) &child_pgid, 
 				  pgid_label.to_ulabel(), "process gid"));
@@ -279,7 +274,7 @@ do_fork()
     error_check(sys_as_set(new_as, &uas));
 
     sys_obj_get_name(COBJ(0, thread_id()), &namebuf[0]);
-    id = sys_thread_create(proc_ct, &namebuf[0]);
+    id = sys_thread_create(proc_ct, &namebuf[0], thread_label.to_ulabel());
     error_check(id);
     struct cobj_ref new_th = COBJ(proc_ct, id);
 
@@ -296,13 +291,13 @@ do_fork()
     te.te_arg[1] = 1;
 
     if (fork_debug)
-	cprintf("fork: new thread labels %s / %s\n",
-		thread_contaminate.to_string(),
-		thread_clearance.to_string());
+	cprintf("fork: new thread labels %s / %s / %s\n",
+		thread_label.to_string(),
+		thread_owner.to_string(),
+		thread_clear.to_string());
 
     error_check(sys_thread_start(new_th, &te,
-				 thread_contaminate.to_ulabel(),
-				 thread_clearance.to_ulabel()));
+				 thread_owner.to_ulabel(), thread_clear.to_ulabel()));
 
     top_drop.dismiss();
 

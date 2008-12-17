@@ -19,6 +19,7 @@ void thread_cur_label(label *l);
 void thread_cur_ownership(label *l);
 void thread_cur_clearance(label *l);
 void thread_cur_verify(label *o, label *c);
+void thread_cur_base(label *l);
 void thread_label_cache_update(label *l, label *o, label *c);
 
 void obj_get_label(struct cobj_ref o, label *l);

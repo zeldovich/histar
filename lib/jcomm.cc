@@ -259,7 +259,7 @@ jcomm_links_unmap(void *arg)
 }
 
 int
-jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode, 
+jcomm_alloc(uint64_t ct, struct new_ulabel *l, int16_t mode, 
 	    struct jcomm_ref *a, struct jcomm_ref *b)
 {
     int r;

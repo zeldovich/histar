@@ -219,15 +219,14 @@ mknod(const char *pathname, mode_t mode, dev_t dev)
 
     // approximate the mode 
     uint64_t ent[8];
-    struct ulabel ul =
+    struct new_ulabel ul =
 	{ .ul_size = sizeof(ent) / sizeof(uint64_t), 
-	  .ul_ent = ent,
-	  .ul_default = 1 };
+	  .ul_ent = ent };
 
     if (!(mode & S_IROTH))
-	label_set_level(&ul, start_env->user_taint, 3, 0);
+	label_add(&ul, start_env->user_taint, 0);
     if (!(mode & S_IWOTH))
-	label_set_level(&ul, start_env->user_grant, 0, 0);
+	label_add(&ul, start_env->user_grant, 0);
 
     uint32_t dev_id;
 

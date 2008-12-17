@@ -211,7 +211,7 @@ debug_gate_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *gr)
     if (!dinfo->signo && da->op != da_wait) {
 	cprintf("debug_gate_entry: thread not trapped?!?\n");
 	da->ret = -1;
-	gr->ret(0, 0, 0);
+	gr->new_ret(0, 0);
     }
 
     try {
@@ -257,7 +257,7 @@ debug_gate_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *gr)
 	// XXX proper error message
 	da->ret = -1;
     }
-    gr->ret(0, 0, 0);
+    gr->new_ret(0, 0);
 }
 
 void
@@ -313,9 +313,9 @@ debug_gate_init(void)
 
     try {
 	// require user privileges for debug
-	label verify(3);
+	label verify;
 	if (start_env->user_grant)
-	    verify.set(start_env->user_grant, 0);
+	    verify.add(start_env->user_grant);
 
 	struct cobj_ref cur_as;
 	error_check(sys_self_get_as(&cur_as));
@@ -402,7 +402,7 @@ debug_gate_send(struct cobj_ref gate, struct debug_args *da)
     struct debug_args *dag = (struct debug_args *) &gcd.param_buf[0];
     memcpy(dag, da, sizeof(*dag));
     try {
-	gate_call(gate, 0, 0, 0).call(&gcd);
+	gate_call(gate, 0, 0).call(&gcd);
     } catch (std::exception &e) {
 	return -1;
     }

@@ -16,7 +16,7 @@ class gatesrv_return {
 	  stack_(stack), flags_(flags) {}
 
     // ret will delete any labels passed to it
-    void ret(label *owner, label *clear,
+    void new_ret(label *owner, label *clear,
 	     label *verify_owner = 0, label *verify_clear = 0)
 	__attribute__((noreturn));
 

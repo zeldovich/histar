@@ -55,10 +55,9 @@ setusercontext(login_cap_t *lc, struct passwd *pwd,
 
     if (flags & LOGIN_SETRESOURCES) {
 	uint64_t ulents[2];
-	struct ulabel ul = { .ul_size = 2, .ul_ent = &ulents[0],
-			     .ul_nent = 0, .ul_default = 1 };
-	assert(0 == label_set_level(&ul, start_env->user_grant, 0, 0));
-	assert(0 == label_set_level(&ul, start_env->user_taint, 3, 0));
+	struct new_ulabel ul = { .ul_size = 2, .ul_ent = &ulents[0], .ul_nent = 0 };
+	assert(0 == label_add(&ul, start_env->user_grant, 0));
+	assert(0 == label_add(&ul, start_env->user_taint, 0));
 	int64_t procpool = sys_container_alloc(start_env->shared_container,
 					       &ul, "user-procpool",
 					       0, CT_QUOTA_INF);

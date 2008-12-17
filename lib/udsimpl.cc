@@ -67,7 +67,7 @@ uds_dgram_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     if (a->type != SOCK_DGRAM) {
 	/* probably for a SOCK_STREAM uds */
 	a->ret = ECONNREFUSED;
-	gr->ret(0, 0, 0);
+	gr->new_ret(0, 0);
     }
 
     struct cobj_ref seg = a->seg;
@@ -96,7 +96,7 @@ uds_dgram_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 	a->ret = EACCES;
     }
     
-    gr->ret(0, 0, 0);
+    gr->new_ret(0, 0);
 }
 
 static void __attribute__((noreturn))
@@ -108,7 +108,7 @@ uds_stream_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     
     if (!fd->fd_uds.s.listen || fd->fd_uds.uds_type != a->type) {
 	a->ret = ECONNREFUSED;
-	gr->ret(0, 0, 0);
+	gr->new_ret(0, 0);
     }
     
     jthread_mutex_lock(&fd->fd_uds.s.mu);
@@ -122,7 +122,7 @@ uds_stream_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     if (slot == 0) {
 	a->ret = ETIMEDOUT;
 	jthread_mutex_unlock(&fd->fd_uds.s.mu);
-	gr->ret(0, 0, 0);
+	gr->new_ret(0, 0);
     }
 
     saved_privilege sp(start_env->process_grant, 
@@ -155,7 +155,7 @@ uds_stream_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     jthread_mutex_unlock(&fd->fd_uds.s.mu);
 
     a->ret = 0;
-    gr->ret(0, 0, 0);
+    gr->new_ret(0, 0);
 }
 
 int
@@ -178,12 +178,13 @@ uds_socket(int domain, int type, int protocol)
     fd->fd_uds.uds_type = type;
     
     if (type == SOCK_DGRAM) {
-	uint64_t taint = handle_alloc();
-	uint64_t grant = handle_alloc();
+	uint64_t taint = category_alloc(1);
+	uint64_t grant = category_alloc(0);
 
-	label l(1);
-	l.set(taint, 3);
-	l.set(grant, 0);
+	label l;
+	thread_cur_base(&l);
+	l.add(taint);
+	l.add(grant);
 	fd_set_extra_handles(fd, grant, taint);
 
 	struct jlink *jl = 0;
@@ -245,9 +246,9 @@ uds_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 	if (r < 0)
 	    return errno_val(ENOTDIR);
 
-	label l(1);
+	label l;
 	if (start_env->user_grant)
-	    l.set(start_env->user_grant, 0);
+	    l.add(start_env->user_grant);
 	
 	r = fs_mknod(dir_ino, fn, devuds.dev_id, 0, &ino, l.to_ulabel());
 	if (r < 0)
@@ -401,32 +402,33 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     struct gate_call_data gcd;
     memset(&gcd, 0, sizeof(gcd));
     uds_stream_args *a = (uds_stream_args *)gcd.param_buf;
-    label l(1);
     
-    uint64_t taint = handle_alloc();
-    uint64_t grant = handle_alloc();
+    uint64_t taint = category_alloc(1);
+    uint64_t grant = category_alloc(0);
     scope_guard2<void, uint64_t, uint64_t> 
 	drop(thread_drop_starpair, taint, grant);
     
-    l.set(taint, 3);
-    l.set(grant, 0);
+    label l;
+    thread_cur_base(&l);
+    l.add(taint);
+    l.add(grant);
 
     a->taint = taint;
     a->grant = grant;
     a->type = fd->fd_uds.uds_type;
     struct jcomm_ref jr;
             
-    r = jcomm_alloc(UDS_CT, l.to_ulabel(), 0, 
-		    &jr, &a->jr);
+    r = jcomm_alloc(UDS_CT, l.to_ulabel(), 0, &jr, &a->jr);
     fd->fd_uds.s.jc = jr.jc;
     
     if (r < 0)
 	return r;
 
-    l.set(taint, LB_LEVEL_STAR);
-    l.set(grant, LB_LEVEL_STAR);
+    l = label();
+    l.add(taint);
+    l.add(grant);
     try {
-	gate_call(gate, 0, &l, 0).call(&gcd, 0);
+	gate_call(gate, &l, 0).call(&gcd);
     } catch (error &e) {
 	return errno_val(EINVAL);
     } catch (std::exception &e) {
@@ -479,11 +481,11 @@ uds_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 	struct cobj_ref seg;
 	void *va = 0;
 	
-	uint64_t e = handle_alloc();
+	uint64_t e = category_alloc(1);
 	scope_guard<void, uint64_t> drop(thread_drop_star, e);
-	
-	label l(1);
-	l.set(e, 3);
+
+	label l;
+	l.add(e);
 
 	r = segment_alloc(start_env->shared_container, count, &seg,
 			  &va, l.to_ulabel(), "dgram-seg");
@@ -497,11 +499,11 @@ uds_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 	uds_packet_args *a = (uds_packet_args *)gcd.param_buf;
 	a->type = SOCK_DGRAM;
 	a->seg = seg;
-	
+
 	try {
-	    label ds(3);
-	    ds.set(e, LB_LEVEL_STAR);
-	    gate_call(gate, 0, &ds, 0).call(&gcd, 0);
+	    label o;
+	    o.add(e);
+	    gate_call(gate, &o, 0).call(&gcd);
 	} catch (error &e) {
 	    return errno_val(EINVAL);
 	} catch (std::exception &e) {
