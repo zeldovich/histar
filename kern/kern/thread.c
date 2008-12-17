@@ -465,10 +465,11 @@ thread_jump(const struct Thread *const_t,
 			       cur_ownership, ownership, &qr_th);
     kobject_set_label_prepared(&t->th_ko, kolabel_clearance,
 			       cur_clearance, clearance, &qr_th);
-    thread_change_as(t, te->te_as);
-
-    t->th_cache_flush = 0;
-    thread_arch_jump(t, te);
+    if (te) {
+	thread_change_as(t, te->te_as);
+	thread_arch_jump(t, te);
+	t->th_cache_flush = 0;
+    }
 
     return 0;
 }

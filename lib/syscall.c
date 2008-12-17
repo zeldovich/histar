@@ -200,20 +200,20 @@ sys_container_get_nslots(uint64_t container)
 int64_t
 sys_gate_create(uint64_t container, const struct thread_entry *te,
 		const struct new_ulabel *label, const struct new_ulabel *owner,
-		const struct new_ulabel *clear, const struct new_ulabel *verify,
+		const struct new_ulabel *clear, const struct new_ulabel *guard,
 		const char *name)
 {
     return syscall(SYS_gate_create, container, SPTR(te),
-		   SPTR(label), SPTR(owner), SPTR(clear), SPTR(verify), SPTR(name));
+		   SPTR(label), SPTR(owner), SPTR(clear), SPTR(guard), SPTR(name));
 }
 
 int
 sys_gate_enter(struct cobj_ref gate,
 	       const struct new_ulabel *owner, const struct new_ulabel *clear,
-	       const struct thread_entry *te)
+	       int keep_thread_state)
 {
     return syscall(SYS_gate_enter, SOBJ(gate), SPTR(owner), SPTR(clear),
-		   SPTR(te), 0, 0);
+		   keep_thread_state, 0, 0);
 }
 
 int

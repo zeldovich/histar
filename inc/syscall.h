@@ -65,11 +65,11 @@ int64_t	sys_category_alloc(int secrecy);
 
 int64_t	sys_gate_create(uint64_t container, const struct thread_entry *s,
 			const struct new_ulabel *label, const struct new_ulabel *owner,
-			const struct new_ulabel *clear, const struct new_ulabel *verify,
+			const struct new_ulabel *clear, const struct new_ulabel *guard,
 			const char *name);
 int	sys_gate_enter(struct cobj_ref gate,
 		       const struct new_ulabel *owner, const struct new_ulabel *clear,
-		       const struct thread_entry *s);
+		       int keep_thread_state);
 int	sys_gate_get_entry(struct cobj_ref gate, struct thread_entry *s);
 
 int64_t	sys_thread_create(uint64_t container, const char *name,

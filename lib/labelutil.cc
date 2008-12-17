@@ -101,9 +101,9 @@ thread_drop_starpair(uint64_t c1, uint64_t c2)
     try {
 	label o;
 	thread_cur_label(&o);
-	if (o.contains(h1) || o.contains(h2)) {
-	    o.remove(h1);
-	    o.remove(h2);
+	if (o.contains(c1) || o.contains(c2)) {
+	    o.remove(c1);
+	    o.remove(c2);
 	    error_check(thread_set_ownership(&o));
 	}
     } catch (...) {
@@ -124,7 +124,7 @@ thread_label_cache_invalidate(void)
 }
 
 void
-get_label_retry(label *l, int (*fn) (struct ulabel *))
+get_label_retry(label *l, int (*fn) (struct new_ulabel *))
 {
     int r;
     do {
@@ -137,7 +137,8 @@ get_label_retry(label *l, int (*fn) (struct ulabel *))
 }
 
 void
-get_label_retry_obj(label *l, int (*fn) (struct cobj_ref, struct ulabel *), struct cobj_ref o)
+get_label_retry_obj(label *l, int (*fn) (struct cobj_ref, struct new_ulabel *),
+		    struct cobj_ref o)
 {
     int r;
     do {
@@ -158,9 +159,24 @@ thread_cur_label(label *l)
     if (cur_th_label_id == thread_id()) {
 	*l = *cur_th_label;
     } else {
-	get_label_retry(l, thread_get_label);
+	get_label_retry_obj(l, &sys_obj_get_label, COBJ(0, thread_id()));
 	*cur_th_label = *l;
 	cur_th_label_id = thread_id();
+    }
+}
+
+void
+thread_cur_ownership(label *l)
+{
+    scoped_jthread_lock x(&label_ops_mu);
+    label_cache_init();
+
+    if (cur_th_owner_id == thread_id()) {
+	*l = *cur_th_owner;
+    } else {
+	get_label_retry_obj(l, &sys_obj_get_ownership, COBJ(0, thread_id()));
+	*cur_th_owner = *l;
+	cur_th_owner_id = thread_id();
     }
 }
 
@@ -173,32 +189,34 @@ thread_cur_clearance(label *l)
     if (cur_th_clear_id == thread_id()) {
 	*l = *cur_th_clear;
     } else {
-	get_label_retry(l, &sys_self_get_clearance);
+	get_label_retry_obj(l, &sys_obj_get_clearance, COBJ(0, thread_id()));
 	*cur_th_clear = *l;
 	cur_th_clear_id = thread_id();
     }
 }
 
 void
-thread_label_cache_update(label *l, label *c)
+thread_label_cache_update(label *l, label *o, label *c)
 {
     scoped_jthread_lock x(&label_ops_mu);
     label_cache_init();
 
-    if (cur_th_label_id == thread_id())
+    if (l && cur_th_label_id == thread_id())
 	*cur_th_label = *l;
-    if (cur_th_clear_id == thread_id())
+    if (o && cur_th_owner_id == thread_id())
+	*cur_th_owner = *o;
+    if (c && cur_th_clear_id == thread_id())
 	*cur_th_clear = *c;
 }
 
 void
-thread_cur_verify(label *l, label *c)
+thread_cur_verify(label *o, label *c)
 {
     int r;
     do {
-	r = sys_self_get_verify(l->to_ulabel(), c->to_ulabel());
+	r = sys_self_get_verify(o->to_ulabel(), c->to_ulabel());
 	if (r == -E_NO_SPACE) {
-	    l->grow();
+	    o->grow();
 	    c->grow();
 	} else if (r < 0)
 	    throw error(r, "getting label");
@@ -209,12 +227,6 @@ void
 obj_get_label(struct cobj_ref o, label *l)
 {
     get_label_retry_obj(l, &sys_obj_get_label, o);
-}
-
-void
-gate_get_clearance(struct cobj_ref o, label *l)
-{
-    get_label_retry_obj(l, &sys_gate_clearance, o);
 }
 
 int64_t

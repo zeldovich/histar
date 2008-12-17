@@ -156,9 +156,10 @@ label_to_ulabel(const struct Label *l, struct new_ulabel *ul)
     if (mul_of)
 	return -E_INVAL;
 
-    ul->ul_nent = l->lb_nent;
-    if (ul_size < l->lb_nent)
+    if (ul_size < l->lb_nent) {
+	ul->ul_needed = l->lb_nent;
 	return -E_NO_SPACE;
+    }
 
     for (uint32_t i = 0; i < l->lb_nent; i++) {
 	const uint64_t *entp;
@@ -169,6 +170,7 @@ label_to_ulabel(const struct Label *l, struct new_ulabel *ul)
 	ul_ent[i] = *entp;
     }
 
+    ul->ul_nent = l->lb_nent;
     return 0;
 }
 

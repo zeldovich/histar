@@ -7,6 +7,7 @@
 struct new_ulabel {
     uint32_t ul_size;
     uint32_t ul_nent;
+    uint32_t ul_needed;
     uint64_t *ul_ent;
 };
 

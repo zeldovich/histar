@@ -44,35 +44,32 @@ taint_self(label *taint)
     label cur_tl;
     thread_cur_label(&cur_tl);
 
-    label ol;
-    cur_tl.merge(taint, &ol, label::max, label::leq_starlo);
-    ol.set(start_env->process_grant, 0);
-
-    label tl;
-    cur_tl.merge(taint, &tl, label::max, label::leq_starhi);
+    label new_tl(cur_tl);
+    new_tl.add(*taint);
 
     if (self_taint_debug)
-	cprintf("taint_self: taint label %s; ol %s, tl %s\n",
-	        taint->to_string(), ol.to_string(), tl.to_string());
+	cprintf("taint_self: taint label %s; new label %s\n",
+	        taint->to_string(), new_tl.to_string());
 
     // If the current thread label won't be able to write to
     // the new process container object label, we're acquiring
     // some non-trivial taint; try to report it.
-    if (ol.compare(&cur_tl, label::leq_starhi) != 0)
+    if (!new_tl.can_flow_to(cur_tl))
 	process_report_taint();
 
     int64_t taint_ct = sys_container_alloc(start_env->shared_container,
-					   ol.to_ulabel(), "self-taint", 0, CT_QUOTA_INF);
+					   new_tl.to_ulabel(), "self-taint",
+					   0, CT_QUOTA_INF);
     error_check(taint_ct);
 
     struct jos_jmp_buf back;
     int r;
     if (jos_setjmp(&back) == 0)
-	stack_switch((uintptr_t) &r, (uintptr_t) &tl,
+	stack_switch((uintptr_t) &r, (uintptr_t) &new_tl,
 		     taint_ct, (uintptr_t) &back,
 		     tls_stack_top, (void *) &taint_self_tls);
 
     if (r < 0)
 	throw error(r, "taint_self: cannot change label to %s",
-		    tl.to_string());
+		    new_tl.to_string());
 }

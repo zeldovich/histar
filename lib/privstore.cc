@@ -16,33 +16,23 @@ extern "C" {
 }
 
 void 
-saved_privilege::init(uint64_t guard, uint64_t h, uint64_t h2, uint64_t ct)
+saved_privilege::init(uint64_t guard, uint64_t c, uint64_t c2, uint64_t ct)
 {
-    // XXX
-    // This assumes our default label and clearance levels are
-    // 1 and 2, respectively.  If this is incorrect, we'd need
-    // to actually call thread_cur_label(), thread_cur_clear().
-    // Possible to do this as a fallback when sys_gate_create
-    // returns an error..
-    
-    label gl(1);
-    gl.set(h, LB_LEVEL_STAR);
-    
-    label gc(2);
-    gc.set(h, 3);
+    label lowner;
+    lowner.add(c);
 
-    if (h2) {
-	gl.set(h2, LB_LEVEL_STAR);
-	gc.set(h2, 3);
-    }
+    if (c2)
+	lowner.add(c2);
 
-    label gv(3);
-    gv.set(guard, 0);
+    label lclear;
+
+    label lguard;
+    lguard.add(guard);
 
     int64_t gate_id = sys_gate_create(ct, 0,
-				      gl.to_ulabel(), gc.to_ulabel(),
-				      guard ? gv.to_ulabel() : 0,
-				      "saved privilege", 0);
+				      0, lowner.to_ulabel(), lclear.to_ulabel(),
+				      guard ? lguard.to_ulabel() : 0,
+				      "saved privilege");
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create failed");
     
@@ -50,13 +40,13 @@ saved_privilege::init(uint64_t guard, uint64_t h, uint64_t h2, uint64_t ct)
 }
 
 saved_privilege::saved_privilege(uint64_t guard, uint64_t h, uint64_t ct)
-    : handle_(h), handle2_(0), gate_(), gc_(true)
+    : category_(h), category2_(0), gate_(), gc_(true)
 {
     init(guard, h, 0, ct);
 }
 
 saved_privilege::saved_privilege(uint64_t guard, uint64_t h, uint64_t h2, uint64_t ct)
-    : handle_(h), handle2_(h2), gate_(), gc_(true)
+    : category_(h), category2_(h2), gate_(), gc_(true)
 {
     init(guard, h, h2, ct);
 }
@@ -64,53 +54,19 @@ saved_privilege::saved_privilege(uint64_t guard, uint64_t h, uint64_t h2, uint64
 void
 saved_privilege::acquire()
 {
-    label tl, tc;
-    thread_cur_label(&tl);
+    label to, tc;
+    thread_cur_ownership(&to);
     thread_cur_clearance(&tc);
 
-    if (tl.get(handle_) == LB_LEVEL_STAR && 
-	(!handle2_ || tl.get(handle2_) == LB_LEVEL_STAR)) {
-	char f = 0;
-	if (tc.get(handle_) != 3) {
-	    tc.set(handle_, 3);
-	    f = 1;
-	}
-	if (handle2_ && tc.get(handle2_) != 3) {
-	    tc.set(handle2_, 3);
-	    f = 1;
-	}
-	if (f) {
-	    error_check(sys_self_set_clearance(tc.to_ulabel()));
-	    thread_label_cache_update(&tl, &tc);
-	}
-	return;
-    }
+    to.add(category_);
+    if (category2_)
+	to.add(category2_);
 
-    tl.set(handle_, LB_LEVEL_STAR);
-    tc.set(handle_, 3);
-
-    if (handle2_) {
-	tl.set(handle2_, LB_LEVEL_STAR);
-	tc.set(handle2_, 3);
-    }
-
-    struct jos_jmp_buf jb;
-    if (!jos_setjmp(&jb)) {
-	struct thread_entry te;
-	memset(&te, 0, sizeof(te));
-	error_check(sys_self_get_as(&te.te_as));
-	te.te_entry = (void *) &jos_longjmp;
-	te.te_arg[0] = (uintptr_t) &jb;
-	te.te_arg[1] = 1;
-
-	int r = sys_gate_enter(gate_, tl.to_ulabel(), tc.to_ulabel(), &te);
-	throw error(r, "saved_privilege::acquire: sys_gate_enter");
-    }
-
-    thread_label_cache_update(&tl, &tc);
+    error_check(sys_gate_enter(gate_, to.to_ulabel(), tc.to_ulabel(), 1));
+    thread_label_cache_update(0, &to, 0);
 }
 
-privilege_store::privilege_store(uint64_t h) : root_handle_(h), m_()
+privilege_store::privilege_store(uint64_t h) : root_category_(h), m_()
 {
 }
 
@@ -135,7 +91,7 @@ privilege_store::store_priv(uint64_t h)
     }
 
     assert(m_.find(h) == m_.end());
-    m_[h] = new saved_privilege(root_handle_, h, start_env->proc_container);
+    m_[h] = new saved_privilege(root_category_, h, start_env->proc_container);
     refcount_[h] = 1;
 }
 

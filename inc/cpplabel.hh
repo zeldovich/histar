@@ -31,9 +31,7 @@ class label {
     new_ulabel *to_ulabel() { return &ul_; }
     const new_ulabel *to_ulabel_const() const { return &ul_; }
 
-    //int compare(const label *b, label_comparator cmp) const;
-    //void merge(const label *b, label *out, level_merger m, level_comparator cmp) const;
-    //void transform(level_changer t, int arg);
+    bool can_flow_to(const label &b) const;
 
  private:
     bool dynamic_;

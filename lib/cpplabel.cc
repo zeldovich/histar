@@ -15,21 +15,14 @@ label::label() : dynamic_(true), ul_()
 {
     ul_.ul_size = 0;
     ul_.ul_ent = 0;
-    reset(LB_LEVEL_UNDEF);
-}
-
-label::label(level_t def) : dynamic_(true), ul_()
-{
-    ul_.ul_size = 0;
-    ul_.ul_ent = 0;
-    reset(def);
+    ul_.ul_nent = 0;
 }
 
 label::label(uint64_t *ents, size_t size) : dynamic_(false), ul_()
 {
     ul_.ul_size = size;
     ul_.ul_ent = ents;
-    reset(LB_LEVEL_UNDEF);
+    ul_.ul_nent = 0;
 }
 
 label::label(const label &o) : dynamic_(true), ul_(o.ul_)
@@ -59,8 +52,8 @@ label::grow()
     if (!dynamic_)
 	throw basic_exception("label::grow: statically allocated");
 
-    if (ul_.ul_nent > ul_.ul_size) {
-	uint64_t newsize = ul_.ul_nent;
+    if (ul_.ul_needed > ul_.ul_size) {
+	uint64_t newsize = ul_.ul_needed;
 	uint64_t newbytes = newsize * sizeof(ul_.ul_ent[0]);
 	uint64_t *newent = (uint64_t *) realloc(ul_.ul_ent, newbytes);
 	if (newent == 0) {
@@ -73,198 +66,86 @@ label::grow()
     }
 }
 
-level_t
-label::get(uint64_t handle) const
+bool
+label::contains(uint64_t cat) const
 {
-    uint64_t *s = slot_find(handle);
-    return s ? LB_LEVEL(*s) : ul_.ul_default;
+    for (uint32_t i = 0; i < ul_.ul_nent; i++)
+	if (ul_.ul_ent[i] == cat)
+	    return true;
+    return false;
 }
 
 void
-label::set(uint64_t handle, level_t level)
+label::add(uint64_t cat)
 {
-    uint64_t *s = slot_alloc(handle);
-    *s = LB_CODE(handle, level);
+    if (contains(cat))
+	return;
+
+    for (uint32_t i = 0; i < ul_.ul_nent; i++) {
+	if (ul_.ul_ent[i] == 0) {
+	    ul_.ul_ent[i] = cat;
+	    return;
+	}
+    }
+
+    if (ul_.ul_nent == ul_.ul_size) {
+	ul_.ul_needed = ul_.ul_size * 2;
+	grow();
+    }
+
+    ul_.ul_ent[ul_.ul_nent] = cat;
+    ul_.ul_nent++;
+}
+
+void
+label::remove(uint64_t cat)
+{
+    for (uint32_t i = 0; i < ul_.ul_nent; i++)
+	if (ul_.ul_ent[i] == cat)
+	    ul_.ul_ent[i] = 0;
 }
 
 label &
 label::operator=(const label &src)
 {
-    reset(src.ul_.ul_default);
-    for (uint64_t i = 0; i < src.ul_.ul_nent; i++) {
-	uint64_t h = LB_HANDLE(src.ul_.ul_ent[i]);
-	set(h, src.get(h));
-    }
+    ul_.ul_nent = 0;
+    for (uint64_t i = 0; i < src.ul_.ul_nent; i++)
+	if (src.ul_.ul_ent[i])
+	    add(src.ul_.ul_ent[i]);
     return *this;
 }
 
 void
-label::from_ulabel(const ulabel *src)
+label::from_ulabel(const new_ulabel *src)
 {
-    reset(src->ul_default);
+    ul_.ul_nent = 0;
     for (uint64_t i = 0; i < src->ul_nent; i++)
-	set(LB_HANDLE(src->ul_ent[i]), LB_LEVEL(src->ul_ent[i]));
+	if (src->ul_ent[i])
+	    add(src->ul_ent[i]);
 }
 
-level_t
-label::string_to_level(const char *str)
+bool
+label::can_flow_to(const label &b) const
 {
-    if (*str == '*')
-	return LB_LEVEL_STAR;
-    return atoi(str);
-}
-
-void
-label::from_string(const char *src)
-{
-    static const uint32_t bufsize = 32;
-    char buf[bufsize];
-    const char *str = src;
-    int len = strlen(str);
-    if (!len)
-	throw error(-E_INVAL, "empty label string");
-
-    int i;
-    // get default
-    for (i = len - 1; 
-	 i >= 0 && (str[i] < '0' || str[i] > '9') && str[i] != '*'; i--) {
-    }
-    for (; i >= 0 && str[i] != ' '; i--) {
-    }
-    if (i < 0)
-	throw error(-E_INVAL, "bad label string: %s", src);
-
-    const char *def = &str[i + 1];
-    reset(string_to_level(def));
-    
-    // do the non-default
-    if (*str == '{')
-	str++;
-    while (*str == ' ')
-	str++;
-
-    char *str2 = 0;
-    while ((str2 = strchr(str, ' '))) {
-	int n = str2 - str;
-	memcpy(buf, str, n);
-	buf[n] = 0;
-	char *lev = strchr(buf, ':');
-	if (!lev)
-	    throw error(-E_INVAL, "bad label string: %s", src);
-	*lev = 0;
-	lev++;
-	set(atol(buf), string_to_level(lev));
-	str = str2 + 1;
-    }
-}
-
-int
-label::compare(const label *b, label_comparator cmp) const
-{
-    int r;
-
-    r = cmp(ul_.ul_default, b->ul_.ul_default);
-    if (r < 0)
-	return r;
-
     for (uint64_t i = 0; i < ul_.ul_nent; i++) {
-	uint64_t h = LB_HANDLE(ul_.ul_ent[i]);
-	r = cmp(get(h), b->get(h));
-	if (r < 0)
-	    return r;
+	uint64_t c = ul_.ul_ent[i];
+
+	if (!LB_SECRECY(c))
+	    continue;
+
+	if (!b.contains(c))
+	    return false;
     }
 
-    for (uint64_t i = 0; i < b->ul_.ul_nent; i++) {
-	uint64_t h = LB_HANDLE(b->ul_.ul_ent[i]);
-	r = cmp(get(h), b->get(h));
-	if (r < 0)
-	    return r;
+    for (uint64_t i = 0; i < b.ul_.ul_nent; i++) {
+	uint64_t c = b.ul_.ul_ent[i];
+
+	if (LB_SECRECY(c))
+	    continue;
+
+	if (!contains(c))
+	    return false;
     }
 
-    return 0;
-}
-
-void
-label::merge(const label *b, label *out, level_merger m, level_comparator cmp) const
-{
-    out->reset(m(get_default(), b->get_default(), cmp));
-    for (uint64_t i = 0; i < ul_.ul_nent; i++) {
-	uint64_t h = LB_HANDLE(ul_.ul_ent[i]);
-	out->set(h, m(get(h), b->get(h), cmp));
-    }
-
-    for (uint64_t i = 0; i < b->ul_.ul_nent; i++) {
-	uint64_t h = LB_HANDLE(b->ul_.ul_ent[i]);
-	out->set(h, m(get(h), b->get(h), cmp));
-    }
-}
-
-void
-label::transform(level_changer t, int arg)
-{
-    set_default(t(get_default(), arg));
-    for (uint64_t i = 0; i < ul_.ul_nent; i++) {
-	uint64_t h = LB_HANDLE(ul_.ul_ent[i]);
-	set(h, t(get(h), arg));
-    }
-}
-
-level_t
-label::max(level_t a, level_t b, level_comparator leq)
-{
-    return leq(a, b) == 0 ? b : a;
-}
-
-level_t
-label::min(level_t a, level_t b, level_comparator leq)
-{
-    return leq(a, b) == 0 ? a : b;
-}
-
-int
-label::leq_starlo(level_t a, level_t b)
-{
-    if (a == LB_LEVEL_STAR)
-	return 0;
-    if (b == LB_LEVEL_STAR)
-	return -E_LABEL;
-    if (a <= b)
-	return 0;
-    return -E_LABEL;
-}
-
-int
-label::leq_starhi(level_t a, level_t b)
-{
-    if (b == LB_LEVEL_STAR)
-	return 0;
-    if (a == LB_LEVEL_STAR)
-	return -E_LABEL;
-    if (a <= b)
-	return 0;
-    return -E_LABEL;
-}
-
-int
-label::eq(level_t a, level_t b)
-{
-    if (a == b)
-	return 0;
-    return -E_LABEL;
-}
-
-level_t
-label::star_to(level_t l, int arg)
-{
-    if (l == LB_LEVEL_STAR)
-	return arg;
-    return l;
-}
-
-level_t
-label::nonstar_to(level_t l, int arg)
-{
-    if (l != LB_LEVEL_STAR)
-	return arg;
-    return l;
+    return true;
 }

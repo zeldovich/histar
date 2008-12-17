@@ -615,7 +615,7 @@ static int64_t __attribute__ ((warn_unused_result))
 sys_gate_enter(struct cobj_ref gt,
 	       struct new_ulabel *uowner,
 	       struct new_ulabel *uclear,
-	       struct thread_entry *ute)
+	       int keep_thread_state)
 {
     const struct kobject *ko;
     check(cobj_get(gt, kobj_gate, &ko, iflow_none));
@@ -630,17 +630,17 @@ sys_gate_enter(struct cobj_ref gt,
 	check(label_subset(gt_guard, cur_th_ownership, 0));
 
     const struct Label *new_owner, *new_clear;
-    check(alloc_ulabel(uowner, &new_owner, &gt_owner->lb_ko, label_priv));
-    check(alloc_ulabel(uclear, &new_clear, &gt_clear->lb_ko, label_priv));
+    check(alloc_ulabel(uowner, &new_owner, 0, label_priv));
+    check(alloc_ulabel(uclear, &new_clear, 0, label_priv));
 
     check(label_subset(new_owner, gt_owner, cur_th_ownership));
     check(label_subset(new_clear, gt_clear, cur_th_clearance));
 
-    if ((ute && !g->gt_te_unspec) || (!ute && g->gt_te_unspec))
+    if (keep_thread_state != !g->gt_te_unspec)
 	return -E_INVAL;
 
     // For bound gates, check verify labels & grant all privs
-    if (!ute) {
+    if (!keep_thread_state) {
 	const struct Label *vo, *vc;
 	check(kobject_get_label(&cur_thread->th_ko,
 				kolabel_verify_ownership, &vo));
@@ -655,15 +655,8 @@ sys_gate_enter(struct cobj_ref gt,
 	check(label_subset(gt_clear, new_clear, 0));
     }
 
-    struct thread_entry te;
-    if (ute) {
-	check(check_user_access(ute, sizeof(*ute), 0));
-	memcpy(&te, ute, sizeof(te));
-    } else {
-	memcpy(&te, &g->gt_te, sizeof(te));
-    }
-
-    check(thread_jump(cur_thread, 0, new_owner, new_clear, &te));
+    check(thread_jump(cur_thread, 0, new_owner, new_clear,
+		      keep_thread_state ? 0 : &g->gt_te));
     return 0;
 }
 
@@ -1117,7 +1110,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(obj_set_fixedquota, COBJ(a1, a2));
 	SYSCALL(obj_set_readonly, COBJ(a1, a2));
 	SYSCALL(obj_move, COBJ(a1, a2), a3, a4);
-	SYSCALL(gate_enter, COBJ(a1, a2), p3, p4, p5);
+	SYSCALL(gate_enter, COBJ(a1, a2), p3, p4, a5);
 	SYSCALL(gate_get_entry, COBJ(a1, a2), p3);
 	SYSCALL(thread_start, COBJ(a1, a2), p3, p4, p5);
 	SYSCALL(thread_trap, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
