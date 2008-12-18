@@ -5,7 +5,7 @@ KERN_CFLAGS += -D_GNU_SOURCE=1 -fno-builtin -g
 KERN_ARCH :=					\
 	$(ARCHDIR)/archdep.c			\
 	$(ARCHDIR)/naclmem.c			\
-	$(ARCHDIR)/nacltest.c			\
+	$(ARCHDIR)/nacltime.c			\
 	$(ARCHDIR)/umcons.c			\
 	$(ARCHDIR)/umtime.c			\
 	$(ARCHDIR)/umbench.c			\

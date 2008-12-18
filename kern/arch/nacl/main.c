@@ -23,15 +23,13 @@ main(int ac, char **av)
     um_cons_init();
     nacl_mem_init(av[2], av[1]);
     nacl_trap_init();
-    um_time_init();
-
+    nacl_timer_init();
+    
     kobject_init();
     sched_init();
     pstate_init();
     prof_init();
     user_init();
-
-    nacl_test();
 
     cprintf("=== kernel ready, calling thread_run() ===\n");
     thread_run();

@@ -24,7 +24,7 @@
 #include <ucontext.h>
 
 // Force a AS flush every thread change
-enum { flush_hack = 1 };
+enum { flush_hack = 0 };
 
 static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;

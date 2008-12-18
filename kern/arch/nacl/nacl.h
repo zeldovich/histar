@@ -5,7 +5,8 @@
 
 void nacl_mem_init(const char *memfn, const char *binfn);
 void nacl_trap_init(void);
+void nacl_timer_init(void);
+
 int  nacl_mmap(void *va, void *pp, int len, int prot);
-void nacl_test(void);
 
 #endif
