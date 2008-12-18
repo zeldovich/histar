@@ -44,7 +44,6 @@ nacl_timer_init(void)
     
     while (getline(&line, &len, f) != EOF) {
 	if (sscanf(line, "cpu MHz\t: %f", &freq) == 1) {
-	    printf("freq %u\n", freq);
 	    freq = freq * UINT64(1000000);
 	    break;
 	}
