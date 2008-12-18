@@ -1,4 +1,4 @@
-ARCH    := i386
+ARCH    := nacl
 TARGET  := i386-jos-linux
 OBJTYPE := elf32-i386
 BFDARCH := i386
@@ -7,6 +7,7 @@ CC      := $(GCCPREFIX)gcc -pipe -m32
 CXX     := $(GCCPREFIX)g++ -pipe -m32
 AS      := $(GCCPREFIX)as --32
 AR      := $(GCCPREFIX)ar
+#LD      := $(GCCPREFIX)ld -m elf_nacl
 LD      := $(GCCPREFIX)ld -m elf_i386
 OBJCOPY := $(GCCPREFIX)objcopy
 OBJDUMP := $(GCCPREFIX)objdump -m i386

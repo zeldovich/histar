@@ -83,7 +83,11 @@ utrap_ret_masked:
 	// Restore eip and unmask traps
 	ljmp	*tls_utrap_ret_buf
 
+
 ENTRY(utrap_set_cs)
+	// XXX
+	ret
+#if 0
 	popl	%ecx		// return %eip
 	xorl	%eax, %eax
 	movw	0(%esp), %ax	// new %cs
@@ -91,3 +95,4 @@ ENTRY(utrap_set_cs)
 	pushl	%ecx		// return %eip
 	lret
 
+#endif

@@ -80,13 +80,6 @@ thread_arch_utrap(struct Thread *t,
 }
 
 int
-thread_arch_get_entry_args(const struct Thread *t,
-			   struct thread_entry_args *targ)
-{
-    return -E_INVAL;
-}
-
-int
 thread_arch_is_masked(const struct Thread *t)
 {
     return 1;

@@ -13,7 +13,7 @@ const struct Address_space *cur_as;
 const struct Pagemap *cur_pgmap;
 
 enum { as_debug = 0 };
-enum { as_courtesy_pages = 8 };
+enum { as_courtesy_pages = 2 };
 
 int
 as_alloc(const struct Label *l, struct Address_space **asp)

@@ -103,7 +103,7 @@ SHARED_ENABLE := yes
 endif
 
 ifeq ($(K_ARCH),i386)
-SHARED_ENABLE := yes
+SHARED_ENABLE := no
 endif
 
 LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \

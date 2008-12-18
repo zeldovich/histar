@@ -23,6 +23,9 @@
 #include <assert.h>
 #include <ucontext.h>
 
+// Force a AS flush every thread change
+enum { flush_hack = 1 };
+
 static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;
 static int trap_thread_syscall_writeback;
@@ -69,15 +72,40 @@ page_fault(const struct Thread *t, void *fault_va,
 static void
 trap_dispatch(int trapno, const struct Trapframe *tf, void *addr)
 {
+    int64_t r;
+
     if (!trap_thread) {
 	trapframe_print(tf);
 	assert(0);
     }
 
     switch (trapno) {
-    case T_SYSCALL:
-	assert(0);
-	
+    case T_SYSCALL: {
+	kobject_dirty(&trap_thread->th_ko)->th.th_tf.tf_eip -= 5;
+	trap_thread_syscall_writeback = 1;
+
+	uint32_t sysnum = tf->tf_eax;
+	uint64_t *args = (uint64_t *) tf->tf_edx;
+	r = check_user_access(args, sizeof(uint64_t) * 7, 0);
+	if (r >= 0)
+	    r = kern_syscall(sysnum, args[0], args[1], args[2],
+			     args[3], args[4], args[5], args[6]);
+
+	//printf("sysnum %u, clock_nsec %u\n", sysnum, SYS_sync_wait);
+
+	if (trap_thread_syscall_writeback) {
+	    trap_thread_syscall_writeback = 0;
+	    struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
+	    if (r != -E_RESTART) {
+		t->th_tf.tf_eip += 5;
+		t->th_tf.tf_eax = ((uint64_t) r) & 0xffffffff;
+		t->th_tf.tf_edx = ((uint64_t) r) >> 32;
+	    }
+	} else {
+	    assert(r == 0);
+	}
+	break;
+    }	
     case T_PGFLT:
 	page_fault(trap_thread, addr, tf, tf->tf_err);
 	break;
@@ -95,12 +123,6 @@ sig_handler(int num, siginfo_t *info, void *x)
     greg_t *greg = ((ucontext_t *)x)->uc_mcontext.gregs;
     sigset_t set;
     
-    sigaddset(&set, num);
-    // XXX all signals should be masked and we
-    // should unmask them in some in trusted stub in the 
-    // untrusted region...
-    assert(sigprocmask(SIG_UNBLOCK, &set, 0) == 0);
-
     memset(&tf, 0, sizeof(tf));
     tf.tf_ebx = greg[REG_EBX];
     tf.tf_ecx = greg[REG_ECX];
@@ -122,7 +144,12 @@ sig_handler(int num, siginfo_t *info, void *x)
     tf.tf_eflags = greg[REG_EFL];
     
     int trapno = greg[REG_TRAPNO];
-    
+
+    if (tf.tf_eip > ULIM)
+	panic("XXX fix me %x %p", tf.tf_eip, info->si_addr);
+    if (num == SIGINT)
+	panic("SIGINT fix me %x", tf.tf_eip);
+	
     if (trap_thread) {
 	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
 	sched_stop(t, read_tsc() - trap_user_iret_tsc);
@@ -147,6 +174,47 @@ sig_handler(int num, siginfo_t *info, void *x)
     trap_dispatch(trapno, &tf, info->si_addr);
     prof_trap(trapno, read_tsc() - start);
 
+    sigaddset(&set, num);
+    // XXX all signals should be masked and we
+    // should unmask them in some in trusted stub in the 
+    // untrusted region...
+    assert(sigprocmask(SIG_UNBLOCK, &set, 0) == 0);
+
+    thread_run();
+}
+void
+syscall_handler(void);
+
+void __attribute__((noreturn))
+syscall_handler(void)
+{
+    struct Trapframe *tf = (struct Trapframe *)USCRATCH;
+    int trapno = T_SYSCALL;
+    
+    if (trap_thread) {
+	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
+	sched_stop(t, read_tsc() - trap_user_iret_tsc);
+
+	t->th_tf = *tf;
+	
+	if (t->th_fp_enabled) {
+	    void *p;
+	    assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_excl_dirty));
+	    fxsave((struct Fpregs *) p);
+	}
+    }
+
+    uint64_t start = read_tsc();
+    if (trap_thread) {
+	prof_user(0, start - trap_user_iret_tsc);
+	prof_thread(trap_thread, start - trap_user_iret_tsc);
+    } else {
+	prof_user(1, start - trap_user_iret_tsc);
+    }
+
+    trap_dispatch(trapno, tf, 0);
+    prof_trap(trapno, read_tsc() - start);
+
     thread_run();
 }
 
@@ -160,6 +228,7 @@ nacl_trap_init(void)
     sa.sa_flags = SA_SIGINFO | SA_ONSTACK;
 
     assert(sigaction(SIGSEGV, &sa, 0) == 0);
+    assert(sigaction(SIGINT, &sa, 0) == 0);
 
     // XXX have a linker script do the code automatically
     // and so we are sure of the Linux AS layout.
@@ -193,6 +262,11 @@ void
 thread_arch_run(const struct Thread *t)
 {
     trap_user_iret_tsc = read_tsc();
+
+    if (flush_hack && trap_thread && t != trap_thread)
+	assert(page_map_traverse(0, (void *)0x00010000, (void *)0x00078000, 
+				 0, as_arch_page_invalidate_cb, 0) == 0);
+    
     trap_thread_set(t);
 
     if (t->th_tf.tf_fs != read_fs())
@@ -243,6 +317,14 @@ thread_arch_idle(void)
 
     printf("thread_arch_idle\n");
     exit(0);
+}
+
+int
+thread_arch_get_entry_args(const struct Thread *t,
+			   struct thread_entry_args *targ)
+{
+    memcpy(targ, &t->th_tfa.tfa_entry_args, sizeof(*targ));
+    return 0;
 }
 
 static void __attribute__((used))

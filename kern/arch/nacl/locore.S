@@ -36,6 +36,8 @@ nacl_springboard:
 		
 	movw	tf_ds(%esp),%ds
 
+	// XXX eflags?
+	
 	lss	USCRATCH, %esp
 	jmp	*(USCRATCH + 8)
 .globl	nacl_springboard_end	
@@ -46,6 +48,35 @@ nacl_springboard_end:
  */
 .globl	nacl_usyscall	
 nacl_usyscall:
-1:	jmp	1b
+	movl	%ebx,(USCRATCH + tf_ebx)
+	movl	%ecx,(USCRATCH + tf_ecx)
+	movl	%edi,(USCRATCH + tf_edi)
+	movl	%esi,(USCRATCH + tf_esi)
+	movl	%ebp,(USCRATCH + tf_ebp)
+	movw	%ds,(USCRATCH + tf_ds)
+	movw	%es,(USCRATCH + tf_es)
+
+	movl	%edx,(USCRATCH + tf_edx)
+	movl	%eax,(USCRATCH + tf_eax)
+
+	movl	(%esp), %eax
+	movl	%eax,(USCRATCH + tf_eip) 
+	
+	movl	%cs, %eax
+	movl	%eax,(USCRATCH + tf_cs)
+	movl	%fs, %eax
+	movl	%eax,(USCRATCH + tf_fs)
+	addl	$4, %esp
+	movl	%esp,(USCRATCH + tf_esp)
+	movl	%ss, %eax
+	movl	%eax,(USCRATCH + tf_ss)
+	movl	%gs, %eax
+	movl	%eax,(USCRATCH + tf_gs)
+	
+	// XXX should change %esp, zero %edp
+	// XXX eflags?
+	// XXX linker script will fix this hack
+	mov	$syscall_handler,%ebx
+	call	*%ebx
 .globl	nacl_usyscall_end	
 nacl_usyscall_end:
