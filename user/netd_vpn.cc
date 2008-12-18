@@ -35,8 +35,8 @@ main(int ac, char **av)
 	return -1;
     }
 
-    int64_t grant = handle_alloc();
-    int64_t taint = handle_alloc();
+    int64_t grant = category_alloc(0);
+    int64_t taint = category_alloc(1);
     assert(grant > 0 && taint > 0);
 
     if (netd_debug)
@@ -51,13 +51,13 @@ main(int ac, char **av)
     }
 
     try {
-	label cntm, clear;
+	label owner, clear;
 
-	thread_cur_label(&cntm);
+	thread_cur_ownership(&owner);
 	thread_cur_clearance(&clear);
 
 	netd_server_init(start_env->shared_container,
-			 taint, &cntm, &clear);
+			 taint, &owner, &clear);
     } catch (std::exception &e) {
 	panic("%s", e.what());
     }

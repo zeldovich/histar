@@ -48,29 +48,31 @@ int
 netd_linux_server_init(netd_socket_handler h, uint64_t inet_taint)
 {
     try {
-	label l(1);
-	label c(3);
-	label v(3);
-	
-	thread_cur_label(&l);
-	thread_cur_clearance(&c);
+	label owner, clear, guard;
 
+	thread_cur_ownership(&owner);
+	thread_cur_clearance(&clear);
+
+#if 0	/* XXX have netd taint responses on gate return? */
 	if (inet_taint)
 	    l.set(inet_taint, 2);
+#endif
 	
 	gatesrv_descriptor gd;
 	gd.gate_container_ = start_env->shared_container;
-	gd.label_ = &l;
-	gd.clearance_ = &c;
-	gd.verify_ = &v;
+	gd.owner_ = &owner;
+	gd.clear_ = &clear;
+	gd.guard_ = &guard;
 
 	gd.arg_ = (uintptr_t) h;
 	gd.name_ = "netd-linux";
 	gd.func_ = &netd_linux_gate_entry;
 	gd.flags_ = GATESRV_KEEP_TLS_STACK;
 	cobj_ref gate = gate_create(&gd);
-	
+
+#if 0	/* XXX pre-taint all of netd if inet_taint? */
 	thread_set_label(&l);
+#endif
 	signal_grow_stack = 0;
     } catch (std::exception &e) {
 	cprintf("netd_linux_server_init: %s\n", e.what());
@@ -85,12 +87,13 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn,
 {
     int r;
     /* allocate some args */
-    uint64_t taint = handle_alloc();
-    uint64_t grant = handle_alloc();
+    uint64_t taint = category_alloc(1);
+    uint64_t grant = category_alloc(0);
 
-    label l(1);
-    l.set(taint, 3);
-    l.set(grant, 0);
+    label l;
+    thread_cur_label(&l);
+    l.add(taint);
+    l.add(grant);
     
     int64_t ct = sys_container_alloc(start_env->shared_container, l.to_ulabel(),
 				     "socket-store", 0, CT_QUOTA_INF);
@@ -122,13 +125,13 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn,
     sc->sock_id = sock_id;
     sc->dgram = dgram;
     
-    label ds(3);
-    ds.set(taint, LB_LEVEL_STAR);
-    ds.set(grant, LB_LEVEL_STAR);
+    label owner;
+    owner.add(taint);
+    owner.add(grant);
 
     try {
 	/* clean up thread artifacts in destructor */
-	gobblegate_call gc(gate, 0, &ds, 0, 1);
+	gobblegate_call gc(gate, &owner, 0, 1);
 	gc.call(&gcd, 0, 0);
 
 	client_conn->container = ct;

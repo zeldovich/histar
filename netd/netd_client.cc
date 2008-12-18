@@ -84,19 +84,15 @@ netd_fast_worker(void *arg)
     struct netd_fast_ipc_state *s = (struct netd_fast_ipc_state *) arg;
 
     try {
-	label taint_l(1);
-	taint_l.set(fipc_grant, 0);
-	taint_l.set(fipc_taint, 3);
-
-	label th_l, shared_l;
-	thread_cur_label(&th_l);
-	th_l.transform(label::star_to, 1);
-	taint_l.merge(&th_l, &shared_l, label::max, label::leq_starlo);
+	label taint_l;
+	thread_cur_label(&taint_l);
+	taint_l.add(fipc_grant);
+	taint_l.add(fipc_taint);
 
 	cobj_ref shared_seg;
 	error_check(segment_alloc(s->fast_ipc_gatecall->call_ct(),
 				  sizeof(*(s->fast_ipc)),
-				  &shared_seg, 0, shared_l.to_ulabel(), 
+				  &shared_seg, 0, taint_l.to_ulabel(), 
 				  "netd fast IPC segment"));
 
 	error_check(sys_obj_set_fixedquota(shared_seg));
@@ -127,9 +123,9 @@ netd_fast_init_global(void)
     if (fipc_taint <= 0 || fipc_grant <= 0) {
 	scoped_jthread_lock l(&fipc_handle_mu);
 	if (fipc_taint <= 0)
-	    error_check(fipc_taint = handle_alloc());
+	    error_check(fipc_taint = category_alloc(1));
 	if (fipc_grant <= 0)
-	    error_check(fipc_grant = handle_alloc());
+	    error_check(fipc_grant = category_alloc(0));
     }
 }
 
@@ -149,17 +145,14 @@ netd_fast_init(struct netd_fast_ipc_state *s)
 	}
 
 	if (s->fast_ipc_inited == 0) {
-	    label ds(3);
-	    ds.set(fipc_grant, LB_LEVEL_STAR);
-	    ds.set(fipc_taint, LB_LEVEL_STAR);
-
-	    label dr(0);
-	    dr.set(fipc_taint, 3);
+	    label owner;
+	    owner.add(fipc_grant);
+	    owner.add(fipc_taint);
 
 	    s->fast_ipc_gate = netd_get_fast_gate();
 	    if (s->fast_ipc_gate.object == 0)
 		throw basic_exception("netd_fast_init: mode %d does not support fast-ipc", netd_mode);
-	    s->fast_ipc_gatecall = new gate_call(s->fast_ipc_gate, 0, &ds, &dr);
+	    s->fast_ipc_gatecall = new gate_call(s->fast_ipc_gate, &owner, 0);
 
 	    s->fast_ipc_inited = 1;
 	    cobj_ref fast_ipc_th;
@@ -212,7 +205,7 @@ int
 netd_slow_call(struct cobj_ref gate, struct netd_op_args *a)
 {
     try {
-	gate_call c(gate, 0, 0, 0);
+	gate_call c(gate, 0, 0);
 	
 	struct cobj_ref seg;
 	void *va = 0;

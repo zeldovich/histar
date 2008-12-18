@@ -20,10 +20,12 @@ netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t 
 {
     int64_t netdev_id = container_find(ct, kobj_device, 0);
     if (netdev_id < 0) {
-	label net_label(1);
-	net_label.set(netdev_grant, 0);
-	net_label.set(netdev_taint, 3);
-	net_label.set(inet_taint, 2);
+	label net_label;
+	net_label.add(netdev_grant);
+	net_label.add(netdev_taint);
+#if 0	/* XXX */
+	net_label.add(inet_taint);
+#endif
 	netdev_id = sys_device_create(ct, 0, net_label.to_ulabel(), "jif0",
                                       device_net);
 	error_check(netdev_id);
@@ -37,7 +39,7 @@ netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t 
 }
 
 static struct child_process
-start_lwip(label *ds, label *dr, label *co, const char *netdev,
+start_lwip(label *taint, label *owner, label *clear, const char *netdev,
 	   const char *grant_arg, const char *taint_arg, const char *inet_arg)
 {
     struct fs_inode netd_ino;
@@ -48,11 +50,11 @@ start_lwip(label *ds, label *dr, label *co, const char *netdev,
 		0, 1, 2,
 		4, argv,
 		0, 0,
-		0, ds, 0, dr, co, SPAWN_NO_AUTOGRANT);
+		taint, owner, clear, SPAWN_NO_AUTOGRANT);
 }
 
 static struct child_process
-start_linux(label *ds, label *dr, label *co, const char *netdev,
+start_linux(label *taint, label *owner, label *clear, const char *netdev,
 	   const char *grant_arg, const char *taint_arg, const char *inet_arg)
 {
     struct fs_inode netd_ino;
@@ -68,7 +70,7 @@ start_linux(label *ds, label *dr, label *co, const char *netdev,
 		0, 1, 2,
 		argc, argv,
 		0, 0,
-		0, ds, 0, dr, co, SPAWN_NO_AUTOGRANT);
+		taint, owner, clear, SPAWN_NO_AUTOGRANT);
 }
 
 static void
@@ -84,9 +86,9 @@ main(int ac, char **av)
 try
 {
     cobj_ref ndev_obj = COBJ(0, 0);
-    int64_t netdev_grant = handle_alloc();
-    int64_t netdev_taint = handle_alloc();
-    int64_t inet_taint = handle_alloc();
+    int64_t netdev_grant = category_alloc(0);
+    int64_t netdev_taint = category_alloc(1);
+    int64_t inet_taint = category_alloc(1);
 
     error_check(netdev_grant);
     error_check(netdev_taint);
@@ -95,15 +97,10 @@ try
     netdev_init(start_env->shared_container,
 		netdev_grant, netdev_taint, inet_taint, &ndev_obj);
 
-    label ds(3);
-    ds.set(netdev_grant, LB_LEVEL_STAR);
-    ds.set(netdev_taint, LB_LEVEL_STAR);
-    ds.set(inet_taint, LB_LEVEL_STAR);
-
-    label dr(0);
-    dr.set(netdev_grant, 3);
-    dr.set(netdev_taint, 3);
-    dr.set(inet_taint, 3);
+    label owner;
+    owner.add(netdev_grant);
+    owner.add(netdev_taint);
+    owner.add(inet_taint);
 
     char grant_arg[64], taint_arg[64], inet_arg[64], netdev[64];
     sprintf(grant_arg, "netdev_grant=%"PRIu64, netdev_grant);
@@ -113,7 +110,7 @@ try
 	    ndev_obj.container, ndev_obj.object);
 
     if (netd_mom_debug)
-	printf("netd_mom: decontaminate-send %s\n", ds.to_string());
+	printf("netd_mom: ownership %s\n", owner.to_string());
 
     if (netd_mom_debug) {
 	label cur;
@@ -121,16 +118,18 @@ try
 	printf("netd_mom: current label %s\n", cur.to_string());
     }
 
-    label co(0);
-    co.set(inet_taint, 2);
+    label taint;
+#if 0	/* XXX */
+    taint.add(inet_taint);
+#endif
 
     try {
-	mount_netd(start_lwip(&ds, &dr, &co, netdev,
+	mount_netd(start_lwip(&taint, &owner, 0, netdev,
 			      grant_arg, taint_arg, inet_arg));
     } catch (std::exception &e) {
 	if (netd_mom_debug)
 	    printf("netd_mom: unable to start lwip: %s\n", e.what());
-	mount_netd(start_linux(&ds, &dr, &co, netdev,
+	mount_netd(start_linux(&taint, &owner, 0, netdev,
 			       grant_arg, taint_arg, inet_arg));
     }
 } catch (std::exception &e) {

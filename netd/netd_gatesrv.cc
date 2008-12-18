@@ -64,7 +64,7 @@ netd_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
     sys_obj_unref(arg_copy);
     gcd->param_obj = COBJ(copy_back_ct, copy_back_id);
     gcd->declassify_gate = declassify_gate;
-    rg->ret(0, 0, 0);
+    rg->new_ret(0, 0);
 }
 
 static void
@@ -80,9 +80,8 @@ netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, uint64_t flags,
     {
 	label private_label;
 	thread_cur_label(&private_label);
-	private_label.transform(label::star_to, private_label.get_default());
-	private_label.set(start_env->process_grant, 0);
-	private_label.set(start_env->process_taint, 3);
+	private_label.add(start_env->process_grant);
+	private_label.add(start_env->process_taint);
 	
 	int64_t private_ct;
 	error_check(private_ct =
@@ -187,16 +186,16 @@ netd_fast_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 }
 
 static void
-netd_gate_init(uint64_t gate_ct, label *l, label *clear, netd_handler h)
+netd_gate_init(uint64_t gate_ct, label *owner, label *clear, netd_handler h)
 {
     try {
-	label verify(3);
+	label guard;
 
 	gatesrv_descriptor gd;
 	gd.gate_container_ = gate_ct;
-	gd.label_ = l;
-	gd.clearance_ = clear;
-	gd.verify_ = &verify;
+	gd.owner_ = owner;
+	gd.clear_ = clear;
+	gd.guard_ = &guard;
 	gd.arg_ = (uintptr_t)h;
 
 	gd.name_ = "netd-lwip";
@@ -220,7 +219,7 @@ netd_gate_init(uint64_t gate_ct, label *l, label *clear, netd_handler h)
 void
 netd_server_init(uint64_t gate_ct,
 		 uint64_t taint_handle,
-		 label *l, label *clear, 
+		 label *owner, label *clear, 
 		 netd_handler h)
 {
     error_check(sys_self_get_as(&netd_asref));
@@ -229,7 +228,7 @@ netd_server_init(uint64_t gate_ct,
 	gate_create(start_env->shared_container, "declassifier",
 		    0, 0, 0, &declassifier, taint_handle);
 
-    netd_gate_init(gate_ct, l, clear, h);
+    netd_gate_init(gate_ct, owner, clear, h);
 }
 
 void

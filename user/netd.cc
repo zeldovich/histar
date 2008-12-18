@@ -80,28 +80,33 @@ main(int ac, char **av)
 	    printf("Unknown argument: %s\n", av[i]);
 	    return -1;
 	}
-	
+
 	if (netd_debug)
 	    printf("netd: grant handle %"PRIu64", taint handle %"PRIu64"\n",
 		   grant, taint);
-	
-	label cntm;
+
+	label owner;
 	label clear;
 
-	thread_cur_label(&cntm);
+	thread_cur_ownership(&owner);
 	thread_cur_clearance(&clear);
+
+#if 0	/* XXX change netd code to taint on gate return... */
 	if (netd_do_taint)
 	    cntm.set(inet_taint, 2);
+#endif
 
 	netd_server_init(start_env->shared_container,
-			 inet_taint, &cntm, &clear, netd_lwip_dispatch);
+			 inet_taint, &owner, &clear, netd_lwip_dispatch);
 
 	// Disable signals -- the signal gate has { inet_taint:* }
 	int64_t sig_gt = container_find(start_env->shared_container, kobj_gate, "signal");
 	error_check(sig_gt);
 	error_check(sys_obj_unref(COBJ(start_env->shared_container, sig_gt)));
 
+#if 0	/* XXX pre-taint? */
 	thread_set_label(&cntm);
+#endif
     } catch (std::exception &e) {
 	panic("%s", e.what());
     }
