@@ -59,9 +59,6 @@ do_fork()
 		thread_owner.to_string(),
 		thread_clear.to_string());
 
-    thread_label.remove(thread_owner);
-    label base_label(thread_label);
-
     thread_owner.remove(start_env->process_grant);
     thread_owner.remove(start_env->process_taint);
 
@@ -76,10 +73,13 @@ do_fork()
     pgrant_cleanup.dismiss();
 
     // Grant process handles to the new process
-    label integrity_label(base_label);
+    label integrity_label(thread_label);
     integrity_label.add(process_grant);
-    thread_label.add(process_grant);
-    thread_label.add(process_taint);
+
+    label secret_label(thread_label);
+    secret_label.add(process_grant);
+    secret_label.add(process_taint);
+
     thread_owner.add(process_grant);
     thread_owner.add(process_taint);
 
@@ -108,7 +108,7 @@ do_fork()
     struct cobj_ref top_ref = COBJ(start_env->shared_container, top_ct);
     scope_guard<int, struct cobj_ref> top_drop(sys_obj_unref, top_ref);
 
-    int64_t proc_ct = sys_container_alloc(top_ct, thread_label.to_ulabel(),
+    int64_t proc_ct = sys_container_alloc(top_ct, secret_label.to_ulabel(),
 					  "process", 0, CT_QUOTA_INF);
     error_check(proc_ct);
 
@@ -124,7 +124,7 @@ do_fork()
     // Create a process gid for it
     struct cobj_ref process_gid_seg;
     uint64_t *child_pgid = 0;
-    label pgid_label(base_label);
+    label pgid_label(thread_label);
     pgid_label.add(start_env->user_grant);
     try {
 	error_check(segment_alloc(top_ct, sizeof(uint64_t),
@@ -134,7 +134,7 @@ do_fork()
 	if (e.err() != -E_LABEL)
 	    throw e;
 
-	pgid_label = base_label;
+	pgid_label = thread_label;
 	pgid_label.add(process_grant);
 	error_check(segment_alloc(top_ct, sizeof(uint64_t),
 				  &process_gid_seg, (void **) &child_pgid, 

@@ -92,11 +92,17 @@ gate_call::gate_call(cobj_ref gate, const label *owner, const label *clear)
     scope_guard<void, uint64_t> drop_star2(thread_drop_star, call_grant_);
 
     // Compute the target labels
-    owner_ = new label(owner ? *owner : label());
+    owner_ = new label();
     scope_guard<void, label*> del_o(delete_obj, owner_);
+    get_label_retry_obj(owner_, sys_obj_get_ownership, gate_);
+    if (owner)
+	owner_->add(*owner);
 
-    clear_ = new label(clear ? *clear : label());
+    clear_ = new label();
     scope_guard<void, label*> del_c(delete_obj, clear_);
+    get_label_retry_obj(clear_, sys_obj_get_clearance, gate_);
+    if (clear)
+	clear_->add(*clear);
 
     owner_->add(call_taint_);
     owner_->add(call_grant_);
@@ -130,9 +136,12 @@ gate_call::set_verify(const label *vo, const label *vc)
 {
     // Set the verify label; prove ownership of call handles
     label new_vo(vo ? *vo : label());
+    label new_vc(vc ? *vc : label());
+
     new_vo.add(call_grant_);
     new_vo.add(call_taint_);
-    error_check(sys_self_set_verify(new_vo.to_ulabel(), vc->to_ulabel_const()));
+
+    error_check(sys_self_set_verify(new_vo.to_ulabel(), new_vc.to_ulabel()));
 }
 
 void

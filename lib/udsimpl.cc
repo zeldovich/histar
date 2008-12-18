@@ -182,7 +182,7 @@ uds_socket(int domain, int type, int protocol)
 	uint64_t grant = category_alloc(0);
 
 	label l;
-	thread_cur_base(&l);
+	thread_cur_label(&l);
 	l.add(taint);
 	l.add(grant);
 	fd_set_extra_handles(fd, grant, taint);
@@ -409,7 +409,7 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 	drop(thread_drop_starpair, taint, grant);
     
     label l;
-    thread_cur_base(&l);
+    thread_cur_label(&l);
     l.add(taint);
     l.add(grant);
 

@@ -440,6 +440,12 @@ thread_jump(const struct Thread *const_t,
     if (r < 0)
 	return r;
 
+    if (!label) {
+	r = kobject_get_label(&t->th_ko, kolabel_tracking, &label);
+	if (r < 0)
+	    return r;
+    }
+
     struct kobject_quota_resv qr_th;
     kobject_qres_init(&qr_th, &t->th_ko);
 
@@ -455,7 +461,7 @@ thread_jump(const struct Thread *const_t,
 	return r;
     }
 
-    r = label ? thread_change_label(t, label) : 0;
+    r = thread_change_label(t, label);
     if (r < 0) {
 	kobject_qres_release(&qr_th);
 	return r;

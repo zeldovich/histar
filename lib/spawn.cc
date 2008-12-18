@@ -42,12 +42,10 @@ spawn(spawn_descriptor *sd)
 
     label thread_label;
     thread_cur_label(&thread_label);
-    thread_label.remove(thread_owner);
     if (sd->taint_)
 	thread_label.add(*sd->taint_);
 
     // Objects for new process are almost the same label.
-    label base_object_label(thread_label);
     label integrity_object_label(thread_label);
     label proc_object_label(integrity_object_label);
 
@@ -62,8 +60,6 @@ spawn(spawn_descriptor *sd)
     pgrant_cleanup.dismiss();
 
     if (!uinit_style) {
-	thread_label.add(process_grant);
-	thread_label.add(process_taint);
 	thread_owner.add(process_grant);
 	thread_owner.add(process_taint);
     }
@@ -166,7 +162,7 @@ spawn(spawn_descriptor *sd)
 
     if (!uinit_style) {
 	uint64_t *child_pgid = 0;
-	label pgid_label(base_object_label);
+	label pgid_label(thread_label);
 	pgid_label.add(start_env->user_grant);
 	try {
 	    error_check(segment_alloc(c_top, sizeof(uint64_t),
@@ -175,7 +171,7 @@ spawn(spawn_descriptor *sd)
 	} catch (error &e) {
 	    if (e.err() != -E_LABEL)
 		throw e;
-	    pgid_label = base_object_label;
+	    pgid_label = thread_label;
 	    pgid_label.add(process_grant);
 	    error_check(segment_alloc(c_top, sizeof(uint64_t),
 				      &spawn_env->process_gid_seg, (void **) &child_pgid, 

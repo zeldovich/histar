@@ -47,8 +47,11 @@ segfault_helper(siginfo_t *si, struct sigcontext *sc)
 	label cur_label;
 	thread_cur_label(&cur_label);
 
-	fprintf(stderr, "%s: segfault_helper: segment label %s, thread label %s\n",
-		jos_progname, seg_label.to_string(), cur_label.to_string());
+	label cur_owner;
+	thread_cur_ownership(&cur_owner);
+
+	fprintf(stderr, "%s: segfault_helper: segment label %s, thread label %s, thread owner %s\n",
+		jos_progname, seg_label.to_string(), cur_label.to_string(), cur_owner.to_string());
     } catch (std::exception &e) {
 	fprintf(stderr, "%s: segfault_helper: %s\n", jos_progname, e.what());
     }

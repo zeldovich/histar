@@ -196,6 +196,22 @@ gatesrv_return::new_ret(label *owner, label *clear, label *vo, label *vc)
 
     scoped_jthread_lock l(&fork_mu);
 
+    label *tgt_owner = new label();
+    label *tgt_clear = new label();
+
+    get_label_retry_obj(tgt_owner, sys_obj_get_ownership, rgate_);
+    get_label_retry_obj(tgt_clear, sys_obj_get_clearance, rgate_);
+
+    if (owner) {
+	tgt_owner->add(*owner);
+	delete owner;
+    }
+
+    if (clear) {
+	tgt_clear->add(*clear);
+	delete clear;
+    }
+
     { // GC scope
 	label blank_vo, blank_vc;
 	if (!vo)
@@ -233,13 +249,13 @@ gatesrv_return::new_ret(label *owner, label *clear, label *vo, label *vc)
     }
 
     if (!(flags_ & GATESRV_KEEP_TLS_STACK))
-	stack_switch((uintptr_t) this, (uintptr_t) owner,
-		     (uintptr_t) clear, 0,
+	stack_switch((uintptr_t) this, (uintptr_t) tgt_owner,
+		     (uintptr_t) tgt_clear, 0,
 		     tls_stack_top, (void *) &ret_tls_stub);
     else
 	ret_tls_stub((uintptr_t) this,
-		     (uintptr_t) owner,
-		     (uintptr_t) clear);
+		     (uintptr_t) tgt_owner,
+		     (uintptr_t) tgt_clear);
 }
 
 void

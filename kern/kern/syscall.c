@@ -28,12 +28,19 @@ static const struct Label *cur_th_label;
 static const struct Label *cur_th_clearance;
 static const struct Label *cur_th_ownership;
 
-#define check(expr)					\
-    ({							\
-	int64_t __c = (expr);				\
-	if (__c < 0)					\
-	    return __c;					\
-	__c;						\
+enum { syscall_error_debug = 0 };
+enum { syscall_trace = 0 };
+
+#define check(expr)							\
+    ({									\
+	int64_t __c = (expr);						\
+	if (__c < 0) {							\
+	    if (syscall_error_debug)					\
+		cprintf("%s:%d: %s: %s\n",				\
+			__FILE__, __LINE__, __func__, e2s(__c));	\
+	    return __c;							\
+	}								\
+	__c;								\
     })
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -636,7 +643,7 @@ sys_gate_enter(struct cobj_ref gt,
     check(label_subset(new_owner, gt_owner, cur_th_ownership));
     check(label_subset(new_clear, gt_clear, cur_th_clearance));
 
-    if (keep_thread_state != !g->gt_te_unspec)
+    if (keep_thread_state != g->gt_te_unspec)
 	return -E_INVAL;
 
     // For bound gates, check verify labels & grant all privs
@@ -1181,5 +1188,14 @@ kern_syscall(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
     uint64_t s = karch_get_tsc();
     int64_t r = syscall_exec(num, a1, a2, a3, a4, a5, a6, a7);
     prof_syscall(num, karch_get_tsc() - s);
+
+    if (syscall_trace)
+	cprintf("%"PRIu64"/%"PRIx64" (%s): %s(%"PRIx64", %"PRIx64", %"PRIx64", "
+		"%"PRIx64", %"PRIx64", %"PRIx64", %"PRIx64"): %"PRIx64" (%s)\n",
+		cur_thread->th_ko.ko_id, cur_thread->th_ko.ko_id,
+		cur_thread->th_ko.ko_name,
+		syscall2s(num), a1, a2, a3, a4, a5, a6, a7,
+		r, e2s(r));
+
     return r;
 }

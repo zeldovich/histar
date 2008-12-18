@@ -217,6 +217,9 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	return r;
     }
 
+    struct Label *empty_label;
+    assert_check(label_alloc(&empty_label, label_track));
+
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
     te.te_as = COBJ(c->ct_ko.ko_id, as->as_ko.ko_id);
@@ -225,7 +228,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
     te.te_arg[0] = 1;
     te.te_arg[1] = arg0;
     te.te_arg[2] = arg1;
-    assert_check(thread_jump(t, label, priv, priv, &te));
+    assert_check(thread_jump(t, empty_label, priv, priv, &te));
     return 0;
 }
 
@@ -251,8 +254,11 @@ thread_create_embed(struct Container *c,
     strncpy(&tc->ct_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     assert(container_put(c, &tc->ct_ko, 0) >= 0);
 
+    struct Label *empty_label;
+    assert_check(label_alloc(&empty_label, label_track));
+
     struct Thread *t;
-    assert_check(thread_alloc(label, priv, priv, &t));
+    assert_check(thread_alloc(empty_label, priv, priv, &t));
     strncpy(&t->th_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     thread_set_sched_parents(t, tc->ct_ko.ko_id, 0);
 

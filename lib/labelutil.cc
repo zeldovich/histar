@@ -196,15 +196,6 @@ thread_cur_clearance(label *l)
 }
 
 void
-thread_cur_base(label *l)
-{
-    label o;
-    thread_cur_ownership(&o);
-    thread_cur_label(l);
-    l->remove(o);
-}
-
-void
 thread_label_cache_update(label *l, label *o, label *c)
 {
     scoped_jthread_lock x(&label_ops_mu);

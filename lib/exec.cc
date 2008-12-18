@@ -135,7 +135,6 @@ do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
     thread_cur_clearance(&thread_clear);
 
     label secret_label(thread_label);
-    secret_label.remove(thread_owner);
     secret_label.add(start_env->process_grant);
     secret_label.add(start_env->process_taint);
 

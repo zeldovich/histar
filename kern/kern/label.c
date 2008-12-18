@@ -328,7 +328,7 @@ void
 label_cprint(const struct Label *l)
 {
     cprintf("Label %p: {", l);
-    for (uint32_t i = 0; i < l->lb_nent; i++) {
+    for (uint32_t i = 0; l && i < l->lb_nent; i++) {
 	const uint64_t *entp;
 	assert(0 == label_get_slotp_read(l, i, &entp));
 	cprintf(" %"PRIu64"(%c)", *entp, LB_SECRECY(*entp) ? 's' : 'i');
