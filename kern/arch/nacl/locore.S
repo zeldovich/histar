@@ -3,10 +3,8 @@
 	.text
 .globl	trapframe_pop
 trapframe_pop:
-	movl	%eax,%esp
-
-	push	tf_cs(%esp)
-	push	$(USPRING + 1)
+	pushw	tf_cs(%eax)
+	pushl	$(USPRING + 1)
 	ljmp	*(%esp)
 
 /*
@@ -17,6 +15,7 @@ nacl_springboard:
 	hlt			/* one byte */
 	addl    $8, %esp	/* springboard addr, cs */
 
+	movl	%eax,%esp
 	movl	tf_esp(%esp),%eax	
 	movl	%eax, USCRATCH
 	movl	tf_ss(%esp),%eax	
