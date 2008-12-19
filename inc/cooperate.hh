@@ -21,15 +21,16 @@ typedef struct {
  */
 cobj_ref
     coop_gate_create(uint64_t container,
-		     label *l,
-		     label *clearance,
-		     label *verify,
+		     label *taint,
+		     label *owner,
+		     label *clear,
+		     label *guard,
 		     coop_sysarg arg_values[8],
 		     char arg_freemask[8]);
 
 int64_t
     coop_gate_invoke(cobj_ref coop_gate,
-		     label *cs, label *ds, label *dr,
+		     label *owner, label *clear,
 		     coop_sysarg arg_values[8]);
 
 #endif

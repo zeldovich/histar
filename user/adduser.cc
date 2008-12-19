@@ -86,16 +86,17 @@ main(int ac, char **av)
 	req->user_gate = COBJ(cp.container, uauth_gate);
 
 	label verify;
-	thread_cur_label(&verify);
-	gate_call(auth_dir_gt.obj, 0, 0, 0).call(&gcd, &verify);
+	verify.add(start_env->user_grant);
+
+	gate_call(auth_dir_gt.obj, 0, 0).call(&gcd, &verify);
 	error_check(reply->err);
 
 	uint64_t user_grant, user_taint;
 	auth_login(uname, "", &user_grant, &user_taint);
 
-	label l(1);
-	l.set(user_grant, 0);
-	l.set(user_taint, 3);
+	label l;
+	l.add(user_grant);
+	l.add(user_taint);
 
 	fs_inode home;
 	error_check(fs_namei("/home", &home));

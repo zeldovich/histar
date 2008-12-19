@@ -28,7 +28,7 @@ authlog_entry(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     fclose(f);
     l.release();
 
-    gr->ret(0, 0, 0);
+    gr->new_ret(0, 0);
 }
 
 int
@@ -42,21 +42,20 @@ main(int ac, char **av)
 	fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "authlog_self", shared_ct);
 
 	int64_t log_h;
-	error_check(log_h = handle_alloc());
-	label log_label(1);
-	log_label.set(log_h, 0);
+	error_check(log_h = category_alloc(0));
+	label log_label;
+	log_label.add(log_h);
 
 	fs_inode log_dir;
 	fs_mkdir(shared_ct, "log", &log_dir, log_label.to_ulabel());
 
-	label gt_label;
-	label gt_clear;
-	thread_cur_label(&gt_label);
+	label gt_owner, gt_clear;
+	thread_cur_ownership(&gt_owner);
 	thread_cur_clearance(&gt_clear);
-	gt_label.set(start_env->process_grant, 1);
+	gt_owner.remove(start_env->process_grant);
 
 	gate_create(start_env->shared_container, "authlog",
-		    &gt_label, &gt_clear, 0,
+		    &gt_owner, &gt_clear, 0,
 		    &authlog_entry, 0);
 	process_report_exit(0, 0);
     	thread_halt();

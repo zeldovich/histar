@@ -34,8 +34,8 @@ create_containers(const char *pn)
     }
     
     int64_t ct = ino.obj.object;
-    label l(1);
-    l.set(start_env->user_grant, 0);
+    label l;
+    l.add(start_env->user_grant);
     for (int i = dir_count - 1; i >= 0; i--) {
 	ct = sys_container_alloc(ct, l.to_ulabel(), dir[i], 0, CT_QUOTA_INF);
 	if (ct < 0)
@@ -79,7 +79,7 @@ main (int ac, char **av)
 				    0, 0, 0,
 				    ac - 2, &argv[0],
 				    0, 0,
-				    0, 0, 0, 0, 0);
+				    0, 0, 0);
     char buf[64];
     error_check(sys_obj_get_name(COBJ(cp.container, cp.container), buf));
     if (av[1][strlen(av[1]) - 1] == '/')

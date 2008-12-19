@@ -49,15 +49,11 @@ auth_grant_entry(uint64_t arg, gate_call_data *parm, gatesrv_return *gr)
     reply->user_grant = user_grant;
     reply->user_taint = user_taint;
 
-    label *ds = new label(3);
-    ds->set(user_grant, LB_LEVEL_STAR);
-    ds->set(user_taint, LB_LEVEL_STAR);
+    label *owner = new label();
+    owner->add(user_grant);
+    owner->add(user_taint);
 
-    label *dr = new label(0);
-    dr->set(user_grant, 3);
-    dr->set(user_taint, 3);
-
-    gr->ret(0, ds, dr);
+    gr->new_ret(owner, 0);
 }
 
 static void __attribute__((noreturn))
@@ -95,12 +91,10 @@ auth_uauth_entry(uint64_t arg, gate_call_data *parm, gatesrv_return *gr)
 	sha1_final((unsigned char *) &pwhash[0], &sctx);
 
     	if (memcmp(pwhash, pw->pwhash, sizeof(pw->pwhash))) {
-	    label vl, vc;
-	    thread_cur_verify(&vl, &vc);
+	    label vo, vc;
+	    thread_cur_verify(&vo, &vc);
 
-	    label v_root(3);
-	    v_root.set(root_grant, 0);
-	    if (respect_root[0] != '1' || vl.compare(&v_root, label::leq_starlo) < 0)
+	    if (respect_root[0] != '1' || !vo.contains(root_grant))
 		throw error(-E_INVAL, "bad password");
 	}
 
@@ -116,9 +110,9 @@ auth_uauth_entry(uint64_t arg, gate_call_data *parm, gatesrv_return *gr)
 	}
 
     	reply->err = 0;
-    	label *ds = new label(3);
-    	ds->set(xh, LB_LEVEL_STAR);
-    	gr->ret(0, ds, 0);
+	label *owner = new label();
+	owner->add(xh);
+    	gr->new_ret(owner, 0);
     } catch (error &e) {
     	cprintf("authd_user_entry: %s\n", e.what());
     	reply->err = e.err();
@@ -126,7 +120,7 @@ auth_uauth_entry(uint64_t arg, gate_call_data *parm, gatesrv_return *gr)
     	cprintf("authd_user_entry: %s\n", e.what());
     	reply->err = -E_INVAL;
     }
-    gr->ret(0, 0, 0);
+    gr->new_ret(0, 0);
 }
 
 static void __attribute__((noreturn))
@@ -148,13 +142,13 @@ auth_user_entry(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 	auth_log(log_msg);
 
 	int64_t xh;
-	error_check(xh = handle_alloc());
+	error_check(xh = category_alloc(0));
 
 	// OK, creating the retry counter.  First create an empty segment.
 
-	label retry_l(1);
-	retry_l.set(user_grant, 0);
-	retry_l.set(user_taint, 3);
+	label retry_l;
+	retry_l.add(user_grant);
+	retry_l.add(user_taint);
 
 	cobj_ref retry_seg;
 	struct retry_seg *rs = 0;
@@ -165,8 +159,7 @@ auth_user_entry(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 	rs->attempts = 0;
 
 	// Now try to copy it with a label of { Pt 3 } using the coop mechanism.
-
-	retry_l.set(req.pw_taint, 3);
+	retry_l.add(req.pw_taint);
 
 	coop_sysarg coop_vals[8];
 	memset(&coop_vals[0], 0, sizeof(coop_vals));
@@ -178,43 +171,39 @@ auth_user_entry(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 	coop_vals[4].u.l = &retry_l;
 	coop_vals[4].is_label = 1;
 
-	label coop_ds(3);
-	coop_ds.set(user_grant, LB_LEVEL_STAR);
-	coop_ds.set(user_taint, LB_LEVEL_STAR);
-
-	label coop_dr(0);
-	coop_dr.set(user_grant, 3);
-	coop_dr.set(user_taint, 3);
-	coop_dr.set(req.session_grant, 2);
+	label coop_owner, coop_clear;
+	coop_owner.add(user_grant);
+	coop_owner.add(user_taint);
 
 	int64_t retry_seg_copy_id;
 	error_check(retry_seg_copy_id =
 	    coop_gate_invoke(COBJ(req.session_ct, req.coop_gate),
-			     0, &coop_ds, &coop_dr, coop_vals));
+			     &coop_owner, &coop_clear, coop_vals));
 
 	cobj_ref retry_seg_copy = COBJ(req.session_ct, retry_seg_copy_id);
 
 	label retry_l2;
 	obj_get_label(retry_seg_copy, &retry_l2);
-	error_check(retry_l.compare(&retry_l2, label::eq));
+	if (!retry_l2.contains(user_grant) ||
+	    !retry_l2.contains(user_taint) ||
+	    !retry_l2.contains(req.pw_taint))
+	    throw error(-E_LABEL, "retry segment label mismatch");
 
 	// Whew, created that pesky retry segment..
 
-	label verify(3);
-	verify.set(req.session_grant, 0);
+	label guard;
+	guard.add(req.session_grant);
 
 	gatesrv_descriptor gd;
 	gd.gate_container_ = req.session_ct;
 	gd.name_ = "user auth gate";
 	gd.as_ = base_as_ref;
-	gd.label_ = 0;
-	gd.clearance_ = 0;
-	gd.verify_ = &verify;
+	gd.guard_ = &guard;
 	gd.func_ = auth_uauth_entry;
 	gd.arg_ = retry_seg_copy.object;
 	cobj_ref ga = gate_create(&gd);
 
-	verify.set(xh, 0);
+	guard.add(xh);
 	gd.name_ = "user grant gate";
 	gd.func_ = auth_grant_entry;
 	gd.arg_ = 0;
@@ -234,7 +223,7 @@ auth_user_entry(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 
 ret:
     memcpy(&parm->param_buf[0], &reply, sizeof(reply));
-    gr->ret(0, 0, 0);
+    gr->new_ret(0, 0);
 }
 
 static void
@@ -251,8 +240,8 @@ auth_user_init(void)
 						0, "config", 0, 65536));
 
     // file which controls whether to respect root authority (val: "0" or "1")
-    label user_write_protect(1);
-    user_write_protect.set(user_grant, 0);
+    label user_write_protect;
+    user_write_protect.add(user_grant);
 
     cobj_ref respect_root_seg;
     error_check(segment_alloc(config_ct, 2, &respect_root_seg,
@@ -279,9 +268,9 @@ auth_user_init(void)
     error_check(segment_unmap(s));
 
     // password segment
-    label pw_ctm(1);
-    pw_ctm.set(user_grant, 0);
-    pw_ctm.set(user_taint, 3);
+    label pw_ctm;
+    pw_ctm.add(user_grant);
+    pw_ctm.add(user_taint);
 
     struct user_password *pw = 0;
     error_check(segment_alloc(config_ct,
@@ -311,13 +300,13 @@ auth_user_init(void)
     }
 
     // gate
-    label th_ctm, th_clr;
-    thread_cur_label(&th_ctm);
-    thread_cur_clearance(&th_clr);
-    th_ctm.set(start_env->process_grant, 1);
+    label gt_owner, gt_clear;
+    thread_cur_ownership(&gt_owner);
+    thread_cur_clearance(&gt_clear);
+    gt_owner.remove(start_env->process_grant);
 
     gate_create(start_env->shared_container,
-		"user login gate", &th_ctm, &th_clr, 0,
+		"user login gate", &gt_owner, &gt_clear, 0,
 		&auth_user_entry, 0);
 
     error_check(fs_clone_mtab(start_env->shared_container));
@@ -340,8 +329,8 @@ main(int ac, char **av)
 	    error_check(strtou64(av[2], 0, 10, (uint64_t *) &user_grant));
 	    error_check(strtou64(av[3], 0, 10, (uint64_t *) &user_taint));
 	} else {
-	    error_check(user_grant = handle_alloc());
-	    error_check(user_taint = handle_alloc());
+	    error_check(user_grant = category_alloc(0));
+	    error_check(user_taint = category_alloc(1));
 	}
 
     	auth_user_init();

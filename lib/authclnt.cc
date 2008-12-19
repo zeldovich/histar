@@ -46,7 +46,6 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     auth_user_reply   *user_reply   = (auth_user_reply *)   &gcd.param_buf[0];
     auth_uauth_req    *uauth_req    = (auth_uauth_req *)    &gcd.param_buf[0];
     auth_uauth_reply  *uauth_reply  = (auth_uauth_reply *)  &gcd.param_buf[0];
-    auth_ugrant_reply *ugrant_reply = (auth_ugrant_reply *) &gcd.param_buf[0];
 
     fs_inode auth_dir_gt;
     error_check(fs_namei_flags("/uauth/auth_dir/authdir", &auth_dir_gt,
@@ -58,20 +57,21 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     if (auth_debug)
 	cprintf("auth_login: calling directory gate\n");
 
-    gate_call(auth_dir_gt.obj, 0, 0, 0).call(&gcd);
+    gate_call(auth_dir_gt.obj, 0, 0).call(&gcd);
     error_check(dir_reply->err);
     cobj_ref user_gate = dir_reply->user_gate;
 
     // Construct session container, etc.
     int64_t pw_taint, session_grant;
-    error_check(pw_taint = handle_alloc());
+    error_check(pw_taint = category_alloc(1));
     scope_guard<void, uint64_t> drop1(thread_drop_star, pw_taint);
 
-    error_check(session_grant = handle_alloc());
+    error_check(session_grant = category_alloc(0));
     scope_guard<void, uint64_t> drop2(thread_drop_star, session_grant);
 
-    label session_label(1);
-    session_label.set(session_grant, 0);
+    label session_label;
+    thread_cur_label(&session_label);
+    session_label.add(session_grant);
 
     int64_t session_ct;
     error_check(session_ct =
@@ -84,26 +84,30 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 
     // Invoke the user gate to get the user's taint and grant categories
     user_req->req_cats = 1;
-    gate_call(user_gate, 0, 0, 0).call(&gcd);
+    gate_call(user_gate, 0, 0).call(&gcd);
     error_check(user_reply->err);
 
     uint64_t user_grant = user_reply->ug_cat;
     uint64_t user_taint = user_reply->ut_cat;
 
     // Construct a cooperative gate for creating the retry count segment
-    label retry_seg_l(1);
-    retry_seg_l.set(user_grant, 0);
-    retry_seg_l.set(user_taint, 3);
-    retry_seg_l.set(pw_taint, 3);
+    label retry_seg_l;
+    thread_cur_label(&retry_seg_l);
+    retry_seg_l.add(user_grant);
+    retry_seg_l.add(user_taint);
+    retry_seg_l.add(pw_taint);
 
-    label coop_gate_label(1);
-    coop_gate_label.set(session_grant, LB_LEVEL_STAR);
+    label coop_gate_taint;
+    thread_cur_label(&coop_gate_taint);
 
-    label coop_gate_clear(2);
-    coop_gate_clear.set(pw_taint, 3);
+    label coop_gate_owner;
+    coop_gate_owner.add(session_grant);
 
-    label coop_gate_verify(3);
-    coop_gate_verify.set(session_grant, 0);
+    label coop_gate_clear;
+    coop_gate_clear.add(pw_taint);
+
+    label coop_gate_guard;
+    coop_gate_guard.add(session_grant);
 
     coop_sysarg coop_vals[8];
     memset(&coop_vals[0], 0, sizeof(coop_vals));
@@ -119,12 +123,14 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     coop_vals[4].is_label = 1;
 
     cobj_ref coop_gate =
-	coop_gate_create(session_ct, &coop_gate_label, &coop_gate_clear,
-			 &coop_gate_verify, coop_vals, coop_freemask);
+	coop_gate_create(session_ct,
+			 &coop_gate_taint, &coop_gate_owner,
+			 &coop_gate_clear, &coop_gate_guard,
+			 coop_vals, coop_freemask);
 
     // Invoke the user gate
-    label user_auth_ds(3);
-    user_auth_ds.set(session_grant, LB_LEVEL_STAR);
+    label user_auth_owner;
+    user_auth_owner.add(session_grant);
 
     user_req->req_cats = 0;
     user_req->pw_taint = pw_taint;
@@ -135,7 +141,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     if (auth_debug)
 	cprintf("auth_login: calling user gate\n");
 
-    gate_call(user_gate, 0, &user_auth_ds, 0).call(&gcd);
+    gate_call(user_gate, &user_auth_owner, 0).call(&gcd);
     error_check(user_reply->err);
     cobj_ref uauth_gate  = COBJ(session_ct, user_reply->uauth_gate);
     cobj_ref ugrant_gate = COBJ(session_ct, user_reply->ugrant_gate);
@@ -144,15 +150,14 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     scope_guard<void, uint64_t> xdrop(thread_drop_star, xh);
 
     // Call the user auth gate to check password
-    label uauth_cs(0);
-    uauth_cs.set(pw_taint, 3);
+    label thread_taint;
+    thread_cur_label(&thread_taint);
+    thread_taint.add(pw_taint);
+    thread_set_label(&thread_taint);
 
-    label uauth_dr(0);
-    uauth_dr.set(pw_taint, 3);
-
-    label cur_label, cur_clear;
-    thread_cur_label(&cur_label);
-    thread_cur_clearance(&cur_clear);
+    label save_owner, save_clear;
+    thread_cur_ownership(&save_owner);
+    thread_cur_clearance(&save_clear);
 
     strcpy(&uauth_req->pass[0], pass);
     uauth_req->change_pw = 0;
@@ -161,7 +166,11 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     if (auth_debug)
 	cprintf("auth_login: calling authentication gate\n");
 
-    gate_call(uauth_gate, &uauth_cs, 0, &uauth_dr).call(&gcd, &cur_label);
+    label prove_owner;
+    if (save_owner.contains(start_env->user_grant))
+	prove_owner.add(start_env->user_grant);
+
+    gate_call(uauth_gate, 0, 0).call(&gcd, &prove_owner);
     error_check(uauth_reply->err);
 
     // Try to be really paranoid here about not accidentally revealing
@@ -175,29 +184,25 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     error_check(sys_obj_set_meta(COBJ(0, thread_id()), 0, &buf[0]));
     error_check(sys_self_fp_disable());
 
-    label vl(3), vc(0);
-    sys_self_set_verify(vl.to_ulabel(), vc.to_ulabel());
+    label vo, vc;
+    sys_self_set_verify(vo.to_ulabel(), vc.to_ulabel());
 
-    label cur_label2, cur_clear2;
-    thread_cur_label(&cur_label2);
-    thread_cur_clearance(&cur_clear2);
-    cur_label.set(xh, LB_LEVEL_STAR);
-    cur_clear.set(xh, 3);
-    error_check(cur_label2.compare(&cur_label, label::eq));
-    error_check(cur_clear2.compare(&cur_clear, label::eq));
+    save_owner.add(xh);
+    thread_set_ownership(&save_owner);
+    thread_set_clearance(&save_clear);
+
+    thread_taint.remove(pw_taint);
+    thread_set_label(&thread_taint);
 
     // Done scrubbing the thread state.
-
-    label grant_dr(0);
-    grant_dr.set(xh, 2);
 
     if (auth_debug)
 	cprintf("auth_login: calling grant gate\n");
 
-    gate_call(ugrant_gate, 0, 0, &grant_dr).call(&gcd);
+    gate_call(ugrant_gate, 0, 0).call(&gcd);
 
-    *ug = ugrant_reply->user_grant;
-    *ut = ugrant_reply->user_taint;
+    *ug = user_grant;
+    *ut = user_taint;
 }
 
 void
@@ -221,25 +226,21 @@ auth_chpass(const char *user, const char *pass, const char *npass)
     if (auth_debug)
 	cprintf("auth_chpass: calling directory gate\n");
 
-    gate_call(auth_dir_gt.obj, 0, 0, 0).call(&gcd);
+    gate_call(auth_dir_gt.obj, 0, 0).call(&gcd);
     error_check(dir_reply->err);
     cobj_ref user_gate = dir_reply->user_gate;
 
     // Construct session container, etc.
     int64_t pw_taint, session_grant;
-    error_check(pw_taint = handle_alloc());
+    error_check(pw_taint = category_alloc(1));
     scope_guard<void, uint64_t> drop1(thread_drop_star, pw_taint);
 
-    label cur_clear;
-    thread_cur_clearance(&cur_clear);
-    cur_clear.set(pw_taint, 3);
-    thread_set_clearance(&cur_clear);
-
-    error_check(session_grant = handle_alloc());
+    error_check(session_grant = category_alloc(0));
     scope_guard<void, uint64_t> drop2(thread_drop_star, session_grant);
 
-    label session_label(1);
-    session_label.set(session_grant, 0);
+    label session_label;
+    thread_cur_label(&session_label);
+    session_label.add(session_grant);
 
     int64_t session_ct;
     error_check(session_ct =
@@ -252,26 +253,30 @@ auth_chpass(const char *user, const char *pass, const char *npass)
 
     // Invoke the user gate to get the user's taint and grant categories
     user_req->req_cats = 1;
-    gate_call(user_gate, 0, 0, 0).call(&gcd);
+    gate_call(user_gate, 0, 0).call(&gcd);
     error_check(user_reply->err);
 
     uint64_t user_grant = user_reply->ug_cat;
     uint64_t user_taint = user_reply->ut_cat;
 
     // Construct a cooperative gate for creating the retry count segment
-    label retry_seg_l(1);
-    retry_seg_l.set(user_grant, 0);
-    retry_seg_l.set(user_taint, 3);
-    retry_seg_l.set(pw_taint, 3);
+    label retry_seg_l;
+    thread_cur_label(&retry_seg_l);
+    retry_seg_l.add(user_grant);
+    retry_seg_l.add(user_taint);
+    retry_seg_l.add(pw_taint);
 
-    label coop_gate_label(1);
-    coop_gate_label.set(session_grant, LB_LEVEL_STAR);
+    label coop_gate_taint;
+    thread_cur_label(&coop_gate_taint);
 
-    label coop_gate_clear(2);
-    coop_gate_clear.set(pw_taint, 3);
+    label coop_gate_owner;
+    coop_gate_owner.add(session_grant);
 
-    label coop_gate_verify(3);
-    coop_gate_verify.set(session_grant, 0);
+    label coop_gate_clear;
+    coop_gate_clear.add(pw_taint);
+
+    label coop_gate_guard;
+    coop_gate_guard.add(session_grant);
 
     coop_sysarg coop_vals[8];
     memset(&coop_vals[0], 0, sizeof(coop_vals));
@@ -287,12 +292,14 @@ auth_chpass(const char *user, const char *pass, const char *npass)
     coop_vals[4].is_label = 1;
 
     cobj_ref coop_gate =
-	coop_gate_create(session_ct, &coop_gate_label, &coop_gate_clear,
-			 &coop_gate_verify, coop_vals, coop_freemask);
+	coop_gate_create(session_ct,
+			 &coop_gate_taint, &coop_gate_owner,
+			 &coop_gate_clear, &coop_gate_guard,
+			 coop_vals, coop_freemask);
 
     // Invoke user gate
-    label user_auth_ds(3);
-    user_auth_ds.set(session_grant, LB_LEVEL_STAR);
+    label user_auth_owner;
+    user_auth_owner.add(session_grant);
 
     user_req->req_cats = 0;
     user_req->pw_taint = pw_taint;
@@ -303,7 +310,7 @@ auth_chpass(const char *user, const char *pass, const char *npass)
     if (auth_debug)
 	cprintf("auth_chpass: calling user gate\n");
 
-    gate_call(user_gate, 0, &user_auth_ds, 0).call(&gcd);
+    gate_call(user_gate, &user_auth_owner, 0).call(&gcd);
     error_check(user_reply->err);
     cobj_ref uauth_gate = COBJ(session_ct, user_reply->uauth_gate);
     uint64_t xh = user_reply->xh;
@@ -311,11 +318,13 @@ auth_chpass(const char *user, const char *pass, const char *npass)
     scope_guard<void, uint64_t> xdrop(thread_drop_star, xh);
 
     // Call the user auth gate to check password
-    label uauth_ds(3);
-    uauth_ds.set(pw_taint, LB_LEVEL_STAR);
+    label uauth_owner;
+    uauth_owner.add(pw_taint);
 
-    label cur_label;
-    thread_cur_label(&cur_label);
+    label cur_owner, prove_owner;
+    thread_cur_ownership(&cur_owner);
+    if (cur_owner.contains(start_env->user_grant))
+	prove_owner.add(start_env->user_grant);
 
     strcpy(&uauth_req->pass[0], pass);
     strcpy(&uauth_req->npass[0], npass);
@@ -325,7 +334,7 @@ auth_chpass(const char *user, const char *pass, const char *npass)
     if (auth_debug)
 	cprintf("auth_chpass: calling authentication gate\n");
 
-    gate_call(uauth_gate, 0, &uauth_ds, 0).call(&gcd, &cur_label);
+    gate_call(uauth_gate, &uauth_owner, 0).call(&gcd, &prove_owner);
     error_check(uauth_reply->err);
 }
 
@@ -340,5 +349,5 @@ auth_log(const char *msg)
     error_check(fs_namei_flags("/uauth/auth_log/authlog", &log_gt,
 			       NAMEI_LEAF_NOEVAL));
 
-    gate_call(log_gt.obj, 0, 0, 0).call(&gcd);
+    gate_call(log_gt.obj, 0, 0).call(&gcd);
 }

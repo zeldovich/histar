@@ -50,9 +50,10 @@ coop_gen_as(cobj_ref status_seg, cobj_ref text_seg, uint64_t dseg_len,
 
 cobj_ref
 coop_gate_create(uint64_t container,
-		 label *l,
-		 label *clearance,
-		 label *verify,
+		 label *taint,
+		 label *owner,
+		 label *clear,
+		 label *guard,
 		 coop_sysarg arg_values[8],
 		 char arg_freemask[8])
 {
@@ -78,7 +79,7 @@ coop_gate_create(uint64_t container,
 	    if (arg_freemask[i])
 		throw basic_exception("Unbound label args not supported");
 
-	    data_seg_len += sizeof(struct ulabel);
+	    data_seg_len += sizeof(struct new_ulabel);
 	    data_seg_len += arg_values[i].u.l->to_ulabel()->ul_nent *
 			    sizeof(arg_values[i].u.l->to_ulabel()->ul_ent[0]);
 	}
@@ -118,9 +119,9 @@ coop_gate_create(uint64_t container,
 	    if (!(arg_values[i].is_label && arg_values[i].u.l)) {
 		csa_val->argval[i] = arg_values[i].u.i;
 	    } else {
-		ulabel *ul = arg_values[i].u.l->to_ulabel();
+		new_ulabel *ul = arg_values[i].u.l->to_ulabel();
 
-		ulabel *ul_copy = (ulabel *) (text_va + coop_brk_offset);
+		new_ulabel *ul_copy = (new_ulabel *) (text_va + coop_brk_offset);
 		coop_brk_offset += sizeof(*ul);
 
 		ul_copy->ul_ent = (uint64_t *) (COOP_TEXT + coop_brk_offset);
@@ -128,7 +129,6 @@ coop_gate_create(uint64_t container,
 		coop_brk_offset += ul->ul_nent * sizeof(uint64_t);
 
 		ul_copy->ul_nent = ul->ul_nent;
-		ul_copy->ul_default = ul->ul_default;
 		memcpy(copy_ents, ul->ul_ent, ul->ul_nent * sizeof(uint64_t));
 
 		csa_val->argval[i] = (((char *) ul_copy) - text_va) + COOP_TEXT;
@@ -164,8 +164,9 @@ coop_gate_create(uint64_t container,
 
     int64_t gate_id =
 	sys_gate_create(container, &te,
-			l->to_ulabel(), clearance->to_ulabel(),
-			verify->to_ulabel(), "coop gate", 1);
+			taint->to_ulabel(), owner->to_ulabel(),
+			clear->to_ulabel(), guard->to_ulabel(),
+			"coop gate");
     error_check(gate_id);
 
     // We're done!
@@ -264,15 +265,14 @@ coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8],
 	if (!arg_values[i].is_label) {
 	    should_be(aval == arg_values[i].u.i);
 	} else {
-	    ulabel *ul = arg_values[i].u.l->to_ulabel();
+	    new_ulabel *ul = arg_values[i].u.l->to_ulabel();
 
 	    should_be(aval == COOP_TEXT + brk_offset);
-	    ulabel *aul = (ulabel *) (text_va + brk_offset);
+	    new_ulabel *aul = (new_ulabel *) (text_va + brk_offset);
 	    brk_offset += sizeof(*ul);
 	    should_be(brk_offset <= dseg_len);
 
 	    should_be(aul->ul_nent == ul->ul_nent);
-	    should_be(aul->ul_default == ul->ul_default);
 	    should_be(aul->ul_ent == (uint64_t *) (COOP_TEXT + brk_offset));
 
 	    uint64_t *aent = (uint64_t *) (text_va + brk_offset);
@@ -301,7 +301,7 @@ coop_gate_invoke_cleanup(label *tgt_label, label *tgt_clear, void *arg)
 
 static void __attribute__((noreturn))
 coop_gate_invoke_thread(int *invoke_donep, cobj_ref *gatep,
-			label *cs, label *ds, label *dr,
+			label *owner, label *clear,
 			coop_sysarg arg_values[8])
 {
     if (!__jos_entry_allregs) {
@@ -310,10 +310,9 @@ coop_gate_invoke_thread(int *invoke_donep, cobj_ref *gatep,
 
 	invoke_donep = (int *) (uintptr_t) targ.te_arg[0];
 	gatep = (cobj_ref *) (uintptr_t) targ.te_arg[1];
-	cs = (label *) (uintptr_t) targ.te_arg[2];
-	ds = (label *) (uintptr_t) targ.te_arg[3];
-	dr = (label *) (uintptr_t) targ.te_arg[4];
-	arg_values = (coop_sysarg *) (uintptr_t) targ.te_arg[5];
+	owner = (label *) (uintptr_t) targ.te_arg[2];
+	clear = (label *) (uintptr_t) targ.te_arg[3];
+	arg_values = (coop_sysarg *) (uintptr_t) targ.te_arg[4];
     }
 
     struct gate_call_data *gcd =
@@ -325,33 +324,42 @@ coop_gate_invoke_thread(int *invoke_donep, cobj_ref *gatep,
 	if (!arg_values[i].is_label)
 	    csa_val->argval[i] = arg_values[i].u.i;
 
-    label *tgt_label = new label();
-    label *tgt_clear = new label();
+    label gate_owner, gate_clear;
+    get_label_retry_obj(&gate_owner, sys_obj_get_ownership, *gatep);
+    get_label_retry_obj(&gate_clear, sys_obj_get_clearance, *gatep);
+    if (owner)
+	gate_owner.add(*owner);
+    if (clear)
+	gate_clear.add(*clear);
 
-    gate_compute_labels(*gatep, cs, ds, dr, tgt_label, tgt_clear);
-    gate_invoke(*gatep, tgt_label, tgt_clear, &coop_gate_invoke_cleanup, invoke_donep);
+    gate_invoke(*gatep, &gate_owner, &gate_clear,
+		&coop_gate_invoke_cleanup, invoke_donep);
 }
 
 int64_t
 coop_gate_invoke(cobj_ref coop_gate,
-		 label *cs, label *ds, label *dr,
+		 label *owner, label *clear,
 		 coop_sysarg arg_values[8])
 {
     cobj_ref status_seg;
     coop_verify(coop_gate, arg_values, &status_seg);
 
-    label cur_label, cur_clear;
+    label cur_label, cur_owner, cur_clear;
     thread_cur_label(&cur_label);
+    thread_cur_ownership(&cur_owner);
     thread_cur_clearance(&cur_clear);
 
     // We need to grant proc_taint:* so the thread can observe
     // its refcount in start_env->proc_container..
-    label new_ds(ds ? *ds : label(3));
-    new_ds.set(start_env->process_taint, LB_LEVEL_STAR);
+    label new_owner;
+    if (owner)
+    new_owner.add(*owner);
+    new_owner.add(start_env->process_taint);
 
     int64_t tid;
     error_check(tid = sys_thread_create(start_env->proc_container,
-					"coop gate invoker"));
+					"coop gate invoker",
+					cur_label.to_ulabel()));
 
     cobj_ref tobj = COBJ(start_env->proc_container, tid);
     scope_guard<int, cobj_ref> thread_unref(sys_obj_unref, tobj);
@@ -365,13 +373,12 @@ coop_gate_invoke(cobj_ref coop_gate,
     te.te_stack = tls_stack_top;
     te.te_arg[0] = (uintptr_t) &invoke_done;
     te.te_arg[1] = (uintptr_t) &coop_gate;
-    te.te_arg[2] = (uintptr_t) cs;
-    te.te_arg[3] = (uintptr_t) &new_ds;
-    te.te_arg[4] = (uintptr_t) dr;
-    te.te_arg[5] = (uintptr_t) &arg_values[0];
+    te.te_arg[2] = (uintptr_t) &new_owner;
+    te.te_arg[3] = (uintptr_t) clear;
+    te.te_arg[4] = (uintptr_t) &arg_values[0];
 
     error_check(tid = sys_thread_start(tobj, &te,
-				       cur_label.to_ulabel(),
+				       cur_owner.to_ulabel(),
 				       cur_clear.to_ulabel()));
 
     struct coop_status *stat = 0;

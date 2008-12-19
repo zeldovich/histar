@@ -56,12 +56,11 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
     }
 
     if (req->op == auth_dir_add || req->op == auth_dir_remove) {
-	label vl, vc;
-	thread_cur_verify(&vl, &vc);
+	label vo, vc;
+	thread_cur_verify(&vo, &vc);
 
-	label root_v(3);
-	root_v.set(root_grant, 0);
-	error_check(vl.compare(&root_v, label::leq_starlo));
+	if (!vo.contains(root_grant))
+	    throw error(-E_LABEL, "need root privileges");
     }
 
     if (req->op == auth_dir_remove) {
@@ -139,21 +138,21 @@ auth_dir_entry(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     }
 
     memcpy(&parm->param_buf[0], &reply, sizeof(reply));
-    gr->ret(0, 0, 0);
+    gr->new_ret(0, 0);
 }
 
 static void
 auth_dir_init(void)
 {
-    error_check(auth_dir_grant = handle_alloc());
+    error_check(auth_dir_grant = category_alloc(0));
 
-    label u_ctm(1);
-    u_ctm.set(auth_dir_grant, 0);
-    u_ctm.set(start_env->process_taint, 3);
+    label u_taint;
+    u_taint.add(auth_dir_grant);
+    u_taint.add(start_env->process_taint);
 
     int64_t ct;
     error_check(ct = sys_container_alloc(start_env->shared_container,
-					 u_ctm.to_ulabel(), "user list ct",
+					 u_taint.to_ulabel(), "user list ct",
 					 0, CT_QUOTA_INF));
 
     user_list *ul = 0;
@@ -161,15 +160,15 @@ auth_dir_init(void)
 			      (void **) &ul, 0, "user list"));
     scope_guard<int, void *> unmap(segment_unmap, ul);
 
-    label th_ctm, th_clr;
-    thread_cur_label(&th_ctm);
-    thread_cur_clearance(&th_clr);
-    th_ctm.set(start_env->process_grant, 1);
+    label gt_owner, gt_clear;
+    thread_cur_ownership(&gt_owner);
+    thread_cur_clearance(&gt_clear);
+    gt_owner.remove(start_env->process_grant);
 
     error_check(fs_clone_mtab(start_env->shared_container));
 
     gate_create(start_env->shared_container,
-		"authdir", &th_ctm, &th_clr, 0,
+		"authdir", &gt_owner, &gt_clear, 0,
 		&auth_dir_entry, 0);
 }
 

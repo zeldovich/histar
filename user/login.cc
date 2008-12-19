@@ -61,7 +61,7 @@ login(char *u, char *p)
                                        0, 1, 2,
                                        sizeof(argv)/sizeof(argv[0]), &argv[0],
                                        sizeof(envv)/sizeof(envv[0]), &envv[0],
-                                       0, 0, 0, 0, 0);
+                                       0, 0, 0);
     int64_t e;
     process_wait(&shell, &e);
     exit(0);

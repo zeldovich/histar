@@ -262,7 +262,7 @@ void
 gatesrv_return::ret_tls_stub(uint64_t a0, uint64_t a1, uint64_t a2)
 {
     gatesrv_return *r = (gatesrv_return *) (uintptr_t) a0;
-    label *tgt_label = (label *) (uintptr_t) a1;
+    label *tgt_owner = (label *) (uintptr_t) a1;
     label *tgt_clear = (label *) (uintptr_t) a2;
     
     /* r might live on stack_, which gets unref+unmaped */
@@ -272,7 +272,7 @@ gatesrv_return::ret_tls_stub(uint64_t a0, uint64_t a1, uint64_t a2)
     try {
 	if (gatesrv_debug)
 	    cprintf("[%"PRIu64"] gatesrv_return::ret_tls_stub\n", thread_id());
-	tlsr.ret_tls(tgt_label, tgt_clear);
+	tlsr.ret_tls(tgt_owner, tgt_clear);
     } catch (std::exception &e) {
 	printf("gatesrv_return::ret_tls_stub: %s\n", e.what());
 	jthread_mutex_unlock(&fork_mu);
@@ -281,9 +281,9 @@ gatesrv_return::ret_tls_stub(uint64_t a0, uint64_t a1, uint64_t a2)
 }
 
 void
-gatesrv_return::ret_tls(label *tgt_label, label *tgt_clear)
+gatesrv_return::ret_tls(label *tgt_owner, label *tgt_clear)
 {
-    gate_invoke(rgate_, tgt_label, tgt_clear, &cleanup_stub, this);
+    gate_invoke(rgate_, tgt_owner, tgt_clear, &cleanup_stub, this);
 }
 
 void
