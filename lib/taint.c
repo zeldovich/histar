@@ -28,8 +28,16 @@ taint_cow_cprint_label(struct new_ulabel *l)
 }
 
 static void
-taint_cow_compute_label(struct new_ulabel *th_label, struct new_ulabel *obj_label)
+taint_cow_compute_label(struct new_ulabel *th_label,
+			struct new_ulabel *th_owner,
+			struct new_ulabel *obj_label)
 {
+    for (uint32_t i = 0; i < obj_label->ul_nent; i++) {
+	uint64_t c = obj_label->ul_ent[i];
+	if (!label_contains(th_owner, c))
+	    obj_label->ul_ent[i] = 0;
+    }
+
     for (uint32_t i = 0; i < th_label->ul_nent; i++) {
 	uint64_t c = th_label->ul_ent[i];
 	assert(0 == label_add(obj_label, c, 0));
@@ -76,15 +84,19 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 
     char namebuf[KOBJ_NAME_LEN];
     uint64_t th_ents[taint_cow_label_ents];
+    uint64_t own_ents[taint_cow_label_ents];
     uint64_t obj_ents[taint_cow_label_ents];
 
     struct new_ulabel th_label =
 	{ .ul_size = taint_cow_label_ents, .ul_ent = &th_ents[0] };
+    struct new_ulabel th_owner =
+	{ .ul_size = taint_cow_label_ents, .ul_ent = &own_ents[0] };
     struct new_ulabel obj_label =
 	{ .ul_size = taint_cow_label_ents, .ul_ent = &obj_ents[0] };
 
     struct cobj_ref cur_th = COBJ(0, sys_self_id());
     ERRCHECK(sys_obj_get_label(cur_th, &th_label));
+    ERRCHECK(sys_obj_get_ownership(cur_th, &th_owner));
 
     if (taint_debug) {
 	cprintf("taint_cow: thread label ");
@@ -96,7 +108,7 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
     ERRCHECK(sys_obj_get_label(COBJ(start_env_ro->proc_container,
 				    start_env_ro->proc_container), &obj_label));
 
-    taint_cow_compute_label(&th_label, &obj_label);
+    taint_cow_compute_label(&th_label, &th_owner, &obj_label);
     if (taint_debug) {
 	cprintf("taint_cow: new container label ");
 	taint_cow_cprint_label(&obj_label);
@@ -112,7 +124,7 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 
     // Compute label of new address space
     ERRCHECK(sys_obj_get_label(cur_as, &obj_label));
-    taint_cow_compute_label(&th_label, &obj_label);
+    taint_cow_compute_label(&th_label, &th_owner, &obj_label);
 
     ERRCHECK(sys_obj_get_name(cur_as, &namebuf[0]));
     int64_t id = sys_as_copy(cur_as, mlt_ct, &obj_label, &namebuf[0]);
@@ -166,7 +178,7 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 	    continue;
 
 	ERRCHECK(sys_obj_get_label(usm.segment, &obj_label));
-	taint_cow_compute_label(&th_label, &obj_label);
+	taint_cow_compute_label(&th_label, &th_owner, &obj_label);
 
 	if (taint_debug) {
 	    cprintf("taint_cow: trying to copy segment %"PRIu64".%"PRIu64", VA %p, label ",

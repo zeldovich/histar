@@ -80,6 +80,14 @@ label_contains(struct new_ulabel *l, uint64_t cat)
     return 0;
 }
 
+void
+label_remove(struct new_ulabel *l, uint64_t cat)
+{
+    for (uint32_t i = 0; i < l->ul_nent; i++)
+	if (l->ul_ent[i] == cat)
+	    l->ul_ent[i] = 0;
+}
+
 const char *
 label_to_string(const struct new_ulabel *l)
 {

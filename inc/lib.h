@@ -183,6 +183,7 @@ int64_t container_find(uint64_t container, uint8_t type, const char *name);
 struct new_ulabel *label_alloc(void);
 void label_free(struct new_ulabel *l);
 int  label_add(struct new_ulabel *l, uint64_t cat, int grow);
+void label_remove(struct new_ulabel *l, uint64_t cat);
 int  label_contains(struct new_ulabel *l, uint64_t cat);
 const char *label_to_string(const struct new_ulabel *l);
 int  label_grow(struct new_ulabel *l);
