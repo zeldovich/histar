@@ -4,24 +4,25 @@
 .globl	trapframe_pop
 trapframe_pop:
 	pushw	tf_cs(%eax)
-	pushl	$(USPRING + 1)
+	pushl	$(UKSWITCH + 1)
 	ljmp	*(%esp)
 
 /*
  * The springboard code gets copied to USPRING by the kernel.
  */
 .globl	nacl_springboard	
+#.section .kuser
 nacl_springboard:
 	hlt			/* one byte */
 	addl    $8, %esp	/* springboard addr, cs */
 
 	movl	%eax,%esp
 	movl	tf_esp(%esp),%eax	
-	movl	%eax, USCRATCH
+	movl	%eax, UKSCRATCH
 	movl	tf_ss(%esp),%eax	
-	movl	%eax, USCRATCH + 4	
+	movl	%eax, UKSCRATCH + 4	
 	movl	tf_eip(%esp),%eax	
-	movl	%eax, USCRATCH + 8 
+	movl	%eax, UKSCRATCH + 8 
 	
 	movw	tf_es(%esp),%es
 	
@@ -37,8 +38,8 @@ nacl_springboard:
 
 	// XXX eflags?
 	
-	lss	USCRATCH, %esp
-	jmp	*(USCRATCH + 8)
+	lss	UKSCRATCH, %esp
+	jmp	*(UKSCRATCH + 8)
 .globl	nacl_springboard_end	
 nacl_springboard_end:
 
@@ -46,31 +47,32 @@ nacl_springboard_end:
  * The usyscall code gets copied to USYSCALL by the kernel.
  */
 .globl	nacl_usyscall	
+#.section .ksyscall
 nacl_usyscall:
-	movl	%ebx,(USCRATCH + tf_ebx)
-	movl	%ecx,(USCRATCH + tf_ecx)
-	movl	%edi,(USCRATCH + tf_edi)
-	movl	%esi,(USCRATCH + tf_esi)
-	movl	%ebp,(USCRATCH + tf_ebp)
-	movw	%ds,(USCRATCH + tf_ds)
-	movw	%es,(USCRATCH + tf_es)
+	movl	%ebx,(UKSCRATCH + tf_ebx)
+	movl	%ecx,(UKSCRATCH + tf_ecx)
+	movl	%edi,(UKSCRATCH + tf_edi)
+	movl	%esi,(UKSCRATCH + tf_esi)
+	movl	%ebp,(UKSCRATCH + tf_ebp)
+	movw	%ds,(UKSCRATCH + tf_ds)
+	movw	%es,(UKSCRATCH + tf_es)
 
-	movl	%edx,(USCRATCH + tf_edx)
-	movl	%eax,(USCRATCH + tf_eax)
+	movl	%edx,(UKSCRATCH + tf_edx)
+	movl	%eax,(UKSCRATCH + tf_eax)
 
 	movl	(%esp), %eax
-	movl	%eax,(USCRATCH + tf_eip) 
+	movl	%eax,(UKSCRATCH + tf_eip) 
 	
 	movl	%cs, %eax
-	movl	%eax,(USCRATCH + tf_cs)
+	movl	%eax,(UKSCRATCH + tf_cs)
 	movl	%fs, %eax
-	movl	%eax,(USCRATCH + tf_fs)
+	movl	%eax,(UKSCRATCH + tf_fs)
 	addl	$4, %esp
-	movl	%esp,(USCRATCH + tf_esp)
+	movl	%esp,(UKSCRATCH + tf_esp)
 	movl	%ss, %eax
-	movl	%eax,(USCRATCH + tf_ss)
+	movl	%eax,(UKSCRATCH + tf_ss)
 	movl	%gs, %eax
-	movl	%eax,(USCRATCH + tf_gs)
+	movl	%eax,(UKSCRATCH + tf_gs)
 	
 	// XXX should change %esp, zero %edp
 	// XXX eflags?

@@ -188,7 +188,7 @@ syscall_handler(void);
 void __attribute__((noreturn))
 syscall_handler(void)
 {
-    struct Trapframe *tf = (struct Trapframe *)USCRATCH;
+    struct Trapframe *tf = (struct Trapframe *)UKSCRATCH;
     int trapno = T_SYSCALL;
     
     if (trap_thread) {
@@ -233,14 +233,14 @@ nacl_trap_init(void)
     // XXX have a linker script do the code automatically
     // and so we are sure of the Linux AS layout.
     assert(page_alloc(&va) == 0);
-    assert(nacl_mmap((void *)USPRING, va, PGSIZE, PROT_EXEC | PROT_READ) == 0);
+    assert(nacl_mmap((void *)UKSWITCH, va, PGSIZE, PROT_EXEC | PROT_READ) == 0);
     memcpy(va, nacl_springboard, nacl_springboard_end - nacl_springboard);
 
     assert(page_alloc(&va) == 0);
-    assert(nacl_mmap((void *)USCRATCH, va, PGSIZE, PROT_READ | PROT_WRITE) == 0);
+    assert(nacl_mmap((void *)UKSCRATCH, va, PGSIZE, PROT_READ | PROT_WRITE) == 0);
 
     assert(page_alloc(&va) == 0);
-    assert(nacl_mmap((void *)USYSCALL, va, PGSIZE, PROT_EXEC | PROT_READ) == 0);
+    assert(nacl_mmap((void *)UKSYSCALL, va, PGSIZE, PROT_EXEC | PROT_READ) == 0);
     memcpy(va, nacl_usyscall, nacl_usyscall_end - nacl_usyscall);
 }
 
@@ -262,7 +262,7 @@ void
 thread_arch_run(const struct Thread *t)
 {
     trap_user_iret_tsc = read_tsc();
-
+   
     if (flush_hack && trap_thread && t != trap_thread)
 	assert(page_map_traverse(0, (void *)0x00010000, (void *)0x00078000, 
 				 0, as_arch_page_invalidate_cb, 0) == 0);

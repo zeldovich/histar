@@ -3,21 +3,46 @@
 
 #include <machine/mmu.h>
 
-#define USYSCALL	0x07003000
-#define USCRATCH	0x07002000
-#define USPRING		0x07001000
-#define ULIM		0x07000000
-#define USTACKTOP	0x07000000
+/*
+ * Virtual memory map
+ *
+ *                    +---------------------------------------------+
+ *                    |                                             |
+ *                    |   Kernel memory (all symbols point here)    |
+ *                    |                                             |
+ *   KBASE     -----> +---------------------------------------------+
+ *                    |          user-kernel scratch page           |
+ *  UKSCRATCH  -----> +---------------------------------------------+
+ *                    |        user-kernel syscall stub page        |
+ *  UKSYSCAL   -----> +---------------------------------------------+
+ *                    |       user-kernel segment switch page       |
+ *  UKSWITCH   -----> +---------------------------------------------+
+ *                    |                one page gap                 |
+ *   ULIM --------->  +---------------------------------------------+
+ *                    |                 user stack                  |
+ *                    |                 user data                   |
+ *                    |                 user text                   |
+ *                    |                    ...                      |
+ *   0 ------------>  +---------------------------------------------+
+ */
 
-#define UMMAPBASE	0x04000000
-#define UHEAP		0x05000000
-#define UHEAPTOP	0x06000000
-#define USTARTENVRO	0x06000100
-#define UTLSBASE	0x06000200
-#define UTLSTOP		0x060fff00
-#define UFDBASE		0x06100000
-#define USEGMAPENTS	0x06200000
-#define ULDSO		0x06300000
+#define KBASE		0x80005000
+
+#define UKSCRATCH	0x80004000
+#define UKSYSCALL	0x80003000
+#define UKSWITCH	0x80002000
+
+#define ULIM		0x80000000
+#define USTACKTOP	0x80000000
+#define UMMAPBASE	0x50000000
+#define UHEAP		0x60000000
+#define UHEAPTOP	0x70000000
+#define USTARTENVRO	0x70001000
+#define UTLSBASE	0x70002000
+#define UTLSTOP		0x70fff000
+#define UFDBASE		0x71000000
+#define USEGMAPENTS	0x72000000
+#define ULDSO		0x73000000
 #define UTLS_DEFSIZE	PGSIZE
 
 #endif

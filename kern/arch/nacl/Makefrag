@@ -22,8 +22,15 @@ KERN_LIB :=					\
 	lib/string.c				\
 	lib/hashtable.c
 
-$(OBJDIR)/kern/kernel.%.debuginfo:
-	$(CC) -o $@ $(KERN_LDFLAGS) $^
+$(OBJDIR)/kern/nacl.ld.S: $(ARCHDIR)/mkldscript.pl
+	$(PERL) $(ARCHDIR)/mkldscript.pl "$(LD)" > $@
+
+$(OBJDIR)/kern/nacl.ld.o: $(OBJDIR)/kern/nacl.ld.S
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) -Ui386 -E -P $< -o $@
+
+$(OBJDIR)/kern/kernel.%.debuginfo: $(OBJDIR)/kern/nacl.ld.o
+	$(CC) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) -T $(OBJDIR)/kern/nacl.ld.o
 
 all: $(OBJDIR)/kern/kernel.base
 

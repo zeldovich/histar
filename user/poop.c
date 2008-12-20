@@ -4,7 +4,7 @@
 
 #include <inttypes.h>
 
-enum { iters = 1000 };
+enum { iters = 1000000 };
 
 uint64_t bleh;
 

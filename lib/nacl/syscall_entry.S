@@ -6,7 +6,6 @@ ENTRY(syscall)
 	.cfi_startproc
 	movl	4(%esp), %eax
 	leal	8(%esp), %edx
-	call	USYSCALL
+	call	UKSYSCALL
 	ret
 	.cfi_endproc
-
