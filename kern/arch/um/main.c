@@ -33,5 +33,6 @@ main(int ac, char **av)
 
     cprintf("Ready.\n");
 
-    um_bench();
+    for (;;)
+	um_shell();
 }
