@@ -64,7 +64,7 @@ $(OBJDIR)/boot/bimage.%: $(OBJDIR)/boot/bbootsect $(OBJDIR)/boot/bsetup \
 
 # Build the Bochs disk image
 $(OBJDIR)/boot/bochs.img: $(OBJDIR)/boot/bimage.init $(OBJDIR)/boot/bimage.base boot/syslinux.cfg
-	dd if=/dev/zero of=$@~ bs=1024k count=128 2>/dev/null
+	dd if=/dev/zero of=$@~ bs=1024k count=256 2>/dev/null
 	mkdosfs $@~
 	syslinux $@~
 	echo "drive z: file=\"$@~\"" > $@.mtoolsrc
