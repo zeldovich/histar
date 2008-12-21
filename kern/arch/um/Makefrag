@@ -9,7 +9,8 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/umtime.c			\
 	$(ARCHDIR)/umbench.c			\
 	$(ARCHDIR)/trap.c			\
-	$(ARCHDIR)/main.c
+	$(ARCHDIR)/main.c			\
+	kern/dev/filedisk.c
 
 KERN_LIB :=					\
 	lib/printfmt.c				\
