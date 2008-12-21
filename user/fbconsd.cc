@@ -27,6 +27,7 @@ extern "C" {
 }
 
 #include <inc/cpplabel.hh>
+#include <inc/labelutil.hh>
 #include <inc/error.hh>
 
 enum { vt_count = 6 };
@@ -405,9 +406,10 @@ try
     rows = (fbinfo.yres - borderpx * 2) / char_height;
     printf("Console size: %d x %d\n", cols, rows);
 
-    label fsl(1);
-    fsl.set(taint, 3);
-    fsl.set(grant, 0);
+    label fsl;
+    thread_cur_label(&fsl);
+    fsl.add(taint);
+    fsl.add(grant);
 
     for (uint32_t vt = 0; vt < vt_count; vt++) {
 	char buf[16];

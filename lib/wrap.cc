@@ -61,10 +61,11 @@ wrap_call::print_to(int fd, std::ostringstream &out)
 
 void
 wrap_call::pipe(wrap_call *wc ,int ac, const char **av, 
-		int ec, const char **ev, label *taint_label, label *ds)
+		int ec, const char **ev,
+		label *taint, label *owner, label *clear)
 {
     wc->sin_ = wout_;
-    wc->call(ac, av, ec, ev, taint_label, ds);
+    wc->call(ac, av, ec, ev, taint, owner, clear);
     
     close(wout_);
     wout_ = -1;
@@ -73,15 +74,16 @@ wrap_call::pipe(wrap_call *wc ,int ac, const char **av,
 void
 wrap_call::pipe(wrap_call *wc ,int ac, const char **av, 
 		int ec, const char **ev, 
-		label *taint_label, label *ds, std::ostringstream &out)
+		label *taint, label *owner, label *clear,
+		std::ostringstream &out)
 {
-    pipe(wc, ac, av, ec, ev, taint_label, ds);
+    pipe(wc, ac, av, ec, ev, taint, owner, clear);
     print_to(wc->wout_, out);
 }
 
 void
 wrap_call::call(int ac, const char **av, int ec, const char **ev, 
-		label *taint, label *ds_arg)
+		label *taint, label *owner, label *clear)
 {
     if (called_)
 	throw basic_exception("wrap_call::call already called");
@@ -95,22 +97,17 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
 	sin_ = def_fd;
     if (eout_ < 0)
 	eout_ = def_fd;
-           
-    label taint_label(0);
-    if (taint)
-	taint_label = *taint;
-
-    error_check(fd_make_public(sin_, taint_label.to_ulabel()));
-    error_check(fd_make_public(sout_, taint_label.to_ulabel()));
-    error_check(fd_make_public(eout_, taint_label.to_ulabel()));
-    error_check(fd_make_public(wout_, taint_label.to_ulabel()));
-
-    label tmp;
+ 
+    error_check(fd_make_public(sin_,  taint ? taint->to_ulabel() : 0));
+    error_check(fd_make_public(sout_, taint ? taint->to_ulabel() : 0));
+    error_check(fd_make_public(eout_, taint ? taint->to_ulabel() : 0));
+    error_check(fd_make_public(wout_, taint ? taint->to_ulabel() : 0));
 
     // Make a private /tmp
-    label tmp_label(1);
-    tmp_label.merge(&taint_label, &tmp, label::max, label::leq_starlo);
-    tmp_label = tmp;
+    label tmp_label;
+    thread_cur_label(&tmp_label);
+    if (taint)
+	tmp_label.add(*taint);
 
     fs_inode self_dir;
     fs_get_root(call_ct_.object, &self_dir);
@@ -126,18 +123,6 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
     cobj_ref fs_mtab_seg = COBJ(call_ct_.object, new_mtab_id);
     fs_mount(fs_mtab_seg, root_ino_, "tmp", tmp_dir);
 
-    label cs(LB_LEVEL_STAR);
-    cs.merge(&taint_label, &tmp, label::max, label::leq_starlo);
-    cs = tmp;
-    
-    label dr(1);
-    dr.merge(&taint_label, &tmp, label::max, label::leq_starlo);
-    dr = tmp;
-
-    label ds(3);
-    if (ds_arg)
-	ds = *ds_arg;
-    
     struct fs_inode ino;
     error_check(fs_namei(pn_, &ino));
 
@@ -154,10 +139,9 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
     sd.envc_ = ec;
     sd.envv_ = ev;
     
-    sd.cs_ = &cs;
-    sd.ds_ = &ds;
-    sd.dr_ = &dr;
-    sd.co_ = &taint_label;
+    sd.taint_ = taint;
+    sd.owner_ = owner;
+    sd.clear_ = clear;
 
     sd.fs_mtab_seg_ = fs_mtab_seg;
     sd.fs_root_ = root_ino_;
@@ -172,8 +156,9 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
 
 void
 wrap_call::call(int ac, const char **av, int ec, const char **ev, 
-		label *taint, label *ds, std::ostringstream &out)
+		label *taint, label *owner, label *clear,
+		std::ostringstream &out)
 {
-    call(ac, av, ec, ev, taint, ds);
+    call(ac, av, ec, ev, taint, owner, clear);
     print_to(wout_, out);
 }

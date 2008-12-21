@@ -11,14 +11,17 @@ public:
     ~wrap_call(void);
 
     void call(int ac, const char **av, int ec, const char **ev, 
-	      label *taint_label, label *ds);
+	      label *taint, label *owner, label *clear);
     void call(int ac, const char **av, int ec, const char **ev, 
-	      label *taint_label, label *ds, std::ostringstream &out);
+	      label *taint, label *owner, label *clear,
+	      std::ostringstream &out);
 
     void pipe(wrap_call *wc ,int ac, const char **av, 
-	      int ec, const char **ev, label *taint_label, label *ds);
+	      int ec, const char **ev,
+	      label *taint, label *owner, label *clear);
     void pipe(wrap_call *wc ,int ac, const char **av, int ec, const char **ev, 
-	      label *taint_label, label *ds, std::ostringstream &out);
+	      label *taint, label *owner, label *clear,
+	      std::ostringstream &out);
 
     const child_process *child_proc(void) { return &cp_; }
 

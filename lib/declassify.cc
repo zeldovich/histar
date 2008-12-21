@@ -19,20 +19,24 @@ enum { declass_debug = 0 };
 void __attribute__((noreturn))
 declassifier(uint64_t arg, struct gate_call_data *gcd, gatesrv_return *gr)
 {
-    uint64_t declassify_handle = arg;
+#if 0
+    uint64_t declassify_cat = arg;
 
-    label vl, vc;
-    thread_cur_verify(&vl, &vc);
+    label vo, vc;
+    thread_cur_verify(&vo, &vc);
     if (declass_debug)
-	cprintf("declassify: verify label %s clear %s\n", vl.to_string(), vc.to_string());
+	cprintf("declassify: verify owner %s clear %s\n", vo.to_string(), vc.to_string());
 
-    label declassified(vl);
-    declassified.set(declassify_handle, declassified.get_default());
-
+    /*
+     * This doesn't seem to be the right way to do this anyway..
+     * What happens if we're tainted with two categories, and two
+     * declassifiers are needed to reveal exit status?
+     */
     if (start_env->declassify_gate.object) {
-	gate_call(start_env->declassify_gate, 0, &declassified, 0).call(gcd, &declassified);
-	gr->ret(0, 0, 0);
+	gate_call(start_env->declassify_gate, 0, 0).call(gcd, &declassified);
+	gr->new_ret(0, 0);
     }
+#endif
 
     // XXX
     // would be nice if we could change our label to something like
@@ -60,8 +64,8 @@ declassifier(uint64_t arg, struct gate_call_data *gcd, gatesrv_return *gr)
 
 	kill(darg->exit.parent_pid, SIGCHLD);
     } else if (darg->req == declassify_fs_create) {
-	label file_label(vl);
-	file_label.transform(label::star_to, file_label.get_default());
+	label file_label;
+	thread_cur_label(&file_label);
 
 	if (declass_debug)
 	    cprintf("declassify: file label %s\n", file_label.to_string());
@@ -78,5 +82,5 @@ declassifier(uint64_t arg, struct gate_call_data *gcd, gatesrv_return *gr)
 	darg->status = -E_BAD_OP;
     }
 
-    gr->ret(0, 0, 0);
+    gr->new_ret(0, 0);
 }
