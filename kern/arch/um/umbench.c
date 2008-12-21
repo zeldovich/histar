@@ -3,7 +3,7 @@
 #include <kern/lib.h>
 #include <kern/kobj.h>
 #include <kern/timer.h>
-#include <kern/handle.h>
+#include <kern/id.h>
 #include <inc/error.h>
 
 void
@@ -12,19 +12,46 @@ um_bench(void)
     struct Container *c;
     struct Segment *sg;
     struct Segment *s[20];
-    struct Label *l1, *l2;
+    struct Label *l1, *l2, *l3, *l4, *owner, *clear;
+    uint64_t cs[16], ci[16], csx;
     struct kobject *ko;
     const struct kobject *cko;
     void *p;
 
-    assert(0 == label_alloc(&l1, 1));
-    assert(0 == label_alloc(&l2, 1));
+    assert(0 == label_alloc(&l1, label_track));
+    assert(0 == label_alloc(&l2, label_track));
 
-    assert(0 == label_set(l1, 123, LB_LEVEL_STAR));
-    assert(0 == label_set(l2, 123, 3));
+    csx = id_alloc() | LB_SECRECY_FLAG;
+    assert(0 == label_add(l2, csx));
 
-    assert(0 == label_set(l1, 456, 0));
-    assert(0 == label_set(l2, 789, 3));
+    assert(0 == label_alloc(&owner, label_priv));
+    assert(0 == label_alloc(&clear, label_priv));
+
+    for (int i = 0; i < 16; i++) {
+	cs[i] = id_alloc() | LB_SECRECY_FLAG;
+	ci[i] = id_alloc() | LB_SECRECY_FLAG;
+
+	assert(0 == label_add(l1, cs[i]));
+	assert(0 == label_add(l1, ci[i]));
+
+	assert(0 == label_add(l2, cs[i]));
+	assert(0 == label_add(l2, ci[i]));
+
+	assert(0 == label_add(owner, cs[i]));
+	assert(0 == label_add(owner, ci[i]));
+
+	assert(0 == label_add(clear, cs[i]));
+	assert(0 == label_add(clear, ci[i]));
+    }
+
+    assert(0 == label_alloc(&l3, label_track));
+    assert(0 == label_alloc(&l4, label_track));
+
+    assert(0 == label_add(l3, cs[14]));
+    assert(0 == label_add(l3, ci[14]));
+
+    assert(0 == label_add(l4, cs[15]));
+    assert(0 == label_add(l4, ci[15]));
 
     assert(0 == container_alloc(l1, &c));
     kobject_incref_resv(&c->ct_ko, 0);
@@ -49,20 +76,20 @@ um_bench(void)
     cprintf("\n");
 
     TEST_START
-	assert(0 == label_compare(l1, l2, label_leq_starlo, 0));
-    TEST_END("non-cached label comparison");
+	assert(0 == label_can_flow(l1, l2, 0, 0));
+    TEST_END("large label comparison");
 
     TEST_START
-	assert(0 == label_compare(l1, l2, label_leq_starlo, 1));
-    TEST_END("cached label comparison");
+	assert(-E_LABEL == label_can_flow(l2, l1, 0, 0));
+    TEST_END("large label error");
 
     TEST_START
-	assert(-E_LABEL == label_compare(l2, l1, label_leq_starlo, 0));
-    TEST_END("non-cached label error");
+	assert(0 == label_can_flow(l3, l4, owner, clear));
+    TEST_END("small label comparison with large priv");
 
     TEST_START
-	assert(handle_alloc() != 0);
-    TEST_END("handle alloc");
+	assert(id_alloc() != 0);
+    TEST_END("id alloc");
 
     TEST_START {
 	assert(0 == page_alloc(&p));
@@ -75,12 +102,12 @@ um_bench(void)
     TEST_END("kobject GC scan");
 
     TEST_START {
-	assert(0 == kobject_alloc(kobj_label, 0, 0, &ko));
+	assert(0 == kobject_alloc(kobj_label, 0, 0, 0, &ko));
 	kobject_gc_scan();
     }
     TEST_END("kobject alloc/GC");
 
-    assert(0 == kobject_alloc(kobj_label, 0, 0, &ko));
+    assert(0 == kobject_alloc(kobj_label, 0, 0, 0, &ko));
     assert(0 == kobject_set_nbytes(&ko->hdr, 8 * PGSIZE));
     kobject_incref_resv(&ko->hdr, 0);
 
