@@ -79,7 +79,7 @@ setpgid(pid_t pid, pid_t new_pgid) __THROW
 	return 0;
     } catch (std::exception &e) {
 	if (proc_debug)
-	    cprintf("setpgid: cannot map segment: %s", e.what());
+	    cprintf("setpgid: cannot map segment: %s\n", e.what());
 	__set_errno(EPERM);
     }
     return -1;

@@ -1192,8 +1192,9 @@ kern_syscall(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
     if (syscall_trace)
 	cprintf("%"PRIu64"/%"PRIx64" (%s): %s(%"PRIx64", %"PRIx64", %"PRIx64", "
 		"%"PRIx64", %"PRIx64", %"PRIx64", %"PRIx64"): %"PRIx64" (%s)\n",
-		cur_thread->th_ko.ko_id, cur_thread->th_ko.ko_id,
-		cur_thread->th_ko.ko_name,
+		cur_thread ? cur_thread->th_ko.ko_id : 0,
+		cur_thread ? cur_thread->th_ko.ko_id : 0,
+		cur_thread ? cur_thread->th_ko.ko_name : "none",
 		syscall2s(num), a1, a2, a3, a4, a5, a6, a7,
 		r, e2s(r));
 

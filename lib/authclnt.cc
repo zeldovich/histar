@@ -153,7 +153,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     label thread_taint;
     thread_cur_label(&thread_taint);
     thread_taint.add(pw_taint);
-    thread_set_label(&thread_taint);
+    error_check(thread_set_label(&thread_taint));
 
     label save_owner, save_clear;
     thread_cur_ownership(&save_owner);
@@ -171,7 +171,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 	prove_owner.add(start_env->user_grant);
 
     gate_call(uauth_gate, 0, 0).call(&gcd, &prove_owner);
-    error_check(uauth_reply->err);
+    int auth_err = uauth_reply->err;
 
     // Try to be really paranoid here about not accidentally revealing
     // any extra information from uauth_gate.
@@ -185,14 +185,17 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     error_check(sys_self_fp_disable());
 
     label vo, vc;
-    sys_self_set_verify(vo.to_ulabel(), vc.to_ulabel());
+    error_check(sys_self_set_verify(vo.to_ulabel(), vc.to_ulabel()));
 
-    save_owner.add(xh);
-    thread_set_ownership(&save_owner);
-    thread_set_clearance(&save_clear);
+    if (auth_err == 0)
+	save_owner.add(xh);
+    error_check(thread_set_ownership(&save_owner));
+    error_check(thread_set_clearance(&save_clear));
 
     thread_taint.remove(pw_taint);
-    thread_set_label(&thread_taint);
+    error_check(thread_set_label(&thread_taint));
+
+    error_check(auth_err);
 
     // Done scrubbing the thread state.
 

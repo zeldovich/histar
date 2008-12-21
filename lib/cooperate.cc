@@ -290,9 +290,9 @@ coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8],
 }
 
 static void
-coop_gate_invoke_cleanup(label *tgt_label, label *tgt_clear, void *arg)
+coop_gate_invoke_cleanup(label *tgt_owner, label *tgt_clear, void *arg)
 {
-    delete tgt_label;
+    delete tgt_owner;
     delete tgt_clear;
 
     int *donep = (int *) arg;
@@ -324,15 +324,16 @@ coop_gate_invoke_thread(int *invoke_donep, cobj_ref *gatep,
 	if (!arg_values[i].is_label)
 	    csa_val->argval[i] = arg_values[i].u.i;
 
-    label gate_owner, gate_clear;
-    get_label_retry_obj(&gate_owner, sys_obj_get_ownership, *gatep);
-    get_label_retry_obj(&gate_clear, sys_obj_get_clearance, *gatep);
+    label *gate_owner = new label();
+    label *gate_clear = new label();
+    get_label_retry_obj(gate_owner, sys_obj_get_ownership, *gatep);
+    get_label_retry_obj(gate_clear, sys_obj_get_clearance, *gatep);
     if (owner)
-	gate_owner.add(*owner);
+	gate_owner->add(*owner);
     if (clear)
-	gate_clear.add(*clear);
+	gate_clear->add(*clear);
 
-    gate_invoke(*gatep, &gate_owner, &gate_clear,
+    gate_invoke(*gatep, gate_owner, gate_clear,
 		&coop_gate_invoke_cleanup, invoke_donep);
 }
 

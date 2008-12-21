@@ -100,7 +100,7 @@ thread_drop_starpair(uint64_t c1, uint64_t c2)
 
     try {
 	label o;
-	thread_cur_label(&o);
+	thread_cur_ownership(&o);
 	if (o.contains(c1) || o.contains(c2)) {
 	    o.remove(c1);
 	    o.remove(c2);
@@ -117,10 +117,12 @@ thread_label_cache_invalidate(void)
 {
     scoped_jthread_lock x(&label_ops_mu);
 
-    if (cur_th_clear_id == thread_id())
-	cur_th_clear_id = 0;
     if (cur_th_label_id == thread_id())
 	cur_th_label_id = 0;
+    if (cur_th_owner_id == thread_id())
+	cur_th_owner_id = 0;
+    if (cur_th_clear_id == thread_id())
+	cur_th_clear_id = 0;
 }
 
 void

@@ -32,12 +32,11 @@ try
 	throw basic_exception("Missing user taint handle -- not logged in?");
 
     int64_t clam_taint;
-    error_check(clam_taint = handle_alloc());
+    error_check(clam_taint = category_alloc(1));
 
     label bipipe_l;
     thread_cur_label(&bipipe_l);
-    bipipe_l.transform(label::star_to, 1);
-    bipipe_l.set(clam_taint, 3);
+    bipipe_l.add(clam_taint);
 
     int fds[2];
     if (bipipe_label(SOCK_STREAM, &fds[0], bipipe_l.to_ulabel()) < 0)
@@ -47,30 +46,19 @@ try
     if (nullfd < 0)
 	throw basic_exception("cannot open /dev/null: %s", strerror(errno));
 
-    label clear;
-    thread_cur_clearance(&clear);
-    clear.set(start_env->user_taint, 3);
-    clear.set(clam_taint, 3);
-    thread_set_clearance(&clear);
+    label taint;
+    taint.add(clam_taint);
 
-    label taint_zero(0);
-    taint_zero.set(start_env->user_taint, 3);
-    taint_zero.set(clam_taint, 3);
-
-    label taint_star(LB_LEVEL_STAR);
-    taint_star.set(start_env->user_taint, 3);
-    taint_star.set(clam_taint, 3);
-
-    error_check(fd_make_public(fds[0], taint_zero.to_ulabel()));
-    error_check(fd_make_public(fds[1], taint_zero.to_ulabel()));
-    error_check(fd_make_public(nullfd, taint_zero.to_ulabel()));
+    error_check(fd_make_public(fds[0], taint.to_ulabel()));
+    error_check(fd_make_public(fds[1], taint.to_ulabel()));
+    error_check(fd_make_public(nullfd, taint.to_ulabel()));
 
     // Make a private /tmp for clamscan to use
     label tmp_label;
     thread_cur_label(&tmp_label);
-    tmp_label.transform(label::star_to, 1);
-    tmp_label.set(start_env->user_taint, 3);
-    tmp_label.set(clam_taint, 3);
+    tmp_label.add(start_env->user_grant);
+    tmp_label.add(start_env->user_taint);
+    tmp_label.add(clam_taint);
 
     fs_inode self_dir;
     fs_get_root(start_env->shared_container, &self_dir);
@@ -120,7 +108,7 @@ try
 	      nullfd, fds[1], fds[1],
 	      3, &nav[0],
 	      envc, (const char **) environ,
-	      &taint_star, 0, 0, &taint_zero, 0);
+	      &taint, 0, 0);
     close(fds[1]);
     close(nullfd);
 
