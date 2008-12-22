@@ -11,12 +11,7 @@ include conf/config.mk
 -include conf/gcc.$(K_ARCH).mk
 include conf/Makefrag.$(K_ARCH)
 
-## Use multiple objdirs to build multiple architectures with same source tree
-ifeq ($(MULTIOBJ),yes)
-OBJDIR	:= obj$(OBJSUFFIX).$(K_ARCH)
-else
-OBJDIR	:= obj
-endif
+OBJDIR	:= obj$(OBJSUFFIX)
 
 TOP	:= $(shell echo $${PWD-`pwd`})
 GCC_LIB	:= $(shell $(CC) -print-libgcc-file-name)
