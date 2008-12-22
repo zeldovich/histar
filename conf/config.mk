@@ -2,11 +2,7 @@
 ##	amd64 i386 ft sparc um arm
 K_ARCH := amd64
 
-## Use a separate obj directory for each target architecture;
-## useful for building multiple architectures in the same tree.
-MULTIOBJ := yes
-
-## Additional suffix for the obj directory name, to distinguish
-## multiple builds of the same arch in the same tree
-OBJSUFFIX := 
+## Create a separate build directory for each git branch and for each arch
+OBJSUFFIX := $(shell git-symbolic-ref -q HEAD | \
+	       sed -e s,refs/heads/,.,).$(K_ARCH)
 
