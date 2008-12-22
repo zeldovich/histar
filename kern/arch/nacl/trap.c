@@ -230,17 +230,18 @@ nacl_trap_init(void)
     assert(sigaction(SIGSEGV, &sa, 0) == 0);
     assert(sigaction(SIGINT, &sa, 0) == 0);
 
-    // XXX have a linker script do the code automatically
-    // and so we are sure of the Linux AS layout.
     assert(page_alloc(&va) == 0);
-    assert(nacl_mmap((void *)UKSWITCH, va, PGSIZE, PROT_EXEC | PROT_READ) == 0);
+    memset(va, 0, PGSIZE);
+    assert(nacl_mmap((void *)UKSWITCH, va, PGSIZE, PROT_READ | PROT_EXEC) == 0);
     memcpy(va, nacl_springboard, nacl_springboard_end - nacl_springboard);
 
     assert(page_alloc(&va) == 0);
+    memset(va, 0, PGSIZE);
     assert(nacl_mmap((void *)UKSCRATCH, va, PGSIZE, PROT_READ | PROT_WRITE) == 0);
 
     assert(page_alloc(&va) == 0);
-    assert(nacl_mmap((void *)UKSYSCALL, va, PGSIZE, PROT_EXEC | PROT_READ) == 0);
+    memset(va, 0, PGSIZE);
+    assert(nacl_mmap((void *)UKSYSCALL, va, PGSIZE, PROT_READ | PROT_EXEC) == 0);
     memcpy(va, nacl_usyscall, nacl_usyscall_end - nacl_usyscall);
 }
 
