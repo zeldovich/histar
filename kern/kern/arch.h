@@ -5,10 +5,10 @@
 #include <machine/types.h>
 #include <machine/memlayout.h>
 #include <machine/pmap.h>
-#include <machine/setjmp.h>
 #include <kern/thread.h>
 #include <kern/param.h>
 #include <inc/alignmacro.h>
+#include <inc/setjmp.h>
 
 /*
  * Page table (Pagemap) handling
