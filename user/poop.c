@@ -27,6 +27,7 @@ thread_entry(void *x)
 int
 main(int ac, char **av)
 {
+    cprintf("hello from poop\n");
     int r;
     struct cobj_ref tref;
     r = thread_create(start_arg0, thread_entry, 0, &tref, "poop");

@@ -8,21 +8,20 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/nacltime.c			\
 	$(ARCHDIR)/umcons.c			\
 	$(ARCHDIR)/umtime.c			\
-	$(ARCHDIR)/umbench.c			\
 	$(ARCHDIR)/trap.c			\
 	$(ARCHDIR)/main.c			\
 	$(ARCHDIR)/pmap.c			\
-	$(ARCHDIR)/locore.S
-
+	$(ARCHDIR)/locore.S			\
+	kern/dev/filedisk.c
 KERN_LIB :=					\
 	lib/printfmt.c				\
 	lib/sysstring.c				\
 	lib/cksum.c				\
 	lib/bf60.c				\
-	lib/string.c				\
 	lib/hashtable.c
 
 $(OBJDIR)/kern/nacl.ld.S: $(ARCHDIR)/mkldscript.pl
+	@mkdir -p $(@D)
 	$(PERL) $(ARCHDIR)/mkldscript.pl "$(LD)" > $@
 
 $(OBJDIR)/kern/nacl.ld.o: $(OBJDIR)/kern/nacl.ld.S

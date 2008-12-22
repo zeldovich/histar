@@ -57,7 +57,6 @@ karch_get_tsc(void)
     return 0;
 }
 
-void karch_jmpbuf_init(struct jos_jmp_buf *jb, void *fn, void *stackbase) {}
 void irq_arch_enable(uint32_t irqno) {}
 void karch_fp_init(struct Fpregs *fpreg) {}
 
@@ -88,14 +87,36 @@ thread_arch_is_masked(const struct Thread *t)
 void
 jos_longjmp(volatile struct jos_jmp_buf *buf, int val)
 {
-    printf("jos_longjmp: not supported\n");
-    exit(1);
+    struct jos_jmp_buf *b = (struct jos_jmp_buf *) buf;
+    siglongjmp(b->native_jb, val ?: 1);
 }
 
-int
-jos_setjmp(volatile struct jos_jmp_buf *buf)
+/*
+ * Yow!  glibc/sysdeps/unix/sysv/linux/arch/sysdep.h
+ */
+#ifdef __x86_64__
+#define PTR_MANGLE(x) __asm("xorq %%fs:0x30, %0; rolq $0x11, %0" : "+r" (x))
+#endif
+
+#ifdef __i386__
+#define PTR_MANGLE(x) __asm("xorl %%gs:0x18, %0; roll $0x09, %0" : "+r" (x))
+#endif
+
+void
+karch_jmpbuf_init(struct jos_jmp_buf *jb, void *fn, void *stackbase)
 {
-    return 0;
+    uintptr_t pc = (uintptr_t) fn;
+    uintptr_t sp = ROUNDUP((uintptr_t) stackbase, PGSIZE);
+
+    PTR_MANGLE(pc);
+    PTR_MANGLE(sp);
+
+    int nregs = sizeof(jb->native_jb[0].__jmpbuf) /
+		sizeof(jb->native_jb[0].__jmpbuf[0]);
+
+    jb->native_jb[0].__jmpbuf[nregs - 1] = pc;
+    jb->native_jb[0].__jmpbuf[nregs - 2] = sp;
+    jb->native_jb[0].__mask_was_saved = 0;
 }
 
 void

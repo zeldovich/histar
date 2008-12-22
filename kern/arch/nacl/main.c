@@ -10,13 +10,14 @@
 #include <kern/handle.h>
 #include <kern/uinit.h>
 #include <kern/embedbin.h>
+#include <dev/filedisk.h>
 #include <inc/error.h>
 
 int
 main(int ac, char **av)
 {
-    if (ac < 3) {
-	printf("usage: %s bootstrap.nexe memfile\n", av[0]);
+    if (ac < 4) {
+	printf("usage: %s bootstrap.nexe memfile diskfile\n", av[0]);
 	return -1;
     }
 
@@ -24,7 +25,9 @@ main(int ac, char **av)
     nacl_mem_init(av[2], av[1]);
     nacl_trap_init();
     nacl_timer_init();
-    
+    filedisk_init(av[3]);
+    part_init();
+
     kobject_init();
     sched_init();
     pstate_init();
