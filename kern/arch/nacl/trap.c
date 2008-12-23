@@ -28,6 +28,7 @@ enum { flush_hack = 0 };
 
 static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;
+static sigset_t trap_sigset;
 static int trap_thread_syscall_writeback;
 
 static void __attribute__((unused))
@@ -91,8 +92,6 @@ trap_dispatch(int trapno, const struct Trapframe *tf, void *addr)
 	    r = kern_syscall(sysnum, args[0], args[1], args[2],
 			     args[3], args[4], args[5], args[6]);
 
-	//printf("sysnum %u, clock_nsec %u\n", sysnum, SYS_sync_wait);
-
 	if (trap_thread_syscall_writeback) {
 	    trap_thread_syscall_writeback = 0;
 	    struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
@@ -117,11 +116,40 @@ trap_dispatch(int trapno, const struct Trapframe *tf, void *addr)
 }
 
 static void __attribute__((noreturn))
+trap_handler(int trapno, struct Trapframe *tf, void *addr)
+{
+    if (trap_thread) {
+	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
+	sched_stop(t, read_tsc() - trap_user_iret_tsc);
+
+	t->th_tf = *tf;
+	
+	if (t->th_fp_enabled) {
+	    void *p;
+	    assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_excl_dirty));
+	    fxsave((struct Fpregs *) p);
+	}
+    }
+
+    uint64_t start = read_tsc();
+    if (trap_thread) {
+	prof_user(0, start - trap_user_iret_tsc);
+	prof_thread(trap_thread, start - trap_user_iret_tsc);
+    } else {
+	prof_user(1, start - trap_user_iret_tsc);
+    }
+
+    trap_dispatch(trapno, tf, addr);
+    prof_trap(trapno, read_tsc() - start);
+
+    thread_run();
+}
+
+static void __attribute__((noreturn))
 sig_handler(int num, siginfo_t *info, void *x)
 {
     struct Trapframe tf;
     greg_t *greg = ((ucontext_t *)x)->uc_mcontext.gregs;
-    sigset_t set;
     
     memset(&tf, 0, sizeof(tf));
     tf.tf_ebx = greg[REG_EBX];
@@ -149,100 +177,18 @@ sig_handler(int num, siginfo_t *info, void *x)
 	panic("XXX fix me %x %p", tf.tf_eip, info->si_addr);
     if (num == SIGINT)
 	panic("SIGINT fix me %x", tf.tf_eip);
-	
-    if (trap_thread) {
-	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
-	sched_stop(t, read_tsc() - trap_user_iret_tsc);
 
-	t->th_tf = tf;
-	
-	if (t->th_fp_enabled) {
-	    void *p;
-	    assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_excl_dirty));
-	    fxsave((struct Fpregs *) p);
-	}
-    }
+    memset(&trap_sigset, 0, sizeof(trap_sigset));
+    sigaddset(&trap_sigset, num);
 
-    uint64_t start = read_tsc();
-    if (trap_thread) {
-	prof_user(0, start - trap_user_iret_tsc);
-	prof_thread(trap_thread, start - trap_user_iret_tsc);
-    } else {
-	prof_user(1, start - trap_user_iret_tsc);
-    }
-
-    trap_dispatch(trapno, &tf, info->si_addr);
-    prof_trap(trapno, read_tsc() - start);
-
-    sigaddset(&set, num);
-    // XXX all signals should be masked and we
-    // should unmask them in some in trusted stub in the 
-    // untrusted region...
-    assert(sigprocmask(SIG_UNBLOCK, &set, 0) == 0);
-
-    thread_run();
+    trap_handler(trapno, &tf, info->si_addr);
 }
-void
-syscall_handler(void);
 
 void __attribute__((noreturn))
 syscall_handler(void)
 {
     struct Trapframe *tf = (struct Trapframe *)UKSCRATCH;
-    int trapno = T_SYSCALL;
-    
-    if (trap_thread) {
-	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
-	sched_stop(t, read_tsc() - trap_user_iret_tsc);
-
-	t->th_tf = *tf;
-	
-	if (t->th_fp_enabled) {
-	    void *p;
-	    assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_excl_dirty));
-	    fxsave((struct Fpregs *) p);
-	}
-    }
-
-    uint64_t start = read_tsc();
-    if (trap_thread) {
-	prof_user(0, start - trap_user_iret_tsc);
-	prof_thread(trap_thread, start - trap_user_iret_tsc);
-    } else {
-	prof_user(1, start - trap_user_iret_tsc);
-    }
-
-    trap_dispatch(trapno, tf, 0);
-    prof_trap(trapno, read_tsc() - start);
-
-    thread_run();
-}
-
-void
-nacl_trap_init(void)
-{
-    void *va;
-    struct sigaction sa;
-    sa.sa_sigaction = sig_handler;
-    memset(&sa.sa_mask, 0, sizeof(sa.sa_mask));
-    sa.sa_flags = SA_SIGINFO | SA_ONSTACK;
-
-    assert(sigaction(SIGSEGV, &sa, 0) == 0);
-    assert(sigaction(SIGINT, &sa, 0) == 0);
-
-    assert(page_alloc(&va) == 0);
-    memset(va, 0, PGSIZE);
-    assert(nacl_mmap((void *)UKSWITCH, va, PGSIZE, PROT_READ | PROT_EXEC) == 0);
-    memcpy(va, nacl_springboard, nacl_springboard_end - nacl_springboard);
-
-    assert(page_alloc(&va) == 0);
-    memset(va, 0, PGSIZE);
-    assert(nacl_mmap((void *)UKSCRATCH, va, PGSIZE, PROT_READ | PROT_WRITE) == 0);
-
-    assert(page_alloc(&va) == 0);
-    memset(va, 0, PGSIZE);
-    assert(nacl_mmap((void *)UKSYSCALL, va, PGSIZE, PROT_READ | PROT_EXEC) == 0);
-    memcpy(va, nacl_usyscall, nacl_usyscall_end - nacl_usyscall);
+    trap_handler(T_SYSCALL, tf, 0);
 }
 
 static void
@@ -265,7 +211,7 @@ thread_arch_run(const struct Thread *t)
     trap_user_iret_tsc = read_tsc();
    
     if (flush_hack && trap_thread && t != trap_thread)
-	assert(page_map_traverse(0, (void *)0x00010000, (void *)0x00078000, 
+	assert(page_map_traverse(0, (void *)0x00000000, (void *)ULIM, 
 				 0, as_arch_page_invalidate_cb, 0) == 0);
     
     trap_thread_set(t);
@@ -275,6 +221,7 @@ thread_arch_run(const struct Thread *t)
     if (t->th_tf.tf_gs != read_gs())
 	write_gs(t->th_tf.tf_gs);
 
+    assert(sigprocmask(SIG_UNBLOCK, &trap_sigset, 0) == 0);
     trapframe_pop(&t->th_tf);
 }
 
@@ -326,6 +273,44 @@ thread_arch_get_entry_args(const struct Thread *t,
 {
     memcpy(targ, &t->th_tfa.tfa_entry_args, sizeof(*targ));
     return 0;
+}
+
+void
+nacl_trap_init(void)
+{
+    void *va;
+    stack_t ss;
+    struct sigaction sa;
+    
+    sa.sa_sigaction = sig_handler;
+    memset(&sa.sa_mask, 0, sizeof(sa.sa_mask));
+    sa.sa_flags = SA_SIGINFO | SA_ONSTACK;
+
+    assert(sigaction(SIGSEGV, &sa, 0) == 0);
+    assert(sigaction(SIGINT, &sa, 0) == 0);
+
+    assert(page_alloc(&va) == 0);
+    memset(va, 0, PGSIZE);
+    assert(nacl_mmap((void *)UKSWITCH, va, PGSIZE, PROT_READ | PROT_EXEC) == 0);
+    memcpy(va, nacl_springboard, nacl_springboard_end - nacl_springboard);
+
+    assert(page_alloc(&va) == 0);
+    memset(va, 0, PGSIZE);
+    assert(nacl_mmap((void *)UKSCRATCH, va, PGSIZE, PROT_READ | PROT_WRITE) == 0);
+
+    assert(page_alloc(&va) == 0);
+    memset(va, 0, PGSIZE);
+    assert(nacl_mmap((void *)UKSYSCALL, va, PGSIZE, PROT_READ | PROT_EXEC) == 0);
+    memcpy(va, nacl_usyscall, nacl_usyscall_end - nacl_usyscall);
+
+    static_assert(2 * PGSIZE == SIGSTKSZ);
+    va = mmap((void *)UKSTACK, SIGSTKSZ, PROT_READ | PROT_WRITE, 
+	      MAP_FIXED | MAP_SHARED | MAP_ANONYMOUS, 0, 0);
+    assert(va != MAP_FAILED);
+    ss.ss_sp = va;
+    ss.ss_flags = 0;
+    ss.ss_size = SIGSTKSZ;
+    assert(sigaltstack(&ss, 0) == 0);
 }
 
 static void __attribute__((used))

@@ -94,17 +94,6 @@ nacl_mem_init(const char *memfn, const char *binfn)
 	    panic("read failed");
     }
 
-    // XXX this should be a stub stack in the untrusted region
-    free_end -= SIGSTKSZ;
-    if (free_end < mem_base)
-	panic("not enough mem for signal stack");
-
-    stack_t ss;
-    ss.ss_sp = free_end;
-    ss.ss_flags = 0;
-    ss.ss_size = SIGSTKSZ;
-    assert(sigaltstack(&ss, 0) == 0);
-    
     page_alloc_init();
     for (void *p = mem_base; p < free_end; p += PGSIZE)
 	page_free(p);

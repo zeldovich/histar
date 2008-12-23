@@ -11,7 +11,6 @@ trapframe_pop:
  * The springboard code gets copied to USPRING by the kernel.
  */
 .globl	nacl_springboard	
-#.section .kuser
 nacl_springboard:
 	hlt			/* one byte */
 	addl    $8, %esp	/* springboard addr, cs */
@@ -25,7 +24,7 @@ nacl_springboard:
 	movl	%eax, UKSCRATCH + 8 
 	
 	movw	tf_es(%esp),%es
-	
+		
 	movl	tf_eax(%esp),%eax
 	movl	tf_ebx(%esp),%ebx
 	movl	tf_ecx(%esp),%ecx
@@ -47,7 +46,6 @@ nacl_springboard_end:
  * The usyscall code gets copied to USYSCALL by the kernel.
  */
 .globl	nacl_usyscall	
-#.section .ksyscall
 nacl_usyscall:
 	movl	%ebx,(UKSCRATCH + tf_ebx)
 	movl	%ecx,(UKSCRATCH + tf_ecx)
@@ -63,21 +61,21 @@ nacl_usyscall:
 	movl	(%esp), %eax
 	movl	%eax,(UKSCRATCH + tf_eip) 
 	
-	movl	%cs, %eax
-	movl	%eax,(UKSCRATCH + tf_cs)
-	movl	%fs, %eax
-	movl	%eax,(UKSCRATCH + tf_fs)
+	movw	%cs, %ax
+	movw	%ax,(UKSCRATCH + tf_cs)
+	movw	%fs, %ax
+	movw	%ax,(UKSCRATCH + tf_fs)
 	addl	$4, %esp
 	movl	%esp,(UKSCRATCH + tf_esp)
-	movl	%ss, %eax
-	movl	%eax,(UKSCRATCH + tf_ss)
-	movl	%gs, %eax
-	movl	%eax,(UKSCRATCH + tf_gs)
+	movw	%ss, %ax
+	movw	%ax,(UKSCRATCH + tf_ss)
+	movw	%gs, %ax
+	movw	%ax,(UKSCRATCH + tf_gs)
 	
 	// XXX should change %esp, zero %edp
 	// XXX eflags?
 	// XXX linker script will fix this hack
-	mov	$syscall_handler,%ebx
+	movl	$syscall_handler,%ebx
 	call	*%ebx
 .globl	nacl_usyscall_end	
 nacl_usyscall_end:

@@ -5,6 +5,8 @@
 void trapframe_pop(const struct Trapframe *)
     __attribute__((noreturn, regparm (1)));
 
+void syscall_handler(void);
+
 extern char nacl_springboard[];
 extern char nacl_springboard_end[];
 
