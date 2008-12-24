@@ -23,6 +23,7 @@ main(int ac, char **av)
 
     um_cons_init();
     nacl_mem_init(av[2], av[1]);
+    nacl_seg_init();
     nacl_trap_init();
     nacl_timer_init();
     filedisk_init(av[3]);

@@ -60,8 +60,8 @@ nacl_mem_init(const char *memfn, const char *binfn)
     if (mem_base == MAP_FAILED)
 	panic("mmap failed");
     assert(mem_base > (void *)ULIM);
+    assert(((uint32_t)mem_base % PGSIZE) == 0);
 
-    mem_base = ROUNDUP(mem_base, PGSIZE);
     free_end = mem_base + bytes;
 
     uint64_t pilen = (mem_bytes / PGSIZE) * sizeof(*page_infos);

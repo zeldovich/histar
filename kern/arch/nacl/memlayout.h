@@ -28,11 +28,13 @@
  *   0 ------------>  +---------------------------------------------+
  */
 
-#define KBASE		0x80007000
+#define KBASE		0x80008000
 
-#define UKSTACK		0x80005000
-#define UKSCRATCH	0x80004000
-#define UKSYSCALL	0x80003000
+#define UKSTACK		0x80006000
+#define UKSCRATCH2	0x80005800
+#define UKSCRATCH	0x80005000
+#define UKSYSCALL	0x80004000
+#define UKINFO		0x80003000
 #define UKSWITCH	0x80002000
 
 #define ULIM		0x80000000

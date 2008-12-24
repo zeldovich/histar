@@ -47,6 +47,8 @@ nacl_springboard_end:
  */
 .globl	nacl_usyscall	
 nacl_usyscall:
+	movw	UKINFO,%ds
+	
 	movl	%ebx,(UKSCRATCH + tf_ebx)
 	movl	%ecx,(UKSCRATCH + tf_ecx)
 	movl	%edi,(UKSCRATCH + tf_edi)
@@ -73,9 +75,12 @@ nacl_usyscall:
 	movw	%ax,(UKSCRATCH + tf_gs)
 	
 	// XXX should change %esp, zero %edp
-	// XXX eflags?
-	// XXX linker script will fix this hack
-	movl	$syscall_handler,%ebx
-	call	*%ebx
+
+	movw	kern_cs,%ax
+	movw	%ax,(UKSCRATCH2 + 4)
+	movl	$syscall_handler,%eax
+	movl	%eax,(UKSCRATCH2)
+
+	ljmp	*(UKSCRATCH2)
 .globl	nacl_usyscall_end	
 nacl_usyscall_end:

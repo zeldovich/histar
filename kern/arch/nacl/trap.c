@@ -15,6 +15,9 @@
 #include <inc/stdio.h>
 
 #include <sys/mman.h>
+#include <sys/types.h>
+#include <asm/ldt.h>
+//#include <linux/unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <setjmp.h>
@@ -22,14 +25,22 @@
 #include <string.h>
 #include <assert.h>
 #include <ucontext.h>
+#include <errno.h>
 
 // Force a AS flush every thread change
 enum { flush_hack = 1 };
+
+extern int modify_ldt(int func, void* ptr, unsigned long bytecount);
 
 static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;
 static sigset_t trap_sigset;
 static int trap_thread_syscall_writeback;
+
+static uint16_t user_cs;
+uint16_t        kern_cs;
+static uint16_t user_ds;
+static uint16_t kern_ds;
 
 static void __attribute__((unused))
 trapframe_print(const struct Trapframe *tf)
@@ -211,7 +222,7 @@ thread_arch_run(const struct Thread *t)
     trap_user_iret_tsc = read_tsc();
    
     if (flush_hack && trap_thread && t != trap_thread)
-	assert(page_map_traverse(0, (void *)0x00000000, (void *)ULIM, 
+	assert(page_map_traverse(0, (void *)0x00000000, (void *)UMMAPBASE, 
 				 0, as_arch_page_invalidate_cb, 0) == 0);
     
     trap_thread_set(t);
@@ -233,7 +244,7 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
 
-    t->th_tf.tf_cs = read_cs();
+    t->th_tf.tf_cs = user_cs;
     t->th_tf.tf_ss = read_ss();
     t->th_tf.tf_ds = read_ds();
     t->th_tf.tf_es = read_es();
@@ -303,6 +314,11 @@ nacl_trap_init(void)
     assert(nacl_mmap((void *)UKSYSCALL, va, PGSIZE, PROT_READ | PROT_EXEC) == 0);
     memcpy(va, nacl_usyscall, nacl_usyscall_end - nacl_usyscall);
 
+    assert(page_alloc(&va) == 0);
+    memset(va, 0, PGSIZE);
+    *(uint16_t *)(va) = kern_ds;
+    assert(nacl_mmap((void *)UKINFO, va, PGSIZE, PROT_READ) == 0);
+
     static_assert(2 * PGSIZE == SIGSTKSZ);
     va = mmap((void *)UKSTACK, SIGSTKSZ, PROT_READ | PROT_WRITE, 
 	      MAP_FIXED | MAP_SHARED | MAP_ANONYMOUS, 0, 0);
@@ -311,6 +327,48 @@ nacl_trap_init(void)
     ss.ss_flags = 0;
     ss.ss_size = SIGSTKSZ;
     assert(sigaltstack(&ss, 0) == 0);
+}
+
+void
+nacl_seg_init(void)
+{
+    int size = sizeof(uint64_t) * LDT_ENTRIES;
+    uint64_t *entry = malloc(size);
+
+    kern_cs = read_cs();
+    kern_ds = read_ds();
+
+    assert(modify_ldt(0, entry, size) == 0);
+ 
+    int slot = -1;
+    for (int i = 0; i < LDT_ENTRIES; i++) {
+	if (!(entry[i] & SEG_P)) {
+	    slot = i;
+	    break;
+	}
+    }
+    free(entry);
+
+    if (slot < 0)
+	panic("no free LDT slots");
+
+    uint64_t pglimit = UKSYSCALL / PGSIZE;
+    
+    struct user_desc ud;
+    ud.entry_number = slot;
+    ud.read_exec_only = 1;
+    ud.seg_32bit = 1;
+    ud.seg_not_present = 0;
+    ud.useable = 1;
+    ud.base_addr = 0;
+    ud.limit = pglimit;
+    ud.limit_in_pages = 1;
+    assert(modify_ldt(1, &ud, sizeof(ud)) == 0);
+    user_cs = ud.entry_number << 3 | 0x7;
+
+    // XXX
+    printf("XXX setup user DS\n");
+    user_ds = 0;
 }
 
 static void __attribute__((used))

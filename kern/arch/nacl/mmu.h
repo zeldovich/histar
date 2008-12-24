@@ -3,12 +3,11 @@
 
 #ifndef __ASSEMBLER__
 #include <inc/thread.h>
+#include <kern/arch/amd64/mmu-x86.h>
 #endif
 
 #define PGSHIFT 12
 #define PGSIZE (1 << PGSHIFT)
-#define PGOFF(la) (((uintptr_t) (la)) & 0xFFF)
-#define PTE_ADDR(pte) 0
 
 /* Page fault error codes */
 #define FEC_P 0x1	    /* Fault caused by protection violation */
@@ -54,10 +53,6 @@ struct Trapframe {
   uint32_t tf_esp;
   uint16_t tf_ss;
   uint16_t tf_gs;	// not saved/restored by hardware
-};
-
-
-struct Fpregs {
 };
 
 #endif
