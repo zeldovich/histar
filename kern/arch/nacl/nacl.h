@@ -10,4 +10,8 @@ void nacl_seg_init(void);
 
 int  nacl_mmap(void *va, void *pp, int len, int prot);
 
+/* Setup by nacl_seg_init */
+extern uint16_t user_cs, user_ds;
+extern uint16_t kern_cs, kern_ds;
+
 #endif

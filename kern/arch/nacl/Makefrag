@@ -6,6 +6,7 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/archdep.c			\
 	$(ARCHDIR)/naclmem.c			\
 	$(ARCHDIR)/nacltime.c			\
+	$(ARCHDIR)/naclldt.c			\
 	$(ARCHDIR)/umcons.c			\
 	$(ARCHDIR)/umtime.c			\
 	$(ARCHDIR)/trap.c			\
