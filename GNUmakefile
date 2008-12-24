@@ -61,7 +61,7 @@ BASECFLAGS :=
 endif
 
 ifeq ($(K_ARCH),nacl)
-BASECFLAGS :=
+BASECFLAGS := $(shell ./conf/gcc-flags.sh "$(CC)" -fno-stack-protector)
 endif
 
 COMFLAGS    := $(BASECFLAGS) -g $(OPTFLAG) -fno-strict-aliasing \
