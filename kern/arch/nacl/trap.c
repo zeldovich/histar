@@ -31,7 +31,8 @@ static const struct Thread *trap_thread;
 static sigset_t trap_sigset;
 static int trap_thread_syscall_writeback;
 
-struct ljmp_target syscall_target;
+struct farptr syscall_target;
+struct farptr kstack_ptr;
 
 extern char nacl_switch[];
 extern char nacl_switch_end[];
@@ -324,8 +325,11 @@ nacl_trap_init(void)
     ss.ss_size = SIGSTKSZ;
     assert(sigaltstack(&ss, 0) == 0);
 
-    syscall_target.lt_eip = (uint32_t)&syscall_handler;
-    syscall_target.lt_cs = kern_cs;
+    syscall_target.fp_reg = (uint32_t)&syscall_handler;
+    syscall_target.fp_sel = kern_cs;
+
+    kstack_ptr.fp_reg = (uint32_t)(va + SIGSTKSZ);
+    kstack_ptr.fp_sel = kern_ds;
 }
 
 static void __attribute__((used))

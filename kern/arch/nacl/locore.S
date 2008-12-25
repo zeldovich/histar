@@ -74,8 +74,9 @@ nacl_usyscall:
 	movw	%gs, %ax
 	movw	%ax,(UKSCRATCH + tf_gs)
 	
-	// XXX should change %esp, zero %edp
-
+	lss	kstack_ptr, %esp
+	xorl	%ebp, %ebp
+	pushl	$0
 	ljmp	syscall_target
 .globl	nacl_usyscall_end	
 nacl_usyscall_end:
