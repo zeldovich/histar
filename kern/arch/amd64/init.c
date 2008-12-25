@@ -114,7 +114,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
 
     uint64_t lower_kb = 0;
     uint64_t upper_kb = 0;
-    struct sysx_info sxi;
+    static struct sysx_info sxi;
 
     if (start_eax == MULTIBOOT_EAX_MAGIC) {
 	struct multiboot_info *mbi = (struct multiboot_info *) pa2kva(start_ebx);

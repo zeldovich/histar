@@ -23,10 +23,6 @@ typedef u_int16_t uint16_t;
 typedef u_int32_t uint32_t;
 typedef u_int64_t uint64_t;
 
-// Fake 128-bit values, used only for the scheduler anyway...
-typedef   int64_t  int128_t;
-typedef u_int64_t uint128_t;
-
 // Page numbers are 64 bits long.
 typedef uint64_t ppn_t;
 typedef uint64_t physaddr_t;
