@@ -17,9 +17,9 @@ nacl_switch:
 	movl	%eax,%esp
 
 	movw	tf_ds(%esp),%ax	
-	movw	%ax, UKSCRATCH
+	movw	%ax,(UKSCRATCH)
 	movl	tf_eip(%esp),%eax	
-	movl	%eax, UKSCRATCH + 4 
+	movl	%eax,(UKSCRATCH + 4)
 	
 	movw	tf_es(%esp),%es
 		
@@ -33,8 +33,8 @@ nacl_switch:
 
 	addl	$tf_eflags,%esp
 	popfl
-	lss	(%esp), %esp
-	movw	UKSCRATCH,%ds
+	lss	(%esp),%esp
+	movw	(UKSCRATCH),%ds
 	jmp	*(UKSCRATCH + 4)
 .globl	nacl_switch_end	
 nacl_switch_end:
@@ -45,36 +45,32 @@ nacl_switch_end:
 .globl	nacl_usyscall	
 nacl_usyscall:
 	movw	UKINFO,%ds
-	
-	movl	%ebx,(UKSCRATCH + tf_ebx)
-	movl	%ecx,(UKSCRATCH + tf_ecx)
-	movl	%edi,(UKSCRATCH + tf_edi)
-	movl	%esi,(UKSCRATCH + tf_esi)
-	movl	%ebp,(UKSCRATCH + tf_ebp)
-	movw	%ds,(UKSCRATCH + tf_ds)
-	movw	%es,(UKSCRATCH + tf_es)
 
-	movl	%edx,(UKSCRATCH + tf_edx)
-	movl	%eax,(UKSCRATCH + tf_eax)
-
-	movl	(%esp), %eax
-	movl	%eax,(UKSCRATCH + tf_eip) 
-	
-	movw	%cs, %ax
-	movw	%ax,(UKSCRATCH + tf_cs)
-	movw	%fs, %ax
-	movw	%ax,(UKSCRATCH + tf_fs)
-	addl	$4, %esp
-	movl	%esp,(UKSCRATCH + tf_esp)
-	movw	%ss, %ax
-	movw	%ax,(UKSCRATCH + tf_ss)
-	movw	%gs, %ax
-	movw	%ax,(UKSCRATCH + tf_gs)
-
-	// XXX eflags
-		
+	movl	%eax,(UKSCRATCH)
+	movl	%esp,(UKSCRATCH + 4) 
 	lss	kstack_ptr, %esp
-	xorl	%ebp, %ebp
+
+	pushw	%gs
+	pushw	%ss
+	movl	(UKSCRATCH + 4),%eax
+	pushl	%eax
+	pushfl
+	pushw	%fs
+	pushw	%cs
+	pushl	(%eax)		/* return eip sitting on caller stack */
+	pushl	$0
+	pushl	(UKSCRATCH)
+	pushl	%edx
+	pushw	%es
+	pushw	%ds
+	pushl	%ebp
+	pushl	%esi
+	pushl	%edi
+	pushl	%ecx
+	pushl	%ebx
+
+	movl	%esp,%eax	/* Trapframe arg to syscall_handler */
+	xorl	%ebp,%ebp	
 	pushl	$0
 	ljmp	*(syscall_target)
 .globl	nacl_usyscall_end	

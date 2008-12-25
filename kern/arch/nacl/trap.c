@@ -192,10 +192,9 @@ sig_handler(int num, siginfo_t *info, void *x)
     trap_handler(trapno, &tf, info->si_addr);
 }
 
-void __attribute__((noreturn))
-syscall_handler(void)
+static void __attribute__((noreturn, regparm (1)))
+syscall_handler(struct Trapframe *tf)
 {
-    struct Trapframe *tf = (struct Trapframe *)UKSCRATCH;
     trap_handler(T_SYSCALL, tf, 0);
 }
 
