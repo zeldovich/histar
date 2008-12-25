@@ -5,7 +5,5 @@
 
 void um_mem_init(uint64_t bytes);
 void um_cons_init(void);
-void um_time_init(void);
-void um_bench(void);
 
 #endif
