@@ -1,6 +1,9 @@
 #include <kern/arch.h>
+#include <kern/lib.h>
+#include <machine/x86.h>
 #include <inc/setjmp.h>
 #include <inc/error.h>
+#include <inc/safeint.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -48,13 +51,15 @@ machine_reboot(void)
 uintptr_t
 karch_get_sp(void)
 {
-    return 0;
+    char x;
+    uintptr_t p = (uintptr_t) &x;
+    return p;
 }
 
 uint64_t
 karch_get_tsc(void)
 {
-    return 0;
+    return read_tsc();
 }
 
 void irq_arch_enable(uint32_t irqno) {}
@@ -68,6 +73,31 @@ int
 check_user_access2(const void *ptr, uint64_t nbytes,
 		   uint32_t reqflags, int alignbytes)
 {
+    /*
+     * XXX
+     * should really switch to copy_{to,from}_user for nacl, for performance
+     */
+
+    if (nbytes == 0)
+	return 0;
+
+    int overflow = 0;
+    uintptr_t iptr = (uintptr_t) ptr;
+    uintptr_t start = ROUNDDOWN(iptr, PGSIZE);
+    uintptr_t end = ROUNDUP(safe_addptr(&overflow, iptr, nbytes), PGSIZE);
+
+    if (end <= start || overflow)
+	return -E_INVAL;
+
+    for (uintptr_t va = start; va < end; va += PGSIZE) {
+	if (va >= ULIM)
+	    return -E_INVAL;
+
+	int r = as_pagefault(cur_as, (void *) va, reqflags);
+	if (r < 0)
+	    return r;
+    }
+
     return 0;
 }
 
