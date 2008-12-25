@@ -225,7 +225,7 @@ thread_arch_run(const struct Thread *t)
     trap_user_iret_tsc = read_tsc();
    
     if (flush_hack && trap_thread && t != trap_thread)
-	assert(page_map_traverse(0, (void *)0x00000000, (void *)UMMAPBASE, 
+	assert(page_map_traverse(0, (void *)0x00000000, (void *)ULIM, 
 				 0, as_arch_page_invalidate_cb, 0) == 0);
     
     trap_thread_set(t);
