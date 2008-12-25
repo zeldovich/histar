@@ -35,13 +35,14 @@ get_ldt_slot(void)
 }
 
 static uint16_t
-new_ldt_entry(int read_exec_only, uint32_t base_addr, uint32_t pglimit)
+new_ldt_entry(int read_exec_only, uint32_t base_addr, uint32_t pglimit, int code)
 {
     struct user_desc ud;
     int slot;
 
     slot = get_ldt_slot();
     ud.entry_number = slot;
+    ud.contents = code ? MODIFY_LDT_CONTENTS_CODE : MODIFY_LDT_CONTENTS_DATA;
     ud.read_exec_only = read_exec_only;
     ud.seg_32bit = 1;
     ud.seg_not_present = 0;
@@ -59,6 +60,6 @@ nacl_seg_init(void)
     kern_cs = read_cs();
     kern_ds = read_ds();
 
-    user_cs = new_ldt_entry(1, 0, UKSYSCALL / PGSIZE);
-    //user_ds = new_ldt_entry(0, 0, (KBASE / PGSIZE) - 1);
+    user_cs = new_ldt_entry(1, 0, UKSYSCALL / PGSIZE, 1);
+    user_ds = new_ldt_entry(0, 0, (KBASE / PGSIZE) - 1, 0);
 }
