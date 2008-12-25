@@ -24,6 +24,13 @@ thread_entry(void *x)
     return;
 }
 
+static void __attribute__((noreturn))
+thread_spin(void *x)
+{
+    for (;;)
+	;
+}
+
 int
 main(int ac, char **av)
 {
@@ -31,6 +38,7 @@ main(int ac, char **av)
     int r;
     struct cobj_ref tref;
     r = thread_create(start_arg0, thread_entry, 0, &tref, "poop");
+    //r = thread_create(start_arg0, thread_spin,  0, &tref, "spin");
     for (int i = 0; i < iters; i++) {
 	bleh = i * 2;
 	sys_sync_wakeup(&bleh);

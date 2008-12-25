@@ -123,7 +123,7 @@ thread_alloc(const struct Label *tracking,
 	return r;
 
     struct Thread *t = &ko->th;
-    t->th_sched_tickets = 1024;
+    t->th_sched_tickets = 1;
     t->th_status = thread_not_started;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
 

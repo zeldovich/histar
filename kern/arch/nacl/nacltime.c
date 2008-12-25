@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <malloc.h>
+#include <unistd.h>
 
 static uint64_t
 nacl_timer_ticks(void *arg)
@@ -26,6 +27,7 @@ nacl_timer_delay(void *arg, uint64_t nsec)
 static void
 nacl_schedule_nsec(void *arg, uint64_t nsec)
 {
+    ualarm(nsec / 1000, 0);
 }
 
 void

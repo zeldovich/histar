@@ -7,12 +7,12 @@
 #include <kern/arch.h>
 #include <inc/error.h>
 
-static uint64_t global_tickets;
-static uint128_t global_pass;
-static uint64_t stride1;
+static uint32_t global_tickets;
+static uint64_t global_pass;
+static uint32_t stride1;
 
 static void
-global_pass_update(uint128_t new_global_pass)
+global_pass_update(uint64_t new_global_pass)
 {
     static uint64_t last_tsc;
 
@@ -22,7 +22,7 @@ global_pass_update(uint128_t new_global_pass)
     if (new_global_pass) {
 	global_pass = new_global_pass;
     } else if (global_tickets) {
-	global_pass += ((uint128_t) (stride1 / global_tickets)) * elapsed;
+	global_pass += ((uint64_t) (stride1 / global_tickets)) * elapsed;
     }
 }
 
@@ -79,15 +79,13 @@ sched_leave(struct Thread *t)
 void
 sched_stop(struct Thread *t, uint64_t elapsed)
 {
-    uint64_t tickets = t->th_sched_tickets ? : 1;
-    uint128_t th_stride = stride1 / tickets;
+    uint32_t tickets = t->th_sched_tickets ? : 1;
+    uint64_t th_stride = stride1 / tickets;
     t->th_sched_pass += th_stride * elapsed;
 }
 
 void
 sched_init(void)
 {
-    // Set stride1 to all-ones
-    stride1 = 0;
-    stride1--;
+    stride1 = (1 << 16);
 }
