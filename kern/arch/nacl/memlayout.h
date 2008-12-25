@@ -11,7 +11,7 @@
  *                    |   Kernel memory (all symbols point here)    |
  *                    |                                             |
  *   KBASE     -----> +---------------------------------------------+
- *                    |         user-kernel stack two pages         |
+ *                    |              user-kernel stack              |
  *  UKSTACK    -----> +---------------------------------------------+
  *                    |          user-kernel scratch page           |
  *  UKSCRATCH  -----> +---------------------------------------------+
@@ -28,8 +28,9 @@
  *   0 ------------>  +---------------------------------------------+
  */
 
-#define KBASE		0x80008000
+#define KBASE		0x81000000
 
+#define KSTKSZ		(KBASE - UKSTACK)
 #define UKSTACK		0x80006000
 #define UKSCRATCH2	0x80005800
 #define UKSCRATCH	0x80005000
