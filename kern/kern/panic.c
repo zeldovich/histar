@@ -1,6 +1,7 @@
 #include <machine/param.h>
 #include <kern/lib.h>
 #include <kern/thread.h>
+#include <unistd.h>
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
@@ -28,6 +29,8 @@ _panic(const char *file, int line, const char *fmt, ...)
     vcprintf(fmt, ap);
     cprintf("\n");
     va_end(ap);
+
+    _exit(-1);
 
 #if JOS_ARCH_RETADD
 #define PRINT_STACK(i)\

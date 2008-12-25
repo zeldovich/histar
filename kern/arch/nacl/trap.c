@@ -97,8 +97,8 @@ trap_dispatch(int signum, int trapno, const struct Trapframe *tf, void *addr)
 	return;
     }
 
-    if (signum == SIGINT) {
-	cprintf("SIGINT caught, exiting.\n");
+    if (signum == SIGINT || signum == SIGABRT) {
+	cprintf("Signal %d caught, exiting.\n", signum);
 	_exit(1);
     }
 
