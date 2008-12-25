@@ -1,11 +1,14 @@
 #include <machine/nacl.h>
 #include <kern/arch.h>
+#include <kern/lib.h>
 #include <inc/error.h>
 
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
+#include <errno.h>
 
 void __attribute__((noreturn))
 as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
@@ -23,7 +26,9 @@ page_map_traverse(struct Pagemap *pgmap, const void *first,
     
     if (cb == as_arch_page_invalidate_cb) {
 	// TLB flush...
-	assert(munmap((void *)first, last - first) == 0);
+	if (last > first && munmap((void *)first, last - first) < 0)
+	    cprintf("%s:%d: munmap(%p, %d) failed: %s\n",
+		    __FILE__, __LINE__, first, last-first, strerror(errno));
 	//XXX pagetree_pin
 	return 0;
     } else {

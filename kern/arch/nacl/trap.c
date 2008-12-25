@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
 
 // Force a AS flush every thread change
 enum { flush_hack = 1 };
@@ -190,8 +191,12 @@ sig_handler(int num, siginfo_t *info, void *x)
     
     int trapno = greg[REG_TRAPNO];
 
-    if (tf.tf_eip > ULIM)
-	panic("XXX fix me %x %p", tf.tf_eip, info->si_addr);
+    if (tf.tf_eip > ULIM) {
+	cprintf("Kernel signal %d, addr %p, kernel pid = %d\n",
+		num, info->si_addr, getpid());
+	trapframe_print(&tf);
+	panic("kernel bug");
+    }
 
     memset(&trap_sigset, 0, sizeof(trap_sigset));
     sigaddset(&trap_sigset, num);
@@ -324,19 +329,19 @@ nacl_trap_init(void)
     *(uint16_t *)(va) = kern_ds;
     assert(nacl_mmap((void *)UKINFO, va, PGSIZE, PROT_READ) == 0);
 
-    static_assert(2 * PGSIZE == SIGSTKSZ);
-    va = mmap((void *)UKSTACK, SIGSTKSZ, PROT_READ | PROT_WRITE, 
+    static_assert(KSTKSZ >= SIGSTKSZ);
+    va = mmap((void *)UKSTACK, KSTKSZ, PROT_READ | PROT_WRITE, 
 	      MAP_FIXED | MAP_SHARED | MAP_ANONYMOUS, 0, 0);
     assert(va != MAP_FAILED);
     ss.ss_sp = va;
     ss.ss_flags = 0;
-    ss.ss_size = SIGSTKSZ;
+    ss.ss_size = KSTKSZ;
     assert(sigaltstack(&ss, 0) == 0);
 
     syscall_target.fp_reg = (uint32_t)&syscall_handler;
     syscall_target.fp_sel = kern_cs;
 
-    kstack_ptr.fp_reg = (uint32_t)(va + SIGSTKSZ);
+    kstack_ptr.fp_reg = (uint32_t)(va + KSTKSZ);
     kstack_ptr.fp_sel = kern_ds;
 }
 
