@@ -26,6 +26,7 @@
 #include <assert.h>
 #include <ucontext.h>
 #include <errno.h>
+#include <unistd.h>
 
 // Force a AS flush every thread change
 enum { flush_hack = 1 };
@@ -82,13 +83,23 @@ page_fault(const struct Thread *t, void *fault_va,
 }
 
 static void
-trap_dispatch(int trapno, const struct Trapframe *tf, void *addr)
+trap_dispatch(int signum, int trapno, const struct Trapframe *tf, void *addr)
 {
     int64_t r;
 
     if (!trap_thread) {
 	trapframe_print(tf);
 	assert(0);
+    }
+
+    if (signum == SIGALRM) {
+	schedule();
+	return;
+    }
+
+    if (signum == SIGINT) {
+	cprintf("SIGINT caught, exiting.\n");
+	_exit(1);
     }
 
     switch (trapno) {
@@ -127,7 +138,7 @@ trap_dispatch(int trapno, const struct Trapframe *tf, void *addr)
 }
 
 static void __attribute__((noreturn))
-trap_handler(int trapno, struct Trapframe *tf, void *addr)
+trap_handler(int signum, int trapno, struct Trapframe *tf, void *addr)
 {
     if (trap_thread) {
 	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
@@ -150,7 +161,7 @@ trap_handler(int trapno, struct Trapframe *tf, void *addr)
 	prof_user(1, start - trap_user_iret_tsc);
     }
 
-    trap_dispatch(trapno, tf, addr);
+    trap_dispatch(signum, trapno, tf, addr);
     prof_trap(trapno, read_tsc() - start);
 
     thread_run();
@@ -186,20 +197,18 @@ sig_handler(int num, siginfo_t *info, void *x)
 
     if (tf.tf_eip > ULIM)
 	panic("XXX fix me %x %p", tf.tf_eip, info->si_addr);
-    if (num == SIGINT)
-	panic("SIGINT fix me %x", tf.tf_eip);
 
     memset(&trap_sigset, 0, sizeof(trap_sigset));
     sigaddset(&trap_sigset, num);
 
-    trap_handler(trapno, &tf, info->si_addr);
+    trap_handler(num, trapno, &tf, info->si_addr);
 }
 
 void __attribute__((noreturn))
 syscall_handler(void)
 {
     struct Trapframe *tf = (struct Trapframe *)UKSCRATCH;
-    trap_handler(T_SYSCALL, tf, 0);
+    trap_handler(0, T_SYSCALL, tf, 0);
 }
 
 static void
@@ -297,8 +306,10 @@ nacl_trap_init(void)
     memset(&sa.sa_mask, 0, sizeof(sa.sa_mask));
     sa.sa_flags = SA_SIGINFO | SA_ONSTACK;
 
-    assert(sigaction(SIGSEGV, &sa, 0) == 0);
-    assert(sigaction(SIGINT, &sa, 0) == 0);
+    for (int i = 0; i < NSIG; i++)
+	if (sigaction(i, &sa, 0) < 0)
+	    cprintf("nacl_trap_init: cannot set handler for sig %d: %s\n",
+		    i, strerror(errno));
 
     assert(page_alloc(&va) == 0);
     memset(va, 0, PGSIZE);
