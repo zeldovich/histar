@@ -55,6 +55,11 @@ struct Trapframe {
   uint16_t tf_gs;	// not saved/restored by hardware
 };
 
+struct ljmp_target {
+    uint32_t lt_eip;
+    uint16_t lt_cs;
+} __attribute__((packed));
+
 #endif
 
 #endif

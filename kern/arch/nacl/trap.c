@@ -31,6 +31,13 @@ static const struct Thread *trap_thread;
 static sigset_t trap_sigset;
 static int trap_thread_syscall_writeback;
 
+struct ljmp_target syscall_target;
+
+extern char nacl_switch[];
+extern char nacl_switch_end[];
+extern char nacl_usyscall[];
+extern char nacl_usyscall_end[];
+
 static void __attribute__((unused))
 trapframe_print(const struct Trapframe *tf)
 {
@@ -235,7 +242,7 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 
     t->th_tf.tf_cs = user_cs;
     t->th_tf.tf_ss = read_ss();
-    t->th_tf.tf_ds = user_ds;//read_ds();
+    t->th_tf.tf_ds = user_ds;
     t->th_tf.tf_es = read_es();
     t->th_tf.tf_fs = read_fs();
     t->th_tf.tf_gs = read_gs();
@@ -292,7 +299,7 @@ nacl_trap_init(void)
     assert(page_alloc(&va) == 0);
     memset(va, 0, PGSIZE);
     assert(nacl_mmap((void *)UKSWITCH, va, PGSIZE, PROT_READ | PROT_EXEC) == 0);
-    memcpy(va, nacl_springboard, nacl_springboard_end - nacl_springboard);
+    memcpy(va, nacl_switch, nacl_switch_end - nacl_switch);
 
     assert(page_alloc(&va) == 0);
     memset(va, 0, PGSIZE);
@@ -316,6 +323,9 @@ nacl_trap_init(void)
     ss.ss_flags = 0;
     ss.ss_size = SIGSTKSZ;
     assert(sigaltstack(&ss, 0) == 0);
+
+    syscall_target.lt_eip = (uint32_t)&syscall_handler;
+    syscall_target.lt_cs = kern_cs;
 }
 
 static void __attribute__((used))

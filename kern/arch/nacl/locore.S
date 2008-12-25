@@ -8,10 +8,10 @@ trapframe_pop:
 	ljmp	*(%esp)
 
 /*
- * The springboard code gets copied to USPRING by the kernel.
+ * The switch code gets copied to USWITCH by the kernel.
  */
-.globl	nacl_springboard	
-nacl_springboard:
+.globl	nacl_switch	
+nacl_switch:
 	hlt			/* one byte */
 	addl    $8, %esp	/* springboard addr, cs */
 
@@ -39,8 +39,8 @@ nacl_springboard:
 	
 	lss	UKSCRATCH, %esp
 	jmp	*(UKSCRATCH + 8)
-.globl	nacl_springboard_end	
-nacl_springboard_end:
+.globl	nacl_switch_end	
+nacl_switch_end:
 
 /*
  * The usyscall code gets copied to USYSCALL by the kernel.
@@ -76,11 +76,6 @@ nacl_usyscall:
 	
 	// XXX should change %esp, zero %edp
 
-	movw	kern_cs,%ax
-	movw	%ax,(UKSCRATCH2 + 4)
-	movl	$syscall_handler,%eax
-	movl	%eax,(UKSCRATCH2)
-
-	ljmp	*(UKSCRATCH2)
+	ljmp	syscall_target
 .globl	nacl_usyscall_end	
 nacl_usyscall_end:
