@@ -13,15 +13,13 @@ trapframe_pop:
 .globl	nacl_switch	
 nacl_switch:
 	hlt			/* one byte */
-	addl    $8, %esp	/* springboard addr, cs */
 
 	movl	%eax,%esp
-	movl	tf_esp(%esp),%eax	
-	movl	%eax, UKSCRATCH
-	movl	tf_ss(%esp),%eax	
-	movl	%eax, UKSCRATCH + 4	
+
+	movw	tf_ds(%esp),%ax	
+	movw	%ax, UKSCRATCH
 	movl	tf_eip(%esp),%eax	
-	movl	%eax, UKSCRATCH + 8 
+	movl	%eax, UKSCRATCH + 4 
 	
 	movw	tf_es(%esp),%es
 		
@@ -32,13 +30,12 @@ nacl_switch:
 	movl	tf_esi(%esp),%esi
 	movl	tf_edi(%esp),%edi
 	movl	tf_ebp(%esp),%ebp
-		
-	movw	tf_ds(%esp),%ds
 
-	// XXX eflags?
-	
-	lss	UKSCRATCH, %esp
-	jmp	*(UKSCRATCH + 8)
+	addl	$tf_eflags,%esp
+	popfl
+	lss	(%esp), %esp
+	movw	UKSCRATCH,%ds
+	jmp	*(UKSCRATCH + 4)
 .globl	nacl_switch_end	
 nacl_switch_end:
 
@@ -73,10 +70,12 @@ nacl_usyscall:
 	movw	%ax,(UKSCRATCH + tf_ss)
 	movw	%gs, %ax
 	movw	%ax,(UKSCRATCH + tf_gs)
-	
+
+	// XXX eflags
+		
 	lss	kstack_ptr, %esp
 	xorl	%ebp, %ebp
 	pushl	$0
-	ljmp	syscall_target
+	ljmp	*(syscall_target)
 .globl	nacl_usyscall_end	
 nacl_usyscall_end:
