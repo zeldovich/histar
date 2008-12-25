@@ -235,7 +235,7 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 
     t->th_tf.tf_cs = user_cs;
     t->th_tf.tf_ss = read_ss();
-    t->th_tf.tf_ds = read_ds();
+    t->th_tf.tf_ds = user_ds;//read_ds();
     t->th_tf.tf_es = read_es();
     t->th_tf.tf_fs = read_fs();
     t->th_tf.tf_gs = read_gs();
