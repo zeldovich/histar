@@ -30,7 +30,6 @@ enum { flush_hack = 1 };
 
 static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;
-static sigset_t trap_sigset;
 static int trap_thread_syscall_writeback;
 
 struct farptr syscall_target;
@@ -163,7 +162,7 @@ trap_handler(int signum, int trapno, struct Trapframe *tf, void *addr)
     thread_run();
 }
 
-static void __attribute__((noreturn))
+static void
 sig_handler(int num, siginfo_t *info, void *x)
 {
     struct Trapframe tf;
@@ -192,14 +191,19 @@ sig_handler(int num, siginfo_t *info, void *x)
     int trapno = greg[REG_TRAPNO];
 
     if (tf.tf_eip > ULIM) {
-	cprintf("Kernel signal %d, addr %p, kernel pid = %d\n",
-		num, info->si_addr, getpid());
-	trapframe_print(&tf);
-	panic("kernel bug");
-    }
+	if (num == SIGALRM) {
+	    /* Preempt a bit later, we're busy.. */
+	    ualarm(10000, 0);
+	    return;
+	}
 
-    memset(&trap_sigset, 0, sizeof(trap_sigset));
-    sigaddset(&trap_sigset, num);
+	if (num != SIGINT && num != SIGABRT) {
+	    cprintf("Kernel signal %d, addr %p, kernel pid = %d\n",
+		    num, info->si_addr, getpid());
+	    trapframe_print(&tf);
+	    panic("kernel bug");
+	}
+    }
 
     trap_handler(num, trapno, &tf, info->si_addr);
 }
@@ -240,7 +244,9 @@ thread_arch_run(const struct Thread *t)
     if (t->th_tf.tf_gs != read_gs())
 	write_gs(t->th_tf.tf_gs);
 
-    assert(sigprocmask(SIG_UNBLOCK, &trap_sigset, 0) == 0);
+    sigset_t nomask;
+    sigemptyset(&nomask);
+    assert(sigprocmask(SIG_SETMASK, &nomask, 0) == 0);
     trapframe_pop(&t->th_tf);
 }
 
@@ -302,7 +308,9 @@ nacl_trap_init(void)
     struct sigaction sa;
     
     sa.sa_sigaction = sig_handler;
-    memset(&sa.sa_mask, 0, sizeof(sa.sa_mask));
+    sigfillset(&sa.sa_mask);
+    sigdelset(&sa.sa_mask, SIGINT);
+    sigdelset(&sa.sa_mask, SIGABRT);
     sa.sa_flags = SA_SIGINFO | SA_ONSTACK;
 
     for (int i = 0; i < NSIG; i++)
