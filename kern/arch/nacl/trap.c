@@ -167,7 +167,7 @@ sig_handler(int num, siginfo_t *info, void *x)
 {
     struct Trapframe tf;
     greg_t *greg = ((ucontext_t *)x)->uc_mcontext.gregs;
-    
+   
     memset(&tf, 0, sizeof(tf));
     tf.tf_ebx = greg[REG_EBX];
     tf.tf_ecx = greg[REG_ECX];
@@ -259,9 +259,9 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
     memset(&t->th_tf, 0, sizeof(t->th_tf));
 
     t->th_tf.tf_cs = user_cs;
-    t->th_tf.tf_ss = read_ss();
+    t->th_tf.tf_ss = user_ds;
     t->th_tf.tf_ds = user_ds;
-    t->th_tf.tf_es = read_es();
+    t->th_tf.tf_es = user_ds;
     t->th_tf.tf_fs = read_fs();
     t->th_tf.tf_gs = read_gs();
 

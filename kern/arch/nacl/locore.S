@@ -45,14 +45,16 @@ nacl_switch_end:
 .globl	nacl_usyscall	
 nacl_usyscall:
 	movw	UKINFO,%ds
-
+	movw	UKINFO,%es
+	
 	movl	%eax,(UKSCRATCH)
-	movl	%esp,(UKSCRATCH + 4) 
+	movw	%ss,(UKSCRATCH + 4) 
+	movl	%esp,(UKSCRATCH + 8) 
 	lss	kstack_ptr, %esp
 
 	pushw	%gs
-	pushw	%ss
-	movl	(UKSCRATCH + 4),%eax
+	pushw	(UKSCRATCH + 4) 
+	movl	(UKSCRATCH + 8),%eax
 	pushl	%eax
 	pushfl
 	pushw	%fs

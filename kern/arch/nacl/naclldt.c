@@ -61,5 +61,5 @@ nacl_seg_init(void)
     kern_ds = read_ds();
 
     user_cs = new_ldt_entry(1, 0, UKSYSCALL / PGSIZE, 1);
-    user_ds = new_ldt_entry(0, 0, (KBASE / PGSIZE) - 1, 0);
+    user_ds = new_ldt_entry(0, 0, UKSCRATCH / PGSIZE, 0);
 }
