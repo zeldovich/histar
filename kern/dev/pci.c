@@ -59,7 +59,8 @@ struct pci_driver pci_attach_vendor[] = {
     { 0x8086, 0x1229, &fxp_attach },
     { 0xfefe, 0xefef, &pnic_attach },
 
-#if 0
+    // Comment out to enable udd
+#if 1
     { 0x10ec, 0x8029, &ne2kpci_attach },
     { 0x8086, 0x100e, &e1000_attach },
     { 0x8086, 0x100f, &e1000_attach },

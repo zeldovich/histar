@@ -11,9 +11,6 @@
 #include <inttypes.h>
 #include <sys/types.h>
 
-typedef __uint64_t uint128_t;
-typedef __int64_t int128_t;
-
 typedef uintptr_t physaddr_t;
 typedef uintptr_t ppn_t;
 

@@ -127,12 +127,12 @@ e820_init(struct e820entry *map, uint32_t n)
     e820_detect_memory(map, n);
 
 #ifdef JOS_ARCH_amd64
-    // bootdata.c only maps the first 4 GBs.  Page mappings need to be added
-    // to bootpdplo if the physical address space is larger than 4 GBs.
-    if (pa_limit > UINT64(0x100000000)) {
+    // bootdata.c only maps the first 8 GBs.  Page mappings need to be added
+    // to bootpdplo if the physical address space is larger than 8 GBs.
+    if (pa_limit > UINT64(0x200000000)) {
 	extern struct Pagemap bootpdplo;
 	uint64_t gp = ROUNDUP(pa_limit, 0x40000000) / 0x40000000;
-	for (uint64_t i = 4; i < gp; i++)
+	for (uint64_t i = 8; i < gp; i++)
 	    bootpdplo.pm_ent[i] = (i * 0x40000000) + (PTE_P|PTE_W|PTE_PS|PTE_G);
     }
 #endif

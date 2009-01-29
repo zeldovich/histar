@@ -15,7 +15,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static int netd_mom_debug = 0;
-static int use_udevice = 1;
+static int use_udevice = 0;
 
 static uint64_t preferred_keys[] = {
     MK_PCIKEY(device_net, 0x8086, 0x100e), // e1000s

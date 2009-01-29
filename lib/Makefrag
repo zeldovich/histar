@@ -11,7 +11,7 @@ LIB_SRCFILES :=	\
 	lib/printfmt.c \
 	lib/sysstring.c \
 	lib/printf.c \
-	lib/string.c \
+	lib/strtou64.c \
 	lib/libmain.c \
 	lib/panic.c \
 	lib/console.c \

@@ -75,7 +75,7 @@ ioperm(unsigned long from, unsigned long num, int turn_on)
 }
 #endif
 
-void *__tls_get_addr(void);
+void *__tls_get_addr(void) __attribute__((noreturn));
 
 void * __attribute__((noreturn))
 __tls_get_addr(void)
@@ -83,3 +83,5 @@ __tls_get_addr(void)
     fprintf(stderr, "__tls_get_addr: not implemented\n");
     exit(-1);
 }
+
+strong_alias(__tls_get_addr, ___tls_get_addr)

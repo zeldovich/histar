@@ -66,11 +66,15 @@ struct Pagemap bootpds PTATTR = {
   }
 };
 
-/* bootpd1-4 map the first 4 GBs of physical memory */
+/* bootpd1-8 map the first 8 GBs of physical memory */
 struct Pagemap bootpd1 PTATTR = { .pm_ent = { DO_512 (0,    TRANS2MEG) } };
 struct Pagemap bootpd2 PTATTR = { .pm_ent = { DO_512 (512,  TRANS2MEG) } };
 struct Pagemap bootpd3 PTATTR = { .pm_ent = { DO_512 (1024, TRANS2MEG) } };
 struct Pagemap bootpd4 PTATTR = { .pm_ent = { DO_512 (1536, TRANS2MEG) } };
+struct Pagemap bootpd5 PTATTR = { .pm_ent = { DO_512 (2048, TRANS2MEG) } };
+struct Pagemap bootpd6 PTATTR = { .pm_ent = { DO_512 (2048, TRANS2MEG) } };
+struct Pagemap bootpd7 PTATTR = { .pm_ent = { DO_512 (2048, TRANS2MEG) } };
+struct Pagemap bootpd8 PTATTR = { .pm_ent = { DO_512 (2048, TRANS2MEG) } };
 
 /*
  * Map first 2GB identically at bottom of VM space (for booting).
@@ -84,6 +88,7 @@ struct Pagemap bootpdplo PTATTR = {
     RELOC (&bootpd2) + KPDEP_BITS,
     RELOC (&bootpd3) + KPDEP_BITS,
     RELOC (&bootpd4) + KPDEP_BITS,
+    RELOC (&bootpd5) + KPDEP_BITS,
   }
 };
 struct Pagemap bootpdphi PTATTR = {
