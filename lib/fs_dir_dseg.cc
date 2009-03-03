@@ -242,7 +242,6 @@ fs_dir_dseg::init(fs_inode dir)
     struct cobj_ref dseg;
     error_check(segment_alloc(dir.obj.object, PGSIZE, &dseg,
 			      0, 0, "directory segment"));
-
     struct fs_object_meta meta;
     memset(&meta, 0, sizeof(meta));
     meta.mtime_nsec = meta.ctime_nsec = jos_time_nsec();

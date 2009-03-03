@@ -362,7 +362,9 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel 
 	return id;
 
     o->obj = COBJ(dir.obj.object, id);
+
     scope_guard<int, cobj_ref> unref(sys_obj_unref, o->obj);
+
     try {
 	fs_dir_dseg::init(*o);
     } catch (error &e) {
@@ -378,7 +380,7 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel 
     } catch (error &e) {
 	return e.err();
     }
-    
+
     unref.dismiss();
     return 0;
 }

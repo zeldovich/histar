@@ -50,4 +50,8 @@ typedef uint32_t ppn_t;
 #define PRIu64 "lld"
 #define PRIx64 "llx"
 
+// Machine-dependent bits for the page_info structure;
+struct md_page_info {
+};
+
 #endif /* !JOS_MACHINE_TYPES_H */

@@ -50,4 +50,10 @@ typedef uint32_t ppn_t;
 #define PRIu64 "lld"
 #define PRIx64 "llx"
 
+// Machine-dependent bits for the page_info structure;
+struct md_page_info {
+	uint8_t **mpi_pmap_pvp;		// pgmap virtual page descriptors
+	void     *mpi_pmap_free_list;	// Pmap 1k subpage free list pointer
+};
+
 #endif /* !JOS_MACHINE_TYPES_H */

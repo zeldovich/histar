@@ -3,6 +3,8 @@ CPPSUP_INCLUDES = -I$(TOP)/lib/cppsup
 OBJDIRS += lib/cppsup
 
 LIB_SRCFILES += \
+	lib/cppsup/eh_arm.cc \
+	lib/cppsup/eh_call.cc \
 	lib/cppsup/eh_personality.cc \
 	lib/cppsup/eh_globals.cc \
 	lib/cppsup/eh_terminate.cc \

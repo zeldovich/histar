@@ -126,4 +126,7 @@ int	sys_as_set(struct cobj_ref as, struct u_address_space *uas);
 int	sys_as_get_slot(struct cobj_ref as, struct u_segment_mapping *usm);
 int	sys_as_set_slot(struct cobj_ref as, struct u_segment_mapping *usm);
 
+int	sys_self_utrap_is_masked(void);
+int	sys_self_utrap_set_mask(int mask);
+
 #endif

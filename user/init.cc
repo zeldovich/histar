@@ -282,7 +282,7 @@ init_auth(int cons, const char *shroot)
 				       0, CT_QUOTA_INF);
 	error_check(uauth_id);
     }
-
+cprintf(":: 1\n");
     struct fs_inode xino;
     fs_get_root(uauth_id, &xino);
     error_check(fs_mount(start_env->fs_mtab_seg,
@@ -293,22 +293,24 @@ init_auth(int cons, const char *shroot)
 
     struct child_process cp;
     int64_t ec;
-
+cprintf(":: 2\n");
     // spawn user-auth agent for root
     fs_inode uauth_dir;
     error_check(fs_namei("/uauth", &uauth_dir));
-
+cprintf(":: 3\n");
     cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_log", 0, 0, 0, 0,
 		  uauth_dir.obj.object);
+cprintf(":: 3.5\n");
     error_check(process_wait(&cp, &ec));
-
+cprintf(":: 4\n");
     cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_dir", shroot, 0, 0, 0,
 		  uauth_dir.obj.object);
+cprintf(":: 4.5\n");
     error_check(process_wait(&cp, &ec));
-
+cprintf(":: 5\n");
     fs_inode user_authd;
     error_check(fs_namei("/bin/auth_user", &user_authd));
-
+cprintf(":: 6\n");
     char root_grant[32], root_taint[32];
     sprintf(&root_grant[0], "%"PRIu64, start_env->user_grant);
     sprintf(&root_taint[0], "%"PRIu64, start_env->user_taint);
@@ -324,7 +326,9 @@ init_auth(int cons, const char *shroot)
     sd.ac_ = sizeof(argv)/sizeof(argv[0]);
     sd.av_ = argv;
     sd.spawn_flags_ = SPAWN_COPY_MTAB;
+cprintf(":: 7\n");
     cp = spawn(&sd);
+cprintf(":: 8\n");
     error_check(process_wait(&cp, &ec));
 
     // register this user-agent with the auth directory
@@ -333,21 +337,28 @@ init_auth(int cons, const char *shroot)
 	container_find(cp.container, kobj_gate, "user login gate"));
 
     fs_inode auth_dir_gt;
+cprintf(":: 9\n");
     error_check(fs_namei_flags("/uauth/auth_dir/authdir", &auth_dir_gt,
 			       NAMEI_LEAF_NOEVAL));
-
+cprintf(":: 10\n");
     gate_call_data gcd;
     auth_dir_req   *req   = (auth_dir_req *)   &gcd.param_buf[0];
     auth_dir_reply *reply = (auth_dir_reply *) &gcd.param_buf[0];
     req->op = auth_dir_add;
     strcpy(&req->user[0], "root");
     req->user_gate = COBJ(cp.container, uauth_gate);
-
+cprintf(":: 11\n");
     label verify(3);
+cprintf(":: 11.1\n");
     verify.set(start_env->user_grant, 0);
+cprintf(":: 11.2\n");
+cprintf("%c %d %" PRIx64 " %d\n", '@', 42, 0x987654310ABCDEFULL, 1983);
     gate_call(auth_dir_gt.obj, 0, 0, 0).call(&gcd, &verify);
+cprintf(":: 11.3\n");
     error_check(reply->err);
+cprintf(":: 11.4\n");
     auth_chpass("root", "", "r");
+cprintf(":: 12\n");
 }
 
 static void
@@ -366,7 +377,9 @@ init_procs(int cons)
 	     start_env->user_grant);
 
     try {
+cprintf("--> init_auth\n");
 	init_auth(cons, &root_grant_buf[0]);
+cprintf("--> init_auth returned\n");
     } catch (std::exception &e) {
 	printf("init_procs: cannot init auth system: %s\n", e.what());
     }
@@ -374,12 +387,14 @@ init_procs(int cons)
     label time_ds(3), time_dr(0);
     time_ds.set(time_grant, LB_LEVEL_STAR);
     time_dr.set(time_grant, 3);
+cprintf("--> spawning jntpd\n");
     spawn_fs(0, cons, "/bin/jntpd", "pool.ntp.org", 0, &time_ds, &time_dr);
-
+cprintf("--> loading inittab\n");
     FILE *inittab = fopen("/bin/inittab", "r");
     if (inittab) {
 	char buf[256];
 	while (fgets(buf, sizeof(buf), inittab)) {
+cprintf("--> init_procs: spawning from line [%s]\n", buf);
 	    char *fn = &buf[0];
 	    char *priv = fn;
 	    strsep(&priv, ":");
@@ -623,18 +638,19 @@ try
 	return -1;
     }
     start_env->user_taint = h_root_t;
-
     start_arg0 = (uintptr_t) start_env;
     setup_env(0, start_arg0, 0);
 
+cprintf("--------> init_fs\n");
     init_fs(cons);
+cprintf("--------> init_procs\n");
     init_procs(cons);
-
+cprintf("--------> opencons\n");
     /* shell gets another console that's mutable */
     int newcons = opencons();
     if (newcons >= 0)
 	cons = newcons;
-
+cprintf("--------> init_fbcons\n");
     int cons_fds[6];
     int ncons = init_fbcons(cons, &cons_fds[0], 6);
     for (int i = 1; i < ncons; i++) {
@@ -642,7 +658,7 @@ try
 	thread_create(start_env->proc_container, &run_shell_entry,
 		      (void *) (uintptr_t) cons_fds[i], &tid, "runshell");
     }
-
+cprintf("RUN SHELL\n");
     run_shell(cons_fds[0]);
 } catch (std::exception &e) {
     cprintf("init: %s\n", e.what());

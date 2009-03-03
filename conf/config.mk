@@ -1,6 +1,7 @@
 ## Target kernel architecture/type, one of the following:
 ##	amd64 i386 ft sparc um arm
-K_ARCH := amd64
+#K_ARCH := amd64
+K_ARCH := arm
 
 ## Use a separate obj directory for each target architecture;
 ## useful for building multiple architectures in the same tree.

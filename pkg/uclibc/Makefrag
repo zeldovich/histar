@@ -12,6 +12,10 @@ ifeq ($(ARCH),sparc)
 UCLIBC_ARCH := sparc
 endif
 
+ifeq ($(ARCH),arm)
+UCLIBC_ARCH := arm
+endif
+
 UCLIBC_INCLUDES := \
 	-isystem $(TOP)/uinc \
 	-isystem $(TOP)/pkg/uclibc/libc/sysdeps/linux/$(UCLIBC_ARCH) \

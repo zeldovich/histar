@@ -44,4 +44,8 @@ typedef uint64_t physaddr_t;
 
 #include <stddef.h>	// gcc header file
 
+// Machine-dependent bits for the page_info structure;
+struct md_page_info {
+};
+
 #endif /* !JOS_INC_TYPES_H */

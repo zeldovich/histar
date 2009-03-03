@@ -22,7 +22,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/jthread.hh>
 
-enum { gatesrv_debug = 0 };
+enum { gatesrv_debug = 1 };
 
 static void __attribute__((noreturn))
 gatesrv_cleanup_tls(uint64_t stackarg, uint64_t thread_ref_ct)
@@ -100,7 +100,6 @@ gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
 	    cprintf("[%"PRIu64"] gatesrv_entry_tls\n", thread_id());
 
 	thread_label_cache_invalidate();
-
 	uint64_t entry_ct = start_env->proc_container;
 	error_check(sys_self_set_sched_parents(gcd->thread_ref_ct, entry_ct));
 
@@ -130,6 +129,7 @@ gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
 
 	    stack_switch((uintptr_t) fn, arg, (uintptr_t) stackbase, flags,
 			 stacktop, (void *) &gatesrv_entry);
+cprintf("STACK SWITCHED!\n");
 	}
     } catch (std::exception &e) {
 	printf("gatesrv_entry_tls: %s\n", e.what());

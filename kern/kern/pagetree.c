@@ -1,3 +1,4 @@
+#include <machine/types.h>
 #include <machine/pmap.h>
 #include <kern/pagetree.h>
 #include <kern/pageinfo.h>

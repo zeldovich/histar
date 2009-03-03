@@ -84,6 +84,9 @@
     SYSCALL_ENTRY(as_set)			\
     SYSCALL_ENTRY(as_get_slot)			\
     SYSCALL_ENTRY(as_set_slot)			\
+						\
+    SYSCALL_ENTRY(self_utrap_is_masked)		\
+    SYSCALL_ENTRY(self_utrap_set_mask)
 
 #ifndef __ASSEMBLER__
 #define SYSCALL_ENTRY(name)	SYS_##name,

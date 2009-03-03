@@ -21,4 +21,8 @@ typedef int bool_t;
 
 #include <stddef.h>
 
+// Machine-dependent bits for the page_info structure;
+struct md_page_info {
+};
+
 #endif

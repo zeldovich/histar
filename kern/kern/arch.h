@@ -90,6 +90,7 @@ int  thread_arch_get_entry_args(const struct Thread *t,
     __attribute__ ((warn_unused_result));
 void thread_arch_jump(struct Thread *t, const struct thread_entry *te);
 int  thread_arch_is_masked(const struct Thread *t);
+int  thread_arch_set_mask(const struct Thread *t, int mask);
 void thread_arch_rebooting(struct Thread *t);
 
 #endif

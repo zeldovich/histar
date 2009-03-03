@@ -430,6 +430,7 @@ segment_set_utrap(void *entry, void *stack_base, void *stack_top)
     cache_uas.trap_handler = entry;
     cache_uas.trap_stack_base = stack_base;
     cache_uas.trap_stack_top = stack_top;
+
     r = sys_as_set(as_ref, &cache_uas);
     if (r < 0) {
 	cache_invalidate();

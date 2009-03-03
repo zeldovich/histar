@@ -20,7 +20,7 @@ struct gate_call_data {
      */
     union {
 	struct cobj_ref param_obj;
-	char param_buf[128];
+	char param_buf[256];
     };
 };
 

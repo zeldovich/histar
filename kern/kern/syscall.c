@@ -1082,6 +1082,18 @@ sys_pstate_sync(uint64_t timestamp)
     return 0;
 }
 
+static int64_t __attribute__ ((warn_unused_result))
+sys_self_utrap_is_masked(void)
+{
+    return thread_arch_is_masked(cur_thread);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_self_utrap_set_mask(uint64_t mask)
+{
+    return thread_arch_set_mask(cur_thread, mask);
+}
+
 #define SYSCALL(name, ...)						\
     case SYS_##name:							\
 	return sys_##name(__VA_ARGS__);
@@ -1176,6 +1188,9 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(as_create, a1, p2, p3);
 	SYSCALL(as_copy, COBJ(a1, a2), a3, p4, p5);
 	SYSCALL(pstate_timestamp);
+
+	SYSCALL(self_utrap_is_masked);
+	SYSCALL(self_utrap_set_mask, a1);
 
     default:
 	cprintf("Unknown syscall %"PRIu64"\n", num);

@@ -54,4 +54,9 @@ utrap_field_symbols(void)
 #ifdef JOS_ARCH_sparc
     UTF_DEF(utf_pc);
 #endif
+
+#ifdef JOS_ARCH_arm
+    UTF_DEF(utf_r0);
+    UTF_DEF(utf_pc);
+#endif
 }

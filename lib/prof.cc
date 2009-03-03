@@ -25,6 +25,7 @@ static struct entry table[32];
 static char enable = 0;
 static uint64_t start_prof = 0;
 
+#if 0
 static _Unwind_Reason_Code
 backtrace_cb(struct _Unwind_Context *ctx, void *arg)
 {
@@ -37,11 +38,14 @@ backtrace_cb(struct _Unwind_Context *ctx, void *arg)
 	return _URC_NO_REASON;
     }
 }
+#endif
 
 scoped_prof::scoped_prof(void) : func_addr_(0), start_(arch_read_tsc())
 {
     // watch out for inline
+#if 0
     _Unwind_Backtrace(&backtrace_cb, &func_addr_);
+#endif
 }
 
 scoped_prof::~scoped_prof(void)
@@ -67,7 +71,9 @@ prof_func(uint64_t time)
 {
     uintptr_t addr = 0;
     // watch out for inline
+#if 0
     _Unwind_Backtrace(&backtrace_cb, &addr);
+#endif
     prof_data((void *)addr, time);
 }
 

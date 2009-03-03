@@ -45,6 +45,8 @@ copy_to_utf(struct UTrapframe *u, struct user_regs_struct *r)
 #undef REG_COPY
 #elif defined(JOS_ARCH_sparc)
     /* XXX ptrace does not work yet */
+#elif defined(JOS_ARCH_arm)
+    /* XXX ptrace does not work yet */
 #else
 #error Unknown arch
 #endif
@@ -69,6 +71,8 @@ copy_to_user_regs(struct user_regs_struct *r, struct UTrapframe *u)
     REG_COPY(ip);  REG_COPY(flags);
 #undef REG_COPY
 #elif defined(JOS_ARCH_sparc)
+    /* XXX ptrace does not work yet */
+#elif defined(JOS_ARCH_arm)
     /* XXX ptrace does not work yet */
 #else
 #error Unknown arch

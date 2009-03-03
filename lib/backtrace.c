@@ -3,7 +3,15 @@
 #include <unwind.h>
 #include <execinfo.h>
 
-#if defined(JOS_ARCH_i386)
+#if defined(JOS_ARCH_arm)
+
+int
+backtrace(void **tracebuf, int maxents)
+{
+	return (0);
+}
+
+#elif defined(JOS_ARCH_i386)
 #include <machine/x86.h>
 
 /*

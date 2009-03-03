@@ -45,6 +45,16 @@
  #define ARCH_DIVIDE  T_DIVIDE
 
  #define JOS_ONSTACK_GCCATTR
+#elif defined(JOS_ARCH_arm)
+ #include <machine/trapcodes.h>
+ #define ARCH_PGFLTD  T_DA
+ #define ARCH_PGFLTI  T_PA
+ #define ARCH_DEVICE  T_UNUSED
+ #define ARCH_BRKPT   T_UI
+ #define ARCH_DEBUG   T_UI
+ #define ARCH_DIVIDE  T_UNUSED 
+
+ #define JOS_ONSTACK_GCCATTR	/* XXX?? */
 #else
 #error Unknown arch
 #endif
@@ -148,6 +158,8 @@ utf_dump(struct UTrapframe *utf)
     cprintf("\n");
     cprintf(" y: %08x  pc: %08x  npc: %08x\n",
 	    utf->utf_y, utf->utf_pc, utf->utf_npc);
+#elif defined(JOS_ARCH_arm)
+    cprintf("%s.%d: XXX need to implement %s\n", __FILE__, __LINE__, __func__);
 #else
 #error Unknown arch
 #endif
@@ -651,6 +663,11 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
     utf_jump.utf_regs.sp = ((uintptr_t) stackptr) - STACKFRAME_SZ;
     utf_jump.utf_regs.o0 = (uintptr_t) si_arg;
     utf_jump.utf_regs.o1 = (uintptr_t) sc_arg;
+#elif defined(JOS_ARCH_arm)
+    utf_jump.utf_pc = (uintptr_t) &signal_utrap_onstack;
+    utf_jump.utf_sp = (uintptr_t) stackptr;
+    utf_jump.utf_r0  = (uintptr_t) si_arg;
+    utf_jump.utf_r1  = (uintptr_t) sc_arg;
 #else
 #error Unknown arch
 #endif

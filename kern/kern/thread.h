@@ -49,6 +49,9 @@ struct Thread {
 	int128_t th_sched_remain;
     };
 
+    // Machine-dependent per-thread bits
+    struct md_Thread th_md;
+
     LIST_ENTRY(Thread) th_link;
 };
 

@@ -10,6 +10,13 @@
 #include <bits/libc-tsd.h>
 #include <bits/sigthread.h>
 
+/* must precede first references */
+weak_alias (__pthread_mutex_init, pthread_mutex_init)
+weak_alias (__pthread_mutex_lock, pthread_mutex_lock)
+weak_alias (__pthread_mutex_trylock, pthread_mutex_trylock)
+weak_alias (__pthread_mutex_unlock, pthread_mutex_unlock)
+weak_alias (__pthread_once, pthread_once)
+
 int
 __pthread_mutex_init(pthread_mutex_t * mutex,
 		     const pthread_mutexattr_t *attr)
@@ -346,12 +353,6 @@ pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
     cprintf("%s: unimplemented\n", __func__);
     return 0;
 }
-
-weak_alias (__pthread_mutex_init, pthread_mutex_init)
-weak_alias (__pthread_mutex_lock, pthread_mutex_lock)
-weak_alias (__pthread_mutex_trylock, pthread_mutex_trylock)
-weak_alias (__pthread_mutex_unlock, pthread_mutex_unlock)
-weak_alias (__pthread_once, pthread_once)
 
 void *(*__libc_internal_tsd_get) (enum __libc_tsd_key_t);
 int (*__libc_internal_tsd_set) (enum __libc_tsd_key_t, __const void *);

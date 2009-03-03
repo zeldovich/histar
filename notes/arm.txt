@@ -1,0 +1,17 @@
+*** Be sure that `-mcpu' (in conf/Makefrag.arm) is properly set, otherwise weird
+    things can happen. E.g. your pc magically gets OR'd with 0x80000000. ****
+
+- arm procedure call convention requires sp to be 8-byte aligned
+
+- r0-r3 are arguments / return values / scratch registers, the rest are usually
+  callee-saved, or special in some way (sp, lr, pc)
+
+- there's no clear way of storing the utrap mask in cpu state. there are lots
+  of reserved bits floating around, but usually they're supposed to be 0. the
+  alternative taken is to have a syscall that queries and another that modifies
+  the mask on a thread's behalf. if this is too slow, we can try compiling the
+  user-level code to reserve a register and check/modify the trapframe in the
+  kernel.
+
+- coreutils won't build if uclibc has __USE_EXTERN_INLINES defined (default),
+  so def __NO_INLINE__ or snuff it out in include/features.h

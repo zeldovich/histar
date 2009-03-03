@@ -513,6 +513,7 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	void *va_end = (void *) (uintptr_t)
 	    safe_addptr(&of, (uintptr_t) va_start,
 			safe_mulptr(&of, npages, PGSIZE));
+
 	if (of || va < va_start || va >= va_end)
 	    continue;
 

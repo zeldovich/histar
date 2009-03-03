@@ -1,17 +1,27 @@
 * binutils
 
-./configure --prefix=/usr/local --disable-nls --target=arm-jos-linux
+./configure --prefix=/usr/local --disable-nls --target=arm-jos-linux-gnueabi
 
 * GCC 4.1.2
 
-./configure --target=arm-jos-linux --prefix=/usr/local --with-float=soft \
+Extract gcc-core and gcc-g++, then:
+cd gcc-4.1.2/
+rm -r gcc-4.1.2/libstdc++-v3
+
+Now,
+
+./configure --target=arm-jos-linux-gnueabi --prefix=/usr/local \
+	--with-float=soft \
 	--disable-nls --without-headers --with-newlib \
 	--disable-threads --disable-shared --disable-libmudflap \
 	--disable-libssp
 
+We don't build libstdc++-v3, libmudflap, or libssp, because it
+requires system headers and crt files for the target platform.
+
 * GDB
 
-./configure --target=arm-jos-linux --prefix=/usr/local --disable-nls
+./configure --target=arm-jos-linux-gnueabi --prefix=/usr/local --disable-nls
 
 * Setting up the N800 in Linux
 

@@ -455,3 +455,15 @@ sys_as_set_slot(struct cobj_ref as, struct u_segment_mapping *usm)
 {
     return syscall(SYS_as_set_slot, SOBJ(as), SPTR(usm), 0, 0, 0, 0);
 }
+
+int
+sys_self_utrap_is_masked(void)
+{
+    return syscall(SYS_self_utrap_is_masked, 0, 0, 0, 0, 0, 0, 0);
+}
+
+int
+sys_self_utrap_set_mask(int mask)
+{
+    return syscall(SYS_self_utrap_set_mask, mask, 0, 0, 0, 0, 0, 0);
+}

@@ -34,6 +34,9 @@ struct page_info {
     // Segment ID and offset, the last time this page was mapped.
     uint64_t pi_seg;
     uint64_t pi_segpg;
+
+    // Machine-dependent page info bits
+    struct md_page_info pi_md;
 };
 
 extern struct page_info *page_infos;

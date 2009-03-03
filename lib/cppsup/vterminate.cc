@@ -15,7 +15,7 @@
 
 // You should have received a copy of the GNU General Public License along
 // with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 // USA.
 
 // As a special exception, you may use this file as part of a free software
@@ -28,6 +28,7 @@
 // the GNU General Public License.
 
 #include <bits/c++config.h>
+#if _GLIBCXX_HOSTED
 #include <cstdlib>
 #include <exception>
 #include <exception_defines.h>
@@ -62,10 +63,9 @@ namespace __gnu_cxx
 	{
 	  int status = -1;
 	  char *dem = 0;
-	 
-	  // jos64
-	  //dem = __cxa_demangle(name, 0, 0, &status);
-
+#if 0	  
+	  dem = __cxa_demangle(name, 0, 0, &status);
+#endif
 	  fputs("terminate called after throwing an instance of '", stderr);
 	  if (status == 0)
 	    fputs(dem, stderr);
@@ -97,3 +97,4 @@ namespace __gnu_cxx
     abort();
   }
 } // namespace __gnu_cxx
+#endif

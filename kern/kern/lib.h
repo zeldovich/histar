@@ -70,6 +70,9 @@ extern struct page_stats {
 void page_alloc_init(void);
 int  page_alloc(void **p)
     __attribute__ ((warn_unused_result));
+int  page_alloc_n(void **p, unsigned int, unsigned int)
+    __attribute__ ((warn_unused_result));
 void page_free(void *p);
+void page_free_n(void *p, unsigned int);
 
 #endif /* !JOS_KERN_LIB_H */
