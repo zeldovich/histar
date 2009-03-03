@@ -7,6 +7,7 @@
 #include <kern/prof.h>
 #include <kern/timer.h>
 #include <kern/handle.h>
+#include <dev/filedisk.h>
 #include <inc/error.h>
 
 int
@@ -20,6 +21,10 @@ main(int ac, char **av)
     um_mem_init(mem_bytes);
     um_time_init();
 
+    if (ac == 2)
+	filedisk_init(av[1]);
+
+    part_init();
     kobject_init();
     sched_init();
     pstate_init();
@@ -28,5 +33,6 @@ main(int ac, char **av)
 
     cprintf("Ready.\n");
 
-    um_bench();
+    for (;;)
+	um_shell();
 }

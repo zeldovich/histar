@@ -8,11 +8,11 @@
 #include <inc/error.h>
 
 static uint64_t global_tickets;
-static uint128_t global_pass;
+static uint64_t global_pass;
 static uint64_t stride1;
 
 static void
-global_pass_update(uint128_t new_global_pass)
+global_pass_update(uint64_t new_global_pass)
 {
     static uint64_t last_tsc;
 
@@ -22,8 +22,16 @@ global_pass_update(uint128_t new_global_pass)
     if (new_global_pass) {
 	global_pass = new_global_pass;
     } else if (global_tickets) {
-	global_pass += ((uint128_t) (stride1 / global_tickets)) * elapsed;
+	global_pass += (stride1 / global_tickets) * elapsed;
     }
+}
+
+static int
+sched_pass_below(uint64_t pass, uint64_t thresh)
+{
+    /* Wrap-around arithmetic..  never compare two pass values directly */
+    int64_t delta = pass - thresh;
+    return (delta < 0) ? 1 : 0;
 }
 
 void
@@ -35,7 +43,8 @@ schedule(void)
     do {
 	const struct Thread *t, *min_pass_th = 0;
 	LIST_FOREACH(t, &thread_list_runnable, th_link)
-	    if (!min_pass_th || t->th_sched_pass < min_pass_th->th_sched_pass)
+	    if (!min_pass_th ||
+		sched_pass_below(t->th_sched_pass, min_pass_th->th_sched_pass))
 		min_pass_th = t;
 
 	cur_thread = min_pass_th;
@@ -80,14 +89,12 @@ void
 sched_stop(struct Thread *t, uint64_t elapsed)
 {
     uint64_t tickets = t->th_sched_tickets ? : 1;
-    uint128_t th_stride = stride1 / tickets;
+    uint64_t th_stride = stride1 / tickets;
     t->th_sched_pass += th_stride * elapsed;
 }
 
 void
 sched_init(void)
 {
-    // Set stride1 to all-ones
-    stride1 = 0;
-    stride1--;
+    stride1 = UINT64(1) << 32;
 }

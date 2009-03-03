@@ -45,8 +45,8 @@ struct Thread {
 
     kobject_id_t th_sched_parents[2];
     union {
-	uint128_t th_sched_pass;
-	int128_t th_sched_remain;
+	uint64_t th_sched_pass;
+	int64_t th_sched_remain;
     };
 
     // Machine-dependent per-thread bits

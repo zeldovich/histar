@@ -30,10 +30,6 @@ typedef unsigned long long uint64_t;
 #endif
 typedef uint64_t __uint64_t;
 
-/* XXX this is ugly */
-typedef int64_t int128_t;
-typedef uint64_t uint128_t;
-
 // Pointers and addresses are 32 bits long.
 // We use pointer types to represent virtual addresses,
 // uintptr_t to represent the numerical values of virtual addresses,

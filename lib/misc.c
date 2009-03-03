@@ -83,3 +83,5 @@ __tls_get_addr(void)
     fprintf(stderr, "__tls_get_addr: not implemented\n");
     exit(-1);
 }
+
+strong_alias(__tls_get_addr, ___tls_get_addr)

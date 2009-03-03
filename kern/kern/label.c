@@ -37,19 +37,12 @@ label_leq_starhi_fn(uint8_t a, uint8_t b)
     return (a <= b) ? 0 : -E_LABEL;
 }
 
-static int
-label_eq_fn(uint8_t a, uint8_t b)
-{
-    return (a == b) ? 0 : -E_LABEL;
-}
-
 #define LEVEL_COMPARATOR(x)						\
     static struct level_comparator_buf x##_buf = { .gen = &x##_fn };	\
     level_comparator x = &x##_buf
 
 LEVEL_COMPARATOR(label_leq_starlo);
 LEVEL_COMPARATOR(label_leq_starhi);
-LEVEL_COMPARATOR(label_eq);
 
 static void
 level_comparator_init(level_comparator c)
