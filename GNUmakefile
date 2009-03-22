@@ -39,10 +39,7 @@ CXXWARNS := $(COMWARNS) -Wno-non-template-friend
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline
 # -Weffc++ -Wswitch-enum -Wcast-align
 
-OPTFLAG	 := -O3 -fno-omit-frame-pointer
-ifeq ($(ARCH),amd64)
-OPTFLAG  += -march=athlon64
-endif
+OPTFLAG	 := -O3 -fno-omit-frame-pointer $(ARCHOPT)
 
 BASECFLAGS  := -nostdinc \
 	       -idirafter $(shell $(CC) -print-file-name=include) \
