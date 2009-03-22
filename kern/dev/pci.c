@@ -117,12 +117,11 @@ pci_scan_bus(struct pci_bus *bus)
 	if (PCI_HDRTYPE_TYPE(bhlc) > 1)	    // Unsupported or no device
 	    continue;
 
-	struct pci_func f = df;
-	for (f.func = 0; f.func < (PCI_HDRTYPE_MULTIFN(bhlc) ? 8 : 1);
-			 f.func++) {
-	    struct pci_func af = f;
+	for (df.func = 0; df.func < (PCI_HDRTYPE_MULTIFN(bhlc) ? 8 : 1);
+			  df.func++) {
+	    struct pci_func af = df;
 
-	    af.dev_id = pci_conf_read(&f, PCI_ID_REG);
+	    af.dev_id = pci_conf_read(&af, PCI_ID_REG);
 	    if (PCI_VENDOR(af.dev_id) == 0xffff)
 		continue;
 
