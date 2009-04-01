@@ -13,5 +13,5 @@ OBJDUMP := $(GCCPREFIX)objdump
 NM      := $(GCCPREFIX)nm
 STRIP   := $(GCCPREFIX)strip
 
-ARCHOPT := 
+ARCHOPT := -mno-sse2
 #ARCHOPT := -march=athlon64
