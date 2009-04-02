@@ -830,7 +830,8 @@ $(OBJDIR)/user/gcc.tar: $(ACPKG_BUILDDIR)/gcc-3.4.5/__build $(ACPKG_BUILDDIR)/bi
 
 	tar -hrf $(OBJDIR)/user/.tmp.gcc.tar -C $(OBJDIR) \
 		lib/libjos.a lib/libnetd.a lib/libc.a lib/libm.a \
-		lib/liblwip.a lib/libutil.a lib/libstdc++.a
+		lib/liblwip.a lib/libutil.a lib/libstdc++.a \
+		lib/libc_nonshared.a
 
 	rm -rf $(OBJDIR)/user/.tmp.gcc.dir
 	mkdir -p $(OBJDIR)/user/.tmp.gcc.dir/lib
