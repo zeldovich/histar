@@ -44,8 +44,6 @@ thread_arch_run(const struct Thread *t)
 	if (t->th_fp_enabled) {
 		panic("%s: arm fp handling!", __func__);
 	}
-static int cnt = 0;
-if ((++cnt % 10000) == 0) cprintf("arch_run x 10000\n");
 
 	trapframe_pop(&t->th_tf);
 }
@@ -146,16 +144,13 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 	if (r < 0) {
 		if ((uintptr_t) utf <= t->th_as->as_utrap_stack_base)
 			cprintf("thread_arch_utrap: utrap stack overflow\n");
-cprintf("UTRAP: CHECK USER ACCESS FAILED\n");
 		return (r);
 	}
 
 	if (t == trap_thread && trap_thread_syscall_writeback) {
-/* XXX- what the fuck?! */
-cprintf("XXX- adjusting sp WTF!\n");
 		trap_thread_syscall_writeback = 0;
-		t_utf.utf_sp += 2;
 		t_utf.utf_r0 = 0;
+		t_utf.utf_r1 = 0;
 	}
 
 	memcpy(utf, &t_utf, sizeof(*utf));
@@ -198,7 +193,6 @@ trapframe_print(const struct Trapframe *tf)
 	cprintf("r15:  0x%08x\n",  tf->tf_r15);
 
 	cprintf("spsr: 0x%08x\n\n", tf->tf_spsr);
-
 }
 
 // Handle a system call.
@@ -208,12 +202,6 @@ swi_handler(struct Trapframe *tf)
 	int64_t r;
 	uint32_t sysnum = tf->tf_r0;
 	uint64_t *args = (uint64_t *)tf->tf_r1;
-
-if (sysnum == SYS_sync_wait) {
-	cprintf("SYS_sync_wait on 0x%" PRIx64 "\n", args[0]);
-} else if (sysnum == SYS_sync_wakeup) {
-	cprintf("SYS_sync_wakeup on 0x%" PRIx64 "\n", args[0]);
-}
 
 	trap_thread_syscall_writeback = 1;
 
