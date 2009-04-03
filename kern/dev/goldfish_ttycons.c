@@ -5,14 +5,15 @@
 #include <kern/prof.h>
 #include <inc/intmacro.h>
 #include <dev/goldfish_ttycons.h>
+#include <dev/goldfish_ttyconsreg.h>
+
+#define GF_TTY_DEVICE	((struct goldfish_ttycons_reg *)0xff002000)
 
 static void
 goldfish_ttycons_putc(void *arg, int c, cons_source src)
 {
-	volatile uint32_t *tty = (volatile uint32_t *)0xff002000;
-
 	c &= 0xff;
-	*tty = c;
+	GF_TTY_DEVICE->put_char = c;
 }
 
 /*
@@ -28,6 +29,7 @@ goldfish_ttycons_proc_data(void *arg)
 static void
 goldfish_ttycons_intr(void *arg)
 {
+cprintf("TTYCONS\n");
 	cons_intr(goldfish_ttycons_proc_data, arg);
 }
 
@@ -41,6 +43,9 @@ goldfish_ttycons_init(void)
 	static struct interrupt_handler ih = {
 		.ih_func = &goldfish_ttycons_intr
 	};
+
+	// enable interrupts
+	GF_TTY_DEVICE->command = GF_TTY_CMD_INT_ENABLE;
 
 	irq_register(4, &ih);
 
