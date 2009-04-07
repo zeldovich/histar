@@ -23,13 +23,22 @@ goldfish_ttycons_putc(void *arg, int c, cons_source src)
 static int
 goldfish_ttycons_proc_data(void *arg)
 {
-	return (-1);
+	char buf;
+
+	if (GF_TTY_DEVICE->bytes_ready == 0)
+		return (-1);
+
+	GF_TTY_DEVICE->data_ptr = (uint32_t)&buf;  //yes, emulator does kva->pa
+	GF_TTY_DEVICE->data_len = 1;
+	GF_TTY_DEVICE->command = GF_TTY_CMD_READ_BUF;
+
+	/* result is instantaneous (?) */
+	return (buf & 0x7f);
 }
 
 static void
 goldfish_ttycons_intr(void *arg)
 {
-cprintf("TTYCONS\n");
 	cons_intr(goldfish_ttycons_proc_data, arg);
 }
 

@@ -5,6 +5,9 @@ struct goldfish_ttycons_reg {
 	volatile uint32_t put_char;
 	volatile uint32_t bytes_ready;
 	volatile uint32_t command;
+
+	uint32_t pad;
+
 	volatile uint32_t data_ptr;
 	volatile uint32_t data_len;
 }; 

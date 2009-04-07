@@ -23,6 +23,25 @@ requires system headers and crt files for the target platform.
 
 ./configure --target=arm-jos-linux-gnueabi --prefix=/usr/local --disable-nls
 
+* Running with Android's Goldfish emulator
+
+Modify emulator/qemu/hw/android_arm.c around like 76 to the following:
+	goldfish_tty_add(serial_hds[0], 0, 0xff002000, 4);
+	goldfish_tty_add(serial_hds[1], 0, 0xff002000, 4);
+    #if 0
+	for(i = 1; i < MAX_SERIAL_PORTS; i++) { 
+        	//printf("android_arm_init serial %d %x\n", i, serial_hds[i]);
+        	if(serial_hds[i]) {
+            		goldfish_tty_add(serial_hds[i], i, 0, 0);
+        	}
+    	}
+    #endif
+
+This will let you use stdin/stdout for the console. I have no idea how to
+do so with the command line options. Now, run the emulator with the following
+flags: ``-show-kernel -shell -kernel path/to/bimage.init''.
+
+
 * Setting up the N800 in Linux
 
     http://people.csail.mit.edu/calvinon/org/setup_inst
