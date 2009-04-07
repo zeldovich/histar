@@ -14,7 +14,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 
-static const char proc_debug = 1;
+static const char proc_debug = 0;
 
 libc_hidden_proto(getpid)
 libc_hidden_proto(setsid)

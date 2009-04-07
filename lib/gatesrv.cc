@@ -22,7 +22,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/jthread.hh>
 
-enum { gatesrv_debug = 1 };
+enum { gatesrv_debug = 0 };
 
 static void __attribute__((noreturn))
 gatesrv_cleanup_tls(uint64_t stackarg, uint64_t thread_ref_ct)

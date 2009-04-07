@@ -20,7 +20,7 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
 
-enum { gate_client_debug = 1 };
+enum { gate_client_debug = 0 };
 
 static void __attribute__((noreturn))
 return_stub(jos_jmp_buf *jb, uint64_t tid, void (*returncb)(void*), void *cbarg)
@@ -214,23 +214,19 @@ gate_call::call(gate_call_data *gcd_param, const label *vl, const label *vc,
 
     if (gate_client_debug)
 	cprintf("[%"PRIu64"] gate_call: returned\n", thread_id());
-cprintf("1\n");
+
     // Restore cached thread ID, just to be safe
     tls_revalidate();
-cprintf("2\n");
+
     error_check(sys_self_set_sched_parents(start_env->proc_container, 0));
     thread_label_cache_invalidate();
-cprintf("3\n");
+
     // Copy back the arguments
     if (gcd_param)
 	memcpy(gcd_param, d, sizeof(*d));
-cprintf("4\n");
+
     // Check for pending signals while we were in another address space..
     signal_trap_if_pending();
-cprintf("5\n");
-int lr;
-__asm__ __volatile__("mov %0, lr" : "=r" (lr));
-cprintf("RETURNING TO 0x%08x\n", lr);
 }
 
 gate_call::~gate_call()

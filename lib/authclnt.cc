@@ -19,7 +19,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/cooperate.hh>
 
-enum { auth_debug = 1 };
+enum { auth_debug = 0 };
 
 int
 jos64_login(const char *user, const char *pass)
