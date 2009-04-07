@@ -213,7 +213,16 @@ swi_handler(struct Trapframe *tf)
 	if (trap_thread_syscall_writeback) {
 		trap_thread_syscall_writeback = 0;
 		struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
-		if (r != -E_RESTART) {
+
+		if (r == -E_RESTART) {
+			/*
+			 * -E_RESTART => set us up to execute the same swi
+			 * upon return to userspace. Note that locore.S has
+			 * already set pc to the proper next instruction, so
+			 * we need only step back by 4.
+			 */
+			t->th_tf.tf_pc -= 4;
+		} else {
 			t->th_tf.tf_r0 = (uint64_t)r & 0xffffffff;
 			t->th_tf.tf_r1 = (uint64_t)r >> 32;
 		}
