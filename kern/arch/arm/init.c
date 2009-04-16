@@ -8,6 +8,7 @@
 #include <dev/goldfish_irq.h>
 #include <dev/goldfish_timer.h>
 #include <dev/goldfish_ttycons.h>
+#include <dev/msm_ttycons.h>
 #include <machine/arm.h>
 #include <machine/asm.h>
 #include <machine/atag.h>
@@ -88,31 +89,16 @@ init(int bid_hi, int bid_lo, void *kargs)
 
 	bss_init();
 
+#if defined(JOS_ARM_GOLDFISH)
 	goldfish_irq_init();
 	goldfish_ttycons_init();
 	goldfish_timer_init();
-
-	/*
-	 * Ensure that we didn't screw up our kpagemap in locore.S.
-	 * We'd probably never get here if we did, but it doesn't hurt. 
-	 */
-	if ((uint32_t)&kpagemap & (ARM_MMU_L1_ALIGNMENT-1))
-		panic("kpagemap badly aligned!"); 
-	for (i = 0; i < 2048; i++) {
-		if (kpagemap.pm_ent[i] != ((i << 20) | (1 << 10) | 0x2))
-			panic("kpagemap.pm_ent[%d] bad (0x%08x)!", i,
-			    kpagemap.pm_ent[i]);
-	}
-	for (i = 2048; i < 3072; i++) {
-		if (kpagemap.pm_ent[i] != (((i-2048) << 20) | (1 << 10) | 0x2))
-			panic("kpagemap.pm_ent[%d] bad (0x%08x)!", i,
-			    kpagemap.pm_ent[i]);
-	}
-	for (i = 3072; i < 4096; i++) {
-		if (kpagemap.pm_ent[i] != ((i << 20) | (1 << 10) | 0x2))
-			panic("kpagemap.pm_ent[%d] bad (0x%08x)!", i,
-			    kpagemap.pm_ent[i]);
-	}
+#elif defined(JOS_ARM_HTCDREAM)
+	msm_ttycons_init(0xa9c00000, 11, 14);
+	//msm_timer_init(...);
+#else
+#error unknown arm target
+#endif
 
 	cprintf("Board ID: 0x%04x\n", board_id);
 
@@ -145,6 +131,15 @@ init(int bid_hi, int bid_lo, void *kargs)
 
 		atp = (struct atag *)((uint32_t *)atp + atp->words);
 	}
+
+#if defined(JOS_ARM_HTCDREAM)
+	/* seem to be missing an ATAG for memory? hard-code 96MB. */
+	if (nmem_desc == 0) {
+		mem_desc[0].offset = 0x10000000;
+		mem_desc[0].bytes  = 96 * 1024 * 1024;
+		nmem_desc = 1;
+	}
+#endif
 
 	page_init(mem_desc, nmem_desc);
 

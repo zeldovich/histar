@@ -1,16 +1,19 @@
 # -*-Makefile-*-
 
-# The 0x000 link offset corresponds to the offset of the text section
-# in the resulting ELF kernel file.  This way, the kernel ELF binary
-# can be loaded at exactly 0x100000, without any further relocation.
+# - Goldfish physical memory starts at 0. The kernel is loaded at 0x10000.
+# - HTC Dream physical memory starts at 256MB. The kernel is loaded where the
+#   boot sector header specifies (we use 0x10010000).
+#
+# In all cases, our kernel KVA is mapped to begin at 0x80000000.
 
 # NB: locore.S must be first in the linking order to that <start> is in the
 # loaded binary file at offset 0.
 KERN_LDFLAGS = -N -Ttext 0x80010000 -e start -nostdlib
-KERN_CFLAGS += -msoft-float -fno-builtin -Wno-missing-noreturn
+KERN_CFLAGS += -msoft-float -fno-builtin -Wno-missing-noreturn -DJOS_ARM_HTCDREAM
 
 KERN_ARCH :=					\
 	$(ARCHDIR)/locore.S			\
+	$(ARCHDIR)/exception.S			\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/pmap.c			\
 	$(ARCHDIR)/page.c			\
@@ -33,7 +36,8 @@ KERN_LIB :=					\
 KERN_DEV :=					\
 	dev/goldfish_irq.c			\
 	dev/goldfish_timer.c			\
-	dev/goldfish_ttycons.c
+	dev/goldfish_ttycons.c			\
+	dev/msm_ttycons.c
 
 $(OBJDIR)/kern/kernel.%.debuginfo:
 	$(LD) -o $@ $(KERN_LDFLAGS) $^ $(GCC_LIB)

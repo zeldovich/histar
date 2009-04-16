@@ -33,15 +33,11 @@ segment_copy(const struct Segment *src, const struct Label *newl,
 {
     struct Segment *dst;
     int r = segment_alloc(newl, &dst);
-extern void cprintf(const char *, ...);
-extern const char *e2s(uint64_t);
-if (r < 0) cprintf("KERN: SEGMENT_ALLOC FAILED: %s\n", e2s(r));
     if (r < 0)
 	return r;
 
     segment_invalidate(src, 0);
     r = kobject_copy_pages(&src->sg_ko, &dst->sg_ko);
-if (r < 0) cprintf("KERN: KOBJ_COPY_PAGES FAILED: %s\n", e2s(r));
     if (r < 0)
 	return r;
 

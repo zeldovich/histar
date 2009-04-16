@@ -12,6 +12,10 @@
 #define	ATAG_VIDEOLFB	0x54410008
 #define	ATAG_CMDLINE	0x54410009
 
+#define ATAG_MSM_PTABLE	0x4d534d70	/* partition table */
+#define ATAG_MSM_WIFI	0x57494649
+#define ATAG_AKM8976	0x89768976	/* no idea */
+
 #ifndef __ASSEMBLER__
 
 struct atag_core {
@@ -29,6 +33,13 @@ struct atag_cmdline {
 	char cmdline[0];
 };
 
+struct atag_msm_ptentry {
+	char name[16];		/* partition name */
+	uint32_t start; 	/* start block */
+	uint32_t length;	/* total blocks */
+	uint32_t flags;		/* flags - SBZ */
+};
+
 struct atag {
 	uint32_t words;		/* number of 32-bit words, including header */
 	uint32_t tag;		/* tag type */
@@ -37,6 +48,7 @@ struct atag {
 		struct atag_core	core;
 		struct atag_mem		mem;
 		struct atag_cmdline	cmdline;
+		struct atag_msm_ptentry	msm_ptable[1];
 	} u;
 };
 
