@@ -13,6 +13,7 @@ enum {
     time_source_tsc,
     time_source_gpt,
     time_source_goldfish,
+    time_source_msm,
 };
 
 struct time_source {

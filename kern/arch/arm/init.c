@@ -8,6 +8,8 @@
 #include <dev/goldfish_irq.h>
 #include <dev/goldfish_timer.h>
 #include <dev/goldfish_ttycons.h>
+#include <dev/msm_irq.h>
+#include <dev/msm_timer.h>
 #include <dev/msm_ttycons.h>
 #include <machine/arm.h>
 #include <machine/asm.h>
@@ -94,8 +96,9 @@ init(int bid_hi, int bid_lo, void *kargs)
 	goldfish_ttycons_init();
 	goldfish_timer_init();
 #elif defined(JOS_ARM_HTCDREAM)
+	msm_irq_init(0xc0000000);
 	msm_ttycons_init(0xa9c00000, 11, 14);
-	//msm_timer_init(...);
+	msm_timer_init(0xc0100000, 8, 19200000);	// debug timer: 19.2MHz
 #else
 #error unknown arm target
 #endif

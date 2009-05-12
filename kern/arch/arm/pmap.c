@@ -477,10 +477,12 @@ void
 as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 {
 	const struct Pagemap *pgmap = arg;
-	struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(*ptep)));
+	struct page_info *pi;
 	pvp_t *pvp;
 	int r;
 
+	// bail immediately if this isn't a valid entry (don't want to call
+	// pa2kva yet, etc).
 	if (ARM_MMU_L2_TYPE(*ptep) != ARM_MMU_L2_TYPE_SMALL)
 		return;
 
@@ -490,6 +492,7 @@ as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 	if ((*pvp & PVP_DIRTYBIT) == 0)
 		return;
 
+	pi = page_to_pageinfo(pa2kva(PTE_ADDR(*ptep)));
 	pi->pi_dirty = 1;
 	*pvp &= ~PVP_DIRTYBIT;
 	*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;

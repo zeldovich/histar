@@ -36,6 +36,7 @@ _panic(const char *file, int line, const char *fmt, ...)
     cprintf("Call stack[%d]: %p\n", i, __builtin_return_address(i))
 
     PRINT_STACK(0);
+#ifndef JOS_ARCH_RETADD_ONEOFF
     PRINT_STACK(1);
     PRINT_STACK(2);
     PRINT_STACK(3);
@@ -43,6 +44,7 @@ _panic(const char *file, int line, const char *fmt, ...)
     PRINT_STACK(5);
     PRINT_STACK(6);
     PRINT_STACK(7);
+#endif
 #endif
 
  dead:

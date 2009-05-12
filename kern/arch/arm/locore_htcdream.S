@@ -95,9 +95,6 @@ start:
 4:
 	b	4b			// We're in trouble...
 
-uart3_tfrf:
-	.word 0xa9c0000c
-
 init_addr:
 	.word init
 

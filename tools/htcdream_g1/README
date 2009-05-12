@@ -1,0 +1,14 @@
+`mkbtimg' and `rdbtimg' create boot images (including the header) and
+dump the header contents of an existing boot image, respectively. 
+
+Example usage:
+    ./mkbtimg histar_boot 2048 0x10000100 0x10010000:../histar/obj.arm/boot/bimage.init 0x11000000:fake_ramdisk   
+    ./rdbtimg histar_boot
+    fastboot flash boot histar_boot
+
+`fastboot' is an HTC binary for flashing nand partitions from the device
+firmware
+
+NB: For some reason, the device interprets 0x10000100 as 0x80000100.
+NB: A ramdisk must always be present, though a secondary loader is optional. I
+    just use a single page (2048byte) zero block and ignore it.

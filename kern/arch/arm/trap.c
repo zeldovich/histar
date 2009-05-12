@@ -236,48 +236,12 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, const int code)
 {
 	void *fault_va;
     	uint32_t reqflags = 0;
-	uint32_t fsr, far;
 
 	/*
-	 * Ugh. Android's ARM emulator appears to be broken.
-	 *
-	 * The old FAR and FSR `Combined/Data registers' (opcode2 == 0) are
-	 * supposed to be always updated. With newer chips, the user has the
-	 * option of using additional registers. However, this isn't the case
-	 * with Android. In addition, the code Google's using mistakes the IFAR
-	 * for the WFAR and doesn't even allow accesses to the real IFAR!.
-	 * Things appear better in the QEMU 0.9.1 source, but we have what we
-	 * have.
-	 *
-	 * I don't know how Linux would work without taking this damage into
-	 * account and I haven't looked. Anyway, we will work around this.
+	 * The Fault Address Register (FAR) is only updated on data aborts, not
+	 * on prefetch aborts. So, use the PC for the latter.
 	 */
-	fsr = cp15_fsr_get();
-	far = cp15_far_get();
-
-	/* clear so we can differentiate between bogus Android and real */
-	cp15_fsr_set(0);
-	cp15_far_set(0);
-
-	assert(code == T_PA || fsr != 0);
-
-	/* if both zero, assume broken Android emulator instruction miss */
-	if (code == T_PA && fsr == 0 && far == 0) {
-		static int warn = 0;
-		uint32_t zero = 0;
-
-		if (!warn) {
-			cprintf("NOTICE: Assuming Android emulation\n");
-			warn++;
-		}
-
-		__asm__ __volatile__("mrc p15, 0, %0, c5, c0, 1" : "=r" (fsr));
-		__asm__ __volatile__("mrc p15, 0, %0, c6, c0, 1" : "=r" (far));
-		__asm__ __volatile__("mcr p15, 0, %0, c5, c0, 1" : "=r" (zero));
-		__asm__ __volatile__("mcr p15, 0, %0, c6, c0, 1" : "=r" (zero));
-	}
-
-	fault_va = (void*)far;
+	fault_va = (void *)((code == T_PA) ? tf->tf_pc : cp15_far_get());
 
 	/*
 	 * Older ARMs (pre-VMSAv6, with which we're trying to be compatible)

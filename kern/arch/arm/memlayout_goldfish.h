@@ -57,7 +57,7 @@
 /*
  * Page addressing
  */
-#ifndef __ASSEMBLER__
+#if defined(JOS_KERNEL) && !defined(__ASSEMBLER__)
 
 #include <kern/lib.h>
 

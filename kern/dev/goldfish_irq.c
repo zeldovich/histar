@@ -13,6 +13,7 @@ goldfish_irq_init(void)
 	irqreg->disable_all = 1;
 }
 
+#ifdef JOS_ARM_GOLDFISH
 void
 irq_arch_enable(uint32_t irq)
 {
@@ -37,3 +38,4 @@ irq_arch_handle()
 	if (i == 10)
 		panic("%s:%s: spurious interrupt", __FILE__, __func__);
 }
+#endif /* !JOS_ARM_GOLDFISH */
