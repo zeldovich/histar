@@ -3,8 +3,6 @@
 #include <machine/mmu.h>
 #include <machine/memlayout.h>
 
-#define INIT_STACK_SIZE        2048
-
 // # stringifies in cpp, but used for constants in arm asm.
 #define POUND #
 
@@ -45,6 +43,8 @@ start:
 2:
 	mov	r9, #ARM_MMU_L1_TYPE_SECTION
 	orr	r9, r9, #ARM_MMU_L1_SECTION_AP(ARM_MMU_AP_KRW)
+	orr	r9, r9, #ARM_MMU_L1_SECTION_BUFFERABLE
+	orr	r9, r9, #ARM_MMU_L1_SECTION_CACHEABLE
 	sub	r10, r7, #1792		// r10 = i	(i in [256, 768))
 	lsl	r10, r10, #20		// r10 <<= 20 (convert to 1MB offset)
 	orr	r9, r9, r10		// r9 |= r10
@@ -71,39 +71,5 @@ start:
 	cmp	r7, r8			// check if done...
 	blt	3b			// ...and loop if not
 
-	// set up the mmu and enable translation. we must:
-	//    1) disable and invalidate the icache
-	//    2) set the domain access values in register 3 
-	//    3) load our page table pointer in TTBR (register 2)
-	//    4) flush the TLB (paranoia)
-	//    5) enable the MMU
-					// 1. XXX disable and inval icache
-	mov	r7, #ARM_MMU_DOMAINx(0, ARM_MMU_DOMAIN_CLIENT)
-	mcr	p15, 0, r7, c3, c0, 0	// 2. set domain access control
-	mcr	p15, 0, r6, c2, c0, 0	// 3. load &kpagemap into the TTBR
-	mov	r7, #0
-	mcr	p15, 0, r7, c8, c7, 0	// 4. flush the tlb(s)
-	mov	r7, #CTRL_M
-	mcr	p15, 0, r7, c1, c0, 0	// 5. enable the MMU
-	
-	// set up our stack and jump to init
-	adr     sp, init_stack_top_addr	// set our temporary kernel stack.
-	ldr	sp, [sp]
-	mov	fp, #0x00000000		// necessary?!
-	adr	r10, init_addr		// load init's full addr (not rel. addr)
-	ldr	pc, [r10]		// jump to init(), using kva
-4:
-	b	4b			// We're in trouble...
-
-init_addr:
-	.word init
-
-kpagemap_reloc_addr:
-	.word RELOC(kpagemap)
-
-init_stack_top_addr:
-        .word   init_stack_addr + INIT_STACK_SIZE
-
-.align  8				// ARM EABI requires 8-byte sp alignment
-init_stack_addr:
-        .space  INIT_STACK_SIZE
+	// jump (fall, really, but just in case...) to common init code
+	b start_common

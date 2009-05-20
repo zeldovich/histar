@@ -66,6 +66,9 @@
 
 #define ARM_MMU_L1_SECTION_AP(x)	((x) << 10)
 
+#define ARM_MMU_L1_SECTION_BUFFERABLE	0x04		/* bufferable section */
+#define ARM_MMU_L1_SECTION_CACHEABLE	0x08		/* cacheable section */
+
 #define ARM_MMU_DOMAINx(x, val)		((val) << ((x)*2))
 #define ARM_MMU_DOMAIN_NOACCESS		0x00		/* any access faults */
 #define ARM_MMU_DOMAIN_CLIENT		0x01		/* accesses use TLB AP*/
@@ -93,8 +96,8 @@
 #define ARM_MMU_L2_TYPE_SMALL 		0x2		/* 4KB page */
 #define ARM_MMU_L2_TYPE_EXTENDED	0x3		/* no bloody clue */
 
-#define ARM_MMU_L2_CACHEABLE		0x08
-#define ARM_MMU_L2_BUFFERABLE		0x04
+#define ARM_MMU_L2_SMALL_BUFFERABLE	0x04		/* bufferable page */
+#define ARM_MMU_L2_SMALL_CACHEABLE	0x08		/* cacheable page */ 
 
 #define ARM_MMU_L2_SMALL_AP(x)	(((x)<<4) | ((x)<<6) | ((x)<<8) | ((x)<<10))
 #define ARM_MMU_L2_SMALL_AP_MASK	ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_MASK)

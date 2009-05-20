@@ -1,8 +1,7 @@
 #ifndef JOS_MACHINE_ARM
 #define JOS_MACHINE_ARM
 
-#define ARM_INST_ATTR \
-	static __inline __attribute__((always_inline, no_instrument_function))
+#include <machine/cpu.h>
 
 #define CPSR_MODE_MASK	0x1f			// cpu mode (priv & bank ctrl)
 #define CPSR_MODE_USR	0x10			// user mode
@@ -30,109 +29,27 @@
 //dirty bit emulation
 int arm_dirtyemu(struct Pagemap *, const void *);
 
-ARM_INST_ATTR uint32_t	cpsr_get(void);
-ARM_INST_ATTR void	cpsr_set(uint32_t);
-ARM_INST_ATTR uint32_t	cp15_ctrl_get(void);
-ARM_INST_ATTR void	cp15_ctrl_set(uint32_t);
-ARM_INST_ATTR uint32_t	cp15_cop_acc_ctrl_get(void);
-ARM_INST_ATTR void	cp15_cop_acc_ctrl_set(uint32_t);
-ARM_INST_ATTR uint32_t	cp15_fsr_get(void);
-ARM_INST_ATTR void	cp15_fsr_set(uint32_t);	
-ARM_INST_ATTR uint32_t	cp15_far_get(void);	
-ARM_INST_ATTR void	cp15_far_set(uint32_t);	
-ARM_INST_ATTR void	cp15_tlb_flush(void);	
-ARM_INST_ATTR uint32_t	cp15_ttbr_get(void);
-ARM_INST_ATTR void	cp15_ttbr_set(physaddr_t);
-
-static uint32_t
-cpsr_get()
-{
-	uint32_t val;
-	__asm__ __volatile__("mrs %0, cpsr" : "=r" (val));
-	return (val);
-}
-
-static void
-cpsr_set(uint32_t val)
-{
-	__asm__ __volatile__("msr cpsr, %0" : : "r" (val));
-}
-
-static uint32_t
-cp15_ctrl_get()
-{
-	uint32_t val;
-	__asm__ __volatile__("mrc p15, 0, %0, c1, c0, 0" : "=r" (val));
-	return (val);
-}
-
-static void
-cp15_ctrl_set(uint32_t val)
-{
-	__asm__ __volatile__("mcr p15, 0, %0, c1, c0, 0" : : "r" (val));
-}
-
-static uint32_t
-cp15_cop_acc_ctrl_get()
-{
-	uint32_t val;
-	__asm__ __volatile__("mrc p15, 0, %0, c1, c0, 2" : "=r" (val));
-	return (val);
-}
-
-static void
-cp15_cop_acc_ctrl_set(uint32_t val)
-{
-	__asm__ __volatile__("mcr p15, 0, %0, c1, c0, 2" : : "r" (val));
-}
-
-static uint32_t
-cp15_fsr_get()
-{
-	uint32_t val;
-	__asm__ __volatile__("mrc p15, 0, %0, c5, c0, 0" : "=r" (val));
-	return (val);
-}
-
-static void
-cp15_fsr_set(uint32_t val)
-{
-	__asm__ __volatile__("mcr p15, 0, %0, c5, c0, 0" : : "r" (val));
-}
-
-static uint32_t
-cp15_far_get()
-{
-	uint32_t val;
-	__asm__ __volatile__("mrc p15, 0, %0, c6, c0, 0" : "=r" (val));
-	return (val);
-}
-
-static void
-cp15_far_set(uint32_t val)
-{
-	__asm__ __volatile__("mcr p15, 0, %0, c6, c0, 0" : : "r" (val));
-}
-
-static uint32_t
-cp15_ttbr_get()
-{
-	uint32_t val;
-	__asm__ __volatile__("mrc p15, 0, %0, c2, c0, 0" : "=r" (val));
-	return (val);
-}
-
-static void
-cp15_ttbr_set(physaddr_t base)
-{
-	__asm__ __volatile__("mcr p15, 0, %0, c2, c0, 0" : : "r" (base));
-}
-
-static void
-cp15_tlb_flush()
-{
-	__asm__ __volatile__("mcr p15, 0, %0, c8, c7, 0" : : "r" (0));
-}
+extern uint32_t	cpsr_get(void);
+extern void	cpsr_set(uint32_t);
+extern uint32_t	cp15_ctrl_get(void);
+extern void	cp15_ctrl_set(uint32_t);
+extern uint32_t	cp15_cop_acc_ctrl_get(void);
+extern void	cp15_cop_acc_ctrl_set(uint32_t);
+extern uint32_t	cp15_fsr_get(void);
+extern void	cp15_fsr_set(uint32_t);	
+extern uint32_t	cp15_far_get(void);	
+extern void	cp15_far_set(uint32_t);	
+extern void	cp15_tlb_flush(void);	
+extern uint32_t	cp15_ttbr_get(void);
+extern void	cp15_ttbr_set(physaddr_t);
+extern void	cp15_write_buffer_drain(void);
+extern void	cp15_icache_invalidate_arm11(void);
+extern void	cp15_icache_invalidate(void);
+extern void	cp15_dcache_flush_invalidate_arm11(void);
+extern void	cp15_dcache_flush_invalidate_tci(void);
+extern void	cp15_dcache_flush_invalidate(void);
+extern uint32_t	cp15_main_id_get(void);
+extern uint32_t	cp15_cache_type_get(void);
 
 #endif /* !__ASSEMBLER__ */
 

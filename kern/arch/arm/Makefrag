@@ -18,7 +18,8 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/pmap.c			\
 	$(ARCHDIR)/page.c			\
 	$(ARCHDIR)/trap.c			\
-	$(ARCHDIR)/misc.c
+	$(ARCHDIR)/misc.c			\
+	$(ARCHDIR)/cpu.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/longjmp.S			\

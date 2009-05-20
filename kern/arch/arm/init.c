@@ -15,6 +15,7 @@
 #include <machine/asm.h>
 #include <machine/atag.h>
 #include <machine/pmap.h>
+#include <machine/cpu.h>
 
 extern uint32_t	cpsr_get(void);
 extern void	cpsr_set(uint32_t);
@@ -45,7 +46,6 @@ bss_init(void)
 // around in all user process page tables.
 // 
 // Also, set up exception stacks for each type.
-// XXX- icache flush?
 static void
 exception_init(void)
 {
@@ -65,8 +65,11 @@ exception_init(void)
 	memset(pm2, 0, PGSIZE);
 
 	pm2->pm_ent[240] = kva2pa(exceptpg) | ARM_MMU_L2_TYPE_SMALL |
+	    ARM_MMU_L2_SMALL_BUFFERABLE | ARM_MMU_L2_SMALL_CACHEABLE |
 	    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRW);
 	kpagemap.pm_ent[4095] = kva2pa(pm2) | ARM_MMU_L1_TYPE_COARSE;
+
+	cp15_tlb_flush();
 
 	// Create separate stacks for each exception vector.
 	// Remember that ARM EABI requires 8 byte sp alignment.
@@ -97,13 +100,15 @@ init(int bid_hi, int bid_lo, void *kargs)
 	goldfish_timer_init();
 #elif defined(JOS_ARM_HTCDREAM)
 	msm_irq_init(0xc0000000);
-	msm_ttycons_init(0xa9c00000, 11, 14);
-	msm_timer_init(0xc0100000, 8, 19200000);	// debug timer: 19.2MHz
+	msm_ttycons_init(0xa9c00000, 11);
+//	msm_timer_init(0xc0100000, 8, MSM_TIMER_DG, 19200000); // VIC-unaware
+	msm_timer_init(0xc0100000, 7, MSM_TIMER_GP, 32768);
 #else
 #error unknown arm target
 #endif
 
 	cprintf("Board ID: 0x%04x\n", board_id);
+	cpu_identify();
 
 	while (atp != NULL && atp->words != 0 && atp->tag != ATAG_NONE) {
 		switch (atp->tag) {
@@ -154,6 +159,9 @@ init(int bid_hi, int bid_lo, void *kargs)
 	}
 	cp15_tlb_flush();
 	cprintf("Jettisoned low memory mappings.\n");
+
+	/* make things less ridiculously slow... */ 
+	cp15_ctrl_set(cp15_ctrl_get() | CTRL_C | CTRL_W | CTRL_Z | CTRL_I);
 
 	kobject_init();
 	sched_init();

@@ -26,16 +26,15 @@ irq_arch_enable(uint32_t irq)
 void
 irq_arch_handle()
 {
-	// Don't spin forever.
-	int i = 10;
-
 	assert(irqreg != NULL);
 
-	while (irqreg->count != 0 && irqreg->status != 0 && i > 0) {
-		irq_handler(irqreg->status);
-		i--;
-	}
-	if (i == 10)
+	if (irqreg->count == 0)
 		panic("%s:%s: spurious interrupt", __FILE__, __func__);
+
+	// Don't spin forever.
+	for (int i = 10; irqreg->count != 0 && i > 0; i--) {
+		assert(irqreg->status != 0);
+		irq_handler(irqreg->status);
+	}
 }
 #endif /* !JOS_ARM_GOLDFISH */

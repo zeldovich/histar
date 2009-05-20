@@ -45,6 +45,10 @@ thread_arch_run(const struct Thread *t)
 		panic("%s: arm fp handling!", __func__);
 	}
 
+cp15_dcache_flush_invalidate_arm11();   //XXX- uses arm11-specifics
+cp15_icache_invalidate_arm11();
+cp15_write_buffer_drain();
+
 	trapframe_pop(&t->th_tf);
 }
 
@@ -351,6 +355,10 @@ exception_handler(int trapcode, struct Trapframe *tf, uint32_t sp)
 {
 	/* paranoia: ensure the sp coming in was 8-byte aligned */
 	assert((sp & 7) == 0);
+
+cp15_dcache_flush_invalidate_arm11();   //XXX- uses arm11-specifics
+cp15_icache_invalidate_arm11();
+cp15_write_buffer_drain();
 
 	if (trap_thread) {
 		struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;

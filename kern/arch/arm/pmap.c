@@ -378,7 +378,8 @@ check_user_access2(const void *ptr, uint64_t nbytes,
 		assert(cur_as);
 	}
 
-	ptent_t pte_flags = ARM_MMU_L2_TYPE_SMALL;
+	ptent_t pte_flags = ARM_MMU_L2_TYPE_SMALL |
+	    ARM_MMU_L2_SMALL_BUFFERABLE | ARM_MMU_L2_SMALL_CACHEABLE;
 	if (reqflags & SEGMAP_WRITE)
 		pte_flags |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURW);
 	else
@@ -458,8 +459,12 @@ pmap_set_current(struct Pagemap *pm)
 	assert((pma & (ARM_MMU_L1_ALIGNMENT - 1)) == 0);
 
 	cur_pgmap = pm;
+
+	cp15_dcache_flush_invalidate_arm11();
+	cp15_icache_invalidate_arm11();
 	cp15_ttbr_set(pma);
 	cp15_tlb_flush();
+	cp15_write_buffer_drain();
 }
 
 /*
@@ -613,6 +618,7 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 
 	// all pages read only first to emulate dirty bit
 	*ptep = kva2pa(pp) | ARM_MMU_L2_TYPE_SMALL |
+	    ARM_MMU_L2_SMALL_BUFFERABLE | ARM_MMU_L2_SMALL_CACHEABLE |
 	    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO);
 
 	r = pvp_get(pgmap, va, &pvp, 1);

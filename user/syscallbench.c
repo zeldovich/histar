@@ -9,7 +9,7 @@
 #define GET_TSC() read_tsc()
 #endif
 
-#if defined(JOS_ARCH_sparc)
+#if defined(JOS_ARCH_sparc) || defined(JOS_ARCH_arm)
 #define GET_TSC() 0
 #endif
 

@@ -17,22 +17,22 @@
  *   Note that each of these registers may have sub-registers addressed
  *   according to the opcode_2 field of the abovementioned instructions.
  */
-#define CP15_ID_REG		0		/* ro: cpu id, cache, tlb info*/
-#define CP15_CTRL_REG		1		/* rw: system cfg bits */
-#define CP15_PGTBL_CTRL_REG	2		/* rw: pg tbl control */
-#define CP15_DOMACC_CTRL_REG	3		/* rw: domain access control */
-#define CP15_RESERVED0_REG	4
-#define CP15_FAULT_STAT_REG	5		/* ro: fault status */
-#define CP15_FAULT_ADDR_REG	6		/* ro: fault address */
-#define CP15_CWB_CTRL_REG	7		/* rw: cache/write buffer ctrl*/
-#define CP15_TLB_CTRL_REG	8		/* rw: tlb control */
-#define CP15_CACHE_LOCKDN_REG	9		/* rw: cache lockdown */
-#define CP15_TLB_LOCKDN_REG	10		/* rw: tlb lockdown */
-#define	CP15_DMA_CTRL_REG	11		/* rw: l1 dma control */
-#define CP15_RESERVED1_REG	12
-#define CP15_PROCESS_ID_REG	13		/* rw: process id */
-#define CP15_RESERVED3		14
-#define CP15_IMPL_DEFINED_REG	15		/* implementation-defined */
+#define CP15_ID_REG		c0		/* ro: cpu id, cache, tlb info*/
+#define CP15_CTRL_REG		c1		/* rw: system cfg bits */
+#define CP15_PGTBL_CTRL_REG	c2		/* rw: pg tbl control */
+#define CP15_DOMACC_CTRL_REG	c3		/* rw: domain access control */
+#define CP15_RESERVED0_REG	c4
+#define CP15_FAULT_STAT_REG	c5		/* ro: fault status */
+#define CP15_FAULT_ADDR_REG	c6		/* ro: fault address */
+#define CP15_CWB_CTRL_REG	c7		/* rw: cache/write buffer ctrl*/
+#define CP15_TLB_CTRL_REG	c8		/* rw: tlb control */
+#define CP15_CACHE_LOCKDN_REG	c9		/* rw: cache lockdown */
+#define CP15_TLB_LOCKDN_REG	c10		/* rw: tlb lockdown */
+#define	CP15_DMA_CTRL_REG	c11		/* rw: l1 dma control */
+#define CP15_RESERVED1_REG	c12
+#define CP15_PROCESS_ID_REG	c13		/* rw: process id */
+#define CP15_RESERVED3		c14
+#define CP15_IMPL_DEFINED_REG	c15		/* implementation-defined */
 
 /*
  * CP15_ID_REG - ``ID codes''
