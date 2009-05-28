@@ -175,6 +175,13 @@ thread_arch_is_masked(const struct Thread *t)
     return t->th_tf.tf_masked;
 }
 
+// not needed on this arch
+int
+thread_arch_set_mask(const struct Thread *t, int mask)
+{
+    return -E_INVAL;
+}
+
 void
 thread_arch_rebooting(struct Thread *t)
 {

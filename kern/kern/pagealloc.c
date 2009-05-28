@@ -18,6 +18,8 @@ struct Page_link {
 };
 static TAILQ_HEAD(Page_list, Page_link) page_free_list;
 					// Free list of physical pages
+
+#if JOS_ARCH_PAGE_BITMAP == 1
 extern uint32_t *page_bitmap;		// Free page page_bitmap ($ARCH/page.c)
 extern uint32_t  page_bitmap_words;	// Bitmap size in words
 
@@ -89,6 +91,26 @@ page_bitmap_mark_alloced(uint32_t pgn)
 	page_bitmap[pgn >> 5] &= ~(1U << (pgn & 31));
 }
 
+#else
+
+static uint32_t
+page_bitmap_search(const uint32_t mask, const uint32_t align)
+{
+	return (-1);
+}
+
+static void
+page_bitmap_mark_free(uint32_t pgn)
+{
+}
+
+static void
+page_bitmap_mark_alloced(uint32_t pgn)
+{
+}
+
+#endif /* JOS_ARCH_PAGE_BITMAP == 1 */
+
 // Global page allocation stats
 struct page_stats page_stats = { 0, 0, 0, 0 };
 
@@ -117,8 +139,10 @@ page_free_n(void *v, unsigned int n)
 {
     unsigned int i;
 
+#if JOS_ARCH_PAGE_BITMAP == 1
     if (page_bitmap == NULL)
 	panic("page_free_n: page_bitmap == NULL");
+#endif
 
     if (n == 0 || n > 32)
 	panic("page_free_n: %u == 0 || %u > 32", n, n);

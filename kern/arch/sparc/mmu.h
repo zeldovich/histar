@@ -202,6 +202,9 @@ struct Trapframe {
     uint32_t tf_pad;
 };
 
+struct md_Thread {
+};
+
 #endif
 
 /* Reg_window offsets */

@@ -302,12 +302,7 @@ auth_chpass(const char *user, const char *pass, const char *npass)
 
     if (auth_debug)
 	cprintf("auth_chpass: calling user gate\n");
-cprintf("-------------> PRE USER GATE\n");
-int pc;
-__asm__ __volatile__("mov %0, pc" : "=r" (pc));
-cprintf("CALLING GATE FROM 0x%08x\n", pc);
     gate_call(user_gate, 0, &user_auth_ds, 0).call(&gcd);
-cprintf("-------------> POST USER GATE\n");
     error_check(user_reply->err);
     cobj_ref uauth_gate = COBJ(session_ct, user_reply->uauth_gate);
     uint64_t xh = user_reply->xh;

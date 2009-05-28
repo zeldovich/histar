@@ -161,7 +161,6 @@ coop_gate_create(uint64_t container,
     te.te_as = as;
     te.te_entry = (void *) COOP_TEXT;
     te.te_arg[0] = COOP_TEXT + coop_syscall_args_offset;
-cprintf("!!!!!! SYSCALL ARGS OFFSET: 0x%08x\n", COOP_TEXT + coop_syscall_args_offset);
     int64_t gate_id =
 	sys_gate_create(container, &te,
 			l->to_ulabel(), clearance->to_ulabel(),
@@ -379,9 +378,9 @@ coop_gate_invoke(cobj_ref coop_gate,
     error_check(segment_map(status_seg, 0, SEGMAP_READ,
 			    (void **) &stat, &stat_bytes, 0));
     scope_guard<int, void *> unmap(segment_unmap, stat);
-cprintf("---> WAITING ON stat->done: %p\n", &stat->done);
+
     while (!invoke_done || !stat->done)
 	sys_sync_wait(&stat->done, 0, sys_clock_nsec() + NSEC_PER_SECOND);
-cprintf("----> DONE. RETVAL: 0x%llx, STATUS: 0x%llx\n", stat->rval, stat->done);
+
     return stat->rval;
 }

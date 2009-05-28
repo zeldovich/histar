@@ -23,7 +23,7 @@ extern void	cpsr_set(uint32_t);
 extern uint32_t exception_vector[];
 extern uint32_t exception_vector_stack_addrs[];
 
-void init(int, int, void *);
+void init(uint32_t, uint32_t, void *);
 
 char boot_cmdline[256];
  
@@ -86,29 +86,26 @@ cprintf("except. stack %d @0x%08x\n", i, (uint32_t)vp + PGSIZE);
 // Perform necessary initialisation dependent on our temporary low memory
 // mappings.
 void __attribute__((__noreturn__))
-init(int bid_hi, int bid_lo, void *kargs)
+init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 {
 	struct atag *atp = kargs;
-	int board_id = (bid_hi << 8) | bid_lo;
+	uint32_t board_id = (bid_hi << 8) | bid_lo;
+	uint32_t board_rev = 0xdeadbeef;
 	unsigned int i;
 
 	bss_init();
 
+	/* early device init */
 #if defined(JOS_ARM_GOLDFISH)
 	goldfish_irq_init();
 	goldfish_ttycons_init();
-	goldfish_timer_init();
 #elif defined(JOS_ARM_HTCDREAM)
 	msm_irq_init(0xc0000000);
 	msm_ttycons_init(0xa9c00000, 11);
 //	msm_timer_init(0xc0100000, 8, MSM_TIMER_DG, 19200000); // VIC-unaware
-	msm_timer_init(0xc0100000, 7, MSM_TIMER_GP, 32768);
 #else
 #error unknown arm target
 #endif
-
-	cprintf("Board ID: 0x%04x\n", board_id);
-	cpu_identify();
 
 	while (atp != NULL && atp->words != 0 && atp->tag != ATAG_NONE) {
 		switch (atp->tag) {
@@ -132,6 +129,10 @@ init(int bid_hi, int bid_lo, void *kargs)
 			    sizeof(boot_cmdline));
 			break;
 
+		case ATAG_REVISION:
+			board_rev = atp->u.revision.revision;
+			break;
+
 		default:
 			cprintf("Unhandled ATAG: 0x%08x\n", atp->tag);
 			break;
@@ -148,6 +149,20 @@ init(int bid_hi, int bid_lo, void *kargs)
 		nmem_desc = 1;
 	}
 #endif
+
+	/* late device init */
+#if defined(JOS_ARM_GOLDFISH)
+	goldfish_timer_init();
+#elif defined(JOS_ARM_HTCDREAM)
+	msm_timer_init(0xc0100000, 7, MSM_TIMER_GP, 32768);
+	//htcdream_keypad_init(board_rev);
+#else
+#error unknown arm target
+#endif
+
+	cprintf("Board ID: 0x%04x, Board Revision 0x%08x\n", board_id,
+	    board_rev);
+	cpu_identify();
 
 	page_init(mem_desc, nmem_desc);
 

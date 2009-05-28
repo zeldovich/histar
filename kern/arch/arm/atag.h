@@ -33,6 +33,10 @@ struct atag_cmdline {
 	char cmdline[0];
 };
 
+struct atag_revision {
+	uint32_t revision;
+};
+
 struct atag_msm_ptentry {
 	char name[16];		/* partition name */
 	uint32_t start; 	/* start block */
@@ -49,6 +53,7 @@ struct atag {
 		struct atag_mem		mem;
 		struct atag_cmdline	cmdline;
 		struct atag_msm_ptentry	msm_ptable[1];
+		struct atag_revision	revision;
 	} u;
 };
 

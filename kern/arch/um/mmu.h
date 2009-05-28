@@ -15,4 +15,7 @@ struct Trapframe_aux {
 struct Fpregs {
 };
 
+struct md_Thread {
+};
+
 #endif

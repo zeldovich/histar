@@ -7,6 +7,7 @@
 #define JOS_ARCH_ENDIAN	JOS_LITTLE_ENDIAN
 #define JOS_ARCH_RETADD	1
 #define JOS_ARCH_RETADD_ONEOFF	/* only __builtin_return_address(0) is valid */
+#define JOS_ARCH_PAGE_BITMAP	1
 
 #ifdef JOS_KERNEL
 #define MAX_IRQS	16

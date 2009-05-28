@@ -96,7 +96,8 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 SHARED_ENABLE := no
 
 ifeq ($(K_ARCH),amd64)
-SHARED_ENABLE := yes
+# XXX- broken for some reason and I don't want to figure it out now
+#SHARED_ENABLE := yes
 endif
 
 ifeq ($(K_ARCH),i386)

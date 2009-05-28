@@ -108,6 +108,13 @@ thread_arch_is_masked(const struct Thread *t)
     return 1;
 }
 
+// not needed on this arch
+int
+thread_arch_set_mask(const struct Thread *t, int mask)
+{
+    return -E_INVAL;
+}
+
 void thread_arch_jump(struct Thread *t, const struct thread_entry *te) {}
 
 void

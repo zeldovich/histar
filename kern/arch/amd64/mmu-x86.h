@@ -255,6 +255,9 @@ struct Fpregs {
     uint32_t padding[24];
 };
 
+struct md_Thread {
+};
+
 #endif /* !__ASSEMBLER__ */
 
 #endif /* !JOS_MACHINE_MMU_X86_H */
