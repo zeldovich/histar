@@ -2,14 +2,14 @@
 #include <kern/arch.h>
 #include <kern/intr.h>
 #include <dev/goldfish_irq.h>
-#include <dev/goldfish_irqreg.h>
+#include <dev/goldfish_irq_reg.h>
 
-static struct goldfish_irqreg *irqreg;
+static struct goldfish_irq_reg *irqreg;
 
 void
 goldfish_irq_init(void)
 {
-	irqreg = (struct goldfish_irqreg *)0xff000000;
+	irqreg = (struct goldfish_irq_reg *)0xff000000;
 	irqreg->disable_all = 1;
 }
 

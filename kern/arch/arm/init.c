@@ -8,6 +8,7 @@
 #include <dev/goldfish_irq.h>
 #include <dev/goldfish_timer.h>
 #include <dev/goldfish_ttycons.h>
+#include <dev/msm_gpio.h>
 #include <dev/msm_irq.h>
 #include <dev/msm_timer.h>
 #include <dev/msm_ttycons.h>
@@ -155,6 +156,7 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 	goldfish_timer_init();
 #elif defined(JOS_ARM_HTCDREAM)
 	msm_timer_init(0xc0100000, 7, MSM_TIMER_GP, 32768);
+	msm_gpio_init(0xa9200800, 0xa9300c00);
 	//htcdream_keypad_init(board_rev);
 #else
 #error unknown arm target

@@ -1,8 +1,8 @@
 #ifndef JOS_DEV_MSM_IRQREG
 #define JOS_DEV_MSM_IRQREG
 
-/* MSM7200A register layout */
-struct msm_irqreg {
+/* MSM7201A register layout */
+struct msm_irq_reg {
 	// Interrupt type bitmask: one bit for each irq, 1 => FIQ, 0 => IRQ.
 	volatile uint32_t vicintselect_0;	/* 0x00 */
 	volatile uint32_t vicintselect_1;	/* 0x04 */

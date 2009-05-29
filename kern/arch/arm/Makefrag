@@ -38,6 +38,7 @@ KERN_DEV :=					\
 	dev/goldfish_irq.c			\
 	dev/goldfish_timer.c			\
 	dev/goldfish_ttycons.c			\
+	dev/msm_gpio.c				\
 	dev/msm_irq.c				\
 	dev/msm_timer.c				\
 	dev/msm_ttycons.c

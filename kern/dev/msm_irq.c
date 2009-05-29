@@ -2,16 +2,16 @@
 #include <kern/arch.h>
 #include <kern/intr.h>
 #include <dev/msm_irq.h>
-#include <dev/msm_irqreg.h>
+#include <dev/msm_irq_reg.h>
 
-static struct msm_irqreg *irqreg;
+static struct msm_irq_reg *irqreg;
 
 #define MSM_NIRQS	64
 
 void
 msm_irq_init(uint32_t base)
 {
-	irqreg = (struct msm_irqreg *)base;
+	irqreg = (struct msm_irq_reg *)base;
 
 	irqreg->vicinttype_0     = irqreg->vicinttype_1 = 0;
 	irqreg->vicintpolarity_0 = irqreg->vicintpolarity_1 = 0;
