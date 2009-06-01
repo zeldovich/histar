@@ -118,7 +118,7 @@ init(uint32_t start_eax, uint32_t start_ebx)
     prof_init();
     if (strstr(&boot_cmdline[0], "reboot=periodic")) {
 	static struct periodic_task reboot_pt =
-	    { .pt_fn = &machine_reboot, .pt_interval_sec = 3600 };
+	    { .pt_fn = &machine_reboot, .pt_interval_msec = 3600 * 1000 };
 	timer_add_periodic(&reboot_pt);
     }
 

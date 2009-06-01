@@ -238,7 +238,7 @@ page_alloc_init(void)
     TAILQ_INIT(&page_free_list);
 
     static struct periodic_task pt =
-	{ .pt_fn = &print_memstat, .pt_interval_sec = 5 };
+	{ .pt_fn = &print_memstat, .pt_interval_msec = 5 * 1000 };
     if (page_memstat_debug)
 	timer_add_periodic(&pt);
 }

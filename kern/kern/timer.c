@@ -71,7 +71,9 @@ timer_add_periodic(struct periodic_task *pt)
     assert(the_timesrc);
 
     pt->pt_last_ticks = the_timesrc->ticks(the_timesrc->arg);
-    pt->pt_interval_ticks = pt->pt_interval_sec * the_timesrc->freq_hz;
+    pt->pt_interval_ticks =
+	(pt->pt_interval_msec * the_timesrc->freq_hz) / 1000;
+    assert(pt->pt_interval_ticks);
     LIST_INSERT_HEAD(&periodic_tasks, pt, pt_link);
 }
 

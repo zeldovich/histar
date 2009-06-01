@@ -10,7 +10,7 @@
 #define JOS_ARCH_PAGE_BITMAP	1
 
 #ifdef JOS_KERNEL
-#define MAX_IRQS	16
+#define MAX_IRQS	186	/* MSM has 64 vic irqs and 122 gpio irqs */
 
 enum { kobj_hash_size = 8192 };
 enum { kobj_neg_size = 2 };

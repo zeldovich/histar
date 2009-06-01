@@ -934,7 +934,7 @@ void
 kobject_init(void)
 {
     static struct periodic_task gc_pt =
-	{ .pt_fn = &kobject_gc_scan, .pt_interval_sec = 1 };
+	{ .pt_fn = &kobject_gc_scan, .pt_interval_msec = 1 * 1000 };
     timer_add_periodic(&gc_pt);
 
     if (kobject_print_sizes) {

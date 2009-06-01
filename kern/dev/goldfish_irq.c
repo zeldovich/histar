@@ -2,7 +2,7 @@
 #include <kern/arch.h>
 #include <kern/intr.h>
 #include <dev/goldfish_irq.h>
-#include <dev/goldfish_irq_reg.h>
+#include <dev/goldfish_irqreg.h>
 
 static struct goldfish_irq_reg *irqreg;
 

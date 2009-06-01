@@ -87,12 +87,12 @@ prof_init(void)
     hash_init(&cyg_data.stats_lookup, cyg_data.stats_lookup_back, NUM_SYMS);
 
     prof_timer.pt_fn = &prof_print;
-    prof_timer.pt_interval_sec = 10;
+    prof_timer.pt_interval_msec = 10 * 1000;
     if (prof_enable)
 	timer_add_periodic(&prof_timer);
 
     timer2.pt_fn = &cyg_profile_print;
-    timer2.pt_interval_sec = 10;
+    timer2.pt_interval_msec = 10 * 1000;
     if (cyg_prof_print_enable)
 	timer_add_periodic(&timer2);
 

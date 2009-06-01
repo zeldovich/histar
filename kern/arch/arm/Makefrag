@@ -41,7 +41,8 @@ KERN_DEV :=					\
 	dev/msm_gpio.c				\
 	dev/msm_irq.c				\
 	dev/msm_timer.c				\
-	dev/msm_ttycons.c
+	dev/msm_ttycons.c			\
+	dev/htcdream_keypad.c
 
 $(OBJDIR)/kern/kernel.%.debuginfo:
 	$(LD) -o $@ $(KERN_LDFLAGS) $^ $(GCC_LIB)

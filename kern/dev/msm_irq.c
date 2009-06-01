@@ -2,11 +2,10 @@
 #include <kern/arch.h>
 #include <kern/intr.h>
 #include <dev/msm_irq.h>
-#include <dev/msm_irq_reg.h>
+#include <dev/msm_irqreg.h>
+#include <dev/msm_gpio.h>
 
 static struct msm_irq_reg *irqreg;
-
-#define MSM_NIRQS	64
 
 void
 msm_irq_init(uint32_t base)
@@ -31,10 +30,14 @@ irq_arch_enable(uint32_t irq)
 
 	cprintf("%s: enabling irq %d\n", __func__, irq);
 
-	if (irq < 32)
-		irqreg->vicintenset_0 = 1 << (irq & 31);
-	else
-		irqreg->vicintenset_1 = 1 << (irq & 31);
+	if (irq >= MSM_NIRQS) {
+		msm_gpio_irq_enable(irq);
+	} else {
+		if (irq < 32)
+			irqreg->vicintenset_0 = 1 << (irq & 31);
+		else
+			irqreg->vicintenset_1 = 1 << (irq & 31);
+	}
 }
 
 void
@@ -66,13 +69,8 @@ irq_arch_handle()
 		}
 		irqreg->vicintclear_1 |= clearval;
 	}
-	if (!s0 && !s1) {
-#if 0
-		cprintf("%s:%s: spurious interrupt, status_0 = 0x%x (raw 0x%x) "
-		    ", status_1 = 0x%x (raw 0x%x)\n", __FILE__, __func__,
-		    s0, irqreg->vicraw_status_0, s1, irqreg->vicraw_status_1);
-#endif
-	}
 
+	/* call the gpio interrupt handler, since it's not chained off of VIC */
+	msm_gpio_irq_handler();
 }
 #endif /* !JOS_ARM_HTCDREAM */

@@ -12,6 +12,7 @@
 #include <dev/msm_irq.h>
 #include <dev/msm_timer.h>
 #include <dev/msm_ttycons.h>
+#include <dev/htcdream_keypad.h>
 #include <machine/arm.h>
 #include <machine/asm.h>
 #include <machine/atag.h>
@@ -157,7 +158,7 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 #elif defined(JOS_ARM_HTCDREAM)
 	msm_timer_init(0xc0100000, 7, MSM_TIMER_GP, 32768);
 	msm_gpio_init(0xa9200800, 0xa9300c00);
-	//htcdream_keypad_init(board_rev);
+	htcdream_keypad_init(board_rev);
 #else
 #error unknown arm target
 #endif

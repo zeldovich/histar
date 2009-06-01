@@ -991,6 +991,6 @@ pstate_init(void)
     pstate_reset();
 
     static struct periodic_task sync_pt =
-	{ .pt_fn = &pstate_sync_periodic, .pt_interval_sec = 300 };
+	{ .pt_fn = &pstate_sync_periodic, .pt_interval_msec = 300 * 1000 };
     timer_add_periodic(&sync_pt);
 }

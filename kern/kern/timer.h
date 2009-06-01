@@ -45,7 +45,7 @@ uint64_t timer_convert(uint64_t n, uint64_t a, uint64_t b);
 struct periodic_task {
     // external
     void (*pt_fn) (void);
-    uint64_t pt_interval_sec;
+    uint64_t pt_interval_msec;
 
     // internal
     uint64_t pt_interval_ticks;
