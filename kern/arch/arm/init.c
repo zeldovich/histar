@@ -10,6 +10,7 @@
 #include <dev/goldfish_ttycons.h>
 #include <dev/msm_gpio.h>
 #include <dev/msm_irq.h>
+#include <dev/msm_mddi.h>
 #include <dev/msm_timer.h>
 #include <dev/msm_ttycons.h>
 #include <dev/htcdream_keypad.h>
@@ -104,9 +105,6 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 #elif defined(JOS_ARM_HTCDREAM)
 	msm_irq_init(0xc0000000);
 	msm_ttycons_init(0xa9c00000, 11);
-//	msm_timer_init(0xc0100000, 8, MSM_TIMER_DG, 19200000); // VIC-unaware
-#else
-#error unknown arm target
 #endif
 
 	while (atp != NULL && atp->words != 0 && atp->tag != ATAG_NONE) {
@@ -152,17 +150,6 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 	}
 #endif
 
-	/* late device init */
-#if defined(JOS_ARM_GOLDFISH)
-	goldfish_timer_init();
-#elif defined(JOS_ARM_HTCDREAM)
-	msm_timer_init(0xc0100000, 7, MSM_TIMER_GP, 32768);
-	msm_gpio_init(0xa9200800, 0xa9300c00);
-	htcdream_keypad_init(board_rev);
-#else
-#error unknown arm target
-#endif
-
 	cprintf("Board ID: 0x%04x, Board Revision 0x%08x\n", board_id,
 	    board_rev);
 	cpu_identify();
@@ -170,6 +157,16 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 	page_init(mem_desc, nmem_desc);
 
 	exception_init();
+
+	/* late device init */
+#if defined(JOS_ARM_GOLDFISH)
+	goldfish_timer_init();
+#elif defined(JOS_ARM_HTCDREAM)
+	msm_timer_init(0xc0100000, 7, MSM_TIMER_GP, 32768);
+	msm_gpio_init(0xa9200800, 0xa9300c00);
+	msm_mddi_init(0xaa600000);
+	htcdream_keypad_init(board_rev);
+#endif
 
 	/* we've no more use for the low memory, so unmap it */
 	for (i = 0; i < 2048; i++) {
