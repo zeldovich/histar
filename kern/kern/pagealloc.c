@@ -29,7 +29,7 @@ extern uint32_t  page_bitmap_words;	// Bitmap size in words
 // This isn't exactly optimal, but it can scan 16GB worth of 4K pages in
 // about 500us on a Core2 2.4GHz.
 static uint32_t
-page_bitmap_search(const uint32_t mask, const uint32_t align)
+page_bitmap_search_fast(const uint32_t mask, const uint32_t align)
 {
 	unsigned int i, j, found = 0;
 	uint32_t alignmask = (align == 0) ? 0 : align - 1;
@@ -71,6 +71,49 @@ page_bitmap_search(const uint32_t mask, const uint32_t align)
 	return (i * 32 + j);
 }
 
+static inline int
+is_page_free(unsigned int pgno)
+{
+	unsigned int word, bit;
+
+	word = pgno >> 5;
+	bit  = pgno & 31;
+
+	if (word >= page_bitmap_words)
+		return (0);
+
+	return (!!(page_bitmap[word] & (1U << bit)));
+}
+
+// Search our page_bitmap for contiguous pages. Returns the _physical_ page
+// number, or -1 on failure.
+//
+// This is a (probably) considerably slower method used for really large,
+// atypical allocations (> 128KB for 4KB pages) needed by framebuffers, etc.
+static uint32_t
+page_bitmap_search_slow(const uint32_t count, const uint32_t align)
+{
+	unsigned int i, incr;
+
+	if (page_bitmap == NULL || page_bitmap_words == 0)
+		return (-1);
+
+	incr = (align == 0) ? 1 : (align / PGSIZE);
+	for (i = 0; i < global_npages; i += incr) {
+		if (is_page_free(i)) {
+			unsigned int j;
+			for (j = 1; j < count; j++) {
+				if (!is_page_free(i + j))
+					break;
+			}
+			if (j == count)
+				return (i);
+		}
+	}
+
+	return (-1);
+}
+
 static void
 page_bitmap_mark_free(uint32_t pgn)
 {
@@ -94,7 +137,13 @@ page_bitmap_mark_alloced(uint32_t pgn)
 #else
 
 static uint32_t
-page_bitmap_search(const uint32_t mask, const uint32_t align)
+page_bitmap_search_fast(const uint32_t mask, const uint32_t align)
+{
+	return (-1);
+}
+
+static uint32_t
+page_bitmap_search_slow(const uint32_t count, const uint32_t align)
 {
 	return (-1);
 }
@@ -144,8 +193,7 @@ page_free_n(void *v, unsigned int n)
 	panic("page_free_n: page_bitmap == NULL");
 #endif
 
-    if (n == 0 || n > 32)
-	panic("page_free_n: %u == 0 || %u > 32", n, n);
+    assert(n > 0);
 
     for (i = 0; i < n; i++)
 	page_free((char *)v + (i * PGSIZE));
@@ -160,12 +208,15 @@ page_alloc_n(void **vp, unsigned int n, unsigned int align)
     if (n == 0)
 	panic("page_alloc_n: n == 0");
 
-    if (n != 1) {
+    if (n == 1) {
+        if (TAILQ_FIRST(&page_free_list) != NULL) {
+	    assert(align == 0);
+	    pgno = kva2pa(TAILQ_FIRST(&page_free_list)) >> PGSHIFT;
+        }
+    } else if (n <= 32) {
+	// multipage fast-path
 	uint32_t mask;
 
-        if (n > 32)
-	    panic("page_alloc_n: %u > 32", n);
-	
 	mask = 0;
 	for (i = 0; i < n; i++) {
 	    mask |= (1U << i);
@@ -173,11 +224,12 @@ page_alloc_n(void **vp, unsigned int n, unsigned int align)
 
 	assert(IS_POWER_OF_2(align));
 	assert((align & PGMASK) == 0);
-
-        pgno = page_bitmap_search(mask, align >> PGSHIFT);
-    } else if (TAILQ_FIRST(&page_free_list) != NULL) {
-	assert(align == 0);
-	pgno = kva2pa(TAILQ_FIRST(&page_free_list)) >> PGSHIFT;
+	pgno = page_bitmap_search_fast(mask, align >> PGSHIFT);
+    } else {
+        // multipage slow-path
+	assert(IS_POWER_OF_2(align));
+	assert((align & PGMASK) == 0);
+        pgno = page_bitmap_search_slow(n, align);
     }
 
     if (pgno == (uint32_t)-1) {
