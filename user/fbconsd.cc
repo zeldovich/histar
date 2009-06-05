@@ -19,11 +19,15 @@ extern "C" {
 #include <inc/string.h>
 #include <inc/kbdcodes.h>
 
+#ifdef USE_FT
 #include <ft2build.h>
 #include <freetype/freetype.h>
 #include <freetype/ftglyph.h>
 #include <fontconfig/fontconfig.h>
 #include <fontconfig/fcfreetype.h>
+#else
+#include <inc/vt220iso8x16.h>
+#endif
 }
 
 #include <inc/cpplabel.hh>
@@ -36,7 +40,6 @@ static uint64_t cur_vt;
 static jthread_mutex_t vt_mu;
 static uint64_t reboots;
 
-static FT_Face the_face;
 static uint32_t cols, rows;
 static uint32_t char_width, char_height;
 static fb_var_screeninfo fbinfo;
@@ -45,6 +48,9 @@ static uint64_t borderpx;
 static int fb_fd;
 static void *fb_mem;
 static uint64_t fb_size;
+
+#ifdef USE_FT
+static FT_Face the_face;
 
 static FT_Face
 get_font(const char *name)
@@ -184,6 +190,54 @@ render(uint32_t row, uint32_t col, uint32_t c, uint8_t inverse)
     }
     free(buf);
 }
+#else
+// if using bitmap font instead
+
+static wsdisplay_font *the_face;
+static uint8_t *the_face_buf;
+
+static void
+flatten_font()
+{
+    static uint32_t bytes_per_pixel = (fbinfo.bits_per_pixel + 7) / 8;
+    uint8_t *buf = (uint8_t *) malloc(the_face->numchars * bytes_per_pixel *
+					char_width * char_height);
+    uint64_t bits = the_face->numchars * char_width * char_height;
+    for (uint64_t p = 0; p < bits; p++) {
+	uint64_t o = bytes_per_pixel * p;
+	for (uint8_t b = 0; b < bytes_per_pixel; b++)
+	    buf[o + b] = ((the_face->data[p / 8] >> (8 - (p % 8))) & 1) ?
+								0xFF : 0x00;
+    }
+
+    // we never free this mem, but whatever
+    the_face_buf = buf;
+}
+
+static void
+render(uint32_t row, uint32_t col, uint32_t c, uint8_t inverse)
+{
+    // *some* attempt to mimic NetBSD's font structure where convenient
+    static uint32_t bytes_per_pixel = (fbinfo.bits_per_pixel + 7) / 8;
+    static uint64_t bytes_per_glyph = char_width * char_height *
+						    bytes_per_pixel;
+    const uint8_t *src = &the_face_buf[(bytes_per_glyph * c) %
+				    (the_face->numchars * bytes_per_glyph)];
+
+    for (uint32_t y = 0; y < char_height; y++) {
+        char *dst = (char *) fb_mem;
+        dst = &dst[((row * char_height + (y) + borderpx) * fbinfo.xres +
+		    col * char_width + borderpx) * bytes_per_pixel];
+	if (inverse) {
+	    for (uint32_t x = 0; x < char_width * bytes_per_pixel; x++)
+		dst[x] = src[y * char_width * bytes_per_pixel] ^ 0xFF;
+	} else {
+	    memcpy(dst, &src[y * char_width * bytes_per_pixel],
+		    char_width * bytes_per_pixel);
+	}
+    }
+}
+#endif
 
 static void
 refresh(volatile uint32_t *newbuf, uint32_t *oldbuf,
@@ -372,9 +426,12 @@ try
         exit(-1);
     }
     
-    const char *fontname = av[4];
     error_check(strtou64(av[5], 0, 10, &borderpx));
 
+    error_check(ioctl(fb_fd, FBIOGET_VSCREENINFO, &fbinfo));
+
+#ifdef USE_FT
+    const char *fontname = av[4];
     the_face = get_font(fontname);
     if (!the_face) {
 	fprintf(stderr, "Font problem, exiting.\n");
@@ -385,8 +442,12 @@ try
 		 the_face->size->metrics.x_ppem / the_face->units_per_EM;
     char_height = (the_face->bbox.yMax - the_face->bbox.yMin) *
 		  the_face->size->metrics.y_ppem / the_face->units_per_EM;
-
-    error_check(ioctl(fb_fd, FBIOGET_VSCREENINFO, &fbinfo));
+#else
+    the_face = &vt220iso8x16;
+    char_width = the_face->width;
+    char_height = the_face->height;
+    flatten_font();
+#endif
 
     fb_size = fbinfo.xres * fbinfo.yres * fbinfo.bits_per_pixel;
     fb_mem = mmap(0, fb_size, PROT_READ | PROT_WRITE,

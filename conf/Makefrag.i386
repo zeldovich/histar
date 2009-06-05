@@ -12,3 +12,6 @@ OBJCOPY := $(GCCPREFIX)objcopy
 OBJDUMP := $(GCCPREFIX)objdump -m i386
 NM      := $(GCCPREFIX)nm
 STRIP   := $(GCCPREFIX)strip
+
+ARCHOPT := -mno-sse2
+#ARCHOPT := -march=athlon64

@@ -574,6 +574,9 @@ try
     uint64_t c_root = start_arg0;
     uint64_t h_root = start_arg1;
 
+    // gcc on x86, x86_64 aggressively uses SSE, enable it early
+    sys_self_fp_enable();
+
     int64_t c_self = container_find(c_root, kobj_container, "init");
     if (c_self < 0) {
 	cprintf("cannot find init container: %s\n", e2s(c_self));

@@ -632,9 +632,16 @@ retry:
     //  * Flush out any overlapping delayed-unmap segmets.
 
     // While scanning, keep track of what slot we can use for the mapping.
-    uint32_t match_segslot = cache_uas.nent;	// Matching live slot
-    uint32_t delay_overlap = cache_uas.nent;	// Overlapping
-    uint32_t delay_segslot = cache_uas.nent;	// Non-overlapping
+	uint32_t nothing = ~0;
+    uint32_t match_segslot = nothing;	// Matching live slot
+    uint32_t delay_overlap = nothing;	// Overlapping
+    uint32_t delay_segslot = nothing;	// Non-overlapping
+    // this is very subtle -- there are always two slots available in
+    // cache_uas.ents at this point because of the above growing code;
+    // if an entry overlaps and needs to be split then those two slots
+    // are filled *and* since the third (new) segment entry goes in
+    // the slot of the old empty_segslot is never needed; if that
+    // weren't the case this would write out-of-bounds on double splits
     uint32_t empty_segslot = cache_uas.nent;	// Not delay-unmapped
 
     uint32_t ndelayent = 0;
@@ -654,7 +661,7 @@ retry:
 	    if ((map_opts & SEG_MAPOPT_REPLACE) &&
 		cache_uas.ents[i].va == map_start &&
 		cache_uas.ents[i].start_page == start_byteoff / PGSIZE &&
-		match_segslot == cache_uas.nent)
+		match_segslot == nothing)
 	    {
 		match_segslot = i;
             } else if (map_opts & SEG_MAPOPT_REPLACE) {
@@ -715,7 +722,8 @@ retry:
                     }
                 }
                 // following code should replace this entry with new one
-                match_segslot = i;
+                delay_overlap = i;
+		cache_uas.ents[i].flags = SEGMAP_DELAYED_UNMAP;
 	    } else {
 		cprintf("segment_map: VA %p--%p busy from %p--%p\n",
                         map_start, map_end, ent_start, ent_end);
@@ -729,13 +737,13 @@ retry:
 	    empty_segslot = i;
 
 	if ((cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP)) {
-	    if (delay_segslot == cache_uas.nent ||
+	    if (delay_segslot == nothing ||
 		evict_prefer(i, delay_segslot, randval))
 		delay_segslot = i;
 	    ndelayent++;
 
 	    if (ent_start < map_end && ent_end > map_start) {
-		if (delay_overlap == cache_uas.nent) {
+		if (delay_overlap == nothing) {
 		    delay_overlap = i;
 		} else {
 		    // Multiple delay-unmapped segments overlap our range.
@@ -760,7 +768,7 @@ retry:
 
     // If we found an exact live match and an overlapping delayed-unmapping,
     // we need to free the delayed unmapping.
-    if (match_segslot != cache_uas.nent && delay_overlap != cache_uas.nent) {
+    if (match_segslot != nothing && delay_overlap != nothing) {
 	cache_uas.ents[delay_overlap].flags = 0;
 
 	if (segment_debug)
@@ -778,11 +786,11 @@ retry:
 
     // Figure out which slot to use.
     uint32_t slot = empty_segslot;
-    if (delay_segslot != cache_uas.nent && ndelayent > ndelay_threshold)
+    if (delay_segslot != nothing && ndelayent > ndelay_threshold)
 	slot = delay_segslot;
-    if (delay_overlap != cache_uas.nent)
+    if (delay_overlap != nothing)
 	slot = delay_overlap;
-    if (match_segslot != cache_uas.nent)
+    if (match_segslot != nothing)
 	slot = match_segslot;
 
     if (segment_debug)

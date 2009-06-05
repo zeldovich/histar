@@ -4,6 +4,6 @@
 K_ARCH := arm
 
 ## Create a separate build directory for each git branch and for each arch
-OBJSUFFIX := $(shell git-symbolic-ref -q HEAD | \
+OBJSUFFIX := $(shell git symbolic-ref -q HEAD | \
 	       sed -e s,refs/heads/,.,).$(K_ARCH)
 
