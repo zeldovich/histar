@@ -85,6 +85,7 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 
 # Shared library stuff
 SHARED_ENABLE := no
+FREETYPE_CONSOLE := no
 
 ifeq ($(K_ARCH),amd64)
 SHARED_ENABLE := yes
