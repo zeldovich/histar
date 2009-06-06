@@ -51,12 +51,12 @@ static const uint8_t keymap_shifted[NGPIO_ROWS][NGPIO_COLS] = {
 
 static const uint8_t keymap_alted[NGPIO_ROWS][NGPIO_COLS] = {
 	{  0,         0,       'x',  '%',  '$',  '@',  '-',  '#'      }, 
-	{  0,         0,       '&',  '^',  'R',  '\'', ')',  '-'      },
+	{  0,         0,       '&',  '^',  'R',  '\'', ')',  '_'      },
 	{  0,         0,       '"',  ']',  '[',  ALT,  '+',   KEY_F2  },
 	{  BACKSPC,   SHIFT,   ';',  ':',  '}',   0,   'L',   0       },
 	{ '\n',      'A',      '>',  '<',  'C',  '|',  '?',  'X'      },
 	{  SHIFT,     KEY_F1,  '/',  ' ',  '~',  'Z',  ALT,  '{'      },
-	{ '=',       'Q',      '*',  '/',  'T',  '!',  '(',  '\\'     }
+	{ '=',       '\t',     '*',  '/',  'T',  '!',  '(',  '\\'     }
 };
 
 static uint8_t last_key_down;	// 1 => most recently hit key is pressed
