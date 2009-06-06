@@ -428,6 +428,7 @@ as_pmap_fill_kobj(const struct Address_space *as,
 		    break;
 		}
 
+		usmflags |= SEGMAP_NOCACHE;
 		pp = pa2kva(fbdev->fb_base + segpage * PGSIZE);
 		r = 0;
 	    } else {

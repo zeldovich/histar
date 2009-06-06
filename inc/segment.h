@@ -11,6 +11,7 @@
 #define SEGMAP_EXEC		0x01
 #define SEGMAP_WRITE		0x02
 #define SEGMAP_READ		0x04
+#define SEGMAP_NOCACHE		0x08	/* map non-cacheable */
 
 /*
  * Kernel-interpreted flags.

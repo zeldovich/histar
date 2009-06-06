@@ -378,8 +378,7 @@ check_user_access2(const void *ptr, uint64_t nbytes,
 		assert(cur_as);
 	}
 
-	ptent_t pte_flags = ARM_MMU_L2_TYPE_SMALL |
-	    ARM_MMU_L2_SMALL_BUFFERABLE | ARM_MMU_L2_SMALL_CACHEABLE;
+	ptent_t pte_flags = ARM_MMU_L2_TYPE_SMALL;
 	if (reqflags & SEGMAP_WRITE)
 		pte_flags |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURW);
 	else
@@ -607,6 +606,7 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 {
 	ptent_t *ptep;
 	pvp_t *pvp;
+	ptent_t cacheflags;
 
 	assert(PGOFF(pp) == 0);
 
@@ -618,9 +618,13 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 
 	as_arch_page_invalidate_cb(pgmap, ptep, va);
 
+	// honour no-cache mappings
+	cacheflags = ARM_MMU_L2_SMALL_BUFFERABLE | ARM_MMU_L2_SMALL_CACHEABLE;
+	if (flags & SEGMAP_NOCACHE)
+		cacheflags = 0;
+
 	// all pages read only first to emulate dirty bit
-	*ptep = kva2pa(pp) | ARM_MMU_L2_TYPE_SMALL |
-	    ARM_MMU_L2_SMALL_BUFFERABLE | ARM_MMU_L2_SMALL_CACHEABLE |
+	*ptep = kva2pa(pp) | ARM_MMU_L2_TYPE_SMALL | cacheflags |
 	    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO);
 
 	r = pvp_get(pgmap, va, &pvp, 1);
