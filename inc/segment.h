@@ -11,12 +11,12 @@
 #define SEGMAP_EXEC		0x01
 #define SEGMAP_WRITE		0x02
 #define SEGMAP_READ		0x04
-#define SEGMAP_NOCACHE		0x08	/* map non-cacheable */
 
 /*
  * Kernel-interpreted flags.
  */
 #define SEGMAP_REVERSE_PAGES	0x08
+#define SEGMAP_NOCACHE		0x10	/* map non-cacheable */
 
 /*
  * User-interpreted flags
