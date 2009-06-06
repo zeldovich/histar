@@ -116,8 +116,13 @@ ENTRY(cp15_tlb_flush)
 	mcr	p15, 0, r0, c8, c7, 0
 	mov	pc, lr
 
+ENTRY(cp15_tlb_flush_entry_arm11)
+	mcr     p15, 0, r0, c8, c6, 1		// flush entry at va == r0
+        mcr     p15, 0, r0, c7, c10, 4		// data synch barrier
+	mov	pc, lr
+
 ENTRY(cp15_write_buffer_drain)
-	mcr	p15, 0, r0, c7, c10, 4
+	mcr	p15, 0, r0, c7, c10, 4		// data synch barrier
 	mov	pc, lr
 
 ENTRY(cp15_icache_invalidate)
@@ -147,6 +152,13 @@ ENTRY(cp15_icache_invalidate_arm11)
 	nop
 	nop
 	nop
+	mov	pc, lr
+
+ENTRY(cp15_dcache_flush_invalidate_range_arm11)
+	sub	r1, r1, #1
+	add	r1, r0, r1
+	mcrr	p15, 0, r1, r0, c14		// flush+inval cache range
+	mcr	p15, 0, r0, c7, c10, 4		// data synch barrier
 	mov	pc, lr
 
 ENTRY(cp15_dcache_flush_invalidate_arm11)

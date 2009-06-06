@@ -172,6 +172,7 @@ page_map_alloc(struct Pagemap **pm_store)
 	page_to_pageinfo(pgmap)->pi_md.mpi_pmap_pvp = NULL;
 	page_to_pageinfo(pgmap)->pi_md.mpi_pmap_free_list = NULL;
 	memcpy(pgmap, &kpagemap, L1_PT_SIZE);
+	cp15_dcache_flush_invalidate_range_arm11(pgmap, L1_PT_SIZE);
 	*pm_store = (struct Pagemap *)pgmap;
 
 	return (0);
@@ -220,6 +221,28 @@ page_map_free(struct Pagemap *pgmap)
 	page_free_n(pgmap, L1_PT_SIZE / PGSIZE);
 }
 
+enum { pmap_invlpg_max = 4 };
+static uint32_t cur_pgmap_invlpg_count;
+static void *cur_pgmap_invlpg_addrs[pmap_invlpg_max];
+
+static void
+pmap_queue_invlpg(const struct Pagemap *pgmap, void *addr)
+{
+	if (cur_pgmap != pgmap)
+		return;
+
+	if (cur_pgmap_invlpg_count >= pmap_invlpg_max) {
+		cur_pgmap_invlpg_count = pmap_invlpg_max + 1;
+		return;
+	}
+
+	if (cur_pgmap_invlpg_count > 0 &&
+	    cur_pgmap_invlpg_addrs[cur_pgmap_invlpg_count - 1] == addr)
+		return;
+
+	cur_pgmap_invlpg_addrs[cur_pgmap_invlpg_count++] = addr;
+}
+
 // Traverse the page table hierarchy between virtual addresses 'first' and
 // 'last', inclusive. For each corresponding, present page table entry, call
 // callback 'cb' with 'arg'. Possible callbacks are:
@@ -262,6 +285,7 @@ page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
 
 			pgmap->pm_ent[i] = ARM_MMU_L1_TYPE_COARSE |
 			    (uintptr_t)kva2pa(l2pm);
+			cp15_dcache_flush_invalidate_range_arm11(&pgmap->pm_ent[i], sizeof(pgmap->pm_ent[0]));
 		}
 
 		l2pm = (struct Pagemap *)pa2kva(PTE_ADDR(pgmap->pm_ent[i]));
@@ -422,8 +446,8 @@ check_user_access2(const void *ptr, uint64_t nbytes,
 				*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
 				*ptep |= ARM_MMU_L2_SMALL_AP(
 				    ARM_MMU_AP_KRWURW);
-// XXX- expensive!
-				cp15_tlb_flush();
+				cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+				pmap_queue_invlpg(cur_as->as_pgmap, (void *)va);
 			}
 
 			if ((*ptep & pte_flags) == pte_flags)
@@ -448,22 +472,28 @@ check_user_access2(const void *ptr, uint64_t nbytes,
 
 // Switch address spaces by loading the given pagemap into TTBR.
 // If pm is NULL, we're to use the kernel page table.
-//
-// XXX- should probably make this more efficient, e.g. if switching to same AS.
 void
 pmap_set_current(struct Pagemap *pm)
 {
 	physaddr_t pma = (pm == NULL) ? kva2pa(&kpagemap) : kva2pa(pm);
+	int flush_tlb = 0;
 
 	assert((pma & (ARM_MMU_L1_ALIGNMENT - 1)) == 0);
 
-	cur_pgmap = pm;
+	if (cur_pgmap != pm || cur_pgmap_invlpg_count > pmap_invlpg_max) {
+		flush_tlb = 1;
+	} else {
+		for (uint32_t i = 0; i < cur_pgmap_invlpg_count; i++)
+			cp15_tlb_flush_entry_arm11(cur_pgmap_invlpg_addrs[i]);
+	}
 
-	cp15_dcache_flush_invalidate_arm11();
-	cp15_icache_invalidate_arm11();
-	cp15_ttbr_set(pma);
-	cp15_tlb_flush();
-	cp15_write_buffer_drain();
+	cur_pgmap = pm;
+	cur_pgmap_invlpg_count = 0;
+
+	if (flush_tlb) {
+		cp15_ttbr_set(pma);
+		cp15_tlb_flush();
+	}
 }
 
 /*
@@ -503,10 +533,8 @@ as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 	*pvp &= ~PVP_DIRTYBIT;
 	*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
 	*ptep |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO);
-
-// XXX- expensive!
-	cp15_tlb_flush();
-//	pmap_queue_invlpg(pgmap, va);
+	cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+	pmap_queue_invlpg(pgmap, va);
 }
 
 // Invalidate the page associated with 'ptep'.
@@ -543,11 +571,9 @@ as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 		}
 
 		*ptep = ARM_MMU_L2_TYPE_INVALID;
+		cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+		pmap_queue_invlpg(pgmap, va);
 		*pvp = 0;
-
-// XXX- expensive!
-		cp15_tlb_flush();
-//		pmap_queue_invlpg(pgmap, va);
 	} else {
 		int r = pvp_get(pgmap, va, &pvp, 0);
 		if (r == 0)
@@ -580,13 +606,11 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 
 		*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
 		*ptep |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO);
+		cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+		pmap_queue_invlpg(pgmap, va);
 
 		// leave the emulated dirty bit set!
 		*pvp &= ~PVP_DIRTYEMU;
-
-// XXX-expensive!
-		cp15_tlb_flush();
-//		pmap_queue_invlpg(pgmap, va);
 	}
 }
 
@@ -626,6 +650,8 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 	// all pages read only first to emulate dirty bit
 	*ptep = kva2pa(pp) | ARM_MMU_L2_TYPE_SMALL | cacheflags |
 	    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO);
+	cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+	pmap_queue_invlpg(pgmap, va);
 
 	r = pvp_get(pgmap, va, &pvp, 1);
 	if (r < 0)
@@ -641,9 +667,6 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 		pagetree_incpin_read(pp);
 	}
 
-// XXX-expensive!
-	cp15_tlb_flush();
-//	pmap_queue_invlpg(pgmap, va);
 	return (0);
 }
 
@@ -673,9 +696,8 @@ arm_dirtyemu(struct Pagemap *pgmap, const void *fault_va)
 	*pvp |= PVP_DIRTYBIT;
 	*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
        	*ptep |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURW);
-
-// XXX-expensive!
-        cp15_tlb_flush();
+	cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+	pmap_queue_invlpg(pgmap, (void *)fault_va);
 
 	return (0);
 }
