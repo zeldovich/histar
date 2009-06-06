@@ -151,7 +151,8 @@ ENTRY(cp15_icache_invalidate_arm11)
 
 ENTRY(cp15_dcache_flush_invalidate_arm11)
 	// flush + inval entire cache, followed by data synch barrier
-	mcr	p15, 0, r0, c7, c10, 0		// flush+inval entire cache
+	mov	r0, #0
+	mcr	p15, 0, r0, c7, c14, 0		// flush+inval entire cache
 	mcr	p15, 0, r0, c7, c10, 4		// data synch barrier
 	mov	pc, lr
 
