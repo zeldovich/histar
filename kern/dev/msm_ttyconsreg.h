@@ -102,7 +102,7 @@ struct msm_ttycons_reg {
 #define UART_IMR_HCR				0x0002	/* rx HCR enabled */
 #define UART_IMR_TXLEV				0x0001	/* tx fifo watermark */
 
-// The follow bits indicate an interrupt due to an event enabled in the IMR.
+// The following bits indicate an interrupt due to an event enabled in the IMR.
 #define UART_ISR_TX_DONE			0x0100
 #define UART_ISR_TX_ERROR			0x0080
 #define UART_ISR_CURRENT_CTS			0x0040

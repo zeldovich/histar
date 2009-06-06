@@ -43,6 +43,7 @@ msm_ttycons_proc_data(void *arg)
 	if ((sr = mtr->uart_sr) & UART_SR_RXRDY) {
 		if (sr & UART_SR_RX_BREAK) {
 			cprintf("cons: BREAK detected\n");
+			mtr->uart_cr = UART_CR_CHANNEL_COMMAND_RESET_BREAK;
 			return (0);
 		}
 		if (sr & UART_SR_PAR_FRAME_ERR) {
@@ -82,6 +83,9 @@ msm_ttycons_init(uint32_t base, int irq)
 
 	// interrupt when > 0 chars in the fifo
 	mtr->uart_rfwr = 0;
+
+	// character mode: error bits only for next guy in fifo
+	mtr->uart_mr2 &= ~UART_MR2_ERROR_MODE;
 
 	cons_register(&msm_ttycons_cd);
 

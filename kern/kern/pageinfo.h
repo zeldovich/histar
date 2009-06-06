@@ -24,6 +24,7 @@ struct page_info {
     uint32_t pi_indir : 1;	// data page or indirect page
     uint32_t pi_dirty : 1;	// eventually reflects PTE dirty bit
     uint32_t pi_freepage : 1;	// page on the free list
+    uint32_t pi_reserved : 1;	// page should be ignored in pageinfos
 
     // Indirect parent pagetree page, if any (only when pi_ref == 1).
     struct pagetree_indirect_page *pi_parent;
@@ -44,12 +45,17 @@ extern struct page_info *page_infos;
 static __inline struct page_info *
 page_to_pageinfo(void *p)
 {
+    struct page_info *pi;
+
     // No page_info for non-memory pages (higher than global_npages)
     if (kva2pa(p) > ppn2pa(global_npages))
 	return NULL;
 
     ppn_t pn = pa2ppn(kva2pa(p));
-    return &page_infos[pn];
+    pi = &page_infos[pn];
+    if (pi->pi_reserved)
+        return NULL;
+    return pi;
 }
 
 #endif

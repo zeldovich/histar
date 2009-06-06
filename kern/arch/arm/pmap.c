@@ -497,8 +497,10 @@ as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 	if ((*pvp & PVP_DIRTYBIT) == 0)
 		return;
 
+	// could be no page_info if it's an mmaped device, for instance
 	pi = page_to_pageinfo(pa2kva(PTE_ADDR(*ptep)));
-	pi->pi_dirty = 1;
+	if (pi != NULL)
+		pi->pi_dirty = 1;
 	*pvp &= ~PVP_DIRTYBIT;
 	*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
 	*ptep |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO);

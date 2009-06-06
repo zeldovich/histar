@@ -35,6 +35,7 @@
 #include <kern/intr.h>
 #include <kern/timer.h>
 #include <kern/fb.h>
+#include <kern/pageinfo.h>
 #include <dev/msm_mddi.h>
 #include <dev/msm_mddireg.h>
 #include <inc/error.h>
@@ -74,6 +75,14 @@ mddi_alloc(unsigned int bytes)
 	int r = page_alloc_n(&ptr, pages, 0);
 	if (r < 0)
 		panic("%s: failed to allocate %d page(s)", __func__, pages);
+
+	// steal these pages from the kernel for good
+	for (unsigned int i = 0; i < pages; i++) {
+		struct page_info *pi;
+		pi = page_to_pageinfo((char *)ptr + (i * PGSIZE));
+		assert(pi != NULL);
+		pi->pi_reserved = 1;
+	}
 
 	return (ptr);
 }
@@ -328,13 +337,13 @@ void msm_mddi_init(uint32_t base)
     mddi_writel(CMD_HIBERNATE, MDDI_CMD);
     mddi_writel(CMD_LINK_ACTIVE, MDDI_CMD);
 
+    // wipe the screen
     for(n = 0; n < (fb_width * fb_height); n++) FB[n] = 0;
-
     mddi_start_update();
 
     //panel_backlight(1);
 
-    // refresh the screen every ~30 times per second
+    // refresh the screen ~30 times per second
     static struct periodic_task msm_mddi_timer;
     msm_mddi_timer.pt_interval_msec = 1000 / 30;
     msm_mddi_timer.pt_fn = mddi_start_update;
@@ -346,12 +355,17 @@ void msm_mddi_init(uint32_t base)
     fbdev.fb_npages = ((2 * fb_width * fb_height) + PGSIZE - 1) / PGSIZE; 
     fbdev.fb_arg    = &fbdev;
     fbdev.fb_set    = &msm_mddi_fb_set;
+
+    // populate anything that lib/fb.c grabs from the vbe fields
+    fbdev.fb_mode.vm.xres = fb_width;
+    fbdev.fb_mode.vm.yres = fb_height;
+    fbdev.fb_mode.vm.bpp = 16;
+    fbdev.fb_mode.vm.bytes_per_scanline = 2 * fb_width;
+    fbdev.fb_mode.vm.fb_color[vbe_red  ].masksize = 5;
+    fbdev.fb_mode.vm.fb_color[vbe_green].masksize = 6;
+    fbdev.fb_mode.vm.fb_color[vbe_blue ].masksize = 5;
+    fbdev.fb_mode.vm.fb_color[vbe_red  ].fieldpos = 0;
+    fbdev.fb_mode.vm.fb_color[vbe_green].fieldpos = 5;
+    fbdev.fb_mode.vm.fb_color[vbe_blue ].fieldpos = 11;
     fbdev_register(&fbdev);
 }
-
-#if 0
-void *mddi_framebuffer(void)
-{
-    return FB;
-}
-#endif
