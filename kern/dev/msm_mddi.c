@@ -343,9 +343,9 @@ void msm_mddi_init(uint32_t base)
 
     //panel_backlight(1);
 
-    // refresh the screen ~30 times per second
+    // refresh the screen 25 times per second
     static struct periodic_task msm_mddi_timer;
-    msm_mddi_timer.pt_interval_msec = 1000 / 30;
+    msm_mddi_timer.pt_interval_msec = 40;
     msm_mddi_timer.pt_fn = mddi_start_update;
     timer_add_periodic(&msm_mddi_timer);
 
