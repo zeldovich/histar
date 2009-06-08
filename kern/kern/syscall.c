@@ -18,6 +18,7 @@
 #include <kern/arch.h>
 #include <kern/thread.h>
 #include <kern/fb.h>
+#include <kern/mousedev.h>
 #include <inc/error.h>
 #include <inc/thread.h>
 #include <inc/netdev.h>
@@ -488,6 +489,17 @@ sys_obj_read(struct cobj_ref o, uint8_t *buf,
     case kobj_device:
 	switch (ko->dv.dv_type) {
 	/* Note: will need iflow_rw for streaming devices! */
+	case device_mouse: {
+	    if (ko->dv.dv_idx != 0)
+		return -E_INVAL;
+
+	    struct mouse_device *mousedev = mousedevs[ko->dv.dv_idx];
+	    if (!mousedev)
+		return -E_INVAL;
+
+	    return mousedev->mouse_read(buf, nbytes, off);
+	}
+
 
 	default:
 	    return -E_INVAL;
@@ -518,6 +530,36 @@ sys_obj_write(struct cobj_ref o, const uint8_t *buf,
 		return -E_INVAL;
 
 	    return fbdev->fb_set(fbdev->fb_arg, off, nbytes, buf);
+	}
+
+	default:
+	    return -E_INVAL;
+	}
+
+    default:
+	return -E_INVAL;
+    }
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_obj_probe(struct cobj_ref o)
+{
+    const struct kobject *ko;
+    check(cobj_get(o, kobj_any, &ko, iflow_read));
+
+    switch (ko->hdr.ko_type) {
+    case kobj_device:
+	switch (ko->dv.dv_type) {
+	/* Note: will need iflow_rw for streaming devices! */
+	case device_mouse: {
+	    if (ko->dv.dv_idx != 0)
+		return -E_INVAL;
+
+	    struct mouse_device *mousedev = mousedevs[ko->dv.dv_idx];
+	    if (!mousedev)
+		return -E_INVAL;
+
+	    return mousedev->mouse_probe();
 	}
 
 	default:
@@ -1162,6 +1204,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(obj_get_readonly, COBJ(a1, a2));
 	SYSCALL(obj_read, COBJ(a1, a2), p3, a4, a5);
 	SYSCALL(obj_write, COBJ(a1, a2), p3, a4, a5);
+	SYSCALL(obj_probe, COBJ(a1, a2));
 	SYSCALL(container_alloc, a1, p2, p3, a4, a5);
 	SYSCALL(container_get_slot_id, a1, a2);
 	SYSCALL(container_get_nslots, a1);

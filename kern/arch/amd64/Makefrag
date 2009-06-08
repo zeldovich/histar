@@ -53,7 +53,8 @@ KERN_DEV :=					\
 	kern/dev/apic.c				\
 	kern/dev/acpi.c				\
 	kern/dev/hpet.c				\
-	kern/dev/vesafb.c
+	kern/dev/vesafb.c			\
+	kern/dev/psmouse.c
 
 $(OBJDIR)/kern/embed_bootother.o: $(OBJDIR)/boot/bootother
 	@mkdir -p $(@D)

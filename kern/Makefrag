@@ -42,6 +42,7 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/pagealloc.c \
 	    kern/kern/console.c \
 	    kern/kern/fb.c \
+	    kern/kern/mousedev.c \
 	    kern/kern/disk.c
 
 KERN_BTREE := \

@@ -443,6 +443,43 @@ run_shell_entry(void *arg)
 }
 
 static int
+init_mouse(void)
+{
+    int64_t mouse_grant = handle_alloc();
+    int64_t mouse_taint = handle_alloc();
+
+    struct cobj_ref the_mouse_dev;
+
+    label mouse_label(1);
+    mouse_label.set(mouse_grant, 1);
+    mouse_label.set(mouse_taint, 1);
+
+    int64_t mousedev_id = sys_device_create(start_env->shared_container, 0,
+					    mouse_label.to_ulabel(), "mousedev",
+					    device_mouse);
+    error_check(mousedev_id);
+
+    the_mouse_dev = COBJ(start_env->shared_container, mousedev_id);
+
+    struct fs_object_meta meta;
+    meta.mtime_nsec = meta.ctime_nsec = jos_time_nsec();
+    meta.dev_id = devmouse.dev_id;
+    meta.dev_opt = 0;
+    int r = sys_obj_set_meta(the_mouse_dev, 0, &meta);
+    if (r < 0)
+        return 1;
+
+    char mousepath[130];
+    sprintf(mousepath, "#%"PRIu64".%"PRIu64, the_mouse_dev.container,
+            the_mouse_dev.object);
+    unlink("/dev/psaux");
+    symlink(mousepath, "/dev/psaux");
+
+    return 0;
+}
+
+
+static int
 init_fbcons(int basecons, int *consp, int maxvt)
 {
     int64_t fbc_grant = handle_alloc();
@@ -645,6 +682,10 @@ try
 	thread_create(start_env->proc_container, &run_shell_entry,
 		      (void *) (uintptr_t) cons_fds[i], &tid, "runshell");
     }
+
+    int mousefail = init_mouse();
+    if (mousefail)
+        cprintf("Failed to initialize /dev/psaux\n");
 
     run_shell(cons_fds[0]);
 } catch (std::exception &e) {
