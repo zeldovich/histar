@@ -2,6 +2,8 @@
 #include <kern/lib.h>
 #include <kern/timer.h>
 
+void __attribute__((__noreturn__)) (*reboot_hook)(void) = NULL;
+
 int raise(int sig);
 
 int __attribute__((noreturn))
@@ -50,5 +52,7 @@ karch_fp_init(struct Fpregs *fpreg)
 void
 machine_reboot(void)
 {
+	if (reboot_hook != NULL)
+		reboot_hook();
 	panic("no idea how to reboot");
 }

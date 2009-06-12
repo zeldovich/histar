@@ -7,6 +7,7 @@
 #include <kern/utrap.h>
 #include <inc/error.h>
 #include <machine/arm.h>
+#include <machine/cpu.h>
 #include <machine/mmu.h>
 #include <machine/trap.h>
 #include <machine/trapcodes.h>
@@ -46,9 +47,9 @@ thread_arch_run(const struct Thread *t)
 	}
 
 	// write-back and invalidate the caches, drain the write buffer
-	cp15_dcache_flush_invalidate_arm11();   //XXX- uses arm11-specifics
-	cp15_icache_invalidate_arm11();
-	cp15_write_buffer_drain();
+	cpufunc.cf_dcache_flush_invalidate();
+	cpufunc.cf_icache_invalidate();
+	cpufunc.cf_write_buffer_drain();
 
 	trapframe_pop(&t->th_tf);
 }
@@ -358,9 +359,9 @@ exception_handler(int trapcode, struct Trapframe *tf, uint32_t sp)
 	assert((sp & 7) == 0);
 
 	// write-back and invalidate the caches, drain the write buffer
-	cp15_dcache_flush_invalidate_arm11();   //XXX- uses arm11-specifics
-	cp15_icache_invalidate_arm11();
-	cp15_write_buffer_drain();
+	cpufunc.cf_dcache_flush_invalidate();
+	cpufunc.cf_icache_invalidate();
+	cpufunc.cf_write_buffer_drain();
 
 	if (trap_thread) {
 		struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;

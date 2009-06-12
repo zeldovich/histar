@@ -16,6 +16,15 @@ uint32_t arm_pdcache_size;
 uint32_t arm_pdcache_pbit;
 uint32_t arm_pcache_unified;
 
+struct cpufunc {
+	void (*cf_tlb_flush_entry)(void *);
+	void (*cf_write_buffer_drain)(void);
+	void (*cf_icache_invalidate)(void);
+	void (*cf_dcache_flush_invalidate)(void);
+	void (*cf_dcache_flush_invalidate_range)(void *, uint32_t);
+};
+extern struct cpufunc cpufunc;
+
 void cpu_identify(void);
 
 #endif /* !__ASSEMBLER__ */

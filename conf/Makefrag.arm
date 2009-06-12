@@ -3,7 +3,8 @@ TARGET	:= arm-jos-linux-gnueabi
 OBJTYPE := elf32-littlearm
 BFDARCH := arm
 # goldfish uses arm926ej-s, htc dream is arm1136jf-s
-ARMCPU  := arm1136jf-s
+#ARMCPU  := arm1136jf-s
+ARMCPU  := arm926ej-s
 
 CC      := $(GCCPREFIX)gcc -pipe -mlittle-endian -mcpu=$(ARMCPU)
 CXX     := $(GCCPREFIX)g++ -pipe -mlittle-endian -mcpu=$(ARMCPU)

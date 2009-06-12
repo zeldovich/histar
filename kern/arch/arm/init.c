@@ -14,6 +14,7 @@
 #include <dev/msm_timer.h>
 #include <dev/msm_ttycons.h>
 #include <dev/htcdream_keypad.h>
+#include <dev/htcdream_reset.h>
 #include <machine/arm.h>
 #include <machine/asm.h>
 #include <machine/atag.h>
@@ -166,6 +167,7 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 	msm_gpio_init(0xa9200800, 0xa9300c00);
 	msm_mddi_init(0xaa600000);
 	htcdream_keypad_init(board_rev);
+	htcdream_reset_init();
 #endif
 
 	/* we've no more use for the low memory, so unmap it */

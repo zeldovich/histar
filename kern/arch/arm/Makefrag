@@ -43,7 +43,8 @@ KERN_DEV :=					\
 	dev/msm_irq.c				\
 	dev/msm_timer.c				\
 	dev/msm_ttycons.c			\
-	dev/htcdream_keypad.c
+	dev/htcdream_keypad.c			\
+	dev/htcdream_reset.c
 
 $(OBJDIR)/kern/kernel.%.debuginfo:
 	$(LD) -o $@ $(KERN_LDFLAGS) $^ $(GCC_LIB)

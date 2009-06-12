@@ -25,8 +25,11 @@ uint32_t arm_pdcache_pbit = 0;
 
 uint32_t arm_pcache_unified = 0;
 
+// cpu-specific functions
+struct cpufunc cpufunc;
+
 enum cpu_class {
-	CLASS_ARM9EJS,
+	CLASS_ARM9EJS = 1,
 	CLASS_ARM11J
 };
 
@@ -77,11 +80,13 @@ const int cacheassocs[2][8] = {
 
 const int cachelinelens[4] = { 8, 16, 32, 64 };
 
+static void cpu_noop(void) { }
+
 static void
 identify_cpu()
 {
 	const char *name = "<unknown>";
-	enum cpu_class class;
+	enum cpu_class class = 0;
 	uint32_t id = cp15_main_id_get();
 	int i;
 
@@ -94,6 +99,30 @@ identify_cpu()
 	}
 
 	cprintf("CPU: %s revision 0x%x (0x%08x)\n", name, id & 0xf, id);
+
+	switch (class) {
+	case CLASS_ARM11J:
+		cpufunc.cf_tlb_flush_entry = cp15_tlb_flush_entry_arm11;
+		cpufunc.cf_write_buffer_drain = cp15_write_buffer_drain;
+		cpufunc.cf_icache_invalidate = cp15_icache_invalidate_arm11;
+		cpufunc.cf_dcache_flush_invalidate =
+		    cp15_dcache_flush_invalidate_arm11;
+		cpufunc.cf_dcache_flush_invalidate_range =
+		    cp15_dcache_flush_invalidate_range_arm11;
+		break;
+
+	case CLASS_ARM9EJS:
+		/* XXX */
+		cpufunc.cf_tlb_flush_entry = (void *)cp15_tlb_flush;
+		cpufunc.cf_write_buffer_drain = cp15_write_buffer_drain;
+		cpufunc.cf_icache_invalidate = (void *)cpu_noop;
+		cpufunc.cf_dcache_flush_invalidate = (void *)cpu_noop;
+		cpufunc.cf_dcache_flush_invalidate_range = (void *)cpu_noop;
+		break;
+
+	default:
+		panic("unsupported cpu");
+	}
 }
 
 static void

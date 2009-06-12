@@ -262,7 +262,7 @@ init_fs(int cons)
     label root_dr(0);
     root_dr.set(start_env->user_grant, 3);
     root_dr.set(start_env->user_taint, 3);
-
+cprintf("--> SPAWN_FS\n");
     spawn_fs(SPAWN_WAIT_GC, cons,
 	     "/bin/ksh", "/bin/init.sh", 0,
 	     &root_ds, &root_dr);
@@ -619,9 +619,11 @@ try
     start_env->user_taint = h_root_t;
     start_arg0 = (uintptr_t) start_env;
     setup_env(0, start_arg0, 0);
-
+cprintf("--> 1\n");
     init_fs(cons);
+cprintf("--> 2\n");
     init_procs(cons);
+cprintf("--> 3\n");
     /* shell gets another console that's mutable */
     int newcons = opencons();
     if (newcons >= 0)

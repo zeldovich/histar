@@ -39,6 +39,7 @@ physaddr_t ppn2pa(ppn_t pn);
  * Miscellaneous
  */
 extern char boot_cmdline[];
+extern void __attribute__((__noreturn__)) (*reboot_hook)(void);
 void machine_reboot(void) __attribute__((noreturn));
 uintptr_t karch_get_sp(void);
 uint64_t karch_get_tsc(void);

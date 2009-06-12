@@ -4,6 +4,7 @@
 #include <inc/error.h>
 #include <inc/safeint.h>
 #include <machine/arm.h>
+#include <machine/cpu.h>
 #include <machine/mmu.h>
 #include <machine/pmap.h>
 
@@ -172,7 +173,7 @@ page_map_alloc(struct Pagemap **pm_store)
 	page_to_pageinfo(pgmap)->pi_md.mpi_pmap_pvp = NULL;
 	page_to_pageinfo(pgmap)->pi_md.mpi_pmap_free_list = NULL;
 	memcpy(pgmap, &kpagemap, L1_PT_SIZE);
-	cp15_dcache_flush_invalidate_range_arm11(pgmap, L1_PT_SIZE);
+	cpufunc.cf_dcache_flush_invalidate_range(pgmap, L1_PT_SIZE);
 	*pm_store = (struct Pagemap *)pgmap;
 
 	return (0);
@@ -285,7 +286,8 @@ page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
 
 			pgmap->pm_ent[i] = ARM_MMU_L1_TYPE_COARSE |
 			    (uintptr_t)kva2pa(l2pm);
-			cp15_dcache_flush_invalidate_range_arm11(&pgmap->pm_ent[i], sizeof(pgmap->pm_ent[0]));
+			cpufunc.cf_dcache_flush_invalidate_range(
+			    &pgmap->pm_ent[i], sizeof(pgmap->pm_ent[0]));
 		}
 
 		l2pm = (struct Pagemap *)pa2kva(PTE_ADDR(pgmap->pm_ent[i]));
@@ -446,7 +448,8 @@ check_user_access2(const void *ptr, uint64_t nbytes,
 				*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
 				*ptep |= ARM_MMU_L2_SMALL_AP(
 				    ARM_MMU_AP_KRWURW);
-				cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+				cpufunc.cf_dcache_flush_invalidate_range(ptep,
+				    sizeof(*ptep));
 				pmap_queue_invlpg(cur_as->as_pgmap, (void *)va);
 			}
 
@@ -484,7 +487,7 @@ pmap_set_current(struct Pagemap *pm)
 		flush_tlb = 1;
 	} else {
 		for (uint32_t i = 0; i < cur_pgmap_invlpg_count; i++)
-			cp15_tlb_flush_entry_arm11(cur_pgmap_invlpg_addrs[i]);
+			cpufunc.cf_tlb_flush_entry(cur_pgmap_invlpg_addrs[i]);
 	}
 
 	cur_pgmap = pm;
@@ -533,7 +536,7 @@ as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 	*pvp &= ~PVP_DIRTYBIT;
 	*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
 	*ptep |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO);
-	cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+	cpufunc.cf_dcache_flush_invalidate_range(ptep, sizeof(*ptep));
 	pmap_queue_invlpg(pgmap, va);
 }
 
@@ -571,7 +574,7 @@ as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 		}
 
 		*ptep = ARM_MMU_L2_TYPE_INVALID;
-		cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+		cpufunc.cf_dcache_flush_invalidate_range(ptep, sizeof(*ptep));
 		pmap_queue_invlpg(pgmap, va);
 		*pvp = 0;
 	} else {
@@ -606,7 +609,7 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 
 		*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
 		*ptep |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO);
-		cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+		cpufunc.cf_dcache_flush_invalidate_range(ptep, sizeof(*ptep));
 		pmap_queue_invlpg(pgmap, va);
 
 		// leave the emulated dirty bit set!
@@ -650,7 +653,7 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 	// all pages read only first to emulate dirty bit
 	*ptep = kva2pa(pp) | ARM_MMU_L2_TYPE_SMALL | cacheflags |
 	    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO);
-	cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+	cpufunc.cf_dcache_flush_invalidate_range(ptep, sizeof(*ptep));
 	pmap_queue_invlpg(pgmap, va);
 
 	r = pvp_get(pgmap, va, &pvp, 1);
@@ -696,7 +699,7 @@ arm_dirtyemu(struct Pagemap *pgmap, const void *fault_va)
 	*pvp |= PVP_DIRTYBIT;
 	*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
        	*ptep |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURW);
-	cp15_dcache_flush_invalidate_range_arm11(ptep, sizeof(*ptep));
+	cpufunc.cf_dcache_flush_invalidate_range(ptep, sizeof(*ptep));
 	pmap_queue_invlpg(pgmap, (void *)fault_va);
 
 	return (0);

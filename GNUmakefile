@@ -59,7 +59,9 @@ endif
 
 ifeq ($(K_ARCH),arm)
 # For ARM, specify the device target
-BASECFLAGS += -DJOS_ARM_HTCDREAM
+# !!! DON'T FORGET TO CHANGE ``ARMCPU'' in config/Makefrag.arm
+#BASECFLAGS += -DJOS_ARM_HTCDREAM
+BASECFLAGS += -DJOS_ARM_GOLDFISH
 endif
 
 
@@ -99,6 +101,10 @@ ifeq ($(K_ARCH),amd64)
 endif
 
 ifeq ($(K_ARCH),i386)
+SHARED_ENABLE := yes
+endif
+
+ifeq ($(K_ARCH),arm)
 SHARED_ENABLE := yes
 endif
 

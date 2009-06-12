@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <inc/syscall.h>
 
 #define _dl_exit	exit
 #define _dl_open	open
