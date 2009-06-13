@@ -31,7 +31,7 @@
 #error What is this architecture?
 #endif
 
-#if defined(JOS_ARCH_i386)
+#if defined(JOS_ARCH_i386) || defined(JOS_ARCH_arm)
 #define ARCH_ELF_SHLIB_FLAGS	SEGMAP_WRITE
 #else
 #define ARCH_ELF_SHLIB_FLAGS	0

@@ -113,7 +113,7 @@ DL_START(unsigned long a0, unsigned long a1, unsigned long a2,
 	struct elf_resolve *tpnt = &tpnt_tmp;
 	ElfW(auxv_t) auxvt[AT_EGID + 1];
 	ElfW(Dyn) *dpnt;
-SEND_EARLY_STDERR("-1\n");
+
 	/* WARNING! -- we cannot make _any_ funtion calls until we have
 	 * taken care of fixing up our own relocations.  Making static
 	 * inline calls is ok, but _no_ function calls.  Not yet
@@ -126,24 +126,23 @@ SEND_EARLY_STDERR("-1\n");
 	/* The junk on the stack immediately following the environment is
 	 * the Auxiliary Vector Table.  Read out the elements of the auxvt,
 	 * sort and store them in auxvt for later use. */
-SEND_EARLY_STDERR("-1.1\n");
+
 	while (*aux_dat) {
-SEND_EARLY_STDERR("loop.\n");
 		ElfW(auxv_t) *auxv_entry = (ElfW(auxv_t) *) aux_dat;
-SEND_EARLY_STDERR("!\n");
+
 		if (auxv_entry->a_type <= AT_EGID) {
 			_dl_memcpy(&(auxvt[auxv_entry->a_type]), auxv_entry, sizeof(ElfW(auxv_t)));
 		}
 		aux_dat += 2;
 	}
-SEND_EARLY_STDERR("-2\n");
+
 	/* locate the ELF header.   We need this done as soon as possible
 	 * (esp since SEND_STDERR() needs this on some platforms... */
 	if (!auxvt[AT_BASE].a_un.a_val)
 		auxvt[AT_BASE].a_un.a_val = elf_machine_load_address();
 	DL_INIT_LOADADDR_BOOT(load_addr, auxvt[AT_BASE].a_un.a_val);
 	header = (ElfW(Ehdr) *) auxvt[AT_BASE].a_un.a_val;
-SEND_EARLY_STDERR("-3\n");
+
 	/* Check the ELF header to make sure everything looks ok.  */
 	if (!header || header->e_ident[EI_CLASS] != ELF_CLASS ||
 			header->e_ident[EI_VERSION] != EV_CURRENT
@@ -161,7 +160,6 @@ SEND_EARLY_STDERR("-3\n");
 	SEND_EARLY_STDERR_DEBUG("ELF header=");
 	SEND_ADDRESS_STDERR_DEBUG(DL_LOADADDR_BASE(load_addr), 1);
 
-SEND_EARLY_STDERR("0\n");
 	/* Locate the global offset table.  Since this code must be PIC
 	 * we can take advantage of the magic offset register, if we
 	 * happen to know what that is for this architecture.  If not,
@@ -176,7 +174,7 @@ SEND_EARLY_STDERR("0\n");
 	   We are only doing ourself right now - we will have to do the rest later */
 	SEND_EARLY_STDERR_DEBUG("Scanning DYNAMIC section\n");
 	tpnt->dynamic_addr = dpnt;
-SEND_EARLY_STDERR("1\n");
+
 #if defined(NO_FUNCS_BEFORE_BOOTSTRAP)
 	/* Some architectures cannot call functions here, must inline */
 	__dl_parse_dynamic_info(dpnt, tpnt->dynamic_info, NULL, load_addr);
@@ -193,7 +191,6 @@ SEND_EARLY_STDERR("1\n");
 	PERFORM_BOOTSTRAP_GOT(tpnt);
 
 #else
-SEND_EARLY_STDERR("2\n");
 	/* OK, now do the relocations.  We do not do a lazy binding here, so
 	   that once we are done, we have considerably more flexibility. */
 	SEND_EARLY_STDERR_DEBUG("About to do library loader relocations\n");
@@ -267,7 +264,6 @@ SEND_EARLY_STDERR("2\n");
 	}
 #endif
 
-SEND_EARLY_STDERR("3\n");
 	/* Wahoo!!! */
 	SEND_STDERR_DEBUG("Done relocating ldso; we can now use globals and make function calls!\n");
 
