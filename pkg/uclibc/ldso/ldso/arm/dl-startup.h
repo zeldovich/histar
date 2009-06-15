@@ -14,17 +14,33 @@ __asm__(
     "	.globl	_start\n"
     "	.type	_start,%function\n"
 	"_start:\n"
-	"	@ at start time, all the args are on the stack\n"
-	"	@ but histar chooses to pass argc, argv, env in\n"
+	"	@ HiStar chooses to pass argc, argv, envp in\n"
 	"	@ r0, r1, and r2. So, r3 gets the stack pointer\n"
+	"	@ (the elf auxvt is on the stack)\n"
 	"	mov	r3, sp\n"
+	"	@ be sure to save r0 through r2 before they're clobbered\n"
+	"	str	r2, [sp, #-4]!\n"
+	"	str	r1, [sp, #-4]!\n"
+	"	str	r0, [sp, #-4]!\n"
+	"	@ 8-byte align stack for EABI\n"
+	"	sub	sp, sp, #4\n"
+	"	@ enter DL_START\n"
 	"	bl	_dl_start\n"
 	"	@ returns user entry point in r0\n"
 	"	mov	r6, r0\n"
+	"	@ undo align pad\n"
+	"	add	sp, sp, #4\n"
+	"	@ restore arguments for libmain and friends\n"
+	"	ldr	r0, [sp], #4\n"
+	"	ldr	r1, [sp], #4\n"
+	"	ldr	r2, [sp], #4\n"
+	"	@ pass magic value 2 as arg0 to avoid setup_env\n"
+	"	mov	r0, #2\n"
 	"	@ we are PIC code, so get global offset table\n"
 	"	ldr	sl, .L_GET_GOT\n"
 	"	add	sl, pc, sl\n"
 	".L_GOT_GOT:\n"
+#if 0
 	"	@ See if we were run as a command with the executable file\n"
 	"	@ name as an extra leading argument.\n"
 	"	ldr	r4, .L_SKIP_ARGS\n"
@@ -46,6 +62,7 @@ __asm__(
 	"	@ load the finalizer function\n"
 	"	ldr	r0, .L_FINI_PROC\n"
 	"	ldr	r0, [sl, r0]\n"
+#endif
 	"	@ jump to the user_s entry point\n"
 #if defined(__USE_BX__)
 	"	bx	r6\n"
@@ -130,12 +147,6 @@ __asm__(
 	".previous\n"
 );
 #endif
-
-
-/* Get a pointer to the argv array.  On many platforms this can be just
- * the address if the first argument, on other platforms we need to
- * do something a little more subtle here.  */
-#define GET_ARGV(ARGVP, ARGS) ARGVP = (((unsigned long*)ARGS)+1)
 
 /* Handle relocation of the symbols in the dynamic loader. */
 static inline
