@@ -3,6 +3,7 @@
 #include <inc/syscall.h>
 #include <inc/jthread.h>
 #include <inc/stdio.h>
+#include <inc/error.h>
 
 #include <unistd.h>
 #include <inttypes.h>
@@ -43,12 +44,12 @@ sbrk(intptr_t x)
     if (heap.inited_pct != ct) {
 	struct u_segment_mapping usm;
 	r = segment_lookup(heap_base, &usm);
-	if (r < 0) {
+	if (r < 0 && r != -E_NOT_FOUND) {
 	    cprintf("sbrk: error in segment_lookup: %s\n", e2s(r));
 	    goto out;
 	}
 
-	if (r > 0) {
+	if (r != -E_NOT_FOUND) {
 	    heap.heapseg = usm.segment;
 	} else {
 	    r = segment_alloc(ct, 0,

@@ -69,7 +69,7 @@ setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
     struct u_segment_mapping usm;
     struct cobj_ref start_env_seg;
     int r = segment_lookup(start_env, &usm);
-    if (r < 0 || r == 0)
+    if (r < 0)
 	panic("libmain: cannot find start_env segment: %s", e2s(r));
 
     start_env_seg = usm.segment;

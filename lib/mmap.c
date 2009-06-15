@@ -3,6 +3,7 @@
 #include <inc/syscall.h>
 #include <inc/memlayout.h>
 #include <inc/fd.h>
+#include <inc/error.h>
 
 #include <errno.h>
 #include <inttypes.h>
@@ -198,7 +199,7 @@ munmap(void *start, size_t length)
     }
 
     r = segment_lookup_obj(omap.segment.object, 0);
-    if (r == 0)
+    if (r == -E_NOT_FOUND)
 	sys_obj_unref(omap.segment);
 
     return 0;
@@ -229,7 +230,7 @@ mprotect(void *addr, size_t len, int prot)
 
     struct u_segment_mapping usm;
     int r = segment_lookup(addr, &usm);
-    if (r <= 0) {
+    if (r < 0) {
 	__set_errno(EINVAL);
 	return -1;
     }

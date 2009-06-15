@@ -170,10 +170,10 @@ stack_grow(void *faultaddr)
 {
     struct u_segment_mapping usm;
     int r = segment_lookup(faultaddr, &usm);
+    if (r == -E_NOT_FOUND)
+	return -1;
     if (r < 0)
 	return r;
-    if (r == 0)
-	return -1;
 
     if (!(usm.flags & SEGMAP_STACK) || !(usm.flags & SEGMAP_REVERSE_PAGES)) {
 	// Not a stack.
