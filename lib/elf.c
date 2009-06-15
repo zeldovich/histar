@@ -115,7 +115,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 		cprintf("elf_load: cannot map ld.so: %s\n", e2s(r));
 		return r;
 	    }
-cprintf("OPENED LD.SO @ %s\n", buf);
+
 	    int64_t ldso_copy_id = sys_segment_copy(ldso.obj, container, 0,
 						    "ld.so segment copy");
 	    if (ldso_copy_id < 0) {
@@ -293,6 +293,7 @@ cprintf("OPENED LD.SO @ %s\n", buf);
 #undef LDSO_AUX_PUT
 
 	e->te_stack = stacktop + (ai * sizeof(unsigned long));
+	assert(((uintptr_t)e->te_stack & 7 ) == 0);		// stack 8-byte align
 	segment_unmap_delayed(stack_map, 1);
     }
 
