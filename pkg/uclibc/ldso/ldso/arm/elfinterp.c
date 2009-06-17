@@ -228,7 +228,8 @@ _dl_do_reloc (struct elf_resolve *tpnt,struct dyn_elf *scope,
 			case R_ARM_NONE:
 				break;
 			case R_ARM_ABS32:
-				*reloc_addr += symbol_addr;
+				//*reloc_addr += symbol_addr;
+				*reloc_addr = symbol_addr;
 				break;
 			case R_ARM_PC24:
 #if 0
