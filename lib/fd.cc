@@ -452,8 +452,6 @@ jos_fd_close(struct Fd *fd)
     r = segment_lookup(fd, &usm);
     if (r < 0)
 	return r;
-    if (r == 0)
-	return -E_NOT_FOUND;
 
     struct cobj_ref fd_seg = usm.segment;
 

@@ -28,7 +28,10 @@ struct UTrapframe {
 		uint32_t	utf_stackptr;
 	};
 
-	uint32_t	utf_r14;	// lr
+	union {
+		uint32_t	utf_r14;
+		uint32_t	utf_lr;
+	};
 
 	union {
 		uint32_t	utf_r15;

@@ -469,6 +469,7 @@ segment_lookup_skip(void *va, struct u_segment_mapping *usm, uint64_t skip_flags
     for (uint64_t i = 0; i < cache_uas.nent; i++) {
 	void *va_start = cache_uas.ents[i].va;
 	void *va_end = cache_uas.ents[i].va + cache_uas.ents[i].num_pages * PGSIZE;
+
 	if (cache_uas.ents[i].flags &&
 	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
 	    !(cache_uas.ents[i].flags & skip_flags) &&
@@ -482,7 +483,7 @@ segment_lookup_skip(void *va, struct u_segment_mapping *usm, uint64_t skip_flags
     }
 
     as_mutex_unlock(lockold);
-    return 0;
+    return -E_NOT_FOUND;
 }
 
 int
@@ -516,7 +517,7 @@ segment_lookup_obj(uint64_t oid, struct u_segment_mapping *usm)
     }
 
     as_mutex_unlock(lockold);
-    return 0;
+    return -E_NOT_FOUND;
 }
 
 static int

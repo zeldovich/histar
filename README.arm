@@ -25,7 +25,15 @@ requires system headers and crt files for the target platform.
 
 * Running with Android's Goldfish emulator
 
-Modify emulator/qemu/hw/android_arm.c around like 76 to the following:
+Source is at http://android.googlecode.com/files/android-emulator-1.0_r2.tar.bz2
+You'll also ``system.img'' from android-sdk-linux_x86-1.1_r1.zip.
+
+First, modify emulator/qemu/android-configure.sh line 593 to be:
+    i386|i686) HOST_CPU=I386
+
+This will let it compile at all if `uname -m` spits out i686.
+
+Second, modify emulator/qemu/hw/android_arm.c around like 76 to the following:
 	goldfish_tty_add(serial_hds[0], 0, 0xff002000, 4);
 	goldfish_tty_add(serial_hds[1], 0, 0xff002000, 4);
     #if 0
@@ -38,9 +46,14 @@ Modify emulator/qemu/hw/android_arm.c around like 76 to the following:
     #endif
 
 This will let you use stdin/stdout for the console. I have no idea how to
-do so with the command line options. Now, run the emulator with the following
-flags: ``-show-kernel -shell -kernel path/to/bimage.init''.
+do so with the command line options. Now, run the emulator as follows:
 
+    EMU=~/android/android-emulator-20081210/qemu/objs/emulator
+    SYSIMG=~/android/android-sdk-linux_x86-1.1_r1/tools/lib/images/
+    USRIMG=~/android/android-sdk-linux_x86-1.1_r1/tools/lib/images/
+
+    $EMU -system $SYSIMG -data $USRIMG -no-window -show-kernel -shell \
+        -kernel ~/histar/obj.arm*/boot/bimage.init 
 
 * Setting up the N800 in Linux
 

@@ -220,6 +220,15 @@ _dl_do_reloc (struct elf_resolve *tpnt,struct dyn_elf *scope,
 		}
 	}
 
+/*
+ * XXX- something is fucked up. since ld.so has a load of other crap jammed into it, our
+ *      relocations are done early as part of bootstrapping ld.so, but then many of them are done
+ *      once more afterwards. This causes badness when, for instance, we += on the symbol address.
+ *      This hack tries to avoid such instances.
+ */
+if ((reloc_type == R_ARM_ABS32 || reloc_type == R_ARM_RELATIVE) && *reloc_addr >= 0x63000000)
+    return (0);
+
 #if defined (__SUPPORT_LD_DEBUG__)
 	{
 		unsigned long old_val = *reloc_addr;
