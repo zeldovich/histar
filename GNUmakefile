@@ -57,15 +57,8 @@ ifeq ($(K_ARCH),um)
 BASECFLAGS :=
 endif
 
-ifeq ($(K_ARCH),arm)
-# For ARM, specify the device target
-# !!! DON'T FORGET TO CHANGE ``ARMCPU'' in config/Makefrag.arm
-#BASECFLAGS += -DJOS_ARM_HTCDREAM
-BASECFLAGS += -DJOS_ARM_GOLDFISH
-endif
-
-
-COMFLAGS    := $(BASECFLAGS) -g $(OPTFLAG) -fno-strict-aliasing \
+COMFLAGS    := $(BASECFLAGS) $(ARCHBASECFLAGS) -g $(OPTFLAG) \
+	       -fno-strict-aliasing \
 	       -Wall -MD -DJOS_ARCH_$(ARCH) \
 	       -DJOS_BUILD_VERSION=\"$(BUILD_VERSION)\"
 CSTD	    := -std=c99 -fms-extensions \
