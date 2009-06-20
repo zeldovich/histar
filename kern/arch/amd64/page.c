@@ -13,8 +13,10 @@
 // Limit of physical address space
 uint64_t pa_limit = UINT64(0x100000000);		
 
+extern char end[];
+
 static uint64_t membytes;       // Maximum usuable bytes of the physical AS
-static char *boot_freemem;	// Pointer to next byte of free mem
+char *boot_freemem = &end[0];	// Pointer to next byte of free mem
 static char *boot_endmem;	// Pointer to first unusable byte
 
 // Keep track of various page metadata
@@ -51,7 +53,6 @@ boot_alloc(uint32_t n, uint32_t align)
 static void
 e820_detect_memory(struct e820entry *desc, uint8_t n)
 {
-    extern char end[];
     for (uint8_t i = 0; i < n; i++) {
 	if (desc[i].addr + desc[i].size > pa_limit)
 	    pa_limit = desc[i].addr + desc[i].size;
