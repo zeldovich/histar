@@ -262,7 +262,7 @@ init_fs(int cons)
     label root_dr(0);
     root_dr.set(start_env->user_grant, 3);
     root_dr.set(start_env->user_taint, 3);
-cprintf("--> SPAWN_FS\n");
+
     spawn_fs(SPAWN_WAIT_GC, cons,
 	     "/bin/ksh", "/bin/init.sh", 0,
 	     &root_ds, &root_dr);
@@ -282,6 +282,7 @@ init_auth(int cons, const char *shroot)
 				       0, CT_QUOTA_INF);
 	error_check(uauth_id);
     }
+
     struct fs_inode xino;
     fs_get_root(uauth_id, &xino);
     error_check(fs_mount(start_env->fs_mtab_seg,
@@ -292,17 +293,22 @@ init_auth(int cons, const char *shroot)
 
     struct child_process cp;
     int64_t ec;
+
     // spawn user-auth agent for root
     fs_inode uauth_dir;
     error_check(fs_namei("/uauth", &uauth_dir));
+
     cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_log", 0, 0, 0, 0,
 		  uauth_dir.obj.object);
     error_check(process_wait(&cp, &ec));
+
     cp = spawn_fs(SPAWN_OTHER_CT, cons, "/bin/auth_dir", shroot, 0, 0, 0,
 		  uauth_dir.obj.object);
     error_check(process_wait(&cp, &ec));
+
     fs_inode user_authd;
     error_check(fs_namei("/bin/auth_user", &user_authd));
+
     char root_grant[32], root_taint[32];
     sprintf(&root_grant[0], "%"PRIu64, start_env->user_grant);
     sprintf(&root_taint[0], "%"PRIu64, start_env->user_taint);
@@ -329,12 +335,14 @@ init_auth(int cons, const char *shroot)
     fs_inode auth_dir_gt;
     error_check(fs_namei_flags("/uauth/auth_dir/authdir", &auth_dir_gt,
 			       NAMEI_LEAF_NOEVAL));
+
     gate_call_data gcd;
     auth_dir_req   *req   = (auth_dir_req *)   &gcd.param_buf[0];
     auth_dir_reply *reply = (auth_dir_reply *) &gcd.param_buf[0];
     req->op = auth_dir_add;
     strcpy(&req->user[0], "root");
     req->user_gate = COBJ(cp.container, uauth_gate);
+
     label verify(3);
     verify.set(start_env->user_grant, 0);
     gate_call(auth_dir_gt.obj, 0, 0, 0).call(&gcd, &verify);
@@ -367,6 +375,7 @@ init_procs(int cons)
     time_ds.set(time_grant, LB_LEVEL_STAR);
     time_dr.set(time_grant, 3);
     spawn_fs(0, cons, "/bin/jntpd", "pool.ntp.org", 0, &time_ds, &time_dr);
+
     FILE *inittab = fopen("/bin/inittab", "r");
     if (inittab) {
 	char buf[256];
@@ -654,17 +663,18 @@ try
 	return -1;
     }
     start_env->user_taint = h_root_t;
+
     start_arg0 = (uintptr_t) start_env;
     setup_env(0, start_arg0, 0);
-cprintf("--> 1\n");
+
     init_fs(cons);
-cprintf("--> 2\n");
     init_procs(cons);
-cprintf("--> 3\n");
+
     /* shell gets another console that's mutable */
     int newcons = opencons();
     if (newcons >= 0)
 	cons = newcons;
+
     int cons_fds[6];
     int ncons = init_fbcons(cons, &cons_fds[0], 6);
     for (int i = 1; i < ncons; i++) {
