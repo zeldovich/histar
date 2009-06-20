@@ -24,6 +24,7 @@
 #include <kern/thread.h>
 #include <kern/arch.h>
 #include <kern/part.h>
+#include <dev/psmouse.h>
 
 char boot_cmdline[256];
 
@@ -146,6 +147,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
     cgacons_init();
     sercons_init();
     lptcons_init();
+    psmouse_init();
     mp_init();
     pic_init();
     

@@ -555,6 +555,7 @@ static struct Dev *devlist[] = {
     &devlfs,
     &devfb,
     &devfbcons,
+    &devmouse,
     0
 };
 
@@ -1447,6 +1448,14 @@ __libc_fcntl(int fdnum, int cmd, ...)
 
     if (cmd == F_GETFL) {
         return fd->fd_omode;
+    }
+
+    if (cmd == F_SETOWN) {
+        return 0;
+    }
+
+    if (cmd == F_GETOWN) {
+        return getuid();
     }
 
     cprintf("Unimplemented fcntl call: %d\n", cmd);

@@ -219,6 +219,7 @@ extern struct Dev devsymlink;	/* type 'l' */
 extern struct Dev devlfs;       /* type 'o' */
 extern struct Dev devfb;	/* type 'F' */
 extern struct Dev devfbcons;	/* type 'C' */
+extern struct Dev devmouse;	/* type 'm' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);

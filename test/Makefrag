@@ -5,14 +5,15 @@ OBJDIRS += test test/lwip test/btree
 #TEST_COVERAGE_CFLAGS	:= --coverage
 #TEST_COVERAGE_LDFLAGS	:= -lgcov
 
-TEST_KERN_CFLAGS := -g -DJOS_KERNEL -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj \
+TEST_KERN_CFLAGS := -g -DJOS_KERNEL -I$(TOP) -I$(TOP)/kern -I$(TOP)/$(OBJDIR)  \
 		    $(TEST_COVERAGE_CFLAGS)
 TEST_USER_CFLAGS := \
-	-g -DJOS_USER -DJOS_TEST -I$(TOP) -I$(TOP)/obj \
+	-g -DJOS_USER -DJOS_TEST -I$(TOP) -I$(TOP)/$(OBJDIR) \
 	-D__STDC_FORMAT_MACROS \
 	-I$(TOP)/pkg/lwip/include \
 	-I$(TOP)/pkg/lwip/include/ipv4 \
-	-I$(TOP)/pkg/lwip/lnx64
+	-I$(TOP)/pkg/lwip/lnx64 \
+        -I$(TOP)/kern
 
 DISK_TEST_SRCS := \
 	error.c printfmt.c sha1.c arc4.c bf60.c sysstring.c \
@@ -21,38 +22,38 @@ DISK_TEST_SRCS := \
 	pbtree.c pbtree_frm.c btree_search.c btree.c btree_traverse.c btree_debug.c \
 	disk.c mem.c misc.c lock.c rand.c \
 	disk-test.c
-DISK_TEST_OBJS := $(patsubst %.c, obj/ktest/%.o, $(DISK_TEST_SRCS))
+DISK_TEST_OBJS := $(patsubst %.c, $(OBJDIR)/ktest/%.o, $(DISK_TEST_SRCS))
 
 FILESERVER_TEST_SRCS := fileserver-test.c fileserver.c error.c printfmt.c
-FILESERVER_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(FILESERVER_TEST_SRCS))
+FILESERVER_TEST_OBJS := $(patsubst %.c, $(OBJDIR)/test/%.o, $(FILESERVER_TEST_SRCS))
 
 FILECLIENT_TEST_SRCS := fileclient-test.c fileclient.c error.c printfmt.c
-FILECLIENT_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(FILECLIENT_TEST_SRCS))
+FILECLIENT_TEST_OBJS := $(patsubst %.c, $(OBJDIR)/test/%.o, $(FILECLIENT_TEST_SRCS))
 
 SSL_BENCH_SRCS := ssl-bench.c error.c printfmt.c
-SSL_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SSL_BENCH_SRCS))
+SSL_BENCH_OBJS := $(patsubst %.c, $(OBJDIR)/test/%.o, $(SSL_BENCH_SRCS))
 
 SOCK_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c sysstring.c
-SOCK_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SOCK_BENCH_SRCS))
+SOCK_BENCH_OBJS := $(patsubst %.c, $(OBJDIR)/test/%.o, $(SOCK_BENCH_SRCS))
 
 SOCK_CLIENT_SRCS := sock_client.c netbench.c error.c printfmt.c sysstring.c
-SOCK_CLIENT_OBJS := $(patsubst %.c, obj/test/%.o, $(SOCK_CLIENT_SRCS))
+SOCK_CLIENT_OBJS := $(patsubst %.c, $(OBJDIR)/test/%.o, $(SOCK_CLIENT_SRCS))
 
 BTREE2_TEST_SRCS := btree2-test.c btree2-sys.c \
 	biter.c btree.c bxutil.c bnode.c desc.c  \
 	insert.c search.c delete.c verify.c \
 	error.c printfmt.c sha1.c arc4.c bf60.c rand.c sysstring.c
 
-BTREE2_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(BTREE2_TEST_SRCS))
+BTREE2_TEST_OBJS := $(patsubst %.c, $(OBJDIR)/test/%.o, $(BTREE2_TEST_SRCS))
 		    
 LWIP_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c sysstring.c
-LWIP_BENCH_OBJS := $(patsubst %.c, obj/test/lwip/%.o, $(LWIP_BENCH_SRCS))
-LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
+LWIP_BENCH_OBJS := $(patsubst %.c, $(OBJDIR)/test/lwip/%.o, $(LWIP_BENCH_SRCS))
+LWIP_LNX64_LIB := $(OBJDIR)/lnx64/lib/liblwip.a
 
 DIS_OBJS := djprotx.o djprot.o bcast.o cpplabel.o error.o sysstring.o \
 	    backtrace.o string.o djdebug.o directexec.o djarpc.o \
-	    djfs_posix.o djkey.o delegator.o cryptconn.o perf.o djlabel.o
-DIS_OBJS := $(patsubst %.o, obj/test/%.o, $(DIS_OBJS))
+	    djfs_posix.o djkey.o delegator.o cryptconn.o perf.o djlabel.o strtou64.o
+DIS_OBJS := $(patsubst %.o, $(OBJDIR)/test/%.o, $(DIS_OBJS))
 
 ## Kernel-code build rules
 
@@ -165,9 +166,13 @@ $(OBJDIR)/test/flumeperl: $(FLUME_PERL_OBJS)
 	$(NCC) -o $@ $^ -lm
 
 ## Distributed stuff
-DIS_NCC_CFLAGS  := -I/usr/local/include/sfslite/shared -I/usr/local/include
-DIS_NCC_LDFLAGS := -L/usr/local/lib/sfslite/shared -L/usr/local/lib \
-		   -Wl,--rpath -Wl,/usr/local/lib/sfslite/shared
+DIS_NCC_CFLAGS  := -I/usr/local/include/sfslite -I/usr/local/include
+DIS_NCC_LDFLAGS := -L/usr/local/lib/sfslite -L/usr/local/lib \
+		   -Wl,--rpath -Wl,/usr/local/lib/sfslite
+
+$(OBJDIR)/test/%.o: kern/kern/%.c $(DIS_HEADERS)
+	@mkdir -p $(@D)
+	$(NCC) $(DIS_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/test/%.o: dj/%.cc $(DIS_HEADERS)
 	@mkdir -p $(@D)

@@ -58,6 +58,7 @@ int64_t	sys_obj_read(struct cobj_ref o, void *buf,
 		     uint64_t len, uint64_t off);
 int64_t	sys_obj_write(struct cobj_ref o, const void *buf,
 		      uint64_t len, uint64_t off);
+int64_t	sys_obj_probe(struct cobj_ref o);
 
 int64_t	sys_handle_create(void);
 

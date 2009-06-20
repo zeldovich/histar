@@ -35,6 +35,7 @@
     SYSCALL_ENTRY(obj_move)			\
     SYSCALL_ENTRY(obj_read)			\
     SYSCALL_ENTRY(obj_write)			\
+    SYSCALL_ENTRY(obj_probe)			\
 						\
     SYSCALL_ENTRY(gate_create)			\
     SYSCALL_ENTRY(gate_enter)			\

@@ -15,6 +15,7 @@ extern "C" {
 #include <dj/djkey.hh>
 #include <dj/gatesender.hh>
 #include <dj/djsrpc.hh>
+#include <dj/djrpcx.h>
 
 enum { crypto_rounds = 100 };
 enum { echo_rounds   = 100 };
@@ -160,7 +161,7 @@ main (int ac, char **av)
     rpc_msg0.catmap.ents.setsize(0);
     rpc_msg0.catmap.ents.push_back(mapping);
     rpc_msg0.dset.ents.setsize(0);
-    rpc_bytes<2147483647ul> s;
+
     xdr2bytes(s, signed_cat_delegation);
     rpc_msg0.dset.ents.push_back(s);
     rpc_msg0.msg = xdr2str(callmsg);

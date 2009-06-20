@@ -180,6 +180,12 @@ sys_obj_write(struct cobj_ref o, const void *buf, uint64_t len, uint64_t off)
 }
 
 int64_t
+sys_obj_probe(struct cobj_ref o)
+{
+    return syscall(SYS_obj_read, SOBJ(o), 0, 0, 0, 0, 0);
+}
+
+int64_t
 sys_container_get_nslots(uint64_t container)
 {
     return syscall(SYS_container_get_nslots, container, 0, 0, 0, 0, 0, 0);

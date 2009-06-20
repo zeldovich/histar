@@ -3,7 +3,8 @@
 
 enum device_type_enum {
     device_net,
-    device_fb
+    device_fb,
+    device_mouse
 };
 
 #endif
