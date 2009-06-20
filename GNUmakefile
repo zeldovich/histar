@@ -41,7 +41,7 @@ CXXWARNS := $(COMWARNS) -Wno-non-template-friend
 
 OPTFLAG	 := -O3 -fno-omit-frame-pointer $(ARCHOPT)
 
-BASECFLAGS  := -nostdinc \
+BASECFLAGS  := $(ARCHBASECFLAGS) -nostdinc \
 	       -idirafter $(shell $(CC) -print-file-name=include) \
 	       -idirafter $(shell $(CC) -print-file-name=include-fixed) \
 	       $(shell ./conf/gcc-flags.sh "$(CC)" -fno-stack-protector) \
@@ -57,7 +57,7 @@ ifeq ($(K_ARCH),um)
 BASECFLAGS :=
 endif
 
-COMFLAGS    := $(BASECFLAGS) $(ARCHBASECFLAGS) -g $(OPTFLAG) \
+COMFLAGS    := $(BASECFLAGS) -g $(OPTFLAG) \
 	       -fno-strict-aliasing \
 	       -Wall -MD -DJOS_ARCH_$(ARCH) \
 	       -DJOS_BUILD_VERSION=\"$(BUILD_VERSION)\"

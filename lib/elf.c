@@ -293,7 +293,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 #undef LDSO_AUX_PUT
 
 	e->te_stack = stacktop + (ai * sizeof(unsigned long));
-	assert(((uintptr_t)e->te_stack & 7 ) == 0);		// stack 8-byte align
+	assert(((uintptr_t)e->te_stack & 0x7) == 0);	// ensure 8-byte align
 	segment_unmap_delayed(stack_map, 1);
     }
 

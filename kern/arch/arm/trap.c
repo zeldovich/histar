@@ -341,7 +341,7 @@ exception_dispatch(int trapcode, struct Trapframe *tf)
 		assert(CPSR_MODE(cpsr_get()) == CPSR_MODE_UND);
 		if (CPSR_MODE(tf->tf_spsr) == CPSR_MODE_USR) {
 			const struct Thread *t = trap_thread;
-			cprintf("undefined instruction in user mode\n");
+			cprintf("illegal instruction in user mode\n");
 			cprintf("thread %" PRIu64 " (%s), as %"PRIu64" (%s)\n",
 			    t->th_ko.ko_id, t->th_ko.ko_name,
 			    t->th_as ? t->th_as->as_ko.ko_id : 0,
@@ -349,7 +349,7 @@ exception_dispatch(int trapcode, struct Trapframe *tf)
 			trapframe_print(tf);
 			thread_halt(trap_thread);
 		} else {
-			cprintf("undefined instruction in kernel mode\n");
+			cprintf("illegal instruction in kernel mode\n");
 			trapframe_print(tf);
 			panic("hosed.");
 		}
