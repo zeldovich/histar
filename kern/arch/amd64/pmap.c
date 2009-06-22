@@ -38,9 +38,10 @@ pa2kva(physaddr_t pa)
 physaddr_t
 kva2pa(void *kva)
 {
-    extern char end[];
+    extern char *boot_freemem;
+
     physaddr_t va = (physaddr_t) kva;
-    if (va >= KERNBASE && va < (uint64_t)end)
+    if (va >= KERNBASE && va < (uintptr_t) boot_freemem)
 	return va - KERNBASE;
     if (va >= PHYSBASE && va < PHYSBASE + pa_limit)
 	return va - PHYSBASE;
