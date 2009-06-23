@@ -94,8 +94,13 @@ e820_init(struct e820entry *map, uint8_t n)
     if (pa_limit > UINT64(0x100000000)) {
 	extern struct Pagemap bootpdplo;
 	uint64_t gp = ROUNDUP(pa_limit, 0x40000000) / 0x40000000;
-	for (uint64_t i = 4; i < gp; i++)
-	    bootpdplo.pm_ent[i] = (i * 0x40000000) + (PTE_P|PTE_W|PTE_PS|PTE_G);
+	for (uint64_t i = 4; i < gp; i++) {
+	    struct Pagemap *newpd = boot_alloc(PGSIZE, PGSIZE);
+	    for (uint64_t j = 0; j < NPTENTRIES; j++)
+		newpd->pm_ent[j] = (i * 0x40000000 + j * 0x200000) |
+				   (PTE_P | PTE_W | PTE_PS | PTE_G);
+	    bootpdplo.pm_ent[i] = kva2pa(newpd) | (PTE_P | PTE_W | PTE_G);
+	}
     }
 
     // Align boot_freemem to page boundary.
