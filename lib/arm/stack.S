@@ -33,8 +33,7 @@ ENTRY(stack_switch)
 2:
 
 	ldmia	sp, {r6-r9}			// copy a3 and a4 to new stack
-	stmdb	r5, {r6-r9}
-	sub	r5, r5, #16			// adjust new sp
+	stmdb	r5!, {r6-r9}
 
 	mov	sp, r5				// switch stacks
 	mov	pc, r4				// jump to function
