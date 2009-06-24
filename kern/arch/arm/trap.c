@@ -86,7 +86,13 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 
 	memset(&t->th_tf, 0, sizeof(t->th_tf));
 	t->th_md.mt_utrap_mask = UT_NMASK;
-	t->th_tf.tf_spsr = CPSR_MODE_USR | CPSR_ISET_ARM;
+	t->th_tf.tf_spsr = CPSR_MODE_USR;
+
+	if ((uintptr_t)te->te_entry & 0x1)
+		t->th_tf.tf_spsr |= CPSR_ISET_THUMB;
+	else
+		t->th_tf.tf_spsr |= CPSR_ISET_ARM;
+
 	t->th_tf.tf_pc = (uintptr_t)te->te_entry;
 	t->th_tf.tf_sp = (uintptr_t)te->te_stack;
 	t->th_tf.tf_r0 = te->te_arg[0];
@@ -162,7 +168,11 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 	memcpy(utf, &t_utf, sizeof(*utf));
 	t->th_tf.tf_sp = (uintptr_t) utf;
 	t->th_tf.tf_pc = t->th_as->as_utrap_entry;
-	t->th_tf.tf_spsr = CPSR_MODE_USR | CPSR_ISET_ARM;
+	t->th_tf.tf_spsr = CPSR_MODE_USR;
+	if ((uintptr_t)t->th_as->as_utrap_entry & 0x1)
+		t->th_tf.tf_spsr |= CPSR_ISET_THUMB;
+	else
+		t->th_tf.tf_spsr |= CPSR_ISET_ARM;
 	t->th_md.mt_utrap_mask = UT_MASK;
 
 	return (0);
@@ -285,11 +295,13 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, const int code)
 
 		cprintf("user page fault: thread %" PRIu64 " (%s), "
 		    "as %" PRIu64 " (%s), "
-		    "va=%p: r15/pc=0x%08x, r14/lr=0x%08x, r13/sp=0x%08x: %s\n",
+		    "va=%p: r15/pc=0x%08x, r14/lr=0x%08x, r13/sp=0x%08x, "
+		    "spsr=0x%08x: %s\n",
 		    t->th_ko.ko_id, t->th_ko.ko_name,
 		    t->th_as ? t->th_as->as_ko.ko_id : 0,
 		    t->th_as ? t->th_as->as_ko.ko_name : "null",
-		    fault_va, tf->tf_r15, tf->tf_r14, tf->tf_r13, e2s(r));
+		    fault_va, tf->tf_r15, tf->tf_r14, tf->tf_r13, tf->tf_spsr,
+		    e2s(r));
 
 		thread_halt(t);
 	}

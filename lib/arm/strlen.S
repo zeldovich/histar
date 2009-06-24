@@ -9,4 +9,8 @@ ENTRY(strlen)
 	bne	1b		// if not nul, loop 
 
 	sub	r0, r0, r1	// len = end - start
+#ifdef __thumb__
+	bx	lr		// switch modes if needed and return
+#else
 	mov	pc, lr		// return
+#endif

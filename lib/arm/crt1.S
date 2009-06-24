@@ -1,7 +1,10 @@
 #include <machine/asm.h>
 
 //-----------------------------------------------------------------------
-// NB: ARM procedure calling convention requires sp to be 8-byte aligned! 
+// NB:
+//   1) The ARM EABI calling convention requires sp to be 8-byte aligned! 
+//   2) We always start in the ARM instruction set, switching to THUMB if
+//      necessary.
 //-----------------------------------------------------------------------
 
 ENTRY(_start)
@@ -41,6 +44,9 @@ ENTRY(_start)
 	ldr	r2, [sp], #4
 	ldr	r1, [sp], #4
 	ldr	r0, [sp], #4
+
+	// Branch to libmain, switching to thumb mode if needed (the
+	// toolchain automatically does blx here if libmain is thumb).
 	bl	libmain
 
 _main_addr:

@@ -25,5 +25,9 @@ ENTRY(syscall)
 	mov	r1, sp			// pointer to args
 	swi	#0			// fire! (r0 already contains syscall #)
 	add	sp, sp, #8		// restore stack
+#ifdef __thumb__
+	bx	lr			// switch modes if needed and return
+#else
 	mov	pc, lr			// return
+#endif
 	.cfi_endproc
