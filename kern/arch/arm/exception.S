@@ -70,9 +70,8 @@ exception_vector_stack_addrs:
 	ldr	sp, [sp];				/*   ... */	      \
 	add	lr, lr, POUND _lrfix;			/* pc return fixup */ \
 	str	lr, [sp, #-4]!;				/* push fixed up lr*/ \
-	stmdb	sp, {r0-r14}^;				/* push "user" regs*/ \
+	stmdb	sp!, {r0-r14}^;				/* push "user" regs*/ \
 	mov	r0, r0;					/* nop */	      \
-	sub	sp, sp, #60;				/* adjust stack */    \
 	mov	r0, POUND _typ;				/* exception type */  \
 	mrs	r1, spsr;				/* get spsr */        \
 	str	r1, [sp, #-4]!;				/*   push it */       \
@@ -101,9 +100,8 @@ trapframe_pop:
 	mov	sp, r0					// use banked sp as tmp
 	ldr	r0, [sp], #4				// pop spsr (to be cpsr)
 	msr	spsr_all, r0				// restore spsr
-	ldmia	sp, {r0-r14}^				// pop "user" regs
+	ldmia	sp!, {r0-r14}^				// pop "user" regs
 	mov	r0, r0					// nop
-	add	sp, sp, #60				// adjust sp to &tf.r15
 	ldr	lr, [sp], #4				// pop the pc
 	movs	pc, lr					// restore cpsr & pc
 
