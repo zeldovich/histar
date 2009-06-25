@@ -101,8 +101,9 @@ trapframe_pop:
 	mov	sp, r0					// use banked sp as tmp
 	ldr	r0, [sp], #4				// pop spsr (to be cpsr)
 	msr	spsr_all, r0				// restore spsr
-	ldmia	sp!, {r0-r14}^				// pop "user" regs
+	ldmia	sp, {r0-r14}^				// pop "user" regs
 	mov	r0, r0					// nop
+	add	sp, sp, #60				// adjust stack
 	ldr	lr, [sp], #4				// pop the pc
 	movs	pc, lr					// restore cpsr & pc
 
