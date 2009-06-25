@@ -235,9 +235,14 @@ swi_handler(struct Trapframe *tf)
 			 * -E_RESTART => set us up to execute the same swi
 			 * upon return to userspace. Note that locore.S has
 			 * already set pc to the proper next instruction, so
-			 * we need only step back by 4.
+			 * we need only step back by 4 for ARM mode, or 2 for
+			 * thumb mode (though swi's should only occur in ARM
+			 * mode, since our syscall trampolines are .code 32).
 			 */
-			t->th_tf.tf_pc -= 4;
+			if (t->th_tf.tf_spsr & CPSR_ISET_THUMB)
+				t->th_tf.tf_pc -= 2;
+			else
+				t->th_tf.tf_pc -= 4;
 		} else {
 			t->th_tf.tf_r0 = (uint64_t)r & 0xffffffff;
 			t->th_tf.tf_r1 = (uint64_t)r >> 32;
