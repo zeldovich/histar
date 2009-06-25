@@ -70,8 +70,9 @@ exception_vector_stack_addrs:
 	ldr	sp, [sp];				/*   ... */	      \
 	add	lr, lr, POUND _lrfix;			/* pc return fixup */ \
 	str	lr, [sp, #-4]!;				/* push fixed up lr*/ \
-	stmdb	sp!, {r0-r14}^;				/* push "user" regs*/ \
+	stmdb	sp, {r0-r14}^;				/* push "user" regs*/ \
 	mov	r0, r0;					/* nop */	      \
+	sub	sp, sp, #60;				/* adjust stack */    \
 	mov	r0, POUND _typ;				/* exception type */  \
 	mrs	r1, spsr;				/* get spsr */        \
 	str	r1, [sp, #-4]!;				/*   push it */       \
