@@ -17,6 +17,8 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/spawn.hh>
 
+extern char **environ;
+
 static void __attribute__((noreturn))
 alarm_handler(int signo)
 {
