@@ -1,4 +1,3 @@
 - libhtc_ril.so was modified from the original to ignore the NEEDED .so
-  dependencies that we don't have. Instead, we put the necessary symbols in
-  pkg/rild/android_crud.c. This was accomplished by changing the symbols to
-  all be libm.so.
+  dependencies that we don't have (by changing the symbols to all be
+  libm.so). We then put the necessary symbols in pkg/rild/android_crud.c.
