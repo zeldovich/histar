@@ -40,6 +40,11 @@ if [ -f /bin/terminfo.tar.gz ]; then
     rm /bin/terminfo.tar.gz
 fi
 
+if [ -x /bin/rild ]; then
+    # libhtc_ril.so writes stuff here:
+    mkdir -p /data/misc
+fi
+
 test -f /bin/vim && ln -s vim /bin/vi
 test -f /bin/xauth && ln -s /bin/xauth /usr/bin/xauth
 test -f /bin/xorg.conf && ln -s /bin/xorg.conf /etc/xorg.conf
