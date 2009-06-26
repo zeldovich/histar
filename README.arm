@@ -1,12 +1,15 @@
-* binutils
+NB: GCC 4.1.2 appears to generate buggy thumb code (specifically, when
+    passing 64-bit function arguments, which HiStar frequently does).
+
+* binutils (any recent version should be ok, I used 2.19.1)
 
 ./configure --prefix=/usr/local --disable-nls --target=arm-jos-linux-gnueabi
 
-* GCC 4.1.2
+* GCC 4.2.4
 
-Extract gcc-core and gcc-g++, then:
-cd gcc-4.1.2/
-rm -r gcc-4.1.2/libstdc++-v3
+Extract gcc-core, gcc-g++, and newlib then:
+rm -r gcc-4.2.4/libstdc++-v3
+ln -s newlib-1.17.0/newlib gcc-4.2.4/newlib 
 
 Now,
 
@@ -14,10 +17,12 @@ Now,
 	--with-float=soft \
 	--disable-nls --without-headers --with-newlib \
 	--disable-threads --disable-shared --disable-libmudflap \
-	--disable-libssp
+	--disable-libssp --disable-libgomp
 
 We don't build libstdc++-v3, libmudflap, or libssp, because it
 requires system headers and crt files for the target platform.
+libgomp is disabled just so the damn thing builds (we don't need
+openmp support, anyhow).
 
 * GDB
 
