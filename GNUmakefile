@@ -41,7 +41,7 @@ CXXWARNS := $(COMWARNS) -Wno-non-template-friend
 
 OPTFLAG	 := -O3 -fno-omit-frame-pointer $(ARCHOPT)
 
-BASECFLAGS  := $(ARCHBASECFLAGS) -nostdinc \
+BASECFLAGS  := $(ARCH_BASECFLAGS) -nostdinc \
 	       -idirafter $(shell $(CC) -print-file-name=include) \
 	       -idirafter $(shell $(CC) -print-file-name=include-fixed) \
 	       $(shell ./conf/gcc-flags.sh "$(CC)" -fno-stack-protector) \
@@ -136,7 +136,7 @@ all:
 
 KERN_CFLAGS := $(COMFLAGS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
 USER_INC    := $(INCLUDES)
-USER_COMFLAGS = $(COMFLAGS) $(USER_INC) -DJOS_USER
+USER_COMFLAGS = $(ARCH_USER_COMFLAGS) $(COMFLAGS) $(USER_INC) -DJOS_USER
 USER_CFLAGS   = $(USER_COMFLAGS) $(CWARNS)
 USER_CXXFLAGS = $(USER_COMFLAGS) $(CXXWARNS) -D__STDC_FORMAT_MACROS
 
@@ -169,6 +169,7 @@ include pkg/Makefrag
 include acpkg/Makefrag
 include user/Makefrag
 include test/Makefrag
+include blob/Makefrag
 
 bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	bochs-nogui
