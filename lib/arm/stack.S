@@ -36,4 +36,8 @@ ENTRY(stack_switch)
 	stmdb	r5!, {r6-r9}
 
 	mov	sp, r5				// switch stacks
+#ifdef __thumb__
+	bx	r4				// switch modes if needed and
+#else						//    jump to function
 	mov	pc, r4				// jump to function
+#endif
