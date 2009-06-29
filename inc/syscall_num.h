@@ -87,7 +87,20 @@
     SYSCALL_ENTRY(as_set_slot)			\
 						\
     SYSCALL_ENTRY(self_utrap_is_masked)		\
-    SYSCALL_ENTRY(self_utrap_set_mask)
+    SYSCALL_ENTRY(self_utrap_set_mask)		\
+						\
+    SYSCALL_ENTRY(jos_atomic_set)		\
+    SYSCALL_ENTRY(jos_atomic_inc)		\
+    SYSCALL_ENTRY(jos_atomic_dec)		\
+    SYSCALL_ENTRY(jos_atomic_dec_and_test)	\
+    SYSCALL_ENTRY(jos_atomic_compare_exchange)	\
+						\
+    SYSCALL_ENTRY(jos_atomic_set64)		\
+    SYSCALL_ENTRY(jos_atomic_inc64)		\
+    SYSCALL_ENTRY(jos_atomic_dec64)		\
+    SYSCALL_ENTRY(jos_atomic_dec_and_test64)	\
+    SYSCALL_ENTRY(jos_atomic_compare_exchange64)
+
 
 #ifndef __ASSEMBLER__
 #define SYSCALL_ENTRY(name)	SYS_##name,

@@ -11,6 +11,7 @@
 #include <inc/device.h>
 #include <inc/netdev.h>
 #include <inc/fb.h>
+#include <inc/atomic.h>
 
 uint64_t syscall(uint32_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 		 uint64_t a4, uint64_t a5, uint64_t a6, uint64_t a7);
@@ -129,5 +130,24 @@ int	sys_as_set_slot(struct cobj_ref as, struct u_segment_mapping *usm);
 
 int	sys_self_utrap_is_masked(void);
 int	sys_self_utrap_set_mask(int mask);
+
+void	sys_jos_atomic_set(jos_atomic_t *v, uint32_t i);
+void	sys_jos_atomic_inc(jos_atomic_t *v);
+void	sys_jos_atomic_dec(jos_atomic_t *v);
+void	sys_jos_atomic_dec_and_test(jos_atomic_t *v, int *ret);
+void	sys_jos_atomic_compare_exchange(jos_atomic_t *v, uint32_t old,
+	    uint32_t newv, uint32_t *ret);
+
+void	sys_jos_atomic_set64(jos_atomic64_t *v, uint64_t i);
+void	sys_jos_atomic_inc64(jos_atomic64_t *v);
+void	sys_jos_atomic_dec64(jos_atomic64_t *v);
+void	sys_jos_atomic_dec_and_test64(jos_atomic64_t *v, int *ret);
+void	sys_jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old,
+	    uint64_t newv, uint64_t *ret);
+
+#define SYSCALL(name, ...)						\
+    case SYS_##name:							\
+	return sys_##name(__VA_ARGS__);
+
 
 #endif

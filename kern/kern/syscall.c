@@ -23,6 +23,7 @@
 #include <inc/thread.h>
 #include <inc/netdev.h>
 #include <inc/safeint.h>
+#include <machine/atomic.h>
 
 // Helper functions
 static const struct Label *cur_th_label;
@@ -1136,6 +1137,92 @@ sys_self_utrap_set_mask(uint64_t mask)
     return thread_arch_set_mask(cur_thread, mask);
 }
 
+static int64_t __attribute__ ((warn_unused_result))
+sys_jos_atomic_set(jos_atomic_t *v, uint32_t i)
+{
+    check(check_user_access(v, sizeof(*v), 0));
+    jos_atomic_set(v, i);
+    return (0);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_jos_atomic_inc(jos_atomic_t *v)
+{
+    check(check_user_access(v, sizeof(*v), 0));
+    jos_atomic_inc(v);
+    return (0);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_jos_atomic_dec(jos_atomic_t *v)
+{
+    check(check_user_access(v, sizeof(*v), 0));
+    jos_atomic_dec(v);
+    return (0);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_jos_atomic_dec_and_test(jos_atomic_t *v, int *ret)
+{
+    check(check_user_access(v, sizeof(*v), 0));
+    check(check_user_access(ret, sizeof(*ret), 0));
+    *ret = jos_atomic_dec_and_test(v);
+    return (0);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_jos_atomic_compare_exchange(jos_atomic_t *v, uint32_t old,
+    uint32_t newv, uint32_t *ret)
+{
+    check(check_user_access(v, sizeof(*v), 0));
+    check(check_user_access(ret, sizeof(*ret), 0));
+    *ret = jos_atomic_compare_exchange(v, old, newv);
+    return (0);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_jos_atomic_set64(jos_atomic64_t *v, uint64_t i)
+{
+    check(check_user_access(v, sizeof(*v), 0));
+    jos_atomic_set64(v, i);
+    return (0);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_jos_atomic_inc64(jos_atomic64_t *v)
+{
+    check(check_user_access(v, sizeof(*v), 0));
+    jos_atomic_inc64(v);
+    return (0);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_jos_atomic_dec64(jos_atomic64_t *v)
+{
+    check(check_user_access(v, sizeof(*v), 0));
+    jos_atomic_dec64(v);
+    return (0);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_jos_atomic_dec_and_test64(jos_atomic64_t *v, int *ret)
+{
+    check(check_user_access(v, sizeof(*v), 0));
+    check(check_user_access(ret, sizeof(*ret), 0));
+    *ret = jos_atomic_dec_and_test64(v);
+    return (0);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old,
+    uint64_t newv, uint64_t *ret)
+{
+    check(check_user_access(v, sizeof(*v), 0));
+    check(check_user_access(ret, sizeof(*ret), 0));
+    *ret = jos_atomic_compare_exchange64(v, old, newv);
+    return (0);
+}
+
 #define SYSCALL(name, ...)						\
     case SYS_##name:							\
 	return sys_##name(__VA_ARGS__);
@@ -1234,6 +1321,18 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 
 	SYSCALL(self_utrap_is_masked);
 	SYSCALL(self_utrap_set_mask, a1);
+
+	SYSCALL(jos_atomic_set, p1, a2);
+	SYSCALL(jos_atomic_inc, p1);
+	SYSCALL(jos_atomic_dec, p1);
+	SYSCALL(jos_atomic_dec_and_test, p1, p2);
+	SYSCALL(jos_atomic_compare_exchange, p1, a2, a3, p4);
+
+	SYSCALL(jos_atomic_set64, p1, a2);
+	SYSCALL(jos_atomic_inc64, p1);
+	SYSCALL(jos_atomic_dec64, p1);
+	SYSCALL(jos_atomic_dec_and_test64, p1, p2);
+	SYSCALL(jos_atomic_compare_exchange64, p1, a2, a3, p4);
 
     default:
 	cprintf("Unknown syscall %"PRIu64"\n", num);

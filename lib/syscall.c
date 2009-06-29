@@ -473,3 +473,65 @@ sys_self_utrap_set_mask(int mask)
 {
     return syscall(SYS_self_utrap_set_mask, mask, 0, 0, 0, 0, 0, 0);
 }
+
+void
+sys_jos_atomic_set(jos_atomic_t *v, uint32_t i)
+{
+    syscall(SYS_jos_atomic_set, SPTR(v), i, 0, 0, 0, 0, 0);
+}
+
+void
+sys_jos_atomic_inc(jos_atomic_t *v)
+{
+    syscall(SYS_jos_atomic_inc, SPTR(v), 0, 0, 0, 0, 0, 0);
+}
+
+void
+sys_jos_atomic_dec(jos_atomic_t *v)
+{
+    syscall(SYS_jos_atomic_dec, SPTR(v), 0, 0, 0, 0, 0, 0);
+}
+
+void
+sys_jos_atomic_dec_and_test(jos_atomic_t *v, int *ret)
+{
+    syscall(SYS_jos_atomic_dec_and_test, SPTR(v), SPTR(ret), 0, 0, 0, 0, 0);
+}
+
+void
+sys_jos_atomic_compare_exchange(jos_atomic_t *v, uint32_t old,
+    uint32_t newv, uint32_t *ret)
+{
+    syscall(SYS_jos_atomic_compare_exchange, SPTR(v), old, newv, SPTR(ret), 0, 0, 0);
+}
+
+void
+sys_jos_atomic_set64(jos_atomic64_t *v, uint64_t i)
+{
+    syscall(SYS_jos_atomic_set64, SPTR(v), i, 0, 0, 0, 0, 0);
+}
+
+void
+sys_jos_atomic_inc64(jos_atomic64_t *v)
+{
+    syscall(SYS_jos_atomic_inc64, SPTR(v), 0, 0, 0, 0, 0, 0);
+}
+
+void
+sys_jos_atomic_dec64(jos_atomic64_t *v)
+{
+    syscall(SYS_jos_atomic_dec64, SPTR(v), 0, 0, 0, 0, 0, 0);
+}
+
+void
+sys_jos_atomic_dec_and_test64(jos_atomic64_t *v, int *ret)
+{
+    syscall(SYS_jos_atomic_dec_and_test64, SPTR(v), SPTR(ret), 0, 0, 0, 0, 0);
+}
+
+void
+sys_jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old,
+    uint64_t newv, uint64_t *ret)
+{
+    syscall(SYS_jos_atomic_compare_exchange64, SPTR(v), old, newv, SPTR(ret), 0, 0, 0);
+}
