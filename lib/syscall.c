@@ -535,3 +535,9 @@ sys_jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old,
 {
     syscall(SYS_jos_atomic_compare_exchange64, SPTR(v), old, newv, SPTR(ret), 0, 0, 0);
 }
+
+int64_t
+sys_irq_wait(uint32_t irq, int64_t lastcount)
+{
+    return syscall(SYS_irq_wait, irq, lastcount, 0, 0, 0, 0, 0);
+}
