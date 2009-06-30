@@ -99,7 +99,9 @@
     SYSCALL_ENTRY(jos_atomic_inc64)		\
     SYSCALL_ENTRY(jos_atomic_dec64)		\
     SYSCALL_ENTRY(jos_atomic_dec_and_test64)	\
-    SYSCALL_ENTRY(jos_atomic_compare_exchange64)
+    SYSCALL_ENTRY(jos_atomic_compare_exchange64)\
+						\
+    SYSCALL_ENTRY(irq_wait)
 
 
 #ifndef __ASSEMBLER__

@@ -19,6 +19,7 @@
 #include <kern/thread.h>
 #include <kern/fb.h>
 #include <kern/mousedev.h>
+#include <kern/intr.h>
 #include <inc/error.h>
 #include <inc/thread.h>
 #include <inc/netdev.h>
@@ -1142,7 +1143,7 @@ sys_jos_atomic_set(jos_atomic_t *v, uint32_t i)
 {
     check(check_user_access(v, sizeof(*v), 0));
     jos_atomic_set(v, i);
-    return (0);
+    return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1150,7 +1151,7 @@ sys_jos_atomic_inc(jos_atomic_t *v)
 {
     check(check_user_access(v, sizeof(*v), 0));
     jos_atomic_inc(v);
-    return (0);
+    return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1158,7 +1159,7 @@ sys_jos_atomic_dec(jos_atomic_t *v)
 {
     check(check_user_access(v, sizeof(*v), 0));
     jos_atomic_dec(v);
-    return (0);
+    return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1167,7 +1168,7 @@ sys_jos_atomic_dec_and_test(jos_atomic_t *v, int *ret)
     check(check_user_access(v, sizeof(*v), 0));
     check(check_user_access(ret, sizeof(*ret), 0));
     *ret = jos_atomic_dec_and_test(v);
-    return (0);
+    return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1177,7 +1178,7 @@ sys_jos_atomic_compare_exchange(jos_atomic_t *v, uint32_t old,
     check(check_user_access(v, sizeof(*v), 0));
     check(check_user_access(ret, sizeof(*ret), 0));
     *ret = jos_atomic_compare_exchange(v, old, newv);
-    return (0);
+    return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1185,7 +1186,7 @@ sys_jos_atomic_set64(jos_atomic64_t *v, uint64_t i)
 {
     check(check_user_access(v, sizeof(*v), 0));
     jos_atomic_set64(v, i);
-    return (0);
+    return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1193,7 +1194,7 @@ sys_jos_atomic_inc64(jos_atomic64_t *v)
 {
     check(check_user_access(v, sizeof(*v), 0));
     jos_atomic_inc64(v);
-    return (0);
+    return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1201,7 +1202,7 @@ sys_jos_atomic_dec64(jos_atomic64_t *v)
 {
     check(check_user_access(v, sizeof(*v), 0));
     jos_atomic_dec64(v);
-    return (0);
+    return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1210,7 +1211,7 @@ sys_jos_atomic_dec_and_test64(jos_atomic64_t *v, int *ret)
     check(check_user_access(v, sizeof(*v), 0));
     check(check_user_access(ret, sizeof(*ret), 0));
     *ret = jos_atomic_dec_and_test64(v);
-    return (0);
+    return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1220,7 +1221,13 @@ sys_jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old,
     check(check_user_access(v, sizeof(*v), 0));
     check(check_user_access(ret, sizeof(*ret), 0));
     *ret = jos_atomic_compare_exchange64(v, old, newv);
-    return (0);
+    return 0;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_irq_wait(uint32_t irq, int64_t lastcount)
+{
+    return irq_wait_thread(irq, lastcount);
 }
 
 #define SYSCALL(name, ...)						\
@@ -1333,6 +1340,8 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(jos_atomic_dec64, p1);
 	SYSCALL(jos_atomic_dec_and_test64, p1, p2);
 	SYSCALL(jos_atomic_compare_exchange64, p1, a2, a3, p4);
+
+	SYSCALL(irq_wait, a1, a2);
 
     default:
 	cprintf("Unknown syscall %"PRIu64"\n", num);

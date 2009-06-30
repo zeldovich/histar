@@ -145,6 +145,8 @@ void	sys_jos_atomic_dec_and_test64(jos_atomic64_t *v, int *ret);
 void	sys_jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old,
 	    uint64_t newv, uint64_t *ret);
 
+int64_t	sys_irq_wait(uint32_t irq, int64_t lastcount);
+
 #define SYSCALL(name, ...)						\
     case SYS_##name:							\
 	return sys_##name(__VA_ARGS__);
