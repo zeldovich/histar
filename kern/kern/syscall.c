@@ -1141,7 +1141,7 @@ sys_self_utrap_set_mask(uint64_t mask)
 static int64_t __attribute__ ((warn_unused_result))
 sys_jos_atomic_set(jos_atomic_t *v, uint32_t i)
 {
-    check(check_user_access(v, sizeof(*v), 0));
+    check(check_user_access(v, sizeof(*v), SEGMAP_WRITE));
     jos_atomic_set(v, i);
     return 0;
 }
@@ -1149,7 +1149,7 @@ sys_jos_atomic_set(jos_atomic_t *v, uint32_t i)
 static int64_t __attribute__ ((warn_unused_result))
 sys_jos_atomic_inc(jos_atomic_t *v)
 {
-    check(check_user_access(v, sizeof(*v), 0));
+    check(check_user_access(v, sizeof(*v), SEGMAP_WRITE));
     jos_atomic_inc(v);
     return 0;
 }
@@ -1157,7 +1157,7 @@ sys_jos_atomic_inc(jos_atomic_t *v)
 static int64_t __attribute__ ((warn_unused_result))
 sys_jos_atomic_dec(jos_atomic_t *v)
 {
-    check(check_user_access(v, sizeof(*v), 0));
+    check(check_user_access(v, sizeof(*v), SEGMAP_WRITE));
     jos_atomic_dec(v);
     return 0;
 }
@@ -1165,8 +1165,8 @@ sys_jos_atomic_dec(jos_atomic_t *v)
 static int64_t __attribute__ ((warn_unused_result))
 sys_jos_atomic_dec_and_test(jos_atomic_t *v, int *ret)
 {
-    check(check_user_access(v, sizeof(*v), 0));
-    check(check_user_access(ret, sizeof(*ret), 0));
+    check(check_user_access(v, sizeof(*v), SEGMAP_WRITE));
+    check(check_user_access(ret, sizeof(*ret), SEGMAP_WRITE));
     *ret = jos_atomic_dec_and_test(v);
     return 0;
 }
@@ -1175,8 +1175,8 @@ static int64_t __attribute__ ((warn_unused_result))
 sys_jos_atomic_compare_exchange(jos_atomic_t *v, uint32_t old,
     uint32_t newv, uint32_t *ret)
 {
-    check(check_user_access(v, sizeof(*v), 0));
-    check(check_user_access(ret, sizeof(*ret), 0));
+    check(check_user_access(v, sizeof(*v), SEGMAP_WRITE));
+    check(check_user_access(ret, sizeof(*ret), SEGMAP_WRITE));
     *ret = jos_atomic_compare_exchange(v, old, newv);
     return 0;
 }
@@ -1184,7 +1184,7 @@ sys_jos_atomic_compare_exchange(jos_atomic_t *v, uint32_t old,
 static int64_t __attribute__ ((warn_unused_result))
 sys_jos_atomic_set64(jos_atomic64_t *v, uint64_t i)
 {
-    check(check_user_access(v, sizeof(*v), 0));
+    check(check_user_access(v, sizeof(*v), SEGMAP_WRITE));
     jos_atomic_set64(v, i);
     return 0;
 }
@@ -1192,7 +1192,7 @@ sys_jos_atomic_set64(jos_atomic64_t *v, uint64_t i)
 static int64_t __attribute__ ((warn_unused_result))
 sys_jos_atomic_inc64(jos_atomic64_t *v)
 {
-    check(check_user_access(v, sizeof(*v), 0));
+    check(check_user_access(v, sizeof(*v), SEGMAP_WRITE));
     jos_atomic_inc64(v);
     return 0;
 }
@@ -1200,7 +1200,7 @@ sys_jos_atomic_inc64(jos_atomic64_t *v)
 static int64_t __attribute__ ((warn_unused_result))
 sys_jos_atomic_dec64(jos_atomic64_t *v)
 {
-    check(check_user_access(v, sizeof(*v), 0));
+    check(check_user_access(v, sizeof(*v), SEGMAP_WRITE));
     jos_atomic_dec64(v);
     return 0;
 }
@@ -1208,8 +1208,8 @@ sys_jos_atomic_dec64(jos_atomic64_t *v)
 static int64_t __attribute__ ((warn_unused_result))
 sys_jos_atomic_dec_and_test64(jos_atomic64_t *v, int *ret)
 {
-    check(check_user_access(v, sizeof(*v), 0));
-    check(check_user_access(ret, sizeof(*ret), 0));
+    check(check_user_access(v, sizeof(*v), SEGMAP_WRITE));
+    check(check_user_access(ret, sizeof(*ret), SEGMAP_WRITE));
     *ret = jos_atomic_dec_and_test64(v);
     return 0;
 }
@@ -1218,8 +1218,8 @@ static int64_t __attribute__ ((warn_unused_result))
 sys_jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old,
     uint64_t newv, uint64_t *ret)
 {
-    check(check_user_access(v, sizeof(*v), 0));
-    check(check_user_access(ret, sizeof(*ret), 0));
+    check(check_user_access(v, sizeof(*v), SEGMAP_WRITE));
+    check(check_user_access(ret, sizeof(*ret), SEGMAP_WRITE));
     *ret = jos_atomic_compare_exchange64(v, old, newv);
     return 0;
 }
