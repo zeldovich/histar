@@ -14,7 +14,7 @@ struct fb_device {
     uint64_t fb_npages;
 };
 
-enum { fbdevs_max = 1 };
+enum { fbdevs_max = 3 };
 extern struct fb_device *fbdevs[fbdevs_max];
 extern uint64_t fbdevs_num;
 
