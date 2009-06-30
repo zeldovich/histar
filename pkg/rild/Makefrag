@@ -1,0 +1,13 @@
+OBJDIRS += pkg/rild
+
+#RILD_SRCFILES := rild.cc ril.cc ril_event.cc android_crud.cc
+RILD_SRCFILES := rild.cc android_crud.cc
+RILD_OBJFILES := $(patsubst %.cc, $(OBJDIR)/pkg/rild/%.o, $(RILD_SRCFILES))
+
+$(OBJDIR)/pkg/rild/%.o: pkg/rild/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $<
+
+$(OBJDIR)/user/rild.debuginfo: $(RILD_OBJFILES) $(LDEPS)
+	$(CXX) -o $@ $(LDFLAGS) $(RILD_OBJFILES)
+
