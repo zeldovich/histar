@@ -121,9 +121,10 @@ static int printcaps(mddi_client_caps *c)
     return 0;
 }
 
+#if 0
 mddi_llentry *mlist_remote_write = 0;
 
-void msm_mddi_remote_write(unsigned int val, unsigned int reg)
+static void msm_mddi_remote_write(unsigned int val, unsigned int reg)
 {
     mddi_llentry *ll;
     mddi_register_access *ra;
@@ -159,16 +160,19 @@ void msm_mddi_remote_write(unsigned int val, unsigned int reg)
         s = mddi_readl(MDDI_STAT);
     }
 }
+#endif
 
 static void mddi_start_update(void)
 {
     mddi_writel((unsigned int)kva2pa((void *)mlist), MDDI_PRI_PTR);
 }
 
-int msm_mddi_update_done(void)
+#if 0
+static int msm_mddi_update_done(void)
 {
     return !!(mddi_readl(MDDI_STAT) & MDDI_STAT_PRI_LINK_LIST_DONE);
 }
+#endif
 
 static void mddi_do_cmd(unsigned int cmd)
 {
