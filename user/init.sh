@@ -43,6 +43,17 @@ fi
 if [ -x /bin/rild ]; then
     # libhtc_ril.so writes stuff here:
     mkdir -p /data/misc
+
+    # libhtc_ril.so reads the raw flash partition for some reason
+    mkdir -p /dev/mtd
+    cp /bin/misc_partition.img /dev/mtd/mtd0
+    echo "dev:    size   erasesize  name" > /proc/mtd
+    echo "mtd0: 00040000 00020000 \"misc\"" >> /proc/mtd
+    echo "mtd1: 00500000 00020000 \"recovery\"" >> /proc/mtd
+    echo "mtd2: 00280000 00020000 \"boot\"" >> /proc/mtd
+    echo "mtd3: 04380000 00020000 \"system\"" >> /proc/mtd
+    echo "mtd4: 04380000 00020000 \"cache\"" >> /proc/mtd
+    echo "mtd5: 04ac0000 00020000 \"userdata\"" >> /proc/mtd
 fi
 
 test -f /bin/vim && ln -s vim /bin/vi

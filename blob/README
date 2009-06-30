@@ -1,3 +1,7 @@
 - libhtc_ril.so was modified from the original to ignore the NEEDED .so
   dependencies that we don't have (by changing the symbols to all be
   libm.so). We then put the necessary symbols in pkg/rild/android_crud.c.
+
+- libhtc_ril.so was also modified to call Xthread_ rather than pthread_
+  functions, since HiStar's pthread.c isn't binary compatible. android_crud.c
+  provides the necessary translation stubs.
