@@ -1230,6 +1230,17 @@ sys_irq_wait(uint32_t irq, int64_t lastcount)
     return irq_wait_thread(irq, lastcount);
 }
 
+static int64_t __attribute__ ((warn_unused_result))
+sys_masked_jump(uint32_t mask, struct UTrapframe *utf)
+{
+    check(check_user_access(utf, sizeof(*utf), 0));
+    struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->th;
+    thread_arch_set_mask(t, mask);
+    thread_arch_utf2tf(utf, &t->th_tf);
+    thread_arch_run(t);
+    return 0;
+} 
+
 #define SYSCALL(name, ...)						\
     case SYS_##name:							\
 	return sys_##name(__VA_ARGS__);
@@ -1342,6 +1353,8 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(jos_atomic_compare_exchange64, p1, a2, a3, p4);
 
 	SYSCALL(irq_wait, a1, a2);
+
+	SYSCALL(masked_jump, a1, p2);
 
     default:
 	cprintf("Unknown syscall %"PRIu64"\n", num);
