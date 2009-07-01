@@ -12,6 +12,7 @@
 #include <inc/netdev.h>
 #include <inc/fb.h>
 #include <inc/atomic.h>
+#include <machine/utrap.h>
 
 uint64_t syscall(uint32_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 		 uint64_t a4, uint64_t a5, uint64_t a6, uint64_t a7);
@@ -146,6 +147,8 @@ void	sys_jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old,
 	    uint64_t newv, uint64_t *ret);
 
 int64_t	sys_irq_wait(uint32_t irq, int64_t lastcount);
+
+void	sys_masked_jump(uint32_t mask, struct UTrapframe *utf);
 
 #define SYSCALL(name, ...)						\
     case SYS_##name:							\

@@ -101,7 +101,9 @@
     SYSCALL_ENTRY(jos_atomic_dec_and_test64)	\
     SYSCALL_ENTRY(jos_atomic_compare_exchange64)\
 						\
-    SYSCALL_ENTRY(irq_wait)
+    SYSCALL_ENTRY(irq_wait)			\
+						\
+    SYSCALL_ENTRY(masked_jump)
 
 
 #ifndef __ASSEMBLER__

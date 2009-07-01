@@ -5,6 +5,7 @@
 #include <machine/types.h>
 #include <machine/memlayout.h>
 #include <machine/pmap.h>
+#include <machine/utrap.h>
 #include <kern/thread.h>
 #include <kern/param.h>
 #include <inc/alignmacro.h>
@@ -86,6 +87,8 @@ void thread_arch_idle(void)
 int  thread_arch_utrap(struct Thread *t, 
 		       uint32_t src, uint32_t num, uint64_t arg)
     __attribute__ ((warn_unused_result));
+void thread_arch_tf2utf(const struct Trapframe *tf, struct UTrapframe *utf);
+void thread_arch_utf2tf(const struct UTrapframe *utf, struct Trapframe *tf);
 int  thread_arch_get_entry_args(const struct Thread *t,
 				struct thread_entry_args *targ)
     __attribute__ ((warn_unused_result));

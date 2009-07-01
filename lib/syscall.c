@@ -541,3 +541,9 @@ sys_irq_wait(uint32_t irq, int64_t lastcount)
 {
     return syscall(SYS_irq_wait, irq, lastcount, 0, 0, 0, 0, 0);
 }
+
+void
+sys_masked_jump(uint32_t mask, struct UTrapframe *utf)
+{
+    syscall(SYS_masked_jump, mask, SPTR(utf), 0, 0, 0, 0, 0);
+}

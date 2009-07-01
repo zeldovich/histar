@@ -13,6 +13,8 @@
 #define CPSR_MODE_SYS	0x1f			// system mode
 #define CPSR_MODE(_x)	((_x) & CPSR_MODE_MASK)
 
+#define CPSR_PRIV_MASK	0x06f0fddf		// mask of privileged/resvd bits
+
 #define CPSR_FIQ_OFF	0x00000040		// 1 => disable fast IRQs
 #define CPSR_IRQ_OFF	0x00000080		// 1 => disable IRQs
 #define CPSR_IMPABR_OFF	0x00000100		// 1 => disable imprecise aborts
@@ -24,7 +26,7 @@
 #define CPSR_ISET_JAZ	0x01000000		// jazelle tomfoolery
 #define CPSR_ISET_RSVD	0x01000020		// reserved
 
-#ifndef __ASSEMBLER__
+#if defined(JOS_KERNEL) && !defined(__ASSEMBLER__)
 
 //dirty bit emulation
 int arm_dirtyemu(struct Pagemap *, const void *);
@@ -53,7 +55,7 @@ extern void	cp15_dcache_flush_invalidate(void);
 extern uint32_t	cp15_main_id_get(void);
 extern uint32_t	cp15_cache_type_get(void);
 
-#endif /* !__ASSEMBLER__ */
+#endif /* !(defined(JOS_KERNEL) && !defined(__ASSEMBLER__)) */
 
 #endif /* !JOS_MACHINE_ARM */
 

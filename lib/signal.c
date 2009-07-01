@@ -47,6 +47,7 @@
  #define JOS_ONSTACK_GCCATTR
 #elif defined(JOS_ARCH_arm)
  #include <machine/trapcodes.h>
+ #include <machine/arm.h>
  #define ARCH_PGFLTD  T_DA
  #define ARCH_PGFLTI  T_PA
  #define ARCH_DEVICE  T_UNUSED
@@ -668,6 +669,11 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
     utf_jump.utf_sp = (uintptr_t) stackptr;
     utf_jump.utf_r0  = (uintptr_t) si_arg;
     utf_jump.utf_r1  = (uintptr_t) sc_arg;
+#ifdef __thumb__
+    utf_jump.utf_spsr = CPSR_ISET_THUMB | CPSR_MODE_USR;
+#else
+    utf_jump.utf_spsr = CPSR_ISET_ARM | CPSR_MODE_USR;
+#endif
 #else
 #error Unknown arch
 #endif

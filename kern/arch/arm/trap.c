@@ -125,6 +125,35 @@ thread_arch_set_mask(const struct Thread *t, int mask)
 	return (wasmasked);
 }
 
+void
+thread_arch_utf2tf(const struct UTrapframe *utf, struct Trapframe *tf)
+{
+	#define UTF_COPY(r) tf->tf_##r = utf->utf_##r
+	UTF_COPY(r0);  UTF_COPY(r1);  UTF_COPY(r2);  UTF_COPY(r3);
+	UTF_COPY(r4);  UTF_COPY(r5);  UTF_COPY(r6);  UTF_COPY(r7);
+	UTF_COPY(r8);  UTF_COPY(r9);  UTF_COPY(r10); UTF_COPY(r11);
+	UTF_COPY(r12); UTF_COPY(r13); UTF_COPY(r14); UTF_COPY(r15);
+	UTF_COPY(spsr);
+	#undef UTF_COPY
+
+	// Cleanse the spsr of privileged bits (the utf could have come
+	// from userland via ``sys_maked_jump''.
+	tf->tf_spsr &= ~CPSR_PRIV_MASK;
+	tf->tf_spsr |=  CPSR_MODE_USR;
+}
+
+void
+thread_arch_tf2utf(const struct Trapframe *tf, struct UTrapframe *utf)
+{
+	#define UTF_COPY(r) utf->utf_##r = tf->tf_##r
+	UTF_COPY(r0);  UTF_COPY(r1);  UTF_COPY(r2);  UTF_COPY(r3);
+	UTF_COPY(r4);  UTF_COPY(r5);  UTF_COPY(r6);  UTF_COPY(r7);
+	UTF_COPY(r8);  UTF_COPY(r9);  UTF_COPY(r10); UTF_COPY(r11);
+	UTF_COPY(r12); UTF_COPY(r13); UTF_COPY(r14); UTF_COPY(r15);
+	UTF_COPY(spsr);
+	#undef UTF_COPY
+}
+
 // XXX- notes
 int
 thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
@@ -143,13 +172,7 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 	t_utf.utf_trap_src = src;
 	t_utf.utf_trap_num = num;
 	t_utf.utf_trap_arg = arg;
-	#define UTF_COPY(r) t_utf.utf_##r = t->th_tf.tf_##r
-	UTF_COPY(r0);  UTF_COPY(r1);  UTF_COPY(r2);  UTF_COPY(r3);
-	UTF_COPY(r4);  UTF_COPY(r5);  UTF_COPY(r6);  UTF_COPY(r7);
-	UTF_COPY(r8);  UTF_COPY(r9);  UTF_COPY(r10); UTF_COPY(r11);
-	UTF_COPY(r12); UTF_COPY(r13); UTF_COPY(r14); UTF_COPY(r15);
-	UTF_COPY(spsr);
-	#undef UTF_COPY
+	thread_arch_tf2utf(&t->th_tf, &t_utf);
 
 	struct UTrapframe *utf = stacktop - sizeof(*utf);
 	int r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
