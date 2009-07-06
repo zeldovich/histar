@@ -167,6 +167,7 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 	msm_gpio_init(0xa9200800, 0xa9300c00);
 	msm_mddi_init(0xaa600000);
 	msm_smd_init(0x01f00000, 1024*1024, 0xc0100000, 0, 5);
+	htcdream_acoustic_init(0x01fe0000, 64 * 1024);
 	htcdream_keypad_init(board_rev);
 	htcdream_reset_init();
 #endif
