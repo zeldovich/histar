@@ -52,13 +52,15 @@ void msm_smd_init(uint32_t smd_base, uint32_t smd_len, uint32_t notify_base,
     fbdev_smd.fb_npages = (smd_len + PGSIZE - 1) / PGSIZE; 
     fbdev_smd.fb_arg    = &fbdev_smd;
     fbdev_smd.fb_set    = &msm_smd_fb_set;
+    fbdev_smd.fb_devmem = 1;
     fbdev_register(&fbdev_smd);
 
     static struct fb_device fbdev_notify;
     memset(&fbdev_notify, 0, sizeof(fbdev_notify));
-    fbdev_notify.fb_base   = smd_base;
+    fbdev_notify.fb_base   = notify_base;
     fbdev_notify.fb_npages = 1;
     fbdev_notify.fb_arg    = &fbdev_notify;
     fbdev_notify.fb_set    = &msm_smd_fb_set;
+    fbdev_notify.fb_devmem = 1;
     fbdev_register(&fbdev_notify);
 }
