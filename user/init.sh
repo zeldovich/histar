@@ -54,6 +54,12 @@ if [ -x /bin/rild ]; then
     echo "mtd3: 04380000 00020000 \"system\"" >> /proc/mtd
     echo "mtd4: 04380000 00020000 \"cache\"" >> /proc/mtd
     echo "mtd5: 04ac0000 00020000 \"userdata\"" >> /proc/mtd
+
+    # libhtc_ril.so reads /system/etc/AudioPara4.csv
+    mkdir -p /system/etc
+    if [ -f /bin/AudioPara4.csv ]; then
+        cp /bin/AudioPara4.csv /system/etc/AudioPara4.csv
+    fi
 fi
 
 test -f /bin/vim && ln -s vim /bin/vi
