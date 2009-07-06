@@ -12,9 +12,10 @@ struct fb_device {
 
     physaddr_t fb_base;
     uint64_t fb_npages;
+    int      fb_devmem : 1;	// 1 => fb_base is dev memory, 0 => RAM-based
 };
 
-enum { fbdevs_max = 3 };
+enum { fbdevs_max = 4 };
 extern struct fb_device *fbdevs[fbdevs_max];
 extern uint64_t fbdevs_num;
 
