@@ -28,6 +28,7 @@ struct Pagemap kpagemap __attribute__ ((aligned(16384), section(".data")));
  */
 #define PVP_DIRTYEMU	0x1	/* emulate dirty bit for pte (actually is r/w)*/
 #define PVP_DIRTYBIT	0x2	/* dirty bit set for this pte (page dirtied) */
+#define PVP_DEVPAGE	0x4	/* device page; take special care */
 
 typedef uint8_t pvp_t;
 
@@ -557,20 +558,25 @@ as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 		int r = pvp_get(pgmap, va, &pvp, 0);
 		assert(r == 0);
 
-		// sane? as_arch_collect_dirty_bits should clear dirty, make r/o
-		assert((*ptep & ARM_MMU_L2_SMALL_AP_MASK) ==
-		    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO));
-		assert((*pvp & PVP_DIRTYBIT) == 0);
-		if (was_rw)
-			assert(*pvp & PVP_DIRTYEMU);
-
-		// PVP_DIRTYEMU => what the mapping truly is, regardless of pte
-		if (*pvp & PVP_DIRTYEMU) {
-			pagetree_decpin_write(pa2kva(PTE_ADDR(*ptep)));
-		} else {
+		// device mappings don't track dirty bits or pagetree pinnings
+		if ((*pvp & PVP_DEVPAGE) == 0) {
+			// sane? as_arch_collect_dirty_bits should clear
+			// dirty, make r/o
 			assert((*ptep & ARM_MMU_L2_SMALL_AP_MASK) ==
 			    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO));
-			pagetree_decpin_read(pa2kva(PTE_ADDR(*ptep)));
+			assert((*pvp & PVP_DIRTYBIT) == 0);
+			if (was_rw)
+				assert(*pvp & PVP_DIRTYEMU);
+
+			// PVP_DIRTYEMU => what the mapping truly is,
+			// regardless of pte
+			if (*pvp & PVP_DIRTYEMU) {
+				pagetree_decpin_write(pa2kva(PTE_ADDR(*ptep)));
+			} else {
+				assert((*ptep & ARM_MMU_L2_SMALL_AP_MASK) ==
+				    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO));
+				pagetree_decpin_read(pa2kva(PTE_ADDR(*ptep)));
+			}
 		}
 
 		*ptep = ARM_MMU_L2_TYPE_INVALID;
@@ -585,7 +591,7 @@ as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 	}
 }
 
-// Mark the page associated with 'ptep' ready only.
+// Mark the page associated with 'ptep' read only.
 void
 as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 {
@@ -597,15 +603,17 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 		r = pvp_get(pgmap, va, &pvp, 0);
 		assert(r == 0);
 
-		// nothing to do if truly read only already
-		if ((*pvp & PVP_DIRTYEMU) == 0) {
-			assert((*ptep & ARM_MMU_L2_SMALL_AP_MASK) ==
-			    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO));
-			return;
-		}
+		if ((*pvp & PVP_DEVPAGE) == 0) {
+			// nothing to do if truly read only already
+			if ((*pvp & PVP_DIRTYEMU) == 0) {
+				assert((*ptep & ARM_MMU_L2_SMALL_AP_MASK) ==
+				    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO));
+				return;
+			}
 
-		pagetree_decpin_write(pa2kva(PTE_ADDR(*ptep)));
-		pagetree_incpin_read(pa2kva(PTE_ADDR(*ptep)));
+			pagetree_decpin_write(pa2kva(PTE_ADDR(*ptep)));
+			pagetree_incpin_read(pa2kva(PTE_ADDR(*ptep)));
+		}
 
 		*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
 		*ptep |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO);
@@ -669,6 +677,47 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 		*pvp = 0;
 		pagetree_incpin_read(pp);
 	}
+
+	return (0);
+}
+ 
+// Essentially like as_arch_putpage, but for device pages.
+int
+as_arch_putdevpage(struct Pagemap *pgmap, void *va, physaddr_t physaddr,
+    uint32_t flags)
+{
+	ptent_t *ptep;
+	pvp_t *pvp;
+	ptent_t cacheflags;
+
+	assert(PGOFF(physaddr) == 0);
+
+	int r = pgdir_walk(pgmap, va, 1, &ptep);
+	if (r < 0)
+		return (r);
+
+	assert(ptep != NULL);
+
+	as_arch_page_invalidate_cb(pgmap, ptep, va);
+
+	// always mapped uncached
+	cacheflags = 0;
+
+	// no dirty bit emulation
+	*ptep = physaddr | ARM_MMU_L2_TYPE_SMALL | cacheflags;
+	if (flags & SEGMAP_WRITE)
+		*ptep |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURW);
+	else
+		*ptep |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO);
+	cpufunc.cf_dcache_flush_invalidate_range(ptep, sizeof(*ptep));
+	pmap_queue_invlpg(pgmap, va);
+
+	r = pvp_get(pgmap, va, &pvp, 1);
+	if (r < 0)
+		return (r);
+
+	assert(*pvp == 0);
+	*pvp = PVP_DEVPAGE;
 
 	return (0);
 }

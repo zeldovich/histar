@@ -385,7 +385,9 @@ as_pmap_fill_kobj(const struct Address_space *as,
     int r = 0;
     for (void *va = map_first; va <= map_last; va += PGSIZE) {
 	void *pp = 0;
+	physaddr_t physaddr = 0;
 	uint64_t segpage = as_va_to_segment_page(usm, va);
+	bool_t use_putdevpage = 0;
 
 	if (va != need_va && (usmflags & SEGMAP_WRITE) &&
 	    ko->hdr.ko_type == kobj_segment)
@@ -429,7 +431,13 @@ as_pmap_fill_kobj(const struct Address_space *as,
 		}
 
 		usmflags |= SEGMAP_NOCACHE;
-		pp = pa2kva(fbdev->fb_base + segpage * PGSIZE);
+		if (fbdev->fb_devmem) {
+		    use_putdevpage = 1;
+		    physaddr = fbdev->fb_base + segpage * PGSIZE;
+		} else {
+		    use_putdevpage = 0;
+		    pp = pa2kva(fbdev->fb_base + segpage * PGSIZE);
+		}
 		r = 0;
 	    } else {
 		r = -E_INVAL;
@@ -446,17 +454,22 @@ as_pmap_fill_kobj(const struct Address_space *as,
 	    goto err;
 	}
 
-	r = as_arch_putpage(as->as_pgmap, va, pp, usmflags);
+	if (use_putdevpage)	       
+	    r = as_arch_putdevpage(as->as_pgmap, va, physaddr, usmflags);
+	else
+	    r = as_arch_putpage(as->as_pgmap, va, pp, usmflags);
 	if (r < 0) {
 	    if (va != need_va)
 		continue;
 	    goto err;
 	}
 
-	struct page_info *pi = page_to_pageinfo(pp);
-	if (pi) {
-	    pi->pi_seg = ko->hdr.ko_id;
-	    pi->pi_segpg = segpage;
+        if (!use_putdevpage) {
+	    struct page_info *pi = page_to_pageinfo(pp);
+	    if (pi) {
+	        pi->pi_seg = ko->hdr.ko_id;
+	        pi->pi_segpg = segpage;
+	    }
 	}
     }
 

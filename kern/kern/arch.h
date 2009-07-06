@@ -62,6 +62,7 @@ void as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va);
 void as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va);
 void as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va);
 int  as_arch_putpage(struct Pagemap *pmap, void *va, void *pp, uint32_t flags);
+int  as_arch_putdevpage(struct Pagemap *pmap, void *va, physaddr_t physaddr, uint32_t flags);
 
 /*
  * Checks that [ptr .. ptr + nbytes) is valid user memory,
