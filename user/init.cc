@@ -478,6 +478,78 @@ init_mouse(void)
     return 0;
 }
 
+static int
+init_rild(int basecons)
+{
+    int64_t fbc_grant = handle_alloc();
+    int64_t fbc_taint = handle_alloc();
+
+    struct cobj_ref devs[3];
+
+    label fb_label(1);
+    fb_label.set(fbc_grant, 0);
+    fb_label.set(fbc_taint, 3);
+
+    // fb1 -> SMD shared memory
+    // fb2 -> SMD notify registers
+    // fb3 -> HTC Acoustic segment
+
+    for (int i = 1; i < 4; i++) {
+        int64_t dev_id = sys_device_create(start_env->shared_container, i,
+					 fb_label.to_ulabel(), "fbdev",
+					 device_fb);
+        error_check(dev_id);
+        devs[i] = COBJ(start_env->shared_container, dev_id);
+
+        struct fs_object_meta meta;
+        meta.mtime_nsec = meta.ctime_nsec = jos_time_nsec();
+        meta.dev_id = devfb.dev_id;
+        meta.dev_opt = 0;
+        int r = sys_obj_set_meta(devs[i], 0, &meta);
+        if (r < 0)
+            return 1;
+
+        char fbpath[130];
+	char fbdevpath[10];
+        sprintf(fbpath, "#%"PRIu64".%"PRIu64, devs[i].container,
+            devs[i].object);
+        sprintf(fbdevpath, "/dev/fb%d", i);
+        unlink(fbdevpath);
+        symlink(fbpath, fbdevpath);
+
+        /* just be sure it's there... */
+        struct jos_fb_mode fb;
+        if (sys_fb_get_mode(devs[i], &fb) < 0) {
+            cprintf("init: %s: device %d missing\n", __func__, i);
+	    return 1;
+        }
+    }
+
+    char a0[64], a1[64];
+    sprintf(a0, "%"PRIu64, fbc_grant);
+    sprintf(a1, "%"PRIu64, fbc_taint);
+
+    fs_inode ino;
+    if (fs_namei("/bin/rild", &ino) < 0) {
+        cprintf("init: init_fbcons: couldn't find /bin/rild\n");
+	return 1;
+    }
+
+    label ds(3), dr(0);
+    ds.set(fbc_grant, LB_LEVEL_STAR);
+    ds.set(fbc_taint, LB_LEVEL_STAR);
+    dr.set(fbc_grant, 3);
+    dr.set(fbc_taint, 3);
+
+    const char *argv[] = { "rild" };
+    child_process cp = spawn(start_env->process_pool,
+		   ino, basecons, basecons, basecons,
+		   1, &argv[0],
+		   sizeof(env)/sizeof(env[0]), &env[0],
+		   0, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
+
+    return (0);
+}
 
 static int
 init_fbcons(int basecons, int *consp, int maxvt)
@@ -686,6 +758,10 @@ try
     int mousefail = init_mouse();
     if (mousefail)
         cprintf("Failed to initialize /dev/psaux\n");
+
+    int rildfail = init_rild(cons);
+    if (rildfail)
+        cprintf("Failed to initialize rild\n");
 
     run_shell(cons_fds[0]);
 } catch (std::exception &e) {
