@@ -22,6 +22,13 @@ msm_irq_init(uint32_t base)
 }
 
 #ifdef JOS_ARM_HTCDREAM
+static bool_t
+is_edge_irq(uint32_t irq)
+{
+	//XXX- undoubtedly not complete
+	return (irq == 0 || irq == 5);
+}
+
 void
 irq_arch_enable(uint32_t irq)
 {
@@ -33,10 +40,15 @@ irq_arch_enable(uint32_t irq)
 	if (irq >= MSM_NIRQS) {
 		msm_gpio_irq_enable(irq);
 	} else {
-		if (irq < 32)
-			irqreg->vicintenset_0 = 1 << (irq & 31);
-		else
-			irqreg->vicintenset_1 = 1 << (irq & 31);
+		if (irq < 32) {
+			if (is_edge_irq(irq))
+				irqreg->vicinttype_0 |= (1U << (irq & 31));
+			irqreg->vicintenset_0 = 1U << (irq & 31);
+		} else {
+			if (is_edge_irq(irq))
+				irqreg->vicinttype_1 |= (1U << (irq & 31));
+			irqreg->vicintenset_1 = 1U << (irq & 31);
+		}
 	}
 }
 
@@ -50,10 +62,10 @@ irq_arch_handle()
 	if ((s0 = irqreg->vicirq_status_0) != 0) {
 		uint32_t clearval = 0;
 		for (int k = 0; k < 32; k++) {
-			if (s0 & (1 << k)) {
+			if (s0 & (1U << k)) {
 				// handle irq and ACK it
 				irq_handler(k);
-				clearval |= (1 << k);
+				clearval |= (1U << k);
 			}
 		}
 		irqreg->vicintclear_0 |= clearval;
@@ -61,10 +73,10 @@ irq_arch_handle()
 	if ((s1 = irqreg->vicirq_status_1) != 0) {
 		uint32_t clearval = 0;
 		for (int k = 0; k < 32; k++) {
-			if (s1 & (1 << k)) {
+			if (s1 & (1U << k)) {
 				// handle irq and ACK it
 				irq_handler(k + 32);
-				clearval |= (1 << k);
+				clearval |= (1U << k);
 			}
 		}
 		irqreg->vicintclear_1 |= clearval;
