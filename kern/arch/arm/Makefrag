@@ -45,6 +45,7 @@ KERN_DEV :=					\
 	dev/msm_timer.c				\
 	dev/msm_ttycons.c			\
 	dev/htcdream_acoustic.c			\
+	dev/htcdream_gpio.c			\
 	dev/htcdream_keypad.c			\
 	dev/htcdream_reset.c
 
