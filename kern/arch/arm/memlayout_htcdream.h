@@ -4,16 +4,17 @@
 #include <machine/mmu.h>
 
 /*
- * HTC Dream virtual memory map - physical memory starts at 256MB and
- * devices live in the upper 1.5GB of address space.
+ * HTC Dream virtual memory map - physical memory starts at 256MB,
+ * MSM devices live in the upper 1.5GB of address space and some other
+ * non-MSM devices live just at 2.35GB.
  *
  *   2^32 --------->  +---------------------------------------------+  4GB
  *                    |                                             |
- *                    |        2.5GB..4GB of physical memory        |
+ *                    |        2.375GB..4GB of physical memory      |
  *                    |                                             |
- *   PHYSTOP  ----->  +---------------------------------------------+  2.5GB
+ *   PHYSTOP  ----->  +---------------------------------------------+  2.375GB
  *                    |                                             |
- *                    |        256MB..768MB of physical memory      |
+ *                    |        256MB..640MB of physical memory      |
  *                    |                                             |
  *   PHYSBOT/ULIM ->  +---------------------------------------------+  2GB
  *                    |                                             |
@@ -35,7 +36,7 @@
 #endif
 
 #define PHYSBOT		0x80000000			/* 2GB */
-#define PHYSTOP		0xa0000000			/* 2.5GB */
+#define PHYSTOP		0x98000000			/* 2.375GB */
 #define KERNBASE	PHYSBOT
 #define RELOC(x)	(CASTPTR(x) - 0x70000000)	/* ram starts @ 256MB */
 
@@ -65,7 +66,7 @@
 static inline void *
 pa2kva(physaddr_t pa)
 {
-	if (pa >= 0x10000000 && pa < 0x30000000)
+	if (pa >= 0x10000000 && pa < 0x28000000)
 		return ((void *)(pa + 0x70000000));
 	if (pa >= PHYSTOP)
 		return ((void *)pa);
