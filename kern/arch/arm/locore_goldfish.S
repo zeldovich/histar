@@ -66,7 +66,7 @@ start:
 	orr	r9, r9, r10		// r9 |= r10
 	lsl	r10, r7, #2		// get relative byte offset
 	add	r10, r10, r6		// get absolute offset
-	str	r9, [r10], #4		// set kpagema[i++] = r9
+	str	r9, [r10], #4		// set kpagemap[i++] = r9
 	add	r7, r7, #1		// increment 1MB section number
 	cmp	r7, r8			// check if done...
 	blt	3b			// ...and loop if not
