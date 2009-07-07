@@ -4,6 +4,7 @@
 #include <kern/pstate.h>
 #include <kern/kobj.h>
 #include <kern/sched.h>
+#include <kern/timer.h>
 #include <kern/uinit.h>
 #include <dev/goldfish_irq.h>
 #include <dev/goldfish_timer.h>
@@ -11,15 +12,19 @@
 #include <dev/msm_gpio.h>
 #include <dev/msm_irq.h>
 #include <dev/msm_mddi.h>
+#include <dev/msm_smd.h>
 #include <dev/msm_timer.h>
 #include <dev/msm_ttycons.h>
 #include <dev/htcdream_keypad.h>
 #include <dev/htcdream_reset.h>
+#include <dev/htcdream_gpio.h>
 #include <machine/arm.h>
 #include <machine/asm.h>
 #include <machine/atag.h>
 #include <machine/pmap.h>
 #include <machine/cpu.h>
+
+#define BLINK
 
 extern uint32_t	cpsr_get(void);
 extern void	cpsr_set(uint32_t);
@@ -34,6 +39,18 @@ char boot_cmdline[256];
 #define N_MEM_DESCS	10
 static struct atag_mem mem_desc[N_MEM_DESCS];
 static int nmem_desc;
+
+#ifdef BLINK
+static void
+blinker()
+{
+	static int state = 0;
+
+	// blink the external buttons
+	htcdream_gpio_write(14, state);
+	state = 1 - state;
+}
+#endif
 
 static void
 bss_init(void)
@@ -169,7 +186,15 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 	msm_smd_init(0x01f00000, 1024*1024, 0xc0100000, 0, 5);
 	htcdream_acoustic_init(0x01fe0000, 64 * 1024);
 	htcdream_keypad_init(board_rev);
+	htcdream_gpio_init(0x98000000);
 	htcdream_reset_init();
+
+#ifdef BLINK
+	static struct periodic_task blink_timer;
+	blink_timer.pt_interval_msec = 1000;
+	blink_timer.pt_fn = blinker;
+	timer_add_periodic(&blink_timer);
+#endif
 #endif
 
 	/* we've no more use for the low memory, so unmap it */
