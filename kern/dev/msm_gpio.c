@@ -109,8 +109,8 @@ static struct {
 #define NGPIO_SETS ((int)(sizeof(gpio_pins) / sizeof(gpio_pins[0])))
 
 // register offsets, set in msm_gpio_init
-static gpio_reg_t gpio1_base;
-static gpio_reg_t gpio2_base;
+static uint32_t gpio1_base;
+static uint32_t gpio2_base;
 
 // workaround for broken status clear
 #ifdef MSM_GPIO_INT_STATUS_WAR
@@ -273,7 +273,7 @@ msm_gpio_init(uint32_t g1base, uint32_t g2base)
 		msm_gpio_disable_interrupt(pin);
 
 	cprintf("MSM GPIOs @ 0x%08x (GPIO1) and 0x%08x (GPIO2)\n",
-	    g1base, g2base);
+	    gpio1_base, gpio2_base);
 }
 
 void
