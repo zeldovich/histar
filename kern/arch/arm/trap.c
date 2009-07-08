@@ -411,6 +411,19 @@ exception_handler(int trapcode, struct Trapframe *tf, uint32_t sp)
 	/* paranoia: ensure the sp coming in was 8-byte aligned */
 	assert((sp & 7) == 0);
 
+#if 0
+	// so we know if the kernel is still alive...
+	static uint64_t cnt = 0;
+	static uint64_t tcnts[NTRAPS];
+	tcnts[trapcode]++;
+	if ((cnt++ % 100000) == 0) {
+		cprintf("traps (%" PRIu64 " total):\n", cnt);
+		int i;
+		for (i = 0; i < NTRAPS; i++)
+			cprintf("  %d: %" PRIu64 "\n", i, tcnts[i]);
+	}
+#endif
+
 	// write-back and invalidate the caches, drain the write buffer
 	cpufunc.cf_dcache_flush_invalidate();
 	cpufunc.cf_icache_invalidate();
