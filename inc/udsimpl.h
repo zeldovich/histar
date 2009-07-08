@@ -19,4 +19,9 @@ int uds_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat, int 
 int uds_shutdown(struct Fd *fd, int how);
 int uds_ioctl(struct Fd *fd, uint64_t req, va_list ap);
 
+ssize_t uds_recvfrom(struct Fd *fd, void *buf, size_t len, int flags,
+    struct sockaddr *from, socklen_t *fromlen);
+ssize_t uds_sendto(struct Fd *fd, const void *buf, size_t len, int flags,
+    const struct sockaddr *to, socklen_t tolen);
+
 #endif

@@ -18,4 +18,6 @@ struct Dev devuds = {
     .dev_probe = &uds_probe,
     .dev_shutdown = &uds_shutdown,
     .dev_ioctl = &uds_ioctl,
+    .dev_recvfrom = &uds_recvfrom,
+    .dev_sendto = &uds_sendto
 };

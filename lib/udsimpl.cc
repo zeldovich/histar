@@ -684,3 +684,18 @@ uds_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     return -1;
 }
 
+ssize_t
+uds_recvfrom(struct Fd *fd, void *buf, size_t len, int flags,
+    struct sockaddr *from, socklen_t *fromlen)
+{
+    // XXX- woefully incomplete
+    return uds_read(fd, buf, len, 0);
+}
+
+ssize_t
+uds_sendto(struct Fd *fd, const void *buf, size_t len, int flags,
+    const struct sockaddr *to, socklen_t tolen)
+{
+    // XXX- woefully incomplete
+    return uds_write(fd, buf, len, 0);
+}
