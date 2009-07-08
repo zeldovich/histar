@@ -72,6 +72,8 @@ msm_timer_schedule(void *arg, uint64_t nsec)
 		msm_alarm_setticks(msmt, now, now + msmt->timesrc.freq_hz);
 		cprintf("%s: lost a tick, recovering in a second\n", __func__);
 	}
+
+	assert(TIMER_REG(msmt, count_val) < TIMER_REG(msmt, match_val));
 }
 
 static void
@@ -128,6 +130,7 @@ msm_timer_init(uint32_t base, int irq, int which, uint64_t freq_hz)
 	TIMER_REG(msmt, match_val) = 0xffffffff;
 	TIMER_REG(msmt, enable) = ENABLE_EN;
 
+	// NB: These are apparently edge-triggered, not level-triggered!!
 	irq_register(irq, &msm_timer_ih);
 
 	msmt->timesrc.type = time_source_msm;

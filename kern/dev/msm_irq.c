@@ -26,7 +26,7 @@ static bool_t
 is_edge_irq(uint32_t irq)
 {
 	//XXX- undoubtedly not complete
-	return (irq == 0 || irq == 5);
+	return (irq == 0 || irq == 5 || irq == 7 || irq == 8);
 }
 
 void
