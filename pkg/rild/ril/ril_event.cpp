@@ -18,6 +18,7 @@
 #define LOG_TAG "RILC"
 
 extern "C" {
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>

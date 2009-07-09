@@ -1,3 +1,5 @@
+extern "C" {
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -8,6 +10,10 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 /*
  * _C_toupper_ Written by J.T. Conklin <jtc@netbsd.org>.
@@ -62,9 +68,6 @@ __stack_chk_fail(void)
 	fprintf(stderr, "%s: STACK CHECK FAILED\n", __func__);
 	exit(1);
 }
-
-/* garbage because libhtc_ril accesses __sF directly!? (via some macro, maybe */
-unsigned char __sF[256];
 
 volatile int *__errno(void);
 volatile int *
@@ -431,3 +434,40 @@ char * strndup16to8 (const char16_t* s, size_t n)
     
     return ret;    
 }
+
+int
+android_get_control_socket(const char *name)
+{
+	const char *path;
+
+	if (strcmp(name, "rild") == 0) {
+		path = "/tmp/rild-socket";
+	} else if (strcmp(name, "rild-debug") == 0) {
+		path = "/tmp/rild-debug-socket";
+	} else {
+		fprintf(stderr, "%s: unknown control socket name '%s'\n", name);
+		return (-1);
+	}
+
+	int s = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (s < 0) {
+		fprintf(stderr, "%s: socket() failed\n", __func__);
+		return (s);
+	}
+
+	struct sockaddr_un sun;
+	sun.sun_family = AF_UNIX;
+	strcpy(sun.sun_path, path);
+	unlink(sun.sun_path);
+	int ret = bind(s, (struct sockaddr *)&sun, sizeof(sun.sun_family) +
+	    strlen(sun.sun_path));
+	if (ret != 0) {
+		fprintf(stderr, "%s: bind() failed\n", __func__);
+		close(s);
+		return (ret);
+	}
+
+	return (s);
+}
+
+} // extern "C"

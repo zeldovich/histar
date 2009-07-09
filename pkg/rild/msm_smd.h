@@ -14,6 +14,8 @@
  *
  */
 
+extern "C" {
+
 #ifndef __ASM_ARCH_MSM_SMD_H
 #define __ASM_ARCH_MSM_SMD_H
 
@@ -108,3 +110,4 @@ typedef enum
 } smd_port_id_type;
 
 #endif
+}	// extern "C"

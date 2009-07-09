@@ -15,6 +15,7 @@
 ** limitations under the License.
 */
 
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
@@ -29,37 +30,20 @@
 
 #include "msm_smd.h"
 #include "smd_tty.h"
+}
 
 #define DEF_RIL_SO	"/bin/libhtc_ril.so"
 
-extern void RIL_register (const RIL_RadioFunctions *callbacks);
+extern "C" void RIL_register (const RIL_RadioFunctions *callbacks);
 
-extern void RIL_onRequestComplete(RIL_Token t, RIL_Errno e,
+extern "C" void RIL_onRequestComplete(RIL_Token t, RIL_Errno e,
                            void *response, size_t responselen);
 
-extern void RIL_onUnsolicitedResponse(int unsolResponse, const void *data,
+extern "C" void RIL_onUnsolicitedResponse(int unsolResponse, const void *data,
                                 size_t datalen);
 
-extern void RIL_requestTimedCallback (RIL_TimedCallback callback,
+extern "C" void RIL_requestTimedCallback (RIL_TimedCallback callback,
                                void *param, const struct timeval *relativeTime);
-
-void RIL_onRequestComplete(RIL_Token t, RIL_Errno e,
-                           void *response, size_t responselen)
-{
-	fprintf(stderr, "RIL_onRequestComplete\n");
-}
-
-void RIL_onUnsolicitedResponse(int unsolResponse, const void *data,
-                                size_t datalen)
-{
-	fprintf(stderr, "RIL_onUnsolicitedResponse\n");
-}
-
-void RIL_requestTimedCallback (RIL_TimedCallback callback,
-                               void *param, const struct timeval *relativeTime)
-{
-	fprintf(stderr, "RIL_requestTimedCallback\n");
-}
 
 static struct RIL_Env s_rilEnv = {
     RIL_onRequestComplete,
@@ -67,7 +51,8 @@ static struct RIL_Env s_rilEnv = {
     RIL_requestTimedCallback
 };
 
-extern void RIL_startEventLoop();
+extern "C" void RIL_init();
+extern "C" void RIL_startEventLoop();
 
 int main(int argc, char **argv)
 {
@@ -81,6 +66,7 @@ int main(int argc, char **argv)
     fprintf(stderr, "Starting smd core\n");
     msm_smd_init();
     smd_tty_init();
+    RIL_init();
     sleep(5);
 
     dlHandle = dlopen(rilLibPath, RTLD_NOW);
@@ -90,7 +76,7 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    //RIL_startEventLoop();
+    RIL_startEventLoop();
 
     rilInit = (const RIL_RadioFunctions *(*)(const struct RIL_Env *, int, char **))dlsym(dlHandle, "RIL_Init");
 
@@ -110,7 +96,21 @@ int main(int argc, char **argv)
     funcs = rilInit(&s_rilEnv, rilArgc, rilArgv);
     fprintf(stderr, "rilInit returned\n");
 
-    //RIL_register(funcs);
+    sleep(10);
+
+    fprintf(stderr, "ril versino %d\n", funcs->version);
+    fprintf(stderr, "state == %d\n", funcs->onStateRequest());
+    //fprintf(stderr, "supports = %x\n", funcs->supports(i));
+    fprintf(stderr, "version = %s\n", funcs->getVersion());
+
+    funcs->onRequest(RIL_REQUEST_GET_SIM_STATUS, NULL, 0, (void *)0xdeadbeef);
+
+    for(;;) {
+	    fprintf(stderr, "state == %d\n", funcs->onStateRequest());
+	sleep(5);
+    }
+
+    RIL_register(funcs);
 
     while(1) {
         // sleep(UINT32_MAX) seems to return immediately on bionic

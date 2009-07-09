@@ -14,6 +14,7 @@
  *
  */
 
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +31,7 @@
 #include <inc/stdio.h>
 #include <inc/queue.h>
 #include <inc/syscall.h>
+}
 
 #include "msm_smd.h"
 #include "smd_private.h"
@@ -45,7 +47,7 @@ void smd_diag(void);
 
 static unsigned last_heap_free = 0xffffffff;
 
-#if 1
+#if 0
 #define D(x...) cprintf(x)
 #else
 #define D(x...) do {} while (0)
@@ -88,7 +90,7 @@ void smd_diag(void)
 {
 	volatile char *x;
 
-	x = smem_find(ID_DIAG_ERR_MSG, SZ_DIAG_ERR_MSG);
+	x = (volatile char *)smem_find(ID_DIAG_ERR_MSG, SZ_DIAG_ERR_MSG);
 	if (x != 0) {
 		x[SZ_DIAG_ERR_MSG - 1] = 0;
 		cprintf("smem: DIAG '%s'\n", x);
@@ -224,7 +226,7 @@ static void smd_channel_probe()
 
 	D("%s: running\n", __func__);
 
-	shared = smem_find(ID_CH_ALLOC_TBL, sizeof(*shared) * 64);
+	shared = (volatile struct smd_alloc_elm *)smem_find(ID_CH_ALLOC_TBL, sizeof(*shared) * 64);
 
 	for (n = 0; n < 64; n++) {
 		if (smd_ch_allocated[n])
@@ -321,7 +323,7 @@ static int ch_read(struct smd_channel *ch, void *_data, int len)
 {
 	void *ptr;
 	unsigned n;
-	unsigned char *data = _data;
+	unsigned char *data = (unsigned char *)_data;
 	int orig_len = len;
 
 	while (len > 0) {
@@ -408,7 +410,7 @@ static void hc_set_state(volatile struct smd_half_channel *hc, unsigned n)
 
 static void do_smd_probe(void)
 {
-	volatile struct smem_shared *shared = (volatile void *) MSM_SHARED_RAM_BASE;
+	volatile struct smem_shared *shared = (volatile struct smem_shared *) MSM_SHARED_RAM_BASE;
 	if (shared->heap_info.free_offset != last_heap_free) {
 		last_heap_free = shared->heap_info.free_offset;
 		smd_channel_probe();
@@ -569,7 +571,7 @@ static int smd_is_packet(int chn)
 static int smd_stream_write(smd_channel_t *ch, const void *_data, int len)
 {
 	void *ptr;
-	const unsigned char *buf = _data;
+	const unsigned char *buf = (const unsigned char *)_data;
 	unsigned xfer;
 	int orig_len = len;
 
@@ -652,13 +654,13 @@ static void smd_alloc_channel(const char *name, uint32_t cid, uint32_t type)
 	struct smd_channel *ch;
 	volatile struct smd_shared *shared;
 
-	shared = smem_alloc(ID_SMD_CHANNELS + cid, sizeof(*shared));
+	shared = (volatile struct smd_shared *)smem_alloc(ID_SMD_CHANNELS + cid, sizeof(*shared));
 	if (!shared) {
 		cprintf("smd_alloc_channel() cid %d does not exist\n", cid);
 		return;
 	}
 
-	ch = calloc(1, sizeof(struct smd_channel));
+	ch = (struct smd_channel *)calloc(1, sizeof(struct smd_channel));
 	if (ch == 0) {
 		cprintf("smd_alloc_channel() out of memory\n");
 		return;
@@ -838,7 +840,7 @@ volatile void *smem_alloc(unsigned id, unsigned size)
 
 static volatile void *_smem_find(unsigned id, unsigned *size)
 {
-	volatile struct smem_shared *shared = (volatile void *) MSM_SHARED_RAM_BASE;
+	volatile struct smem_shared *shared = (volatile struct smem_shared *) MSM_SHARED_RAM_BASE;
 	volatile struct smem_heap_entry *toc = shared->heap_toc;
 
 	if (id >= SMEM_NUM_ITEMS)
@@ -846,7 +848,7 @@ static volatile void *_smem_find(unsigned id, unsigned *size)
 
 	if (toc[id].allocated) {
 		*size = toc[id].size;
-		return (volatile void *) (MSM_SHARED_RAM_BASE + toc[id].offset);
+		return (volatile void *) ((uint32_t)MSM_SHARED_RAM_BASE + toc[id].offset);
 	}
 
 	return 0;
@@ -876,7 +878,7 @@ static irqreturn_t smsm_irq_handler(int irq, void *data)
 	volatile struct smsm_shared *smsm;
 
 	pthread_mutex_lock(&smem_mutex);
-	smsm = smem_alloc(ID_SHARED_STATE,
+	smsm = (volatile struct smsm_shared *)smem_alloc(ID_SHARED_STATE,
 			  2 * sizeof(struct smsm_shared));
 
 	if (smsm == 0) {
@@ -915,7 +917,7 @@ int smsm_change_state(uint32_t clear_mask, uint32_t set_mask)
 
 	pthread_mutex_lock(&smem_mutex);
 
-	smsm = smem_alloc(ID_SHARED_STATE,
+	smsm = (volatile struct smsm_shared *)smem_alloc(ID_SHARED_STATE,
 			  2 * sizeof(struct smsm_shared));
 
 	if (smsm) {
@@ -944,7 +946,7 @@ uint32_t smsm_get_state(void)
 
 	pthread_mutex_lock(&smem_mutex);
 
-	smsm = smem_alloc(ID_SHARED_STATE,
+	smsm = (volatile struct smsm_shared *)smem_alloc(ID_SHARED_STATE,
 			  2 * sizeof(struct smsm_shared));
 
 	if (smsm)
@@ -966,7 +968,7 @@ int smsm_set_sleep_duration(uint32_t delay)
 {
 	volatile uint32_t *ptr;
 
-	ptr = smem_alloc(SMEM_SMSM_SLEEP_DELAY, sizeof(*ptr));
+	ptr = (volatile uint32_t *)smem_alloc(SMEM_SMSM_SLEEP_DELAY, sizeof(*ptr));
 	if (ptr == NULL) {
 		cprintf("smsm_set_sleep_duration <SM NO SLEEP_DELAY>\n");
 		return -E_IO;
@@ -980,9 +982,9 @@ int smsm_set_sleep_duration(uint32_t delay)
 
 int smsm_set_interrupt_info(struct smsm_interrupt_info *info)
 {
-	volatile struct smsm_interrupt_info *ptr;
+	struct smsm_interrupt_info *ptr;
 
-	ptr = smem_alloc(SMEM_SMSM_INT_INFO, sizeof(*ptr));
+	ptr = (struct smsm_interrupt_info *)smem_alloc(SMEM_SMSM_INT_INFO, sizeof(*ptr));
 	if (ptr == NULL) {
 		cprintf("smsm_set_sleep_duration <SM NO INT_INFO>\n");
 		return -E_IO;
@@ -991,7 +993,7 @@ int smsm_set_interrupt_info(struct smsm_interrupt_info *info)
 		cprintf("smsm_set_interrupt_info %x %x -> %x %x\n",
 		       ptr->aArm_en_mask, ptr->aArm_interrupts_pending,
 		       info->aArm_en_mask, info->aArm_interrupts_pending);
-	*ptr = *info;
+	memcpy(ptr, info, sizeof(*ptr));
 	return 0;
 }
 
@@ -1026,32 +1028,32 @@ void smsm_print_sleep_info(void)
 
 	pthread_mutex_lock(&smem_mutex);
 
-	ptr = smem_alloc(SMEM_SMSM_SLEEP_DELAY, sizeof(*ptr));
+	ptr = (volatile uint32_t *)smem_alloc(SMEM_SMSM_SLEEP_DELAY, sizeof(*ptr));
 	if (ptr)
 		cprintf("SMEM_SMSM_SLEEP_DELAY: %x\n", *ptr);
 	else
 		cprintf("SMEM_SMSM_SLEEP_DELAY: missing\n");
 
-	ptr = smem_alloc(SMEM_SMSM_LIMIT_SLEEP, sizeof(*ptr));
+	ptr = (volatile uint32_t *)smem_alloc(SMEM_SMSM_LIMIT_SLEEP, sizeof(*ptr));
 	if (ptr)
 		cprintf("SMEM_SMSM_LIMIT_SLEEP: %x\n", *ptr);
 	else
 		cprintf("SMEM_SMSM_LIMIT_SLEEP: missing\n");
 
-	ptr = smem_alloc(SMEM_SLEEP_POWER_COLLAPSE_DISABLED, sizeof(*ptr));
+	ptr = (volatile uint32_t *)smem_alloc(SMEM_SLEEP_POWER_COLLAPSE_DISABLED, sizeof(*ptr));
 	if (ptr)
 		cprintf("SMEM_SLEEP_POWER_COLLAPSE_DISABLED: %x\n", *ptr);
 	else
 		cprintf("SMEM_SLEEP_POWER_COLLAPSE_DISABLED: missing\n");
 
-	int_info = smem_alloc(SMEM_SMSM_INT_INFO, sizeof(*int_info));
+	int_info = (volatile struct smsm_interrupt_info *)smem_alloc(SMEM_SMSM_INT_INFO, sizeof(*int_info));
 	if (int_info)
 		cprintf("SMEM_SMSM_INT_INFO %x %x %x\n",
 		       int_info->aArm_en_mask, int_info->aArm_interrupts_pending, int_info->aArm_wakeup_reason);
 	else
 		cprintf("SMEM_SMSM_INT_INFO: missing\n");
 
-	gpio = smem_alloc( SMEM_GPIO_INT, sizeof(*gpio)); 
+	gpio = (volatile struct tramp_gpio_smem *)smem_alloc( SMEM_GPIO_INT, sizeof(*gpio)); 
 	if (gpio) {
 		int i;
 		for(i = 0; i < NUM_GPIO_INT_REGISTERS; i++) {
@@ -1089,7 +1091,6 @@ static void irq_wait(uint32_t irq, irqreturn_t (*handler)(int, void *))
 
 	while (1) {
 		last = sys_irq_wait(irq, last);
-cprintf("\n\n\n----\nIRQ %d\n\n\n----\n", irq);
 		pthread_mutex_lock(&irq_mutex);
 		handler(irq, NULL);
 		pthread_mutex_unlock(&irq_mutex);

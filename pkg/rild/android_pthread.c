@@ -1,8 +1,10 @@
+extern "C" {
+
 /*
  * bionic -> HiStar pthread conversions (we renamed symbols in the binary).
  */
 
-enum { Xthread_debug = 0 };
+enum { Xthread_debug = 1 };
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -159,7 +161,7 @@ Xthread_create(Xthread_t *thread, Xthread_attr_t const *attr,
     void *(*entry)(void *), void *arg)
 {
 	if (Xthread_debug)
-		fprintf(stderr, "%s: thread %p, thread_attr %p, entry %p, arg %p\n", __func__, thread, attr, entry, arg);
+		fprintf(stderr, "%s: thread %p, thread_attr %p, entry %p, arg %p, (from %p)\n", __func__, thread, attr, entry, arg, __builtin_return_address(0));
 
 	pthread_t t;
 	int ret;
@@ -176,7 +178,7 @@ int
 Xthread_mutex_init(Xthread_mutex_t *mutex, const Xthread_mutexattr_t *attr)
 {
 	if (Xthread_debug)
-		fprintf(stderr, "%s: mutex %p, mutexattr %p\n", __func__, mutex, attr);
+		fprintf(stderr, "%s: mutex %p, mutexattr %p (frrom %p)\n", __func__, mutex, attr, __builtin_return_address(0));
 
 	// mutex_get should create the mutex
 	mutex_get(mutex);
@@ -187,7 +189,7 @@ int
 Xthread_cond_wait(Xthread_cond_t *cond, Xthread_mutex_t *mutex)
 {
 	if (Xthread_debug)
-		fprintf(stderr, "%s: cond %p, mutex %p\n", __func__, cond, mutex);
+		fprintf(stderr, "%s: cond %p, mutex %p (from %p)\n", __func__, cond, mutex, __builtin_return_address(0));
 
 	pthread_cond_t *ct = cond_get(cond);
 	pthread_mutex_t *mt = mutex_get(mutex);
@@ -200,7 +202,8 @@ Xthread_mutex_destroy(Xthread_mutex_t *mutex)
 	int i;
 
 	if (Xthread_debug)
-		fprintf(stderr, "%s: mutex %p\n", __func__, mutex);
+		fprintf(stderr, "%s: mutex %p (from %p)\n", __func__, mutex,
+		    __builtin_return_address(0));
 
 	pthread_mutex_t *pt = mutex_get(mutex);
 	for (i = 0; i < NLOOKUPS; i++) {
@@ -216,7 +219,8 @@ int
 Xthread_mutex_lock(Xthread_mutex_t *mutex)
 {
 	if (Xthread_debug)
-		fprintf(stderr, "%s: mutex %p\n", __func__, mutex);
+		fprintf(stderr, "%s: mutex %p (from %p)\n", __func__, mutex,
+		    __builtin_return_address(0));
 
 	pthread_mutex_t *pt = mutex_get(mutex);
 	return (pthread_mutex_lock(pt));
@@ -226,7 +230,8 @@ int
 Xthread_mutex_unlock(Xthread_mutex_t *mutex)
 {
 	if (Xthread_debug)
-		fprintf(stderr, "%s: mutex %p\n", __func__, mutex);
+		fprintf(stderr, "%s: mutex %p (from %p)\n", __func__, mutex,
+		    __builtin_return_address(0));
 
 	pthread_mutex_t *pt = mutex_get(mutex);
 	return (pthread_mutex_unlock(pt));
@@ -236,7 +241,8 @@ int
 Xthread_cond_signal(Xthread_cond_t *cond)
 {
 	if (Xthread_debug)
-		fprintf(stderr, "%s: cond %p\n", __func__, cond);
+		fprintf(stderr, "%s: cond %p (from %p)\n", __func__, cond,
+		    __builtin_return_address(0));
 
 	pthread_cond_t *ct = cond_get(cond);
 	return (pthread_cond_signal(ct));
@@ -247,7 +253,7 @@ Xthread_cond_timedwait(Xthread_cond_t *cond,
     Xthread_mutex_t * mutex, const struct timespec *abstime)
 {
 	if (Xthread_debug)
-		fprintf(stderr, "%s: cond %p, mutex %p, abstime %p\n", __func__, cond, mutex, abstime);
+		fprintf(stderr, "%s: cond %p, mutex %p, abstime %p (from %p)\n", __func__, cond, mutex, abstime, __builtin_return_address(0));
 
 	pthread_cond_t *ct = cond_get(cond);
 	pthread_mutex_t *mt = mutex_get(mutex);
@@ -262,10 +268,12 @@ Xthread_cond_timeout_np(Xthread_cond_t *cond, Xthread_mutex_t *mutex,
 	struct timespec abstime;
 
 	if (Xthread_debug)
-	    fprintf(stderr, "%s: cond %p, mutex %p, msecs: %u\n", __func__, cond, mutex, msecs);
+	    fprintf(stderr, "%s: cond %p, mutex %p, msecs: %u (from %p)\n", __func__, cond, mutex, msecs, __builtin_return_address(0));
 
 	abstime.tv_sec  = msecs / 1000;
 	abstime.tv_nsec = (msecs % 1000) * 1000 * 1000;
 
 	return (Xthread_cond_timedwait(cond, mutex, &abstime));
 }
+
+} // extern "C"

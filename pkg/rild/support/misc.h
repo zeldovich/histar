@@ -1,11 +1,19 @@
 #ifndef _MISC_H_
 #define _MISC_H_
 
-#define LOGD(fmt,...)
-#define LOGE(fmt,...)
-#define LOGI(fmt,...)
-#define LOGW(fmt,...)
-#define LOGV(fmt,...)
+#if 1
+#define LOGD(fmt,args...)	fprintf(stderr, fmt, ##args)
+#define LOGE(fmt,args...)	fprintf(stderr, fmt, ##args)
+#define LOGI(fmt,args...)	fprintf(stderr, fmt, ##args)
+#define LOGW(fmt,args...)	fprintf(stderr, fmt, ##args)
+#define LOGV(fmt,args...)	fprintf(stderr, fmt, ##args)
+#else
+#define LOGD(fmt,args...)
+#define LOGE(fmt,args...)
+#define LOGI(fmt,args...)
+#define LOGW(fmt,args...)
+#define LOGV(fmt,args...)
+#endif
 
 typedef int status_t;
 

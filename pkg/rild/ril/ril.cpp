@@ -89,7 +89,7 @@ namespace android {
 #define PRINTBUF_SIZE 8096
 
 // Enable RILC log
-#define RILC_LOG 0
+#define RILC_LOG 1
 
 #if RILC_LOG
     #define startRequest           sprintf(printBuf, "(")
@@ -1780,6 +1780,22 @@ RIL_register (const RIL_RadioFunctions *callbacks)
     rilEventAddWakeup (&s_debug_event);
 #endif
 
+    sleep(5);
+
+    issueLocalRequest(RIL_REQUEST_RESET_RADIO, NULL, 0);
+    int data = 1;
+    issueLocalRequest(RIL_REQUEST_RADIO_POWER, &data, sizeof(int));
+    sleep(2);
+
+    // Set network selection automatic.
+    issueLocalRequest(RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC, NULL, 0);
+    sleep(15);
+    
+    RIL_Dial dialData;
+    dialData.clir = 0;
+    dialData.address = strdup("6507238777");
+    issueLocalRequest(RIL_REQUEST_DIAL, &dialData, sizeof(dialData));
+
 }
 
 static int
@@ -1817,7 +1833,7 @@ RIL_onRequestComplete(RIL_Token t, RIL_Errno e, void *response, size_t responsel
     RequestInfo *pRI;
     int ret;
     size_t errorOffset;
-
+fprintf(stderr, "%s: CALLED\n", __func__);
     pRI = (RequestInfo *)t;
 
     if (!checkAndDequeueRequestInfo(pRI)) {
@@ -1907,7 +1923,7 @@ void RIL_onUnsolicitedResponse(int unsolResponse, void *data,
     int ret;
     int64_t timeReceived = 0;
     bool shouldScheduleTimeout = false;
-
+fprintf(stderr, "%s: CALLED\n", __func__);
     if (s_registerCalled == 0) {
         // Ignore RIL_onUnsolicitedResponse before RIL_register
         LOGW("RIL_onUnsolicitedResponse called before RIL_register");
@@ -2061,6 +2077,7 @@ extern "C" void
 RIL_requestTimedCallback (RIL_TimedCallback callback, void *param, 
                                 const struct timeval *relativeTime)
 {
+fprintf(stderr, "%s CALLED\n", __func__);
     internalRequestTimedCallback (callback, param, relativeTime);
 }
 

@@ -14,6 +14,7 @@
  *
  */
 
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,6 +30,7 @@
 #include <inc/stdio.h>
 #include <inc/queue.h>
 #include <inc/syscall.h>
+}
 
 #include "msm_smd.h"
 #include "smd_tty.h"
@@ -53,21 +55,17 @@ static void smd_tty_notify(void *priv, unsigned event)
 {
 	unsigned char *ptr;
 	int avail, i;
-	struct smd_tty_info *info = priv;
+	struct smd_tty_info *info = (struct smd_tty_info *)priv;
 
 	if (event != SMD_EVENT_DATA)
 		return;
-for (i = 0; i < 10; i++)
-{
-fprintf(stderr, "SMD_TTY_NOTIFY --- DATA!!! %d bytes\n", smd_read_avail(info->ch));
-usleep(10000);
-}
+
 	pthread_mutex_lock(&smd_tty_lock);
 	for (;;) {
 		avail = smd_read_avail(info->ch);
 		if (avail == 0) break;
 
-		ptr = malloc(avail);
+		ptr = (unsigned char *)malloc(avail);
 		if (ptr == NULL) {
 			fprintf(stderr, "%s: malloc failed\n", __func__);
 			exit(1);
@@ -163,12 +161,7 @@ int smd_tty_read(int n, unsigned char *buf, int len)
 		    sizeof(info->rcvbuf);
 	}
 	pthread_mutex_unlock(&smd_tty_lock);
-cprintf("SMD_TTY_READ RETURNING %d\n", (i < len) ? i : len);
-cprintf("SMD_TTY_READ RETURNING %d\n", (i < len) ? i : len);
-cprintf("SMD_TTY_READ RETURNING %d\n", (i < len) ? i : len);
-cprintf("SMD_TTY_READ RETURNING %d\n", (i < len) ? i : len);
-cprintf("SMD_TTY_READ RETURNING %d\n", (i < len) ? i : len);
-cprintf("SMD_TTY_READ RETURNING %d\n", (i < len) ? i : len);
+
 	return ((i < len) ? i : len);
 }
 

@@ -1,3 +1,4 @@
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -25,7 +26,38 @@
 #define DPRINTF(_x)
 #endif
 
+typedef	struct {
+	unsigned long b[32];	// bionic has 32 * 32 == 1024 fds, max.
+} bfd_set;
+
+/*
+ * Bionic's stdin/stdout/sterr array of FILE structs.
+ * Each FILE is about 80-100 bytes.
+ */
+unsigned char __sF[300];
+
+/* kludgey guess of which FILE we're talking about */
+static inline FILE *
+sF_to_FILE(void *p)
+{
+	uintptr_t pi = (uintptr_t)p;
+	uintptr_t si = (uintptr_t)__sF;
+
+	if (pi >= si && pi < (si + 80)) {
+		DPRINTF(("%s: assuming %p is stdin\n", __func__, p));
+		return (stdin);
+	} else if (pi >= (si + 80) && pi < (si + 160)) {
+		DPRINTF(("%s: assuming %p is stdout\n", __func__, p));
+		return (stdout);
+	} else if (pi >= (si + 160) && pi < (si + 240)) {
+		DPRINTF(("%s: assuming %p is stderr\n", __func__, p));
+		return (stderr);
+	}
+	return ((FILE *)p);
+}
+
 // our libc overrides
+extern "C" {
 FILE   *FOPEN(const char *, const char *);
 size_t	FREAD(void *, size_t, size_t, FILE *);
 size_t	FWRITE(void *, size_t, size_t, FILE *);
@@ -47,11 +79,8 @@ int	MUNMAP(void *, size_t);
 
 int	SOCKET(int, int, int);
 
-typedef	struct {
-	unsigned long b[32];	// bionic has 32 * 32 == 1024 fds, max.
-} bfd_set;
 int	SELECT(int, bfd_set *, bfd_set *, bfd_set *, struct timeval *);
-
+};
 // can't make these too big, else we exceed arrays somewhere (fd_set?!?)
 static const int smd0_fd = 10;
 static const int qmi0_fd = 11;
@@ -60,6 +89,47 @@ static const int qmi2_fd = 13;
 static const int acoustic_fd = 14;
 
 #define ACOUSTIC_DEV	"/dev/fb3"
+
+#ifdef DEBUG
+static void
+hexdump(const unsigned char *buf, unsigned int len)
+{
+	unsigned int i, j;
+
+	i = 0;
+	while (i < len) {
+		char offset[9];
+		char hex[16][3];
+		char ascii[17];
+
+		snprintf(offset, sizeof(offset), "%08x  ", i);
+		offset[sizeof(offset) - 1] = '\0';
+
+		for (j = 0; j < 16; j++) {
+			if ((i + j) >= len) {
+				strcpy(hex[j], "  ");
+				ascii[j] = '\0';
+			} else {
+				snprintf(hex[j], sizeof(hex[0]), "%02x",
+				    buf[i + j]);
+				hex[j][sizeof(hex[0]) - 1] = '\0';
+				if (isprint((int)buf[i + j]))
+					ascii[j] = buf[i + j];
+				else
+					ascii[j] = '.';
+			}
+		}
+		ascii[sizeof(ascii) - 1] = '\0';
+
+		cprintf("%s  %s %s %s %s %s %s %s %s  %s %s %s %s %s %s %s %s  "
+		    "|%s|\n", offset, hex[0], hex[1], hex[2], hex[3], hex[4],
+		    hex[5], hex[6], hex[7], hex[8], hex[9], hex[10], hex[11],
+		    hex[12], hex[13], hex[14], hex[15], ascii);
+
+		i += 16;
+	}
+}
+#endif
 
 static int
 smd_open(const char *path, int flags)
@@ -81,26 +151,12 @@ smd_read(int fd, void *buf, size_t nbyte)
 {
 	DPRINTF(("SMD_READ: fd %d, size %d\n", fd, nbyte));
 
-	ssize_t ret = smd_tty_read(0, buf, nbyte);
+	ssize_t ret = smd_tty_read(0, (unsigned char *)buf, nbyte);
 
 #ifdef DEBUG
 	if (ret > 0) {
-		char *strbuf = malloc(ret + 1);
-		memcpy(strbuf, buf, ret); 
-		strbuf[ret] = '\0';
-		unsigned int i;
-		int unprint = 0;
-		for (i = 0; i < ret; i++) {
-			if (strbuf[i] == '\r')
-				strbuf[i] = '\0';
-			else if (!isprint(strbuf[i])) {
-				strbuf[i] = '?';
-				unprint++;
-			}
-		}
-		DPRINTF(("   SMD --> [%s] %d unprintable chars\n", strbuf,
-		    unprint));
-		free(strbuf);
+		DPRINTF(("------ READ FROM SMD ------\n"));
+		hexdump((const unsigned char *)buf, ret);
 	}
 #endif
 
@@ -113,24 +169,11 @@ smd_write(int fd, const void *buf, size_t nbyte)
 	DPRINTF(("SMD_WRITE: fd %d, size %d\n", fd, nbyte));
 
 #ifdef DEBUG
-	char *strbuf = malloc(nbyte + 1);
-	memcpy(strbuf, buf, nbyte); 
-	strbuf[nbyte] = '\0';
-	unsigned int i;
-	int unprint = 0;
-	for (i = 0; i < nbyte; i++) {
-		if (strbuf[i] == '\r')
-			strbuf[i] = '\0';
-		else if (!isprint(strbuf[i])) {
-			strbuf[i] = '?';
-			unprint++;
-		}
-	}
-	DPRINTF(("   SMD <-- [%s] %d unprintable chars\n", strbuf, unprint));
-	free(strbuf);
+	DPRINTF(("------ WRITE TO SMD ------\n"));
+	hexdump((const unsigned char *)buf, nbyte);
 #endif
 
-	ssize_t ret = smd_tty_write(0, buf, nbyte);
+	ssize_t ret = smd_tty_write(0, (const unsigned char *)buf, nbyte);
 	DPRINTF(("SMD_WRITE: TTY WROTE %d BYTES\n", (int)ret));
 	return (ret);
 } 
@@ -250,10 +293,10 @@ FOPEN(const char *filename, const char *mode)
 }
 
 int
-FCLOSE(FILE *stream)
+FCLOSE(FILE *fp)
 {
-	DPRINTF(("FCLOSE on FILE %p\n", stream));
-	return (fclose(stream));
+	DPRINTF(("FCLOSE on FILE %p\n", fp));
+	return (fclose(sF_to_FILE(fp)));
 }
 
 size_t
@@ -261,7 +304,7 @@ FREAD(void *p, size_t size, size_t nitems, FILE *fp)
 {
 	DPRINTF(("FREAD: %d items of %d bytes on FILE %p\n", nitems,
 	    size, fp));
-	return (fread(p, size, nitems, fp));
+	return (fread(p, size, nitems, sF_to_FILE(fp)));
 }
 
 size_t
@@ -269,21 +312,21 @@ FWRITE(void *p, size_t size, size_t nitems, FILE *fp)
 {
 	DPRINTF(("FWRITE: %d items of %d bytes on FILE %p\n", nitems,
 	    size, fp));
-	return (fwrite(p, size, nitems, fp));
+	return (fwrite(p, size, nitems, sF_to_FILE(fp)));
 }
 
 char *
-FGETS(char *s, int n, FILE *stream)
+FGETS(char *s, int n, FILE *fp)
 {
-	DPRINTF(("FGETS on FILE %p\n", stream));
-	return (fgets(s, n, stream));
+	DPRINTF(("FGETS on FILE %p\n", fp));
+	return (fgets(s, n, sF_to_FILE(fp)));
 }
 
 int
-FILENO(FILE *stream)
+FILENO(FILE *fp)
 {
-	DPRINTF(("FILENO on FILE %p\n", stream));
-	return (fileno(stream));
+	DPRINTF(("FILENO on FILE %p\n", fp));
+	return (fileno(sF_to_FILE(fp)));
 }
 
 int
@@ -340,7 +383,8 @@ SELECT(int nfds, bfd_set *readfds, bfd_set *writefds, bfd_set *errorfds,
 {
 	DPRINTF(("SELECT: nfds %d, r %p, w %p, e %p, tout %p\n", nfds,
 	    readfds, writefds, errorfds, timeout));
-
+// XXXXXXXXX
+sleep(9999);
 	int i;
 	for (i = 0; i < nfds; i++) {
 		int rset = (readfds == NULL) ? 0 :
@@ -358,7 +402,8 @@ SELECT(int nfds, bfd_set *readfds, bfd_set *writefds, bfd_set *errorfds,
 		    (wset) ? " write" : "",
 		    (eset) ? " error" : ""));
 
-sleep(3);
 	}
 	return (select(nfds, (fd_set *)readfds, (fd_set *)writefds, (fd_set *)errorfds, timeout));
 }
+
+} // extern "C"
