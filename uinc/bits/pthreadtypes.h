@@ -23,7 +23,7 @@ typedef struct {
 
 // Types we don't care about
 typedef int pthread_attr_t;
-typedef int pthread_mutexattr_t;
+typedef struct { int kind; } pthread_mutexattr_t;
 
 typedef int pthread_condattr_t;
 

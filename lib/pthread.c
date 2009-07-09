@@ -22,6 +22,8 @@ __pthread_mutex_init(pthread_mutex_t * mutex,
 		     const pthread_mutexattr_t *attr)
 {
     memset(mutex, 0, sizeof(*mutex));
+    if (attr != NULL)
+	mutex->kind = attr->kind;
     jthread_mutex_init(&mutex->jmu);
     return 0;
 }
@@ -42,7 +44,11 @@ __pthread_mutex_lock(pthread_mutex_t *mutex)
 	mutex->count = 1;
 	mutex->owner = tid;
     } else {
+	// catch locking against ourself
+	uint64_t tid = thread_id();
+	assert(mutex->owner != tid);
 	jthread_mutex_lock(&mutex->jmu);
+	mutex->owner = tid;
     }
     return 0;
 }
@@ -88,6 +94,9 @@ __pthread_mutex_unlock(pthread_mutex_t *mutex)
 
 	return 0;
     } else {
+	// catch unlocking unowned lock
+	assert(mutex->owner = thread_id());
+	mutex->owner = 0;
 	jthread_mutex_unlock(&mutex->jmu);
     }
 
@@ -103,12 +112,29 @@ pthread_mutex_destroy(pthread_mutex_t *mutex)
 int
 pthread_mutexattr_init(pthread_mutexattr_t *attr)
 {
+    attr->kind = PTHREAD_MUTEX_NORMAL;
     return 0;
 }
 
 int
 pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
 {
+    return 0;
+}
+
+int
+pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
+{
+    if (type != PTHREAD_MUTEX_NORMAL && type != PTHREAD_MUTEX_RECURSIVE)
+	cprintf("%s: unimplemented type 0x%x\n", __func__, type);
+    attr->kind = type;
+    return 0;
+}
+
+int
+pthread_mutexattr_gettype(const pthread_mutexattr_t *__restrict attr, int *__restrict type)
+{
+    *type = attr->kind;
     return 0;
 }
 
