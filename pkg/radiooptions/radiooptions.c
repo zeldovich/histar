@@ -107,11 +107,15 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
+    fprintf(stderr, "--> Opening unix domain socket...\n");
+
     fd = open_debug_socket();
     if (fd < 0) {
         perror ("opening radio debug socket");
         exit(-1);
     }
+
+    fprintf(stderr, "--> Sending number of arguments...\n");
 
     num_socket_args = get_number_args(argv);
     int ret = send(fd, (const void *)&num_socket_args, sizeof(int), 0);
@@ -122,6 +126,8 @@ int main(int argc, char *argv[])
     }
 
     for (i = 0; i < num_socket_args; i++) {
+        fprintf(stderr, "--> Sending argument %d length...\n", i);
+
         // Send length of the arg, followed by the arg.
         int len = strlen(argv[1 + i]);
         ret = send(fd, &len, sizeof(int), 0);
@@ -130,6 +136,9 @@ int main(int argc, char *argv[])
             close(fd);
             exit(-1);
         }
+
+        fprintf(stderr, "--> Sending argument %d.\n", i);
+
         ret = send(fd, argv[1 + i], sizeof(char) * len, 0);
         if (ret != (int)(len * sizeof(char))) {
             perror ("Socket write Error: When sending arg");
@@ -137,6 +146,8 @@ int main(int argc, char *argv[])
             exit(-1);
         }
     }
+
+    fprintf(stderr, "--> Done.\n");
 
     close(fd);
     return 0;
