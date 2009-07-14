@@ -9,3 +9,4 @@ include pkg/ftpd/Makefrag
 include pkg/httpd/Makefrag
 include pkg/primes/Makefrag
 include pkg/rild/Makefrag
+include pkg/radiooptions/Makefrag
