@@ -94,6 +94,17 @@ __android_log_print(int level, const char *tag, const char *fmt, ...)
 int property_set(const char *, const char *);
 int property_get(const char *, char *, const char *);
 
+struct prop_pair {
+	const char *key;
+	const char *val;
+} properties[] = {
+	{ "ro.carrier",   "TMUS" },
+	{ "ro.ril.hsxpa", "1" },
+	{ "ro.ril.gprsclass", "10" },
+	{ NULL, NULL }
+};
+
+
 int
 property_set(const char *key, const char *val)
 {
@@ -104,8 +115,17 @@ property_set(const char *key, const char *val)
 int
 property_get(const char *key, char *val, const char *default_val)
 {
+	int i;
 	fprintf(stderr, "property_get: [%s] [%s]\n", key, default_val);
-	strcpy(val, default_val);
+	for (i = 0; properties[i].key != NULL; i++) {
+		if (strcmp(key, properties[i].key) == 0)
+			break;
+	}
+	if (properties[i].key == NULL)
+		strcpy(val, default_val);
+	else
+		strcpy(val, properties[i].val);
+	fprintf(stderr, "  _get: got [%s]\n", val);
 	return (strlen(default_val));
 }
 
