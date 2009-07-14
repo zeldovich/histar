@@ -3,6 +3,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <ctype.h>
 #include <pthread.h>
@@ -11,6 +12,7 @@ extern "C" {
 #include <fcntl.h>
 
 #include <inc/stdio.h>
+#include <inc/lib.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -18,6 +20,7 @@ extern "C" {
 #include <sys/mman.h>
 
 #include "smd_tty.h"
+#include "smd_qmi.h"
 
 #define DEBUG
 #ifdef DEBUG
@@ -71,8 +74,11 @@ int	CLOSE(int);
 ssize_t	READ(int, void *, size_t);
 ssize_t	WRITE(int, const void *, size_t);
 int	CHMOD(const char *, mode_t);
-int	IOCTL(int, unsigned long, ...);
 int	FSTAT(int, struct stat *);
+
+#define ACOUSTIC_ARM11_DONE	0x40047016
+#define ACOUSTIC_ALLOC_SMEM	0x40047017
+int	IOCTL(int, unsigned long, ...);
 
 void   *MMAP(void *, size_t, int, int, int, off_t);
 int	MUNMAP(void *, size_t);
@@ -149,9 +155,30 @@ smd_open(const char *path, int flags)
 static ssize_t
 smd_read(int fd, void *buf, size_t nbyte)
 {
-	DPRINTF(("SMD_READ: fd %d, size %d\n", fd, nbyte));
+	// XXX- resid shit probably unnecessary.
+	static char resid[512];
+	static int  residlen = 0;
 
-	ssize_t ret = smd_tty_read(0, (unsigned char *)buf, nbyte);
+	DPRINTF(("SMD_READ: fd %d, size %d (tid %" PRIx64 ")\n", fd, nbyte, thread_id()));
+
+	ssize_t ret;
+	int do_resid = 0;
+
+	if (residlen) {
+		ret = residlen;
+		residlen = 0;
+		memcpy(buf, resid, ret);
+		do_resid = 1;
+	} else {
+		ret = smd_tty_read(0, (unsigned char *)buf, nbyte);
+	}
+
+	if (ret > 0 && strncmp((const char *)buf, "+CRREADY\r\n", 10) == 0 && !do_resid) {
+		residlen = ret - 10;
+		ret = 10;
+		if (residlen)
+			memcpy(resid, (char *)buf + 10, residlen);
+	}
 
 #ifdef DEBUG
 	if (ret > 0) {
@@ -166,7 +193,7 @@ smd_read(int fd, void *buf, size_t nbyte)
 static ssize_t
 smd_write(int fd, const void *buf, size_t nbyte)
 {
-	DPRINTF(("SMD_WRITE: fd %d, size %d\n", fd, nbyte));
+	DPRINTF(("SMD_WRITE: fd %d, size %d (tid %" PRIx64 ")\n", fd, nbyte, thread_id()));
 
 #ifdef DEBUG
 	DPRINTF(("------ WRITE TO SMD ------\n"));
@@ -176,20 +203,41 @@ smd_write(int fd, const void *buf, size_t nbyte)
 	ssize_t ret = smd_tty_write(0, (const unsigned char *)buf, nbyte);
 	DPRINTF(("SMD_WRITE: TTY WROTE %d BYTES\n", (int)ret));
 	return (ret);
-} 
+}
+
+static int
+qmi_fd_to_num(int fd)
+{
+	if (fd == qmi0_fd)
+		return (0);
+	if (fd == qmi1_fd)
+		return (1);
+	if (fd == qmi2_fd)
+		return (2);
+
+	cprintf("%s: bogus qmi fd: %d\n", __func__, fd);
+	exit(1);
+}
 
 static int
 qmi_open(const char *path, int flags)
 {
 	DPRINTF(("QMI OPEN: path == %s, flags = 0x%x\n", path, flags));
-	if (strncmp(path, "/dev/qmi0", 9) == 0)
+	if (strncmp(path, "/dev/qmi0", 9) == 0) {
+		if (smd_qmi_open(0) < 0)
+			return (-1);
 		return (qmi0_fd);
-	else if (strncmp(path, "/dev/qmi1", 9) == 0)
+	} else if (strncmp(path, "/dev/qmi1", 9) == 0) {
+		if (smd_qmi_open(1) < 0)
+			return (-1);
 		return (qmi1_fd);
-	else if (strncmp(path, "/dev/qmi2", 9) == 0)
+	} else if (strncmp(path, "/dev/qmi2", 9) == 0) {
+		if (smd_qmi_open(2) < 0)
+			return (-1);
 		return (qmi2_fd);
+	}
 
-	DPRINTF(("UNHANDLED SMD DEVICE: %s!\n", path));
+	DPRINTF(("UNHANDLED QMI DEVICE: %s!\n", path));
 	return (open(path, flags));
 }
 
@@ -197,14 +245,83 @@ static ssize_t
 qmi_read(int fd, void *buf, size_t nbyte)
 {
 	DPRINTF(("QMI_READ: fd %d, size %d\n", fd, nbyte));
-	return (-1);
+
+	int n = qmi_fd_to_num(fd);
+	ssize_t ret = smd_qmi_read(n, (unsigned char *)buf, nbyte); 
+
+#ifdef DEBUG
+	if (ret > 0) {
+		DPRINTF(("------ READ FROM QMI %d ------\n", n));
+		hexdump((const unsigned char *)buf, ret);
+	}
+#endif
+
+	return (ret);
 }
 
+static int
+qmi_select(int nfd, bfd_set *rfds, bfd_set *wfds, bfd_set *efds, struct timeval *timeout)
+{
+	int ns[3] = { -1, -1, -1 };
+	int rdys[3] = { 0, 0, 0 };
+	int cnt = 0;
+
+	int qmi0 = (rfds->b[qmi0_fd / 32] >> (qmi0_fd % 32)) & 0x1;
+	if (qmi0) {
+		DPRINTF(("%s: waiting on qmi0\n", __func__));
+		ns[cnt++] = 0;
+	}
+
+	int qmi1 = (rfds->b[qmi1_fd / 32] >> (qmi1_fd % 32)) & 0x1;
+	if (qmi1) {
+		DPRINTF(("%s: waiting on qmi1\n", __func__));
+		ns[cnt++] = 1;
+	}
+
+	int qmi2 = (rfds->b[qmi2_fd / 32] >> (qmi2_fd % 32)) & 0x1;
+	if (qmi2) {
+		DPRINTF(("%s: waiting on qmi2\n", __func__));
+		ns[cnt++] = 2;
+	}
+
+	if (cnt == 0) {
+		cprintf("%s: ERROR! CNT == 0\n", __func__);
+		exit(1);
+	}
+
+	rfds->b[qmi0_fd / 32] &= ~(0x1 << (qmi0_fd % 32));
+	rfds->b[qmi1_fd / 32] &= ~(0x1 << (qmi1_fd % 32));
+	rfds->b[qmi2_fd / 32] &= ~(0x1 << (qmi2_fd % 32));
+
+	smd_qmi_readwait(ns, rdys, cnt);
+
+	int i;
+	for (i = 0; i < cnt; i++) {
+		if (rdys[i]) {
+			int fds[3] = { qmi0_fd, qmi1_fd, qmi2_fd };
+			int fd = fds[ns[i]];
+			DPRINTF(("%s: qmi fd %d set\n", __func__, fd));
+			rfds->b[fd / 32] |= (0x1 << (fd % 32));
+		}
+	}
+
+	return (0);
+}
 static ssize_t
 qmi_write(int fd, const void *buf, size_t nbyte)
 {
 	DPRINTF(("QMI_WRITE: fd %d, size %d\n", fd, nbyte));
-	return (nbyte);
+
+	int n = qmi_fd_to_num(fd);
+
+#ifdef DEBUG
+	DPRINTF(("------ WRITE TO SMD %d ------\n", n));
+	hexdump((const unsigned char *)buf, nbyte);
+#endif
+
+	ssize_t ret = smd_qmi_write(n, (const unsigned char *)buf, nbyte);
+	DPRINTF(("QMI_WRITE: QMI WROTE %d BYTES\n", (int)ret));
+	return (ret);
 } 
 
 static int
@@ -267,7 +384,7 @@ WRITE(int fd, const void *buf, size_t nbyte)
 int
 IOCTL(int fd, unsigned long req, ...)
 {
-	DPRINTF(("IOCTL on fd %d\n", fd));
+	DPRINTF(("IOCTL on fd %d, req %lu\n", fd, req));
 	return (-1);
 }
 
@@ -383,9 +500,8 @@ SELECT(int nfds, bfd_set *readfds, bfd_set *writefds, bfd_set *errorfds,
 {
 	DPRINTF(("SELECT: nfds %d, r %p, w %p, e %p, tout %p\n", nfds,
 	    readfds, writefds, errorfds, timeout));
-// XXXXXXXXX
-sleep(9999);
-	int i;
+
+	int i, qmi0 = 0, qmi1 = 0, qmi2 = 0;
 	for (i = 0; i < nfds; i++) {
 		int rset = (readfds == NULL) ? 0 :
 		    (readfds->b [i / 32] >> (i % 32)) & 0x1;
@@ -402,7 +518,16 @@ sleep(9999);
 		    (wset) ? " write" : "",
 		    (eset) ? " error" : ""));
 
+		if (i == qmi0_fd) qmi0++;
+		else if (i == qmi1_fd) qmi1++;
+		else if (i == qmi2_fd) qmi2++;
+
+		DPRINTF(("  qmi0: %d, qmi1: %d, qmi2: %d\n", qmi0, qmi1, qmi2));
 	}
+
+	if (qmi0 || qmi1 || qmi2) 
+		return (qmi_select(nfds, readfds, writefds, errorfds, timeout));
+
 	return (select(nfds, (fd_set *)readfds, (fd_set *)writefds, (fd_set *)errorfds, timeout));
 }
 
