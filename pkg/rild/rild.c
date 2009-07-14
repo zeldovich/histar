@@ -30,6 +30,7 @@ extern "C" {
 
 #include "msm_smd.h"
 #include "smd_tty.h"
+#include "smd_qmi.h"
 }
 
 #define DEF_RIL_SO	"/bin/libhtc_ril.so"
@@ -66,6 +67,7 @@ int main(int argc, char **argv)
     fprintf(stderr, "Starting smd core\n");
     msm_smd_init();
     smd_tty_init();
+    smd_qmi_init();
     RIL_init();
     sleep(5);
 
@@ -96,21 +98,19 @@ int main(int argc, char **argv)
     funcs = rilInit(&s_rilEnv, rilArgc, rilArgv);
     fprintf(stderr, "rilInit returned\n");
 
-    sleep(10);
+    RIL_register(funcs);
+
+    sleep(20);
 
     fprintf(stderr, "ril versino %d\n", funcs->version);
     fprintf(stderr, "state == %d\n", funcs->onStateRequest());
     //fprintf(stderr, "supports = %x\n", funcs->supports(i));
     fprintf(stderr, "version = %s\n", funcs->getVersion());
 
-    funcs->onRequest(RIL_REQUEST_GET_SIM_STATUS, NULL, 0, (void *)0xdeadbeef);
-
     for(;;) {
 	    fprintf(stderr, "state == %d\n", funcs->onStateRequest());
 	sleep(5);
     }
-
-    RIL_register(funcs);
 
     while(1) {
         // sleep(UINT32_MAX) seems to return immediately on bionic
