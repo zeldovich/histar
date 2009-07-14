@@ -91,7 +91,7 @@ static void smd_tty_notify(void *priv, unsigned event)
 	pthread_mutex_unlock(&smd_tty_lock);
 }
 
-int smd_tty_open(int n)
+extern "C" int smd_tty_open(int n)
 {
 	int res = 0;
 	struct smd_tty_info *info;
@@ -110,18 +110,17 @@ int smd_tty_open(int n)
 	pthread_mutex_lock(&smd_tty_lock);
 	if (info->open_count++ == 0) {
 		if (info->ch) {
-			pthread_mutex_unlock(&smd_tty_lock);
 			smd_kick(info->ch);
 		} else {
-			pthread_mutex_unlock(&smd_tty_lock);
 			res = smd_open(name, &info->ch, info, smd_tty_notify);
 		}
 	}
+	pthread_mutex_unlock(&smd_tty_lock);
 
 	return res;
 }
 
-void smd_tty_close(int n)
+extern "C" void smd_tty_close(int n)
 {
 	if (n != 0 && n != 27) {
 		fprintf(stderr, "%s: invalid n (%d)\n", __func__, n);
@@ -141,7 +140,7 @@ void smd_tty_close(int n)
 	pthread_mutex_unlock(&smd_tty_lock);
 }
 
-int smd_tty_read(int n, unsigned char *buf, int len)
+extern "C" int smd_tty_read(int n, unsigned char *buf, int len)
 {
 	int i;
 
@@ -165,7 +164,7 @@ int smd_tty_read(int n, unsigned char *buf, int len)
 	return ((i < len) ? i : len);
 }
 
-int smd_tty_write(int n, const unsigned char *buf, int len)
+extern "C" int smd_tty_write(int n, const unsigned char *buf, int len)
 {
 	if (n != 0 && n != 27) {
 		fprintf(stderr, "%s: invalid n (%d)\n", __func__, n);
@@ -188,9 +187,12 @@ int smd_tty_write(int n, const unsigned char *buf, int len)
 	return (smd_write(info->ch, buf, len));
 }
 
-int smd_tty_init(void)
+extern "C" int smd_tty_init(void)
 {
-	pthread_mutex_init(&smd_tty_lock, NULL);
+	pthread_mutexattr_t smd_tty_lock_attr;
+	pthread_mutexattr_init(&smd_tty_lock_attr);
+	pthread_mutexattr_settype(&smd_tty_lock_attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&smd_tty_lock, &smd_tty_lock_attr);
 	pthread_cond_init(&smd_tty_cond, NULL);
 
 	return 0;

@@ -40,7 +40,7 @@ enum {
 	MSM_SMD_DEBUG = 1U << 0,
 	MSM_SMSM_DEBUG = 1U << 1,
 };
-static int msm_smd_debug_mask = 0; //(MSM_SMD_DEBUG | MSM_SMSM_DEBUG);
+static int msm_smd_debug_mask = 0;
 
 volatile void *smem_find(unsigned id, unsigned size);
 void smd_diag(void);
@@ -1091,9 +1091,11 @@ static void irq_wait(uint32_t irq, irqreturn_t (*handler)(int, void *))
 
 	while (1) {
 		last = sys_irq_wait(irq, last);
+		D("smd irq %u starting\n", irq);
 		pthread_mutex_lock(&irq_mutex);
 		handler(irq, NULL);
 		pthread_mutex_unlock(&irq_mutex);
+		D("smd irq %u done\n", irq);
 	}
 }
 
@@ -1160,7 +1162,10 @@ int msm_smd_init()
 
 	cprintf("smd_init()\n");
 
-	pthread_mutex_init(&smd_mutex, NULL);
+	pthread_mutexattr_t smd_mutex_attr;
+	pthread_mutexattr_init(&smd_mutex_attr);
+	pthread_mutexattr_settype(&smd_mutex_attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&smd_mutex, &smd_mutex_attr);
 	pthread_mutex_init(&smem_mutex, NULL);
 	pthread_mutex_init(&smd_creation_mutex, NULL);
 
