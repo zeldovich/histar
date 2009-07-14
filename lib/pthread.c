@@ -274,14 +274,20 @@ pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mu,
 		       const struct timespec *abstime)
 {
     uint64_t end_nsec = UINT64(~0);
-    if (abstime)
+    if (abstime) {
+	assert((((uint64_t) abstime->tv_sec) * NSEC_PER_SECOND +
+                   abstime->tv_nsec) >= jos_time_nsec_offset());
 	end_nsec = ((uint64_t) abstime->tv_sec) * NSEC_PER_SECOND +
 		   abstime->tv_nsec - jos_time_nsec_offset();
+    }
 
     uint64_t v = cond->counter;
     pthread_mutex_unlock(mu);
     sys_sync_wait(&cond->counter, v, end_nsec);
     pthread_mutex_lock(mu);
+
+    if ((uint64_t)sys_clock_nsec() >= end_nsec)
+	return ETIMEDOUT;
     return 0;
 }
 
