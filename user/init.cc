@@ -487,8 +487,8 @@ init_rild(int basecons)
     struct cobj_ref devs[3];
 
     label fb_label(1);
-    fb_label.set(fbc_grant, 0);
-    fb_label.set(fbc_taint, 3);
+    fb_label.set(fbc_grant, 1);
+    fb_label.set(fbc_taint, 1);
 
     // fb1 -> SMD shared memory
     // fb2 -> SMD notify registers
@@ -524,11 +524,7 @@ init_rild(int basecons)
 	    return 1;
         }
     }
-
-    char a0[64], a1[64];
-    sprintf(a0, "%"PRIu64, fbc_grant);
-    sprintf(a1, "%"PRIu64, fbc_taint);
-
+#if 0
     fs_inode ino;
     if (fs_namei("/bin/rild", &ino) < 0) {
         cprintf("init: init_fbcons: couldn't find /bin/rild\n");
@@ -538,8 +534,8 @@ init_rild(int basecons)
     label ds(3), dr(0);
     ds.set(fbc_grant, LB_LEVEL_STAR);
     ds.set(fbc_taint, LB_LEVEL_STAR);
-    dr.set(fbc_grant, 3);
-    dr.set(fbc_taint, 3);
+    dr.set(fbc_grant, 1);
+    dr.set(fbc_taint, 1);
 
     const char *argv[] = { "rild" };
     child_process cp = spawn(start_env->process_pool,
@@ -547,7 +543,7 @@ init_rild(int basecons)
 		   1, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
 		   0, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
-
+#endif
     return (0);
 }
 
