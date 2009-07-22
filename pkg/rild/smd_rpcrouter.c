@@ -32,8 +32,6 @@ extern "C" {
 #include <pthread.h>
 #include <errno.h>
 
-#include <sys/mman.h>
-
 #include <inc/atomic.h>
 #include <inc/error.h>
 #include <inc/stdio.h>
@@ -46,14 +44,14 @@ extern "C" {
 #include "smd_rpcrouter.h"
 #include "support/misc.h"
 
-#define TRACE_R2R_MSG 0
-#define TRACE_R2R_RAW 0
-#define TRACE_RPC_MSG 0
+#define TRACE_R2R_MSG 1
+#define TRACE_R2R_RAW 1
+#define TRACE_RPC_MSG 1
 
 #define MSM_RPCROUTER_DEBUG 1
-#define MSM_RPCROUTER_DEBUG_PKT 0
-#define MSM_RPCROUTER_R2R_DEBUG 0
-#define DUMP_ALL_RECEIVED_HEADERS 0
+#define MSM_RPCROUTER_DEBUG_PKT 1
+#define MSM_RPCROUTER_R2R_DEBUG 1
+#define DUMP_ALL_RECEIVED_HEADERS 1
 
 #define DIAG(x...) cprintf("[RR] ERROR " x)
 
@@ -75,10 +73,10 @@ extern "C" {
 #define IO(x...) do {} while (0)
 #endif
 
-static TAILQ_HEAD(, msm_rpc_endpoint) local_endpoints = TAILQ_HEAD_INITIALIZER(head);
-static TAILQ_HEAD(, rr_remote_endpoint) remote_endpoints = TAILQ_HEAD_INITIALIZER(head);
+static TAILQ_HEAD(, msm_rpc_endpoint) local_endpoints = TAILQ_HEAD_INITIALIZER(local_endpoints);
+static TAILQ_HEAD(, rr_remote_endpoint) remote_endpoints = TAILQ_HEAD_INITIALIZER(remote_endpoints);
 
-static TAILQ_HEAD(, rr_server) server_list = TAILQ_HEAD_INITIALIZER(head);
+static TAILQ_HEAD(, rr_server) server_list = TAILQ_HEAD_INITIALIZER(server_list);
 
 static smd_channel_t *smd_channel;
 static int initialized;
@@ -86,6 +84,8 @@ static pthread_mutex_t	newserver_waitq_mutex;
 static pthread_cond_t	newserver_waitq_cond;
 static pthread_mutex_t	smd_waitq_mutex;
 static pthread_cond_t	smd_waitq_cond;
+static pthread_mutex_t  do_create_pdevs_mutex;
+static pthread_cond_t   do_create_pdevs_cond;
 
 static pthread_mutex_t local_endpoints_lock;
 static pthread_mutex_t remote_endpoints_lock;
@@ -100,7 +100,7 @@ static int rpcrouter_need_len;
 static jos_atomic_t next_xid = { 1 };
 static uint8_t next_pacmarkid;
 
-static void do_read_data(void);
+static int do_read_data(void);
 static void do_create_pdevs(void);
 static void do_create_rpcrouter_pdev(void);
 
@@ -194,13 +194,13 @@ static struct rr_server *rpcrouter_create_server(uint32_t pid,
 	TAILQ_INSERT_TAIL(&server_list, server, list);
 	pthread_mutex_unlock(&server_list_lock);
 
-	if (pid == RPCROUTER_PID_REMOTE) {
 #ifdef notyet
+	if (pid == RPCROUTER_PID_REMOTE) {
+#else
+	if (0) {
+#endif
 		rc = msm_rpcrouter_create_server_cdev(server);
 		if (rc < 0)
-#else
-		rc = -E_INVAL;
-#endif
 			goto out_fail;
 	}
 	return server;
@@ -459,6 +459,7 @@ static int process_control_msg(union rr_control_msg *msg, int len)
 				msg->srv.prog, msg->srv.vers);
 			if (!server)
 				return -E_NO_MEM;
+
 			/*
 			 * XXX: Verify that its okay to add the
 			 * client to our remote client list
@@ -471,7 +472,10 @@ static int process_control_msg(union rr_control_msg *msg, int len)
 					cprintf("rpcrouter:Client create"
 						"error (%d)\n", rc);
 			}
-			do_create_pdevs();
+
+			pthread_mutex_lock(&do_create_pdevs_mutex);
+			pthread_cond_signal(&do_create_pdevs_cond);
+			pthread_mutex_unlock(&do_create_pdevs_mutex);
 
 			pthread_mutex_lock(&newserver_waitq_mutex);
 			pthread_cond_signal(&newserver_waitq_cond);
@@ -530,7 +534,7 @@ static void do_create_rpcrouter_pdev()
 #endif
 }
 
-static void do_create_pdevs()
+static void do_create_pdevs(void)
 {
 	struct rr_server *server;
 
@@ -539,16 +543,25 @@ static void do_create_pdevs()
 	TAILQ_FOREACH(server, &server_list, list) {
 		if (server->pid == RPCROUTER_PID_REMOTE) {
 			if (server->pdev_name[0] == 0) {
-				pthread_mutex_unlock(&server_list_lock);
 #ifdef notyet
 				msm_rpcrouter_create_server_pdev(server);
 #endif
-				do_create_pdevs();
-				return;
 			}
 		}
 	}
 	pthread_mutex_unlock(&server_list_lock);
+}
+
+static void *do_create_pdevs_thread(void *arg)
+{
+	while (1) {
+		pthread_mutex_lock(&do_create_pdevs_mutex);
+		do_create_pdevs();
+		pthread_cond_wait(&do_create_pdevs_cond, &do_create_pdevs_mutex);
+		pthread_mutex_unlock(&do_create_pdevs_mutex);
+	}
+
+	return (NULL);
 }
 
 static void rpcrouter_smdnotify(void *_dev, unsigned event)
@@ -613,7 +626,7 @@ static int rr_read(void *data, int len)
 
 static uint32_t r2r_buf[RPCROUTER_MSGSIZE_MAX];
 
-static void do_read_data()
+static int do_read_data()
 {
 	struct rr_header hdr;
 	struct rr_packet *pkt;
@@ -728,8 +741,7 @@ done:
 		rpcrouter_send_control_msg(&msg);
 	}
 
-	do_read_data();
-	return;
+	return 0;
 
 fail_io:
 fail_data:
@@ -737,6 +749,16 @@ fail_data:
 #if 0
 	wake_unlock(&rpcrouter_wake_lock);
 #endif
+	return -1;
+}
+
+static void *
+do_read_data_thread(void *arg)
+{
+	while (do_read_data() == 0)
+		continue;
+
+	return (NULL);
 }
 
 void msm_rpc_setup_req(struct rpc_request_hdr *hdr, uint32_t prog,
@@ -1184,6 +1206,8 @@ static int msm_rpcrouter_probe()
 	pthread_cond_init(&newserver_waitq_cond, NULL);
 	pthread_mutex_init(&smd_waitq_mutex, NULL);
 	pthread_cond_init(&smd_waitq_cond, NULL);
+	pthread_mutex_init(&do_create_pdevs_mutex, NULL);
+	pthread_cond_init(&do_create_pdevs_cond, NULL);
 
 	pthread_mutex_init(&local_endpoints_lock, NULL);
 	pthread_mutex_init(&remote_endpoints_lock, NULL);
@@ -1205,7 +1229,9 @@ static int msm_rpcrouter_probe()
 		return rc;
 	}
 
-	do_read_data();
+	pthread_t tid;
+	pthread_create(&tid, NULL, do_create_pdevs_thread, NULL);
+	pthread_create(&tid, NULL, do_read_data_thread, NULL);
 	return 0;
 }
 

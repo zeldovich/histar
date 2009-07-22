@@ -15,6 +15,8 @@
  *
  */
 
+extern "C" {
+
 #ifndef __ASM__ARCH_MSM_RPCROUTER_H
 #define __ASM__ARCH_MSM_RPCROUTER_H
 
@@ -131,7 +133,7 @@ int msm_rpc_call(struct msm_rpc_endpoint *ept, uint32_t proc,
 
 struct msm_rpc_server
 {
-	TAILQ_HEAD(, msm_rpc_server) list;
+	LIST_ENTRY(msm_rpc_server) list;
 	uint32_t flags;
 
 	uint32_t prog;
@@ -144,3 +146,4 @@ struct msm_rpc_server
 int msm_rpc_create_server(struct msm_rpc_server *server);
 
 #endif
+}

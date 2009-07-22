@@ -187,6 +187,7 @@ int msm_rpcrouter_init_devices(void);
 void msm_rpcrouter_exit_devices(void);
 
 extern "C" int smd_rpcrouter_init(void);
+extern "C" int smd_rpc_servers_init(void);
 
 extern dev_t msm_rpcrouter_devno;
 //extern struct class *msm_rpcrouter_class;

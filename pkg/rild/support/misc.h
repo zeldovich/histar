@@ -46,6 +46,7 @@ cpu_to_be32(uint32_t x)
 }
 
 #define ERR_PTR(_x)	((void *)(intptr_t)(_x))
+#define PTR_ERR(_x)	((int)(intptr_t)(_x))	
 #define IS_ERR(_x)	((intptr_t)(_x) < 0)
 #define BUG_ON(_x)	assert(!(_x))
 
