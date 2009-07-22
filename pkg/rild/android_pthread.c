@@ -272,15 +272,10 @@ Xthread_cond_timedwait(Xthread_cond_t *cond,
 
 }
 
-// XXX- not sure if this is right...
 int
-Xthread_cond_timeout_np(Xthread_cond_t *cond, Xthread_mutex_t *mutex,
-    unsigned msecs)
+pthread_cond_timeout_np(pthread_cond_t *cond, pthread_mutex_t *mutex, unsigned msecs)
 {
 	struct timespec abstime;
-
-	if (Xthread_debug_cond)
-		fprintf(stderr, "%s: tid %" PRIx64 ", cond %p, mutex %p, msecs: %u (from %p)\n", __func__, thread_id(), cond, mutex, msecs, __builtin_return_address(0));
 
 	if (clock_gettime(CLOCK_REALTIME, &abstime))
 		panic("%s: clock_gettime failed", __func__);
@@ -289,10 +284,21 @@ Xthread_cond_timeout_np(Xthread_cond_t *cond, Xthread_mutex_t *mutex,
 	abstime.tv_sec  += msecs / 1000;
 	abstime.tv_nsec += (msecs % 1000) * 1000 * 1000;
 
+	return (pthread_cond_timedwait(cond, mutex, &abstime));
+}
+
+// XXX- not sure if this is right...
+int
+Xthread_cond_timeout_np(Xthread_cond_t *cond, Xthread_mutex_t *mutex,
+    unsigned msecs)
+{
+	if (Xthread_debug_cond)
+		fprintf(stderr, "%s: tid %" PRIx64 ", cond %p, mutex %p, msecs: %u (from %p)\n", __func__, thread_id(), cond, mutex, msecs, __builtin_return_address(0));
+
 	pthread_cond_t *ct = cond_get(cond);
 	pthread_mutex_t *mt = mutex_get(mutex);
 
-	int ret = pthread_cond_timedwait(ct, mt, &abstime);
+	int ret = pthread_cond_timeout_np(ct, mt, msecs);
 	assert(ret == 0 || ret == 110 /* ETIMEDOUT */);
 	return (ret);
 }
