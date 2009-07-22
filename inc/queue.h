@@ -105,6 +105,9 @@ struct name {								\
 	struct type **tqh_last;	/* addr of last next element */		\
 }
 
+#define TAILQ_HEAD_INITIALIZER(head)					\
+        { NULL, NULL }
+
 #define TAILQ_ENTRY(type)						\
 struct {								\
 	struct type *tqe_next;	/* next element */			\
