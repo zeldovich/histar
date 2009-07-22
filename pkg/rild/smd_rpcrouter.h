@@ -18,16 +18,11 @@
 #ifndef _ARCH_ARM_MACH_MSM_SMD_RPCROUTER_H
 #define _ARCH_ARM_MACH_MSM_SMD_RPCROUTER_H
 
-#include <linux/types.h>
-#include <linux/list.h>
-#include <linux/cdev.h>
-#include <linux/platform_device.h>
-#include <linux/wakelock.h>
+#include <inc/queue.h>
 
-#include <mach/msm_smd.h>
-#include <mach/msm_rpcrouter.h>
-
-#include <linux/msm_rpcrouter.h>
+#include "msm_smd.h"
+#include "msm_rpcrouter.h"
+#include "msm_rpcrouter2.h"
 
 /* definitions for the R2R wire protcol */
 
@@ -90,7 +85,7 @@ struct rr_fragment {
 };
 
 struct rr_packet {
-	struct list_head list;
+	TAILQ_ENTRY(rr_packet) list;
 	struct rr_fragment *first;
 	struct rr_fragment *last;
 	struct rr_header hdr;
@@ -108,7 +103,7 @@ static inline uint32_t PACMARK(uint32_t len, uint32_t mid, uint32_t last)
 }
 
 struct rr_server {
-	struct list_head list;
+	TAILQ_ENTRY(rr_server) list;
 
 	uint32_t pid;
 	uint32_t cid;
@@ -116,8 +111,10 @@ struct rr_server {
 	uint32_t vers;
 
 	dev_t device_number;
+#if 0
 	struct cdev cdev;
 	struct device *device;
+#endif
 	struct rpcsvr_platform_device p_device;
 	char pdev_name[32];
 };
@@ -127,23 +124,25 @@ struct rr_remote_endpoint {
 	uint32_t cid;
 
 	int tx_quota_cntr;
-	spinlock_t quota_lock;
-	wait_queue_head_t quota_wait;
+	pthread_mutex_t quota_lock;
+	pthread_mutex_t quota_waitq_mutex;
+	pthread_cond_t quota_waitq_cond;
 
-	struct list_head list;
+	TAILQ_ENTRY(rr_remote_endpoint) list;
 };
 
 struct msm_rpc_endpoint {
-	struct list_head list;
+	TAILQ_ENTRY(msm_rpc_endpoint) list;
 
 	/* incomplete packets waiting for assembly */
-	struct list_head incomplete;
+	TAILQ_HEAD(, rr_packet) incomplete;
 
 	/* complete packets waiting to be read */
-	struct list_head read_q;
-	spinlock_t read_q_lock;
-	struct wake_lock read_q_wake_lock;
-	wait_queue_head_t wait_q;
+	TAILQ_HEAD(, rr_packet) read_q;
+	pthread_mutex_t read_q_lock;
+	//struct wake_lock read_q_wake_lock;
+	pthread_mutex_t waitq_mutex;
+	pthread_cond_t waitq_cond;
 	unsigned flags;
 
 	/* endpoint address */
@@ -187,6 +186,8 @@ int msm_rpcrouter_create_server_pdev(struct rr_server *server);
 int msm_rpcrouter_init_devices(void);
 void msm_rpcrouter_exit_devices(void);
 
+extern "C" int smd_rpcrouter_init(void);
+
 extern dev_t msm_rpcrouter_devno;
-extern struct class *msm_rpcrouter_class;
+//extern struct class *msm_rpcrouter_class;
 #endif
