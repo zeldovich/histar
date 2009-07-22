@@ -106,7 +106,7 @@ struct name {								\
 }
 
 #define TAILQ_HEAD_INITIALIZER(head)					\
-        { NULL, NULL }
+        { NULL, &(head).tqh_first }
 
 #define TAILQ_ENTRY(type)						\
 struct {								\
