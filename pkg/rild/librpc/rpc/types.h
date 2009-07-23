@@ -27,6 +27,10 @@
  * Mountain View, California  94043
  */
 
+#include <stdlib.h>
+#include <sys/types.h>
+#include <inttypes.h>
+
 /* fixincludes should not add extern "C" to this file */
 /*
  * Rpc additions to <sys/types.h>

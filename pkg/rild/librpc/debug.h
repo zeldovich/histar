@@ -19,8 +19,7 @@
 
 #include <stdio.h>
 
-#define LOG_TAG "RPC"
-#include <utils/Log.h>
+#include "../support/misc.h"
 
 #if 1
 #define PRINT(x...) do {                                    \
@@ -31,7 +30,7 @@
 #define PRINT(x...) do {                                    \
         fprintf(stdout, "%s(%d) ", __FUNCTION__, __LINE__); \
         fprintf(stdout, ##x);                               \
-        LOGI(x);                               \
+        LOGI(x);                               		    \
     } while(0)
 #endif
 

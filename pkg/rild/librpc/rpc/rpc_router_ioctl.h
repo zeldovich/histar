@@ -17,7 +17,7 @@
 #ifndef RPC_IOCTL_H
 #define RPC_IOCTL_H
 
-#include <linux/ioctl.h>
+//#include <linux/ioctl.h>
 
 struct rpcrouter_ioctl_server_args {
         uint32_t prog;
@@ -26,6 +26,12 @@ struct rpcrouter_ioctl_server_args {
 
 #define RPC_ROUTER_IOCTL_MAGIC (0xC1)
 
+#if 1
+#define RPC_ROUTER_IOCTL_GET_VERSION 0
+#define RPC_ROUTER_IOCTL_GET_MTU 1
+#define RPC_ROUTER_IOCTL_REGISTER_SERVER 2
+#define RPC_ROUTER_IOCTL_UNREGISTER_SERVER 3
+#else
 #define RPC_ROUTER_IOCTL_GET_VERSION \
         _IOR(RPC_ROUTER_IOCTL_MAGIC, 0, unsigned int)
 
@@ -37,5 +43,6 @@ struct rpcrouter_ioctl_server_args {
 
 #define RPC_ROUTER_IOCTL_UNREGISTER_SERVER \
         _IOWR(RPC_ROUTER_IOCTL_MAGIC, 3, unsigned int)
+#endif
 
 #endif /* RPC_IOCTL_H */

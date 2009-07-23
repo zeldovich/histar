@@ -34,6 +34,8 @@
  * Copyright (C) 1984, Sun Microsystems, Inc.
  */
 
+#define RPC_OFFSET	0
+
 #ifndef RPC_H
 #define RPC_H
 
@@ -41,10 +43,10 @@
 extern "C" {
 #endif
 
-#include <rpc/types.h>
-#include <rpc/xdr.h>
-#include <rpc/clnt.h>
-#include <rpc/svc.h>
+#include "types.h"
+#include "xdr.h"
+#include "clnt.h"
+#include "svc.h"
 
 #ifdef __cplusplus
 }

@@ -41,10 +41,10 @@
 extern "C" {
 #endif
 
-#include <rpc/types.h>
-#include <rpc/xdr.h>
-#include <rpc/clnt.h>
-#include <rpc/svc.h>
+#include "types.h"
+#include "xdr.h"
+#include "clnt.h"
+#include "svc.h"
 
 #ifdef __cplusplus
 }

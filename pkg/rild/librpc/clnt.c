@@ -1,7 +1,7 @@
-#include <rpc/rpc.h>
+#include "rpc/rpc.h"
 #include <arpa/inet.h>
-#include <rpc/rpc_router_ioctl.h>
-#include <debug.h>
+#include "rpc/rpc_router_ioctl.h"
+#include "debug.h"
 #include <pthread.h>
 #include <sys/select.h>
 
@@ -38,8 +38,8 @@ struct CLIENT {
     volatile int cb_stop;
 };
 
-extern void* svc_find(void *xprt, rpcprog_t prog, rpcvers_t vers);
-extern void svc_dispatch(void *svc, void *xprt);
+extern "C" void* svc_find(void *xprt, rpcprog_t prog, rpcvers_t vers);
+extern "C" void svc_dispatch(void *svc, void *xprt);
 extern int  r_open();
 extern void r_close();
 extern xdr_s_type *xdr_init_common(const char *name, int is_client);
@@ -171,7 +171,7 @@ static void *rx_context(void *__u __attribute__((unused)))
     fd_set rfds;
     while(num_clients) {
         pthread_mutex_lock(&rx_mutex);
-        rfds = rx_fdset;
+        memcpy(&rfds, (const void *)&rx_fdset, sizeof(rfds)); // rfds = rx_fdset;
         pthread_mutex_unlock(&rx_mutex);
         tv.tv_sec = 0; tv.tv_usec = 500 * 1000;
         n = select(max_rxfd + 1, (fd_set *)&rfds, NULL, NULL, &tv);
@@ -356,13 +356,13 @@ clnt_call(
     /* Check that other side accepted and responded */
     if (reply_header.stat != RPC_MSG_ACCEPTED) {
         /* Offset to map returned error into clnt_stat */
-        ret = reply_header.u.dr.stat + RPC_VERSMISMATCH;
+        ret = (clnt_stat)(reply_header.u.dr.stat + RPC_VERSMISMATCH);
         E("%08x:%08x call was not accepted.\n",
           (uint32_t)client->xdr->x_prog, client->xdr->x_vers);
         goto out_unlock;
     } else if (reply_header.u.ar.stat != RPC_ACCEPT_SUCCESS) {
         /* Offset to map returned error into clnt_stat */
-        ret = reply_header.u.ar.stat + RPC_AUTHERROR;
+        ret = (clnt_stat)(reply_header.u.ar.stat + RPC_AUTHERROR);
         E("%08x:%08x call failed with an authentication error.\n",
           (uint32_t)client->xdr->x_prog, client->xdr->x_vers);
         goto out_unlock;
@@ -406,6 +406,8 @@ bool_t xdr_recv_auth (xdr_s_type *xdr, opaque_auth *auth)
     case 4:
         if(!XDR_RECV_INT32(xdr, (int32_t *)&(auth->oa_flavor))) return FALSE;
         break;
+    default:
+	break;
     }
     if (!XDR_RECV_UINT (xdr, (unsigned *)&(auth->oa_length))) {
         return FALSE;
@@ -516,7 +518,7 @@ CLIENT *clnt_create(
     uint32 vers,
     char * proto)
 {
-    CLIENT *client = calloc(1, sizeof(CLIENT));
+    CLIENT *client = (CLIENT *)calloc(1, sizeof(CLIENT));
     if (client) {
         char name[256];
 
@@ -536,7 +538,7 @@ CLIENT *clnt_create(
         client->cb_stop = -1; /* callback thread has not been started */
 
         if (!num_clients) {
-            FD_ZERO(&rx_fdset);
+            FD_ZERO((fd_set *)&rx_fdset);
             max_rxfd = 0;
         }
 

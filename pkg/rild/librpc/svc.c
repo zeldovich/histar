@@ -39,13 +39,13 @@
  * Copyright (C) 1984, Sun Microsystems, Inc.
  */
 
-#include <rpc/rpc.h>
+#include "rpc/rpc.h"
 #include <sys/select.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <rpc/rpc_router_ioctl.h>
-#include <debug.h>
+#include "rpc/rpc_router_ioctl.h"
+#include "debug.h"
 #include <pthread.h>
 
 extern XDR *xdr_init_common(const char *name, int is_client);
@@ -100,7 +100,7 @@ SVCXPRT *the_xprt; /* FIXME: have a list or something */
   been serviced.
  */
 
-void svc_dispatch(registered_server *svc, SVCXPRT *xprt);
+extern "C" void svc_dispatch(registered_server *svc, SVCXPRT *xprt);
 
 static void* svc_context(void *__u)
 {
@@ -109,7 +109,7 @@ static void* svc_context(void *__u)
     struct timeval tv;
     volatile fd_set rfds;
     while(xprt->num_servers) {
-        rfds = xprt->fdset;
+        memcpy((void *)&rfds, &xprt->fdset, sizeof(rfds)); //rfds = xprt->fdset;
         tv.tv_sec = 1; tv.tv_usec = 0;
         n = select(xprt->max_fd + 1, (fd_set *)&rfds, NULL, NULL, &tv);
         if (n < 0) {
@@ -146,7 +146,7 @@ SVCXPRT *svcrtr_create (void)
         D("The RPC transport has already been created.\n");
         xprt = the_xprt;
     } else {
-        xprt = calloc(1, sizeof(SVCXPRT));
+        xprt = (SVCXPRT *)calloc(1, sizeof(SVCXPRT));
         if (xprt) {
             FD_ZERO(&xprt->fdset);
             xprt->max_fd = 0;
@@ -184,7 +184,7 @@ static registered_server* svc_find_nosync(SVCXPRT *xprt,
     return trav;
 }
 
-registered_server* svc_find(SVCXPRT *xprt, 
+extern "C" registered_server* svc_find(SVCXPRT *xprt, 
                             rpcprog_t prog, rpcvers_t vers)
 {
     pthread_mutex_lock(&xprt->lock);
@@ -212,7 +212,7 @@ bool_t svc_register (SVCXPRT *xprt, rpcprog_t prog, rpcvers_t vers,
         return svc->dispatch == dispatch;
     }
 
-    svc = malloc(sizeof(registered_server));
+    svc = (registered_server *)malloc(sizeof(registered_server));
 
     /* If the program number of the RPC server ANDs with 0x01000000, then it is
        not a true RPC server, but a callback client for an existing RPC client.

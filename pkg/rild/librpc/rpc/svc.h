@@ -40,7 +40,7 @@
 extern "C" {
 #endif
 
-#include <rpc/types.h>
+#include "types.h"
 
 /*
  * This interface must manage two items concerning remote procedure calling:

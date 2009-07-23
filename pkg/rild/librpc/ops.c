@@ -1,6 +1,6 @@
-#include <rpc/rpc.h>
-#include <rpc/rpc_router_ioctl.h>
-#include <debug.h>
+#include "rpc/rpc.h"
+#include "rpc/rpc_router_ioctl.h"
+#include "debug.h"
 
 #include <sys/types.h>   
 #include <sys/stat.h>     
@@ -63,8 +63,7 @@ int r_write (int handle, const char *buf, uint32 size)
 
 int r_control(int handle, const uint32 cmd, void *arg)
 {
-  return ioctl(handle, cmd, arg);
+  fprintf(stderr, "%s: WARNING::: UNIMPLEMENTED\n");
+  return 0;
+  //return ioctl(handle, cmd, arg);
 }
-
-
-

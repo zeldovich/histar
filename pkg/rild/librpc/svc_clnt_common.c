@@ -1,7 +1,8 @@
-#include <rpc/rpc.h>
+#include "rpc/rpc.h"
 #include <arpa/inet.h>
 #include <errno.h>
-#include <debug.h>
+#include <unistd.h>
+#include "debug.h"
 
 extern int r_open(const char *router);
 extern void r_close(int handle);
@@ -87,7 +88,7 @@ extern bool_t xdr_recv_reply_header(xdr_s_type *xdr, rpc_reply_header *reply);
 static bool_t xdr_std_msg_send(xdr_s_type *xdr)
 {  
     /* Send the RPC packet. */
-    if (r_write(xdr->fd, (void *)xdr->out_msg, xdr->out_next) !=
+    if (r_write(xdr->fd, (const char *)xdr->out_msg, xdr->out_next) !=
             xdr->out_next)
         return FALSE;
         
@@ -96,7 +97,7 @@ static bool_t xdr_std_msg_send(xdr_s_type *xdr)
 
 static bool_t xdr_std_read(xdr_s_type *xdr)
 {
-    xdr->in_len = r_read(xdr->fd, (void *)xdr->in_msg, RPCROUTER_MSGSIZE_MAX);
+    xdr->in_len = r_read(xdr->fd, (char *)xdr->in_msg, RPCROUTER_MSGSIZE_MAX);
     if (xdr->in_len < 0) return FALSE;
 
     if (xdr->in_len < (RPC_OFFSET+2)*4) {

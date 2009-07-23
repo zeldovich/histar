@@ -1,4 +1,4 @@
-#include <rpc/rpc.h>
+#include "rpc/rpc.h"
 #include <string.h>
 
 #define LASTUNSIGNED    ((u_int)((int)0-1))
@@ -364,7 +364,7 @@ xdr_array (XDR *xdrs,
         case XDR_DECODE:
             if (c == 0)
                 return TRUE;
-            *addrp = target = mem_alloc (nodesize);
+            *addrp = target = (char *)mem_alloc (nodesize);
             if (*addrp) return FALSE;
             memset (target, 0, nodesize);
             break;            
