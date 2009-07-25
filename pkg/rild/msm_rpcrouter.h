@@ -28,7 +28,12 @@ struct rpcrouter_ioctl_server_args {
 
 #define RPC_ROUTER_IOCTL_MAGIC (0xC1)
 
-#if 0
+#if 1
+#define RPC_ROUTER_IOCTL_GET_VERSION		0x0
+#define RPC_ROUTER_IOCTL_GET_MTU		0x1
+#define RPC_ROUTER_IOCTL_REGISTER_SERVER	0x2
+#define RPC_ROUTER_IOCTL_UNREGISTER_SERVER	0x3
+#else
 #define RPC_ROUTER_IOCTL_GET_VERSION \
 	_IOR(RPC_ROUTER_IOCTL_MAGIC, 0, unsigned int)
 

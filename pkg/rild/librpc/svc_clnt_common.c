@@ -5,6 +5,7 @@
 #include "debug.h"
 
 extern int r_open(const char *router);
+extern int r_dup(int);
 extern void r_close(int handle);
 extern int r_read(int handle, char *buf, uint32 size);
 extern int r_write(int handle, const char *buf, uint32 size);
@@ -301,7 +302,7 @@ xdr_s_type *xdr_clone(xdr_s_type *other)
 
     xdr->xops = &xdr_std_xops;
 
-    xdr->fd = dup(other->fd);
+    xdr->fd = r_dup(other->fd);
     if (xdr->fd < 0) {
         E("ERROR DUPLICATING FD %d: %s\n", other->fd, strerror(errno));
         free(xdr);

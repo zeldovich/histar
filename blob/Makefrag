@@ -4,15 +4,23 @@ $(OBJDIR)/blob/%.csv: blob/%.csv
 	@mkdir -p $(@D)
 	cp $< $@
 
+$(OBJDIR)/blob/libgps.so: blob/libgps.so
+	@mkdir -p $(@D)
+	cp blob/libgps.so $@
+
 $(OBJDIR)/blob/libhtc_ril.so: blob/libhtc_ril.so
 	@mkdir -p $(@D)
 	cp blob/libhtc_ril.so $@
 
 $(OBJDIR)/blob/misc_partition.img: blob/misc_partition.img
 	@mkdir -p $(@D)
-	cp blob/libhtc_ril.so $@
+	cp blob/misc_partition.img $@
 
 $(OBJDIR)/kern/embed_blob_%.csv.o: $(OBJDIR)/blob/%.csv
+	@mkdir -p $(@D)
+	cd $(OBJDIR) && $(OBJCOPY) -I binary -O $(OBJTYPE) -B $(BFDARCH) `echo $< | sed -e 's,[^/]*/,,'` ../$@
+
+$(OBJDIR)/kern/embed_blob_libgps.so.o: $(OBJDIR)/blob/libgps.so
 	@mkdir -p $(@D)
 	cd $(OBJDIR) && $(OBJCOPY) -I binary -O $(OBJTYPE) -B $(BFDARCH) `echo $< | sed -e 's,[^/]*/,,'` ../$@
 

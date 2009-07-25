@@ -1,14 +1,15 @@
 OBJDIRS += pkg/rild
 
-RILD_SRCFILES := rild.c smd.c smd_tty.c smd_qmi.c android_file.c android_pthread.c android_misc.c
+RILD_SRCFILES := rild.c smd.c smd_tty.c smd_qmi.c smd_rpcrouter.c smd_rpcrouter_servers.c android_file.c android_pthread.c android_misc.c
 RILD_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/rild/%.o, $(RILD_SRCFILES))
 
 $(OBJDIR)/pkg/rild/%.o: pkg/rild/%.c
 	@mkdir -p $(@D)
 	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-missing-noreturn -c -o $@ $<
 
+include pkg/rild/librpc/Makefrag
 include pkg/rild/ril/Makefrag
 include pkg/rild/support/Makefrag
 
-$(OBJDIR)/user/rild.debuginfo: $(RILD_OBJFILES) $(RILD_RIL_OBJFILES) $(RILD_SUPPORT_OBJFILES) $(LDEPS)
-	$(CXX) -o $@ $(LDFLAGS) $(RILD_OBJFILES) $(RILD_RIL_OBJFILES) $(RILD_SUPPORT_OBJFILES)
+$(OBJDIR)/user/rild.debuginfo: $(RILD_OBJFILES) $(RILD_LIBRPC_OBJFILES) $(RILD_RIL_OBJFILES) $(RILD_SUPPORT_OBJFILES) $(LDEPS)
+	$(CXX) -o $@ $(LDFLAGS) $(RILD_OBJFILES) $(RILD_LIBRPC_OBJFILES) $(RILD_RIL_OBJFILES) $(RILD_SUPPORT_OBJFILES)

@@ -1,6 +1,6 @@
 #include "rpc/rpc.h"
 #include <arpa/inet.h>
-#include "rpc/rpc_router_ioctl.h"
+#include "../msm_rpcrouter.h"
 #include "debug.h"
 #include <pthread.h>
 #include <sys/select.h>
@@ -42,6 +42,7 @@ extern "C" void* svc_find(void *xprt, rpcprog_t prog, rpcvers_t vers);
 extern "C" void svc_dispatch(void *svc, void *xprt);
 extern int  r_open();
 extern void r_close();
+extern int r_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *errorfds, struct timeval *timeout);
 extern xdr_s_type *xdr_init_common(const char *name, int is_client);
 extern xdr_s_type *xdr_clone(xdr_s_type *);
 extern void xdr_destroy_common(xdr_s_type *xdr);
@@ -174,7 +175,7 @@ static void *rx_context(void *__u __attribute__((unused)))
         memcpy(&rfds, (const void *)&rx_fdset, sizeof(rfds)); // rfds = rx_fdset;
         pthread_mutex_unlock(&rx_mutex);
         tv.tv_sec = 0; tv.tv_usec = 500 * 1000;
-        n = select(max_rxfd + 1, (fd_set *)&rfds, NULL, NULL, &tv);
+        n = r_select(max_rxfd + 1, (fd_set *)&rfds, NULL, NULL, &tv);
         if (n < 0) {
             E("select() error %s (%d)\n", strerror(errno), errno);
             continue;

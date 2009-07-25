@@ -1,7 +1,23 @@
 - libhtc_ril.so was modified from the original to ignore the NEEDED .so
   dependencies that we don't have (by changing the symbols to all be
-  libm.so). We then put the necessary symbols in pkg/rild/android_crud.c.
+  libm.so). We then put the necessary symbols in pkg/rild/android_*.c.
 
 - libhtc_ril.so was also modified to call Xthread_ rather than pthread_
-  functions, since HiStar's pthread.c isn't binary compatible. android_crud.c
-  provides the necessary translation stubs.
+  functions, since HiStar's pthread.c isn't binary compatible.
+  android_pthread.c provides the necessary translation stubs.
+
+- libgps.so was modified in a way similar to libhtc_ril.so, but it's worse
+  than initially expected -- the library is prelinked and cannot simply be
+  dlopened. To work around this, we must handle a few things:
+
+	- The prelink was at 0xa9700000 (as can be seen in the PRE tag
+	  in the last 8 bytes of the file). This has two issues: first,
+	  we don't handle any prelinking, let alone Android's method.
+	  Second, our user/kernel split is at 0x80000000, nearly a full
+	  gigabyte lower. My solution was to change all absolute addresses
+	  I could find in the file to 0x68000000 and hack ldso to mmap the
+	  library in the right place.
+
+	- RELCOUNT is stuck at 193, but there are no relative relocs to
+	  be done after Android's 'apriori' got done with it, so it must
+	  be zeroed (offset 0x13110), else ldso screws up.

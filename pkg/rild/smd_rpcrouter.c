@@ -44,14 +44,14 @@ extern "C" {
 #include "smd_rpcrouter.h"
 #include "support/misc.h"
 
-#define TRACE_R2R_MSG 1
-#define TRACE_R2R_RAW 1
-#define TRACE_RPC_MSG 1
+#define TRACE_R2R_MSG 0
+#define TRACE_R2R_RAW 0
+#define TRACE_RPC_MSG 0
 
-#define MSM_RPCROUTER_DEBUG 1
-#define MSM_RPCROUTER_DEBUG_PKT 1
-#define MSM_RPCROUTER_R2R_DEBUG 1
-#define DUMP_ALL_RECEIVED_HEADERS 1
+#define MSM_RPCROUTER_DEBUG 0
+#define MSM_RPCROUTER_DEBUG_PKT 0
+#define MSM_RPCROUTER_R2R_DEBUG 0
+#define DUMP_ALL_RECEIVED_HEADERS 0
 
 #define DIAG(x...) cprintf("[RR] ERROR " x)
 
@@ -194,10 +194,10 @@ static struct rr_server *rpcrouter_create_server(uint32_t pid,
 	TAILQ_INSERT_TAIL(&server_list, server, list);
 	pthread_mutex_unlock(&server_list_lock);
 
-#ifdef notyet
-	if (pid == RPCROUTER_PID_REMOTE) {
-#else
+#if 1
 	if (0) {
+#else
+	if (pid == RPCROUTER_PID_REMOTE) {
 #endif
 		rc = msm_rpcrouter_create_server_cdev(server);
 		if (rc < 0)
@@ -258,7 +258,7 @@ static struct rr_server *rpcrouter_lookup_server_by_dev(dev_t dev)
 }
 #endif
 
-struct msm_rpc_endpoint *msm_rpcrouter_create_local_endpoint(dev_t dev)
+struct msm_rpc_endpoint *msm_rpcrouter_create_local_endpoint(int is_userclient, uint32_t prog, uint32_t ver)
 {
 	struct msm_rpc_endpoint *ept;
 
@@ -272,17 +272,17 @@ struct msm_rpc_endpoint *msm_rpcrouter_create_local_endpoint(dev_t dev)
 
 	ept->cid = (uint32_t) ept;
 	ept->pid = RPCROUTER_PID_LOCAL;
-	ept->dev = dev;
+	ept->dev = -1;
 
-#ifdef notyet
-	if ((dev != msm_rpcrouter_devno) && (dev != MKDEV(0, 0))) {
+	if (is_userclient) {
 		struct rr_server *srv;
 		/*
 		 * This is a userspace client which opened
 		 * a program/ver devicenode. Bind the client
 		 * to that destination
 		 */
-		srv = rpcrouter_lookup_server_by_dev(dev);
+		//srv = rpcrouter_lookup_server_by_dev(dev);
+		srv = rpcrouter_lookup_server(prog, ver);
 		/* TODO: bug? really? */
 		BUG_ON(!srv);
 
@@ -294,12 +294,10 @@ struct msm_rpc_endpoint *msm_rpcrouter_create_local_endpoint(dev_t dev)
 		/* mark not connected */
 		ept->dst_pid = 0xffffffff;
 	}
-#else
-		ept->dst_pid = 0xffffffff;
-#endif
 
 	pthread_mutex_init(&ept->waitq_mutex, NULL);
 	pthread_cond_init(&ept->waitq_cond, NULL);
+	ept->waitq_evtcnt = 0;
 	TAILQ_INIT(&ept->read_q);
 	pthread_mutex_init(&ept->read_q_lock, NULL);
 #if 0
@@ -419,7 +417,7 @@ static int process_control_msg(union rr_control_msg *msg, int len)
 			ctl.srv.prog = server->prog;
 			ctl.srv.vers = server->vers;
 
-			RR("x NEW_SERVER id=%d:%08x prog=%08x:%d\n",
+			RR("x NEW_SERVER id=%d:%08x prog=%08x:%08x\n",
 			   server->pid, server->cid,
 			   server->prog, server->vers);
 
@@ -448,7 +446,7 @@ static int process_control_msg(union rr_control_msg *msg, int len)
 		break;
 
 	case RPCROUTER_CTRL_CMD_NEW_SERVER:
-		RR("o NEW_SERVER id=%d:%08x prog=%08x:%d\n",
+		RR("o NEW_SERVER id=%d:%08x prog=%08x:%08x\n",
 		   msg->srv.pid, msg->srv.cid, msg->srv.prog, msg->srv.vers);
 
 		server = rpcrouter_lookup_server(msg->srv.prog, msg->srv.vers);
@@ -492,7 +490,7 @@ static int process_control_msg(union rr_control_msg *msg, int len)
 		break;
 
 	case RPCROUTER_CTRL_CMD_REMOVE_SERVER:
-		RR("o REMOVE_SERVER prog=%08x:%d\n",
+		RR("o REMOVE_SERVER prog=%08x:%08x\n",
 		   msg->srv.prog, msg->srv.vers);
 		server = rpcrouter_lookup_server(msg->srv.prog, msg->srv.vers);
 		if (server)
@@ -624,7 +622,7 @@ static int rr_read(void *data, int len)
 	return 0;
 }
 
-static uint32_t r2r_buf[RPCROUTER_MSGSIZE_MAX];
+static uint32_t r2r_buf[SMD_RPCROUTER_MSGSIZE_MAX];
 
 static int do_read_data()
 {
@@ -647,8 +645,8 @@ static int do_read_data()
 		DIAG("version %d != %d\n", hdr.version, RPCROUTER_VERSION);
 		goto fail_data;
 	}
-	if (hdr.size > RPCROUTER_MSGSIZE_MAX) {
-		DIAG("msg size %d > max %d\n", hdr.size, RPCROUTER_MSGSIZE_MAX);
+	if (hdr.size > SMD_RPCROUTER_MSGSIZE_MAX) {
+		DIAG("msg size %d > max %d\n", hdr.size, SMD_RPCROUTER_MSGSIZE_MAX);
 		goto fail_data;
 	}
 
@@ -726,6 +724,9 @@ packet_complete:
 
 	pthread_mutex_lock(&ept->waitq_mutex);
 	pthread_cond_signal(&ept->waitq_cond);
+	ept->waitq_evtcnt++;
+cprintf("sys_sync_wakeup: at %p (evtcnt = %d)\n", &ept->waitq_evtcnt, (int)ept->waitq_evtcnt);
+	sys_sync_wakeup(&ept->waitq_evtcnt);
 	pthread_mutex_unlock(&ept->waitq_mutex);
 
 	pthread_mutex_unlock(&ept->read_q_lock);
@@ -776,7 +777,7 @@ struct msm_rpc_endpoint *msm_rpc_open(void)
 {
 	struct msm_rpc_endpoint *ept;
 
-	ept = msm_rpcrouter_create_local_endpoint(MKDEV(0, 0));
+	ept = msm_rpcrouter_create_local_endpoint(0, 0, 0);
 	if (ept == NULL)
 		return (struct msm_rpc_endpoint *)ERR_PTR(-E_NO_MEM);
 
@@ -797,7 +798,7 @@ int msm_rpc_write(struct msm_rpc_endpoint *ept, void *buffer, int count)
 	int needed;
 
 	/* TODO: fragmentation for large outbound packets */
-	if (count > (int)(RPCROUTER_MSGSIZE_MAX - sizeof(uint32_t)) || !count)
+	if (count > (int)(SMD_RPCROUTER_MSGSIZE_MAX - sizeof(uint32_t)) || !count)
 		return -E_INVAL;
 
 	/* snoop the RPC packet and enforce permissions */
@@ -820,8 +821,8 @@ int msm_rpc_write(struct msm_rpc_endpoint *ept, void *buffer, int count)
 		}
 		if ((ept->dst_prog != rq->prog) ||
 		    (ept->dst_vers != rq->vers)) {
-			cprintf("rr_write: cannot write to %08x:%d "
-			       "(bound to %08x:%d)\n",
+			cprintf("rr_write: cannot write to %08x:%08x "
+			       "(bound to %08x:%08x)\n",
 			       be32_to_cpu(rq->prog), be32_to_cpu(rq->vers),
 			       be32_to_cpu(ept->dst_prog),
 			       be32_to_cpu(ept->dst_vers));
@@ -829,7 +830,7 @@ int msm_rpc_write(struct msm_rpc_endpoint *ept, void *buffer, int count)
 		}
 		hdr.dst_pid = ept->dst_pid;
 		hdr.dst_cid = ept->dst_cid;
-		IO("CALL to %08x:%d @ %d:%08x (%d bytes)\n",
+		IO("CALL to %08x:%08x @ %d:%08x (%d bytes)\n",
 		   be32_to_cpu(rq->prog), be32_to_cpu(rq->vers),
 		   ept->dst_pid, ept->dst_cid, count);
 	} else {
@@ -1170,7 +1171,7 @@ int msm_rpc_register_server(struct msm_rpc_endpoint *ept,
 	msg.srv.prog = prog;
 	msg.srv.vers = vers;
 
-	RR("x NEW_SERVER id=%d:%08x prog=%08x:%d\n",
+	RR("x NEW_SERVER id=%d:%08x prog=%08x:%08x\n",
 	   ept->pid, ept->cid, prog, vers);
 
 	rc = rpcrouter_send_control_msg(&msg);

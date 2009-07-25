@@ -13,7 +13,16 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/un.h>
+#include <sys/un.h> 
+
+#include <inc/syscall.h>
+
+// long android::elapsedRealtime(void)
+long
+_ZN7android15elapsedRealtimeEv(void)
+{
+	return (long)(sys_clock_nsec() / 10000000ULL);
+}
 
 /*
  * _C_toupper_ Written by J.T. Conklin <jtc@netbsd.org>.

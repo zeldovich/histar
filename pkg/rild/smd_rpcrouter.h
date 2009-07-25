@@ -28,7 +28,7 @@
 
 #define RPCROUTER_VERSION			1
 #define RPCROUTER_PROCESSORS_MAX		4
-#define RPCROUTER_MSGSIZE_MAX			512
+#define SMD_RPCROUTER_MSGSIZE_MAX		512
 
 #define RPCROUTER_CLIENT_BCAST_ID		0xffffffff
 #define RPCROUTER_ROUTER_ADDRESS		0xfffffffe
@@ -79,7 +79,7 @@ struct rr_header {
 #define RPCROUTER_MAX_REMOTE_SERVERS		100
 
 struct rr_fragment {
-	unsigned char data[RPCROUTER_MSGSIZE_MAX];
+	unsigned char data[SMD_RPCROUTER_MSGSIZE_MAX];
 	uint32_t length;
 	struct rr_fragment *next;
 };
@@ -143,6 +143,7 @@ struct msm_rpc_endpoint {
 	//struct wake_lock read_q_wake_lock;
 	pthread_mutex_t waitq_mutex;
 	pthread_cond_t waitq_cond;
+	uint64_t waitq_evtcnt;
 	unsigned flags;
 
 	/* endpoint address */
@@ -177,7 +178,7 @@ int __msm_rpc_read(struct msm_rpc_endpoint *ept,
 		   struct rr_fragment **frag,
 		   unsigned len, long timeout);
 
-struct msm_rpc_endpoint *msm_rpcrouter_create_local_endpoint(dev_t dev);
+struct msm_rpc_endpoint *msm_rpcrouter_create_local_endpoint(int, uint32_t, uint32_t);
 int msm_rpcrouter_destroy_local_endpoint(struct msm_rpc_endpoint *ept);
 
 int msm_rpcrouter_create_server_cdev(struct rr_server *server);

@@ -44,13 +44,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include "rpc/rpc_router_ioctl.h"
+#include "../msm_rpcrouter.h"
 #include "debug.h"
 #include <pthread.h>
 
 extern XDR *xdr_init_common(const char *name, int is_client);
 extern void xdr_destroy_common(XDR *xdr);
 extern int r_control(int handle, const uint32 cmd, void *arg);
+extern int r_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *errorfds, struct timeval *timeout);
 
 #include <stdio.h>
 #include <errno.h>
@@ -111,7 +112,7 @@ static void* svc_context(void *__u)
     while(xprt->num_servers) {
         memcpy((void *)&rfds, &xprt->fdset, sizeof(rfds)); //rfds = xprt->fdset;
         tv.tv_sec = 1; tv.tv_usec = 0;
-        n = select(xprt->max_fd + 1, (fd_set *)&rfds, NULL, NULL, &tv);
+        n = r_select(xprt->max_fd + 1, (fd_set *)&rfds, NULL, NULL, &tv);
         if (n < 0) {
             E("select() error %s (%d)\n", strerror(errno), errno);
             continue;

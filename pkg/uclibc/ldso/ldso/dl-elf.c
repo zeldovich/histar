@@ -458,7 +458,16 @@ struct elf_resolve *_dl_load_elf_shared_library(int secure,
 	if (!piclib)
 		flags |= MAP_FIXED;
 
-	status = (char *) _dl_mmap((char *) (piclib ? 0 : minvma),
+	/* Check if the file is Android prelinked and kluge it if necessary */
+	unsigned int prelink_loadoff = 0;
+	if (_dl_strcmp(libname, "/bin/libgps.so") == 0) {
+		prelink_loadoff = 0x68000000;
+		flags |= MAP_FIXED;
+		_dl_dprintf(2, "%s: libgps.so detected (piclib %d); loading at %x\n", __func__, piclib, prelink_loadoff);
+	}
+
+
+	status = (char *) _dl_mmap((char *) (piclib ? prelink_loadoff : minvma),
 			maxvma - minvma, PROT_NONE, flags | MAP_ANONYMOUS, -1, 0);
 	if (_dl_mmap_check_error(status)) {
 		_dl_dprintf(2, "%s:%i: can't map '%s'\n", _dl_progname, __LINE__, libname);

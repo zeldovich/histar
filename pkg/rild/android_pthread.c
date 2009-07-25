@@ -183,6 +183,12 @@ Xthread_create(Xthread_t *thread, Xthread_attr_t const *attr,
 }
 
 int
+Xthread_join(Xthread_t thread, void **value_ptr)
+{
+	return (pthread_join(thread, value_ptr));
+}
+
+int
 Xthread_mutex_init(Xthread_mutex_t *mutex, const Xthread_mutexattr_t *attr)
 {
 	if (Xthread_debug_mutex)
