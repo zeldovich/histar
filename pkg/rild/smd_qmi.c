@@ -16,6 +16,8 @@
  *
  */
 
+// The T-Mobile G1 does "up:epc.tmobile.com none none" to connect
+
 enum { qmi_debug = 1 };
 
 extern "C" {
