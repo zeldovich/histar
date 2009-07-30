@@ -92,6 +92,12 @@ sv_status_callback(GpsSvStatus *sv_info)
 	fprintf(stderr, "  number of SVs:  %d\n", sv_info->num_svs);
 }
 
+static void download_request_callback() { fprintf(stderr, "--Xtra download request CB\n"); }
+
+GpsXtraCallbacks sGpsXtraCallbacks = {
+    download_request_callback,
+};
+
 int main(int argc, char **argv)
 {
     const char *rilLibPath = DEF_RIL_SO;
@@ -135,6 +141,7 @@ struct htc_get_batt_info_rep {
 	} info;
 } rep;
 
+while (1) {
 int rc = msm_rpc_call_reply(endpt, 2, &req, sizeof(req), &rep, sizeof(rep), 5000);
 if (rc < 0) {
 	fprintf(stderr, "msm_rpc_call_reply failed: %d\n", rc);
@@ -147,6 +154,7 @@ if (rc < 0) {
 	printf("charging src: %u\n", be32_to_cpu(rep.info.charging_source));
 	printf("charging ena: %u\n", be32_to_cpu(rep.info.charging_enabled));
 	printf("full capacity: %u\n", be32_to_cpu(rep.info.full_bat));
+}
 }
 
     dlHandle = dlopen("/bin/libgps.so", RTLD_NOW);
@@ -169,8 +177,35 @@ if (rc < 0) {
     GpsCallbacks cbs = { location_callback, status_callback, sv_status_callback };
     iface->init(&cbs);
     fprintf(stderr, "GpsInit done.\n");
-    iface->set_fix_frequency(1);
+    const GpsXtraInterface *xtra = (const GpsXtraInterface*)iface->get_extension(GPS_XTRA_INTERFACE);
+    if (xtra != NULL) {
+	fprintf(stderr, "Gps supports Xtra interface\n");
+	int r = xtra->init(&sGpsXtraCallbacks);
+	if (r)
+		fprintf(stderr, " -- Xtra interface init failed: %d\n", r);
+    } else {
+	fprintf(stderr, "Xtra interface not supported\n");
+    }
+    iface->delete_aiding_data(GPS_DELETE_ALL);
+    iface->set_position_mode(GPS_POSITION_MODE_STANDALONE, 10);
+start:
     iface->start();
+
+    sleep(30);
+    fprintf(stderr, "Stopping interface\n");
+    iface->stop();
+    sleep(25);
+    fprintf(stderr, "Restarting interface\n");
+    goto start;
+
+    fprintf(stderr, "opening NMEA tty\n");
+    smd_tty_open(27); 
+
+    while (1) {
+	unsigned char buf[512];
+	smd_tty_read(27, buf, sizeof(buf));
+	fprintf(stderr, "NMEA: [%s]\n", buf);
+    }
 
 sleep(9999);
 
