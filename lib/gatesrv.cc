@@ -129,7 +129,6 @@ gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
 
 	    stack_switch((uintptr_t) fn, arg, (uintptr_t) stackbase, flags,
 			 stacktop, (void *) &gatesrv_entry);
-cprintf("STACK SWITCHED!\n");
 	}
     } catch (std::exception &e) {
 	printf("gatesrv_entry_tls: %s\n", e.what());
