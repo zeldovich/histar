@@ -410,7 +410,7 @@ int
 main(int ac, char **av)
 try
 {
-    if (ac != 6) {
+    if (ac != 6 && ac != 7) {
 	fprintf(stderr, "Usage: %s taint grant fbdevpath fontname "
                         "borderpixels\n", av[0]);
 	exit(-1);
@@ -429,6 +429,16 @@ try
     error_check(strtou64(av[5], 0, 10, &borderpx));
 
     error_check(ioctl(fb_fd, FBIOGET_VSCREENINFO, &fbinfo));
+
+    if (ac == 7) {
+        unsigned int yreservepx = strtoul(av[6], NULL, 10);
+        if (yreservepx > fbinfo.yres) {
+            fprintf(stderr, "y-axis pixel reservation (%d) is "
+	        "greater than yres (%d)!\n", yreservepx, fbinfo.yres);
+        } else {
+            fbinfo.yres -= yreservepx;
+        }
+    }
 
 #ifdef USE_FT
     const char *fontname = av[4];

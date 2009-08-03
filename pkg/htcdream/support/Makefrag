@@ -1,0 +1,8 @@
+OBJDIRS += pkg/htcdream/support
+
+HTCDREAM_SUPPORT_SRCFILES := android_file.cc android_misc.cc android_pthread.cc smddgate.cc Parcel.cc SharedBuffer.cc String16.cc String8.cc record_stream.cc
+HTCDREAM_SUPPORT_OBJFILES := $(patsubst %.cc, $(OBJDIR)/pkg/htcdream/support/%.o, $(HTCDREAM_SUPPORT_SRCFILES))
+
+$(OBJDIR)/pkg/htcdream/support/%.o: pkg/htcdream/support/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-missing-noreturn -c -o $@ $<

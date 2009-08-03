@@ -1,0 +1,6 @@
+include pkg/htcdream/smdd/Makefrag
+include pkg/htcdream/battd/Makefrag
+include pkg/htcdream/rild/Makefrag
+include pkg/htcdream/rilc/Makefrag
+#include pkg/htcdream/gpsd/Makefrag
+include pkg/htcdream/radiooptions/Makefrag

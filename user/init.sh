@@ -40,7 +40,7 @@ if [ -f /bin/terminfo.tar.gz ]; then
     rm /bin/terminfo.tar.gz
 fi
 
-if [ -x /bin/rild ]; then
+if [ -x /bin/smdd ]; then
     # libhtc_ril.so writes stuff here:
     mkdir -p /data/misc
 

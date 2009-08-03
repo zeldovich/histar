@@ -479,7 +479,7 @@ init_mouse(void)
 }
 
 static int
-init_rild(int basecons)
+init_smdd(int basecons)
 {
     int64_t fbc_grant = handle_alloc();
     int64_t fbc_taint = handle_alloc();
@@ -524,10 +524,10 @@ init_rild(int basecons)
 	    return 1;
         }
     }
-#if 0
+
     fs_inode ino;
-    if (fs_namei("/bin/rild", &ino) < 0) {
-        cprintf("init: init_fbcons: couldn't find /bin/rild\n");
+    if (fs_namei("/bin/smdd", &ino) < 0) {
+        cprintf("init: init_fbcons: couldn't find /bin/smdd\n");
 	return 1;
     }
 
@@ -537,13 +537,13 @@ init_rild(int basecons)
     dr.set(fbc_grant, 1);
     dr.set(fbc_taint, 1);
 
-    const char *argv[] = { "rild" };
+    const char *argv[] = { "smdd" };
     child_process cp = spawn(start_env->process_pool,
 		   ino, basecons, basecons, basecons,
 		   1, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
 		   0, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
-#endif
+
     return (0);
 }
 
@@ -639,7 +639,9 @@ init_fbcons(int basecons, int *consp, int maxvt)
     if (!borderpx[0])
 	sprintf(&borderpx[0], "0");
 
-    const char *argv[] = { "fbconsd", a0, a1, "/dev/fb0", fontname, borderpx };
+    const char *yreservepx = "32";
+
+    const char *argv[] = { "fbconsd", a0, a1, "/dev/fb0", fontname, borderpx, yreservepx };
     child_process cp = spawn(start_env->process_pool,
 		   ino, basecons, basecons, basecons,
 		   6, &argv[0],
@@ -755,9 +757,9 @@ try
     if (mousefail)
         cprintf("Failed to initialize /dev/psaux\n");
 
-    int rildfail = init_rild(cons);
-    if (rildfail)
-        cprintf("Failed to initialize rild\n");
+    int smddfail = init_smdd(cons);
+    if (smddfail)
+        cprintf("Failed to initialize smdd\n");
 
     run_shell(cons_fds[0]);
 } catch (std::exception &e) {

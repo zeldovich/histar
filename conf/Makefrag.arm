@@ -5,7 +5,7 @@ BFDARCH := arm
 # goldfish uses arm926ej-s, htc dream is arm1136jf-s
 ARMCPU  := arm1136jf-s
 ARCH_BASECFLAGS := -DJOS_ARM_HTCDREAM
-ARCH_USER_COMFLAGS := -mthumb -mthumb-interwork -mlong-calls -mcaller-super-interworking
+ARCH_USER_COMFLAGS := -mthumb-interwork
 
 CC      := $(GCCPREFIX)gcc -pipe -mlittle-endian -mcpu=$(ARMCPU)
 CXX     := $(GCCPREFIX)g++ -pipe -mlittle-endian -mcpu=$(ARMCPU)

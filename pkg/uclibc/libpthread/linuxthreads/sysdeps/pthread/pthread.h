@@ -407,6 +407,9 @@ extern int pthread_cond_timedwait (pthread_cond_t *__restrict __cond,
 				   __const struct timespec *__restrict
 				   __abstime);
 
+// Android Bionic extension
+extern int pthread_cond_timeout_np(pthread_cond_t *cond, pthread_mutex_t *mutex, unsigned msecs);
+
 /* Functions for handling condition variable attributes.  */
 
 /* Initialize condition variable attribute ATTR.  */

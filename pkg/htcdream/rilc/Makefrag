@@ -1,0 +1,11 @@
+OBJDIRS += pkg/htcdream/rilc
+
+RILC_SRCFILES := rilc.cc
+RILC_OBJFILES := $(patsubst %.cc, $(OBJDIR)/pkg/htcdream/rilc/%.o, $(RILC_SRCFILES))
+
+$(OBJDIR)/pkg/htcdream/rilc/%.o: pkg/htcdream/rilc/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-missing-noreturn -c -o $@ $<
+
+$(OBJDIR)/user/rilc.debuginfo: $(RILC_OBJFILES) $(LDEPS)
+	$(CXX) -o $@ $(LDFLAGS) $(RILC_OBJFILES)

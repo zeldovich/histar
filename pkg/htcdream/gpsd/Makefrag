@@ -1,0 +1,11 @@
+OBJDIRS += pkg/gpsd
+
+GPSD_SRCFILES := gpsd.cc
+GPSD_OBJFILES := $(patsubst %.cc, $(OBJDIR)/pkg/gpsd/%.o, $(GPSD_SRCFILES))
+
+$(OBJDIR)/pkg/gpsd/%.o: pkg/gpsd/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-missing-noreturn -c -o $@ $<
+
+$(OBJDIR)/user/gpsd.debuginfo: $(GPSD_OBJFILES) $(LDEPS)
+	$(CXX) -o $@ $(LDFLAGS) $(GPSD_OBJFILES)

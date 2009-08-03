@@ -291,6 +291,22 @@ pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mu,
     return 0;
 }
 
+// Useful Android Bionic pthread extension
+int
+pthread_cond_timeout_np(pthread_cond_t *cond, pthread_mutex_t *mutex, unsigned msecs)
+{
+	struct timespec abstime;
+
+	if (clock_gettime(CLOCK_REALTIME, &abstime))
+		panic("%s: clock_gettime failed", __func__);
+
+	// NB: doesn't matter if tv_nsec exceeds NSEC_PER_SECOND
+	abstime.tv_sec  += msecs / 1000;
+	abstime.tv_nsec += (msecs % 1000) * 1000 * 1000;
+
+	return (pthread_cond_timedwait(cond, mutex, &abstime));
+}
+
 int
 pthread_cond_signal(pthread_cond_t *cond)
 {

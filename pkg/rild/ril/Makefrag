@@ -1,8 +1,0 @@
-OBJDIRS += pkg/rild/ril
-
-RILD_RIL_SRCFILES := ril.cpp ril_event.cpp
-RILD_RIL_OBJFILES := $(patsubst %.cpp, $(OBJDIR)/pkg/rild/ril/%.o, $(RILD_RIL_SRCFILES))
-
-$(OBJDIR)/pkg/rild/ril/%.o: pkg/rild/ril/%.cpp
-	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-unused -Wno-missing-noreturn -c -o $@ $<

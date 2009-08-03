@@ -1,0 +1,11 @@
+OBJDIRS += pkg/htcdream/radiooptions
+
+RADIOOPTIONS_SRCFILES := radiooptions.c
+RADIOOPTIONS_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/htcdream/radiooptions/%.o, $(RADIOOPTIONS_SRCFILES))
+
+$(OBJDIR)/pkg/htcdream/radiooptions/%.o: pkg/htcdream/radiooptions/%.c
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-missing-noreturn -c -o $@ $<
+
+$(OBJDIR)/user/radiooptions.debuginfo: $(RADIOOPTIONS_OBJFILES) $(LDEPS)
+	$(CXX) -o $@ $(LDFLAGS) $(RADIOOPTIONS_OBJFILES)

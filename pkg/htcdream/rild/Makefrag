@@ -1,0 +1,14 @@
+OBJDIRS += pkg/htcdream/rild
+
+RILD_SRCFILES := rild.cc
+RILD_OBJFILES := $(patsubst %.cc, $(OBJDIR)/pkg/htcdream/rild/%.o, $(RILD_SRCFILES))
+
+$(OBJDIR)/pkg/htcdream/rild/%.o: pkg/htcdream/rild/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-missing-noreturn -c -o $@ $<
+
+include pkg/htcdream/rild/ril/Makefrag
+include pkg/htcdream/support/Makefrag
+
+$(OBJDIR)/user/rild.debuginfo: $(RILD_OBJFILES) $(RILD_RIL_OBJFILES) $(HTCDREAM_SUPPORT_OBJFILES) $(LDEPS)
+	$(CXX) -o $@ $(LDFLAGS) $(RILD_OBJFILES) $(RILD_RIL_OBJFILES) $(HTCDREAM_SUPPORT_OBJFILES)

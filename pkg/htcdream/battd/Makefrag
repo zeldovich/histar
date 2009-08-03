@@ -1,0 +1,13 @@
+OBJDIRS += pkg/htcdream/battd
+
+BATTD_SRCFILES := battd.cc
+BATTD_OBJFILES := $(patsubst %.cc, $(OBJDIR)/pkg/htcdream/battd/%.o, $(BATTD_SRCFILES))
+
+include pkg/htcdream/support/Makefrag
+
+$(OBJDIR)/pkg/htcdream/battd/%.o: pkg/htcdream/battd/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-missing-noreturn -c -o $@ $<
+
+$(OBJDIR)/user/battd.debuginfo: $(BATTD_OBJFILES) $(HTCDREAM_SUPPORT_OBJFILES) $(LDEPS)
+	$(CXX) -o $@ $(LDFLAGS) $(BATTD_OBJFILES) $(HTCDREAM_SUPPORT_OBJFILES)
