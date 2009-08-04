@@ -142,6 +142,34 @@ smdd_rpcrouter_destroy_local_endpoint(struct smdd_req *request, struct smdd_repl
 }
 
 static void
+smdd_rpc_register_server(struct smdd_req *request, struct smdd_reply *reply)
+{
+	if (request->bufbytes != 8) {
+		reply->err = -E_INVAL;
+		return;
+	}
+
+	uint32_t prog, vers;
+	memcpy(&prog, &request->buf[0], 4);
+	memcpy(&vers, &request->buf[4], 4);
+	reply->err = msm_rpc_register_server((struct msm_rpc_endpoint *)request->token, prog, vers);
+}
+
+static void
+smdd_rpc_unregister_server(struct smdd_req *request, struct smdd_reply *reply)
+{
+	if (request->bufbytes != 8) {
+		reply->err = -E_INVAL;
+		return;
+	}
+
+	uint32_t prog, vers;
+	memcpy(&prog, &request->buf[0], 4);
+	memcpy(&vers, &request->buf[4], 4);
+	reply->err = msm_rpc_unregister_server((struct msm_rpc_endpoint *)request->token, prog, vers);
+}
+
+static void
 smdd_rpc_read(struct smdd_req *request, struct smdd_reply *reply)
 {
 	struct rr_fragment *frag, *next;
@@ -229,6 +257,14 @@ smdd_dispatch(struct gate_call_data *parm)
 
 		case rpcrouter_destroy_local_endpoint:
 			smdd_rpcrouter_destroy_local_endpoint(req, reply);
+			break;
+
+		case rpc_register_server:
+			smdd_rpc_register_server(req, reply);
+			break;
+
+		case rpc_unregister_server:
+			smdd_rpc_unregister_server(req, reply);
 			break;
 
 		case rpc_read:

@@ -16,6 +16,8 @@ int smddgate_qmi_write(int, const void *, size_t);
 int smddgate_qmi_select();
 void *smddgate_rpcrouter_create_local_endpoint(int, uint32_t, uint32_t);
 int smddgate_rpcrouter_destroy_local_endpoint(void *);
+int smddgate_rpc_register_server(void *, uint32_t, uint32_t);
+int smddgate_rpc_unregister_server(void *, uint32_t, uint32_t);
 int smddgate_rpc_read(void *, void *, size_t);
 int smddgate_rpc_write(void *, const void *, size_t);
 int smddgate_rpc_select();

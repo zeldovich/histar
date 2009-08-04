@@ -176,6 +176,30 @@ smddgate_rpcrouter_destroy_local_endpoint(void *endpt)
 }
 
 int
+smddgate_rpc_register_server(void *ept, uint32_t prog, uint32_t vers)
+{
+	GATECALL_SETUP(rpc_register_server);
+	req->token = ept;
+	memcpy(&req->buf[0], &prog, 4);
+	memcpy(&req->buf[4], &vers, 4);
+	req->bufbytes = 8;
+	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
+	return (rep->err);
+}
+
+int
+smddgate_rpc_unregister_server(void *ept, uint32_t prog, uint32_t vers)
+{
+	GATECALL_SETUP(rpc_unregister_server);
+	req->token = ept;
+	memcpy(&req->buf[0], &prog, 4);
+	memcpy(&req->buf[4], &vers, 4);
+	req->bufbytes = 8;
+	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
+	return (rep->err);
+}
+
+int
 smddgate_rpc_read(void *endpt, void *buf, size_t s)
 {
 	GATECALL_SETUP(rpc_read);

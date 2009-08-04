@@ -100,11 +100,11 @@ main(int argc, char **argv)
 	iface->start();
 
 	fprintf(stderr, "opening NMEA tty\n");
-	smd_tty_open(27); 
+	smddgate_tty_open(27); 
 
 	while (1) {
 		unsigned char buf[512];
-		smd_tty_read(27, buf, sizeof(buf));
+		smddgate_tty_read(27, buf, sizeof(buf));
 		fprintf(stderr, "NMEA: [%s]\n", buf);
 	}
 }

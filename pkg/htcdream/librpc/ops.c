@@ -11,6 +11,8 @@ extern "C" {
 #include <stdio.h>
 #include <errno.h>
 
+#include "../support/smddgate.h"
+
 #include <inc/error.h>
 #include <inc/stdio.h>
 #include <inc/syscall.h>
@@ -21,7 +23,7 @@ extern "C" {
 /* XXXX- this is so un-threadsafe! */
 
 // list of file descriptors
-static struct msm_rpc_endpoint *fdlist[256];
+static void *fdlist[256];
 
 int r_dup(int fd)
 {
@@ -72,7 +74,7 @@ int r_open(const char *router)
 	if (i == 256)
 		return -E_NO_MEM;
 
-	fdlist[i] = msm_rpcrouter_create_local_endpoint(1, prog, vers);
+	fdlist[i] = smddgate_rpcrouter_create_local_endpoint(1, prog, vers);
 	if(fdlist[i] == NULL) {
 		E("error opening %s: %s\n", router, strerror(errno));
 		return -E_NOT_FOUND;
@@ -113,18 +115,10 @@ int r_read(int fd, char *buf, uint32 size)
 	if (fd < 0 || fd >= 256 || fdlist[fd] == NULL)
 		return -E_INVAL;
 
-	rc = __msm_rpc_read(fdlist[fd], &frag, size, -1);
+	rc = smddgate_rpc_read(fdlist[fd], buf, size);
 	if (rc < 0) {
 		E("error reading RPC packet: %d (%s)\n", errno, strerror(errno));
 		return rc;
-	}
-
-	while (frag != NULL) {
-		memcpy(buf, frag->data, frag->length);
-		buf += frag->length;
-		next = frag->next;
-		free(frag);
-		frag = next;
 	}
 
 #if DUMP_DATA
@@ -154,7 +148,7 @@ int r_write (int fd, const char *buf, uint32 size)
 	char *wbuf = (char *)malloc(size); 
 	memcpy(wbuf, buf, size);
 
-	int rc = msm_rpc_write(fdlist[fd], (void *)wbuf, size);
+	int rc = smddgate_rpc_write(fdlist[fd], (void *)wbuf, size);
 	free(wbuf);
 	if (rc < 0) {
 		E("error writing RPC packet: %d (%s)\n", errno, strerror(errno));
@@ -178,7 +172,7 @@ int r_write (int fd, const char *buf, uint32 size)
 int r_control(int fd, const uint32 cmd, void *arg)
 {
 	int n;
-	struct msm_rpc_endpoint *ept;
+	void *ept;
 	struct rpcrouter_ioctl_server_args *server_args;
 
 	cprintf("%s: on fd %d, cmd 0x%08x\n", __func__, fd, cmd);
@@ -207,20 +201,20 @@ int r_control(int fd, const uint32 cmd, void *arg)
 
 	case RPC_ROUTER_IOCTL_REGISTER_SERVER:
 		server_args = (struct rpcrouter_ioctl_server_args *)arg;
-		msm_rpc_register_server(ept,
+		smddgate_rpc_register_server(ept,
 					server_args->prog,
 					server_args->vers);
 		return 0;
 
 	case RPC_ROUTER_IOCTL_UNREGISTER_SERVER:
 		server_args = (struct rpcrouter_ioctl_server_args *)arg;
-		msm_rpc_unregister_server(ept,
+		smddgate_rpc_unregister_server(ept,
 					  server_args->prog,
 					  server_args->vers);
 		return 0;
 
 	default:
-		//cprintf("%s: unhandled ioctl 0x%08x\n", __func__, cmd);
+		cprintf("%s: unhandled ioctl 0x%08x\n", __func__, cmd);
 		return -E_INVAL;
 	}
 }
