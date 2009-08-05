@@ -1,8 +1,8 @@
-OBJDIRS += pkg/rild/librpc
+OBJDIRS += pkg/htcdream/librpc
 
-RILD_LIBRPC_SRCFILES := clnt.c ops.c rpc.c svc.c svc_clnt_common.c xdr.c
-RILD_LIBRPC_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/rild/librpc/%.o, $(RILD_LIBRPC_SRCFILES))
+HTCDREAM_LIBRPC_SRCFILES := clnt.c ops.c rpc.c svc.c svc_clnt_common.c xdr.c
+HTCDREAM_LIBRPC_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/htcdream/librpc/%.o, $(HTCDREAM_LIBRPC_SRCFILES))
 
-$(OBJDIR)/pkg/rild/librpc/%.o: pkg/rild/librpc/%.c
+$(OBJDIR)/pkg/htcdream/librpc/%.o: pkg/htcdream/librpc/%.c
 	@mkdir -p $(@D)
 	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-missing-noreturn -c -o $@ $<

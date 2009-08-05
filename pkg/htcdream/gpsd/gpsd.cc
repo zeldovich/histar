@@ -12,7 +12,8 @@ extern "C" {
 
 #include "gps.h"
 
-#include "../rild/support/misc.h"
+#include "../support/misc.h"
+#include "../support/smddgate.h"
 }
 
 #define LIBGPS_SO	"/bin/libgps.so"
@@ -58,6 +59,11 @@ main(int argc, char **argv)
 	};
 	void *dlHandle;
 
+	if (smddgate_init()) {
+		fprintf(stderr, "gpsd: smddgate_init failed\n");
+		exit(1);
+	}
+
 	dlHandle = dlopen(LIBGPS_SO, RTLD_NOW);
 	if (dlHandle == NULL) {
 		fprintf(stderr, "gpsd: dlopen failed: %s\n", dlerror());
@@ -98,7 +104,7 @@ main(int argc, char **argv)
 	iface->delete_aiding_data(GPS_DELETE_ALL);
 	iface->set_position_mode(GPS_POSITION_MODE_STANDALONE, 5);
 	iface->start();
-
+#if 0
 	fprintf(stderr, "opening NMEA tty\n");
 	smddgate_tty_open(27); 
 
@@ -107,4 +113,7 @@ main(int argc, char **argv)
 		smddgate_tty_read(27, buf, sizeof(buf));
 		fprintf(stderr, "NMEA: [%s]\n", buf);
 	}
+#endif
+	while (1)
+		sleep(9999);
 }

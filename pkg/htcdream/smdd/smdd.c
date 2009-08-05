@@ -49,7 +49,11 @@ smdd_tty_read(struct smdd_req *request, struct smdd_reply *reply)
 {
 	request->bufbytes = MIN(request->bufbytes, (int)sizeof(reply->buf));
 	reply->bufbytes = smd_tty_read(request->fd, (unsigned char *)reply->buf, request->bufbytes);
-	reply->err = (reply->bufbytes < 0) ? reply->bufbytes : 0;
+	reply->err = 0;
+	if (reply->bufbytes < 0) {
+		reply->err = reply->bufbytes;
+		reply->bufbytes = 0;
+	}
 }
 
 static void
@@ -78,7 +82,11 @@ smdd_qmi_read(struct smdd_req *request, struct smdd_reply *reply)
 {
 	request->bufbytes = MIN(request->bufbytes, (int)sizeof(reply->buf));
 	reply->bufbytes = smd_qmi_read(request->fd, (unsigned char *)reply->buf, request->bufbytes);
-	reply->err = (reply->bufbytes < 0) ? reply->bufbytes : 0;
+	reply->err = 0;
+	if (reply->bufbytes < 0) {
+		reply->err = reply->bufbytes;
+		reply->bufbytes = 0;
+	}
 }
 
 static void
@@ -176,7 +184,11 @@ smdd_rpc_read(struct smdd_req *request, struct smdd_reply *reply)
 
 	request->bufbytes = MIN(request->bufbytes, (int)sizeof(reply->buf));
 	reply->bufbytes = __msm_rpc_read((struct msm_rpc_endpoint *)request->token, &frag, request->bufbytes, -1);
-	reply->err = (reply->bufbytes < 0) ? reply->bufbytes : 0;
+	reply->err = 0;
+	if (reply->bufbytes < 0) {
+		reply->err = reply->bufbytes;
+		reply->bufbytes = 0;
+	}
 
 	if (reply->err == 0) {
 		char *buf = reply->buf;
@@ -198,9 +210,109 @@ smdd_rpc_write(struct smdd_req *request, struct smdd_reply *reply)
 }
 
 static void
-smdd_rpc_select(struct smdd_req *request, struct smdd_reply *reply)
+smdd_rpc_endpoint_read_select(struct smdd_req *request, struct smdd_reply *reply)
 {
-	cprintf("SMDD_RPC_SELECT!!!\n");
+	// request->buf contains the timeout in the first 8 bytes, followed by
+	// the endpoint pointers in each successive uint32_t.
+
+	if (request->bufbytes < 12) {
+		reply->err = -E_INVAL;
+		reply->bufbytes = 0;
+		return;
+	}
+	if ((request->bufbytes & 0x3) != 0) {
+		reply->err = -E_INVAL;
+		reply->bufbytes = 0;
+		return;
+	}
+
+	int nendpts = (request->bufbytes - 8) / 4;
+	uint64_t timeout;
+
+	memcpy(&timeout, request->buf, 8);
+
+	uint64_t *evtcnts = (uint64_t *)malloc(nendpts * sizeof(evtcnts[0]));
+	if (evtcnts == NULL) {
+		reply->err = -E_NO_MEM;
+		reply->bufbytes = 0;
+		return;
+	}
+
+	volatile uint64_t **addrs = (volatile uint64_t **)malloc(nendpts * sizeof(addrs[0]));
+	if (addrs == NULL) { 
+		free(evtcnts);
+		reply->err = -E_NO_MEM;
+		reply->bufbytes = 0;
+		return;
+	}
+
+	void **rdyendpts = (void **)malloc(nendpts * sizeof(rdyendpts[0]));
+	if (rdyendpts == NULL) { 
+		free(evtcnts);
+		free(addrs);
+		reply->err = -E_NO_MEM;
+		reply->bufbytes = 0;
+		return;
+	}
+
+	int nready;
+	while (1) {
+		int idx = 0;
+
+		nready = 0;
+		for (int i = 0; i < nendpts; i++) { 
+			struct msm_rpc_endpoint *ept;
+			memcpy(&ept, &request->buf[8 + (i * 4)], 4); 
+			if (ept == NULL) {
+				cprintf("%s: warning - invalid endpt passed in\n", __func__);
+			} else {
+				pthread_mutex_lock(&ept->read_q_lock);
+				if (!TAILQ_EMPTY(&ept->read_q)) {
+					rdyendpts[nready++] = ept;
+				} else {
+					pthread_mutex_lock(&ept->waitq_mutex);
+					evtcnts[idx] =  ept->waitq_evtcnt;
+					addrs[idx++] = &ept->waitq_evtcnt;
+					pthread_mutex_unlock(&ept->waitq_mutex);
+				}
+				pthread_mutex_unlock(&ept->read_q_lock);
+			}
+		}
+
+		if (nready)
+			break;
+
+		// if no fds to check, optionally sleep and return 0
+		if (idx == 0) {
+			if (timeout != 0) {
+				uint64_t now = sys_clock_nsec();
+				if (now < timeout)
+					usleep((timeout - now) / 1000);
+			}
+
+			reply->err = 0;
+			reply->bufbytes = 0;
+			goto out;
+		}
+
+		if (timeout != 0 && sys_clock_nsec() >= (int64_t)timeout) {
+			reply->err = 0;
+			reply->bufbytes = 0;
+			goto out;
+		}
+
+		// we have >= 1 endpt to check and timeout is either infinity or in the future.
+		sys_sync_wait_multi(addrs, evtcnts, NULL, idx, (timeout != 0) ? timeout : UINT64(~0));
+	}
+// XXX- overflow
+	memcpy(reply->buf, rdyendpts, 4 * nready);
+	reply->bufbytes = 4 * nready;
+	reply->err = 0;
+
+out:
+	free(rdyendpts);
+	free(evtcnts);
+	free((void *)addrs);
 }
 
 static void
@@ -275,8 +387,8 @@ smdd_dispatch(struct gate_call_data *parm)
 			smdd_rpc_write(req, reply);
 			break;
 
-		case rpc_select:
-			smdd_rpc_select(req, reply);
+		case rpc_endpoint_read_select:
+			smdd_rpc_endpoint_read_select(req, reply);
 			break;
 
 		case get_battery_info:

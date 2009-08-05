@@ -34,7 +34,7 @@ enum {
 	rpc_unregister_server,
 	rpc_read,
 	rpc_write,
-	rpc_select,
+	rpc_endpoint_read_select,
 	get_battery_info
 };
 
@@ -45,7 +45,7 @@ struct smdd_req {
 	void *token;
 	int bufbytes;
 	union {
-		char buf[256];
+		char buf[2048];
 	};
 };
 
@@ -55,7 +55,7 @@ struct smdd_reply {
 	void *token;
 	int bufbytes;
 	union {
-		char buf[256];
+		char buf[2048];
 		struct htc_get_batt_info_rep batt_info; 
 	};
 };

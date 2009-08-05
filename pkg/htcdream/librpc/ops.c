@@ -1,6 +1,6 @@
 #include "rpc/rpc.h"
-#include "../msm_rpcrouter.h"
-#include "../smd_rpcrouter.h"
+#include "../smdd/msm_rpcrouter.h"
+#include "../smdd/smd_rpcrouter.h"
 #include "debug.h"
 
 extern "C" {
@@ -20,6 +20,12 @@ extern "C" {
 
 #define DUMP_DATA 0
 
+#if 0
+#define DPRINTF(_x)	cprintf _x
+#else
+#define DPRINTF(_x)
+#endif
+
 /* XXXX- this is so un-threadsafe! */
 
 // list of file descriptors
@@ -27,7 +33,7 @@ static void *fdlist[256];
 
 int r_dup(int fd)
 {
-	//cprintf("%s: on fd %d\n", __func__, fd);
+	DPRINTF(("%s: on fd %d\n", __func__, fd));
 
 	if (fd < 0 || fd >= 256 || fdlist[fd] == NULL)
 		return -1;
@@ -48,7 +54,7 @@ int r_dup(int fd)
 
 int r_open(const char *router)
 {
-	//cprintf("%s: on %s\n", __func__, router);
+	DPRINTF(("%s: on %s\n", __func__, router));
 
 	char *progstr = strrchr(router, '/');
 	if (progstr == NULL)
@@ -86,7 +92,7 @@ int r_open(const char *router)
 
 void r_close(int fd)
 {
-	//cprintf("%s: on fd %d\n", __func__, fd);
+	DPRINTF(("%s: on fd %d\n", __func__, fd));
 
 	if (fd < 0 || fd >= 256 || fdlist[fd] == NULL) {
 		E("error: %s\n", strerror(errno));
@@ -98,7 +104,7 @@ void r_close(int fd)
 				preserve = 1;
 		}
 		if (!preserve)
-			msm_rpcrouter_destroy_local_endpoint(fdlist[fd]);
+			smddgate_rpcrouter_destroy_local_endpoint(fdlist[fd]);
 		else
 			//cprintf("%s: preserving endpoint (fd must have been dup'd)\n", __func__);
 		fdlist[fd] = NULL;
@@ -107,10 +113,9 @@ void r_close(int fd)
 
 int r_read(int fd, char *buf, uint32 size)
 {
-	struct rr_fragment *frag, *next;
 	int rc;
 
-	//cprintf("%s: on fd %d, size %u\n", __func__, fd, size);
+	DPRINTF(("%s: on fd %d, size %u\n", __func__, fd, size));
 
 	if (fd < 0 || fd >= 256 || fdlist[fd] == NULL)
 		return -E_INVAL;
@@ -134,9 +139,9 @@ int r_read(int fd, char *buf, uint32 size)
 	return rc;
 }
 
-int r_write (int fd, const char *buf, uint32 size)
+int r_write(int fd, const char *buf, uint32 size)
 {
-	//cprintf("%s: on fd %d\n", __func__, fd);
+	DPRINTF(("%s: on fd %d\n", __func__, fd));
 
 	if (fd < 0 || fd >= 256 || fdlist[fd] == NULL)
 		return -E_INVAL;
@@ -222,77 +227,60 @@ int r_control(int fd, const uint32 cmd, void *arg)
 int r_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *errorfds,
     struct timeval *timeout)
 {
-	//cprintf("%s: on nfds %d, timeout @ %p (%u sec, %u usec)\n", __func__, nfds, timeout, (timeout != NULL) ? (unsigned)timeout->tv_sec : 0, (timeout != NULL) ? (unsigned)timeout->tv_usec : 0);
+	DPRINTF(("%s: on nfds %d, timeout @ %p (%u sec, %u usec)\n", __func__, nfds, timeout, (timeout != NULL) ? (unsigned)timeout->tv_sec : 0, (timeout != NULL) ? (unsigned)timeout->tv_usec : 0));
 
 	assert(readfds != NULL);
 	assert(writefds == NULL);
 	assert(errorfds == NULL);
 
-	uint64_t *evtcnts = (uint64_t *)malloc(nfds * sizeof(evtcnts[0]));
-	if (evtcnts == NULL)
-		return -E_NO_MEM;
-
-	volatile uint64_t **addrs  = (volatile uint64_t **)malloc(nfds * sizeof(addrs[0]));
-	if (addrs == NULL) { 
-		free(evtcnts);
-		return -E_NO_MEM;
+	uint64_t now_nsec = sys_clock_nsec();
+	uint64_t wait_nsec = now_nsec;
+	if (timeout != NULL) {
+		wait_nsec += (uint64_t)timeout->tv_sec * 1000000000ULL;
+		wait_nsec += (uint64_t)timeout->tv_usec * 1000ULL;
 	}
 
-	uint64_t now_nsec = sys_clock_nsec();
+	void **endpts = (void **)malloc(nfds * sizeof(endpts[0]));
+	if (endpts == NULL)
+		return -E_NO_MEM;
 
-	int nready;
-	while (1) {
-		int idx = 0;
-
-		nready = 0;
-		for (int i = 0; i < nfds && i < 256; i++) { 
-			if (FD_ISSET(i, readfds)) {
-				struct msm_rpc_endpoint *ept = fdlist[i];
-				if (ept == NULL) {
-					//cprintf("%s: warning - invalid fd %d passed in\n", __func__, i);
-					FD_CLR(i, readfds);
-				} else {
-					pthread_mutex_lock(&ept->read_q_lock);
-					if (!TAILQ_EMPTY(&ept->read_q)) {
-						nready++;
-					} else {
-						FD_CLR(i, readfds);
-						pthread_mutex_lock(&ept->waitq_mutex);
-						evtcnts[idx] =  ept->waitq_evtcnt;
-						addrs[idx++] = &ept->waitq_evtcnt;
-						pthread_mutex_unlock(&ept->waitq_mutex);
-					}
-					pthread_mutex_unlock(&ept->read_q_lock);
-				}
+	int idx = 0;
+	for (int i = 0; i < nfds && i < 256; i++) { 
+		if (FD_ISSET(i, readfds)) {
+			void *ept = fdlist[i];
+			if (ept == NULL) {
+				cprintf("%s: warning - invalid fd %d passed in\n", __func__, i);
+			} else {
+				endpts[idx++] = ept;
 			}
 		}
-
-		if (nready)
-			break;
-
-		uint64_t wait_nsec = 0;
-		if (timeout != NULL) {
-			wait_nsec  = (uint64_t)timeout->tv_sec * 1000000000ULL;
-			wait_nsec += (uint64_t)timeout->tv_usec * 1000ULL;
-		}
-
-		// if no fds to check, optionally sleep and return 0
-		if (idx == 0) {
-			if (timeout != NULL)
-				usleep(wait_nsec / 1000);
-			return 0;
-		}
-
-		if (timeout != NULL)
-			wait_nsec += now_nsec;
-		else
-			wait_nsec = UINT64(~0);
-
-		sys_sync_wait_multi(addrs, evtcnts, NULL, idx, wait_nsec);
 	}
 
-	free(evtcnts);
-	free((void *)addrs);
+	// if no fds to check, optionally sleep and return 0
+	if (idx == 0) {
+		if (timeout != NULL)
+			usleep((wait_nsec - now_nsec) / 1000);
+		return 0;
+	}
 
-	return nready;
+	int r = smddgate_rpc_endpoint_read_select(endpts, idx, (timeout != NULL) ? wait_nsec : 0);
+
+	//ick
+	for (int i = 0; i < nfds; i++) {
+		if (FD_ISSET(i, readfds)) {
+			void *ept = fdlist[i];
+			int found = 0;
+			for (int j = 0; j < r; j++) {
+				if (ept == endpts[j]) {
+					found = 1;
+					break;
+				}
+			} 
+			if (!found)
+				FD_CLR(i, readfds);
+		}
+	}
+
+	free(endpts);
+	return r;
 }

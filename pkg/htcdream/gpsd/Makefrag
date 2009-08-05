@@ -1,11 +1,14 @@
-OBJDIRS += pkg/gpsd
+OBJDIRS += pkg/htcdream/gpsd
 
 GPSD_SRCFILES := gpsd.cc
-GPSD_OBJFILES := $(patsubst %.cc, $(OBJDIR)/pkg/gpsd/%.o, $(GPSD_SRCFILES))
+GPSD_OBJFILES := $(patsubst %.cc, $(OBJDIR)/pkg/htcdream/gpsd/%.o, $(GPSD_SRCFILES))
 
-$(OBJDIR)/pkg/gpsd/%.o: pkg/gpsd/%.cc
+$(OBJDIR)/pkg/htcdream/gpsd/%.o: pkg/htcdream/gpsd/%.cc
 	@mkdir -p $(@D)
 	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-missing-noreturn -c -o $@ $<
 
-$(OBJDIR)/user/gpsd.debuginfo: $(GPSD_OBJFILES) $(LDEPS)
-	$(CXX) -o $@ $(LDFLAGS) $(GPSD_OBJFILES)
+include pkg/htcdream/support/Makefrag
+include pkg/htcdream/librpc/Makefrag
+
+$(OBJDIR)/user/gpsd.debuginfo: $(GPSD_OBJFILES) $(HTCDREAM_SUPPORT_OBJFILES) $(HTCDREAM_LIBRPC_OBJFILES) $(LDEPS)
+	$(CXX) -o $@ $(LDFLAGS) $(GPSD_OBJFILES) $(HTCDREAM_SUPPORT_OBJFILES) $(HTCDREAM_LIBRPC_OBJFILES)

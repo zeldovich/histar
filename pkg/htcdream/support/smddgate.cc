@@ -227,9 +227,18 @@ if (s > sizeof(req->buf)) cprintf("%s: WARNING !!!! !!! !!! WRITE TOO BIG!\n", _
 }
 
 int
-smddgate_rpc_select()
+smddgate_rpc_endpoint_read_select(void **endpts, int nendpts, uint64_t timeout)
 {
-	return (-1);
+	GATECALL_SETUP(rpc_endpoint_read_select);
+	req->bufbytes = 8 + 4 * nendpts;
+	memcpy(&req->buf[0], &timeout, 8);
+	memcpy(&req->buf[8], endpts, 4 * nendpts);
+	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
+	if (rep->err)
+		return rep->err;
+// XXX- lack of check
+	memcpy(endpts, rep->buf, rep->bufbytes);
+	return (rep->bufbytes / 4);
 }
 
 }

@@ -160,7 +160,27 @@ utf_dump(struct UTrapframe *utf)
     cprintf(" y: %08x  pc: %08x  npc: %08x\n",
 	    utf->utf_y, utf->utf_pc, utf->utf_npc);
 #elif defined(JOS_ARCH_arm)
-    cprintf("%s.%d: XXX need to implement %s\n", __FILE__, __LINE__, __func__);
+	cprintf("r0:   0x%08x   ", utf->utf_r0);
+	cprintf("r1:   0x%08x   ", utf->utf_r1);
+	cprintf("r2:   0x%08x   ", utf->utf_r2);
+	cprintf("r3:   0x%08x\n",  utf->utf_r3);
+
+	cprintf("r4:   0x%08x   ", utf->utf_r4);
+	cprintf("r5:   0x%08x   ", utf->utf_r5);
+	cprintf("r6:   0x%08x   ", utf->utf_r6);
+	cprintf("r7:   0x%08x\n",  utf->utf_r7);
+
+	cprintf("r8:   0x%08x   ", utf->utf_r8);
+	cprintf("r9:   0x%08x   ", utf->utf_r9);
+	cprintf("r10:  0x%08x   ", utf->utf_r10);
+	cprintf("r11:  0x%08x\n",  utf->utf_r11);
+
+	cprintf("r12:  0x%08x   ", utf->utf_r12);
+	cprintf("r13:  0x%08x   ", utf->utf_r13);
+	cprintf("r14:  0x%08x   ", utf->utf_r14);
+	cprintf("r15:  0x%08x\n",  utf->utf_r15);
+
+	cprintf("spsr: 0x%08x\n\n", utf->utf_spsr);
 #else
 #error Unknown arch
 #endif
@@ -240,9 +260,10 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
     switch (si->si_signo) {
     case SIGSEGV: case SIGBUS:  case SIGILL:
 	fprintf(stderr, "[%"PRIu64"] %s: fatal signal %d "
-			"(rip=0x%zx, rsp=0x%zx), backtrace follows.\n",
+			"(rip=0x%zx, rsp=0x%zx), utf and backtrace follow.\n",
 		sys_self_id(), jos_progname, si->si_signo,
 		sc->sc_utf.utf_pc, sc->sc_utf.utf_stackptr);
+	utf_dump(&sc->sc_utf);
 	print_backtrace(0);
 	segfault_helper(si, sc);
 	break;

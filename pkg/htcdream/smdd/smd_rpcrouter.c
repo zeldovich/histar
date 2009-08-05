@@ -725,7 +725,7 @@ packet_complete:
 	pthread_mutex_lock(&ept->waitq_mutex);
 	pthread_cond_signal(&ept->waitq_cond);
 	ept->waitq_evtcnt++;
-cprintf("sys_sync_wakeup: at %p (evtcnt = %d)\n", &ept->waitq_evtcnt, (int)ept->waitq_evtcnt);
+//cprintf("sys_sync_wakeup: at %p (evtcnt = %d)\n", &ept->waitq_evtcnt, (int)ept->waitq_evtcnt);
 	sys_sync_wakeup(&ept->waitq_evtcnt);
 	pthread_mutex_unlock(&ept->waitq_mutex);
 
@@ -1100,6 +1100,7 @@ int __msm_rpc_read(struct msm_rpc_endpoint *ept,
 	pkt = (struct rr_packet *)TAILQ_FIRST(&ept->read_q);
 	if (pkt->length > len) {
 		pthread_mutex_unlock(&ept->read_q_lock);
+cprintf("%s: too fucking big %u vs. %u\n", __func__, pkt->length, len);
 		return -E_INVAL;
 	}
 	TAILQ_REMOVE(&ept->read_q, pkt, list);

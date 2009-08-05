@@ -44,7 +44,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include "../msm_rpcrouter.h"
+#include "../smdd/msm_rpcrouter.h"
 #include "debug.h"
 #include <pthread.h>
 
