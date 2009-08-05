@@ -18,7 +18,7 @@ extern "C" {
 static void
 usage(const char *progname)
 {
-	fprintf(stderr, "usage: %s [command] [param1] [param2] ...\n");
+	fprintf(stderr, "usage: %s [command] [param1] [param2] ...\n", progname);
 	fprintf(stderr, "  commands:\n");
 	fprintf(stderr, "    radioon           - turn radio on and join network\n");
 	fprintf(stderr, "    radiooff          - turn radio off\n");

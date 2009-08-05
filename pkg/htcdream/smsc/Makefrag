@@ -1,0 +1,11 @@
+OBJDIRS += pkg/htcdream/smsc
+
+SMSC_SRCFILES := smsc.cc
+SMSC_OBJFILES := $(patsubst %.cc, $(OBJDIR)/pkg/htcdream/smsc/%.o, $(SMSC_SRCFILES))
+
+$(OBJDIR)/pkg/htcdream/smsc/%.o: pkg/htcdream/smsc/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-missing-noreturn -c -o $@ $<
+
+$(OBJDIR)/user/smsc.debuginfo: $(SMSC_OBJFILES) $(LDEPS)
+	$(CXX) -o $@ $(LDFLAGS) $(SMSC_OBJFILES)

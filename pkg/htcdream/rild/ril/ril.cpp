@@ -53,7 +53,12 @@ extern "C" int android_get_control_socket(const char *);
 
 extern "C" {
 #include <inc/arch.h>
+#include <inc/smsd.h>
+#include <inc/gateparam.h>
 }
+
+#include <inc/gateclnt.hh>
+
 #define elapsedRealtime()	(int64_t)arch_read_tsc()
 
 namespace android {
@@ -1816,7 +1821,6 @@ RIL_onRequestComplete(RIL_Token t, RIL_Errno e, void *response, size_t responsel
     RequestInfo *pRI;
     int ret;
     size_t errorOffset;
-fprintf(stderr, "%s: CALLED\n", __func__);
     pRI = (RequestInfo *)t;
 
     if (!checkAndDequeueRequestInfo(pRI)) {
@@ -1872,14 +1876,14 @@ static void
 grabPartialWakeLock()
 {
     //acquire_wake_lock(PARTIAL_WAKE_LOCK, ANDROID_WAKE_LOCK_NAME);
-    fprintf(stderr, "%s\n", __func__);
+    cprintf("%s\n", __func__);
 }
 
 static void
 releaseWakeLock()
 {
     //release_wake_lock(ANDROID_WAKE_LOCK_NAME);
-    fprintf(stderr, "%s\n", __func__);
+    cprintf("%s\n", __func__);
 }
 
 /**
@@ -1898,6 +1902,33 @@ wakeTimeoutCallback (void *param)
     }
 }
 
+static void
+handle_new_sms(const char *msg)
+{
+	struct gate_call_data gcd;
+	struct smsd_req *req = (struct smsd_req *)&gcd.param_buf[0];
+	struct smsd_reply *rep = (struct smsd_reply *)&gcd.param_buf[0];
+	int success = 0;
+
+	// get smsd gate
+	int64_t smsdgt = container_find(start_env->root_container, kobj_gate, "smsd gate");
+	if (smsdgt >= 0) {
+		struct cobj_ref smsdgate = COBJ(start_env->root_container, smsdgt);
+
+		// send message via gate call
+		strcpy(req->buf, msg);
+		req->op = incoming_sms;
+		gate_call(smsdgate, 0, 0, 0).call(&gcd, 0);
+		success = (rep->err < 0) ? 0 : 1;
+	}
+
+	if (!success)
+		fprintf(stderr, "rild: smsd gate unavailable, dropping incoming sms\n");
+
+	// send sms acknowledgement
+	RIL_issueLocalRequest(RIL_REQUEST_SMS_ACKNOWLEDGE, &success, sizeof(success));
+}
+
 extern "C"
 void RIL_onUnsolicitedResponse(int unsolResponse, void *data,
                                 size_t datalen)
@@ -1906,7 +1937,7 @@ void RIL_onUnsolicitedResponse(int unsolResponse, void *data,
     int ret;
     int64_t timeReceived = 0;
     bool shouldScheduleTimeout = false;
-fprintf(stderr, "%s: CALLED\n", __func__);
+
     if (s_registerCalled == 0) {
         // Ignore RIL_onUnsolicitedResponse before RIL_register
         LOGW("RIL_onUnsolicitedResponse called before RIL_register");
@@ -1976,6 +2007,10 @@ fprintf(stderr, "%s: CALLED\n", __func__);
             // before this message can be processed.
             p.writeInt64(timeReceived);
         break;
+
+	case RIL_UNSOL_RESPONSE_NEW_SMS: 
+		handle_new_sms((const char *)data);
+		break;
 
 	default:
 	    break;	
@@ -2060,7 +2095,6 @@ extern "C" void
 RIL_requestTimedCallback (RIL_TimedCallback callback, void *param, 
                                 const struct timeval *relativeTime)
 {
-fprintf(stderr, "%s CALLED\n", __func__);
     internalRequestTimedCallback (callback, param, relativeTime);
 }
 

@@ -218,7 +218,7 @@ smddgate_rpc_write(void *endpt, const void *buf, size_t s)
 	GATECALL_SETUP(rpc_write);
 	req->token = endpt;
 	req->bufbytes = MIN(s, sizeof(req->buf));
-if (s > sizeof(req->buf)) cprintf("%s: WARNING !!!! !!! !!! WRITE TOO BIG!\n", __func__);
+if (s > sizeof(req->buf)) { cprintf("%s: WARNING !!!! !!! !!! WRITE TOO BIG!\n", __func__); return -1; }
 	memcpy(req->buf, buf, req->bufbytes);
 	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
 	if (rep->err)

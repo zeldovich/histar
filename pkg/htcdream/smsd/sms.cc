@@ -3,15 +3,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
+#include <ctype.h>
 
-struct incoming_sms_message {
-	char *sender;
-	char *message;
-	int   tp_pid;
-	int   tp_dcs;
-	int   tp_scts[7];
-	int   tp_udl;
-};
+#include "sms.h"
 
 static unsigned int
 hexbyte_to_int(const char *str)
@@ -33,7 +27,7 @@ desmsify_message(const char *msg, int length)
 	if ((len % 2) != 0)
 		return (NULL);
 
-	data = malloc(len / 2);
+	data = (char *)malloc(len / 2);
 	if (data == NULL)
 		return (NULL);
 
@@ -42,7 +36,7 @@ desmsify_message(const char *msg, int length)
 		data[i/2] = hexbyte_to_int(&msg[i]);
 	
 	maxchars = ((len / 2) * 8) / 7;
-	str = malloc(maxchars + 1);
+	str = (char *)malloc(maxchars + 1);
 	if (str == NULL) {
 		free(str);
 		return (NULL);
@@ -75,6 +69,8 @@ desmsify_message(const char *msg, int length)
 			str[j++] = (((data[i - 1] & 0xfc) >> 2) | ((data[i] & 0x01) << 6));
 			str[j++] = (data[i] & 0xfe) >> 1;
 			break;
+		default:
+			assert(0);
 		}
 	} 
 	str[j] = '\0';
@@ -94,11 +90,11 @@ smsify_message(const char *msg)
 	if (len == 0 || len > 160)
 		return (NULL);
 
-	data = malloc(bytes);
+	data = (char *)malloc(bytes);
 	if (data == NULL)
 		return (NULL);
 
-	str  = malloc((bytes * 2) + 1);
+	str  = (char *)malloc((bytes * 2) + 1);
 	if (str == NULL) {
 		free(data);
 		return (NULL);
@@ -146,6 +142,8 @@ smsify_message(const char *msg)
 		case 7:
 			// just let i increment
 			break;
+		default:
+			assert(0);
 		}
 	}
 
@@ -165,7 +163,7 @@ desmsify_number(const char *num)
 	int i;
 	char *str;
 
-	str = malloc(len + 1);
+	str = (char *)malloc(len + 1);
 	if (str == NULL)
 		return (NULL);
 
@@ -184,10 +182,10 @@ static char *
 smsify_number(const char *num)
 {
 	int len = strlen(num);
-	int bytes, i;
+	int i;
 	char *str;
 
-	str = malloc(len + 2);
+	str = (char *)malloc(len + 2);
 	if (str == NULL)
 		return (NULL);
 	
@@ -228,13 +226,16 @@ parse_sms_message(const char *sms, struct incoming_sms_message *ism)
 	int sms_addr_length = hexbyte_to_int(&sms[2 * (octetoff + 1)]);
 	int sms_addr_type   = hexbyte_to_int(&sms[2 * (octetoff + 2)]);
 
+	(void)sms_deliver;
+	(void)sms_addr_type;
+
 	octetoff += (3 + (sms_addr_length + 1)/2);
 	if (len < 2 * (octetoff + 10))
 		return (-1);
  
 	if ((sms_addr_length % 2) != 0)
 		sms_addr_length++;
-	char *number = malloc(sms_addr_length + 1);
+	char *number = (char *)malloc(sms_addr_length + 1);
 	strncpy(number, &sms[2 * (1 + smsc_length + 3)], sms_addr_length);
 	number[sms_addr_length] = '\0';
 	ism->sender = desmsify_number(number);
@@ -263,7 +264,7 @@ generate_sms_message(const char *number, const char *message, const char *smsc_o
 	const int sms_max_len = 1024;	// guesswork
 	char *sms_message = smsify_message(message);
 	char *sms_number  = smsify_number(number);
-	char *sms = malloc(sms_max_len);
+	char *sms = (char *)malloc(sms_max_len);
 
 	if (strlen(message) == 0 || strlen(number) == 0)
 		return (NULL);

@@ -5,12 +5,16 @@
 #include <inttypes.h>
 #include <assert.h>
 
+extern "C" {
+#include <inc/stdio.h>
+}
+
 #if 1
-#define LOGD(fmt,args...)	fprintf(stderr, fmt, ##args)
-#define LOGE(fmt,args...)	fprintf(stderr, fmt, ##args)
-#define LOGI(fmt,args...)	fprintf(stderr, fmt, ##args)
-#define LOGW(fmt,args...)	fprintf(stderr, fmt, ##args)
-#define LOGV(fmt,args...)	fprintf(stderr, fmt, ##args)
+#define LOGD(fmt,args...)	cprintf(fmt, ##args)
+#define LOGE(fmt,args...)	cprintf(fmt, ##args)
+#define LOGI(fmt,args...)	cprintf(fmt, ##args)
+#define LOGW(fmt,args...)	cprintf(fmt, ##args)
+#define LOGV(fmt,args...)	cprintf(fmt, ##args)
 #else
 #define LOGD(fmt,args...)
 #define LOGE(fmt,args...)

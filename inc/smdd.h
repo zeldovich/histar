@@ -45,7 +45,7 @@ struct smdd_req {
 	void *token;
 	int bufbytes;
 	union {
-		char buf[2048];
+		char buf[256];
 	};
 };
 
@@ -55,7 +55,7 @@ struct smdd_reply {
 	void *token;
 	int bufbytes;
 	union {
-		char buf[2048];
+		char buf[256];
 		struct htc_get_batt_info_rep batt_info; 
 	};
 };
