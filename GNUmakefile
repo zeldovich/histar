@@ -39,7 +39,7 @@ CXXWARNS := $(COMWARNS) -Wno-non-template-friend
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline
 # -Weffc++ -Wswitch-enum -Wcast-align
 
-OPTFLAG	 := -O3 -fno-omit-frame-pointer $(ARCHOPT)
+OPTFLAG	 := -fno-omit-frame-pointer $(ARCHOPT)
 
 BASECFLAGS  := $(ARCH_BASECFLAGS) -nostdinc \
 	       -idirafter $(shell $(CC) -print-file-name=include) \
