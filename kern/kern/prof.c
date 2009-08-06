@@ -26,8 +26,8 @@ struct entry user_table[2];
 struct tentry thread_table[NTHREADS];
 
 static struct periodic_task prof_timer;
-static int prof_enable = 0;
-static int prof_thread_enable = 0;
+static int prof_enable = 1;
+static int prof_thread_enable = 1;
 enum { prof_print_count_threshold = 100 };
 enum { prof_print_cycles_threshold = UINT64(10000000) };
 enum { prof_thread_nsec_threshold = 1000000000 };
@@ -193,7 +193,7 @@ print_entry(struct entry *tab, int i, const char *name)
 {
     if (tab[i].count > prof_print_count_threshold ||
 	tab[i].time > prof_print_cycles_threshold)
-	cprintf("%3d cnt%12"PRIu64" tot%12"PRIu64" avg%12"PRIu64" %s\n",
+	cprintf("%3d cnt %-12"PRIu64" tot %-12"PRIu64" avg %-12"PRIu64" %s\n",
 		i,
 		tab[i].count, tab[i].time, tab[i].time / tab[i].count, name);
 }
@@ -204,7 +204,7 @@ print_tentry(struct tentry *tab, int i)
     if (!tab[i].asname[0])
 	return;
 
-    cprintf("%3d cnt%12"PRIu64" tot%12"PRIu64" avg%12"PRIu64" %s\n",
+    cprintf("%3d cnt %-12"PRIu64" tot %-12"PRIu64" avg %-12"PRIu64" %s\n",
 	    i,
 	    tab[i].entry.count, tab[i].entry.time, 
 	    tab[i].entry.time / tab[i].entry.count, tab[i].asname);
