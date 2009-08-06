@@ -46,7 +46,7 @@ if [ -x /bin/smdd ]; then
 
     # libhtc_ril.so reads the raw flash partition for some reason
     mkdir -p /dev/mtd
-    cp /bin/misc_partition.img /dev/mtd/mtd0
+    mv /bin/misc_partition.img /dev/mtd/mtd0
     echo "dev:    size   erasesize  name" > /proc/mtd
     echo "mtd0: 00040000 00020000 \"misc\"" >> /proc/mtd
     echo "mtd1: 00500000 00020000 \"recovery\"" >> /proc/mtd
@@ -58,7 +58,7 @@ if [ -x /bin/smdd ]; then
     # libhtc_ril.so reads /system/etc/AudioPara4.csv
     mkdir -p /system/etc
     if [ -f /bin/AudioPara4.csv ]; then
-        cp /bin/AudioPara4.csv /system/etc/AudioPara4.csv
+        mv /bin/AudioPara4.csv /system/etc/AudioPara4.csv
     fi
 fi
 
