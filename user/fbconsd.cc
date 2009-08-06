@@ -477,8 +477,8 @@ try
     printf("Console size: %d x %d\n", cols, rows);
 
     label fsl(1);
-    fsl.set(taint, 3);
-    fsl.set(grant, 0);
+    fsl.set(taint, 1);
+    fsl.set(grant, 1);
 
     for (uint32_t vt = 0; vt < vt_count; vt++) {
 	char buf[16];

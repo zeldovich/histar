@@ -557,8 +557,8 @@ init_fbcons(int basecons, int *consp, int maxvt)
     consp[0] = basecons;
 
     label fb_label(1);
-    fb_label.set(fbc_grant, 0);
-    fb_label.set(fbc_taint, 3);
+    fb_label.set(fbc_grant, 1);
+    fb_label.set(fbc_taint, 1);
 
     int64_t fbdev_id = sys_device_create(start_env->shared_container, 0,
 					 fb_label.to_ulabel(), "fbdev",
@@ -601,8 +601,8 @@ init_fbcons(int basecons, int *consp, int maxvt)
     label ds(3), dr(0);
     ds.set(fbc_grant, LB_LEVEL_STAR);
     ds.set(fbc_taint, LB_LEVEL_STAR);
-    dr.set(fbc_grant, 3);
-    dr.set(fbc_taint, 3);
+    dr.set(fbc_grant, 1);
+    dr.set(fbc_taint, 1);
 
     char fontname[256];
     fontname[0] = '\0';
@@ -644,7 +644,7 @@ init_fbcons(int basecons, int *consp, int maxvt)
     const char *argv[] = { "fbconsd", a0, a1, "/dev/fb0", fontname, borderpx, yreservepx };
     child_process cp = spawn(start_env->process_pool,
 		   ino, basecons, basecons, basecons,
-		   6, &argv[0],
+		   sizeof(argv)/sizeof(argv[0]), &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
 		   0, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
 
