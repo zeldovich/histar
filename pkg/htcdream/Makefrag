@@ -6,3 +6,4 @@ include pkg/htcdream/gpsd/Makefrag
 include pkg/htcdream/smsd/Makefrag
 include pkg/htcdream/smsc/Makefrag
 include pkg/htcdream/radiooptions/Makefrag
+include pkg/htcdream/bard/Makefrag

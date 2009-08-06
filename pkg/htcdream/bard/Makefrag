@@ -1,0 +1,13 @@
+OBJDIRS += pkg/htcdream/bard
+
+BARD_SRCFILES := bard.cc
+BARD_OBJFILES := $(patsubst %.cc, $(OBJDIR)/pkg/htcdream/bard/%.o, $(BARD_SRCFILES))
+
+include pkg/htcdream/support/Makefrag
+
+$(OBJDIR)/pkg/htcdream/bard/%.o: pkg/htcdream/bard/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -Wno-missing-noreturn -c -o $@ $<
+
+$(OBJDIR)/user/bard.debuginfo: $(BARD_OBJFILES) $(HTCDREAM_SUPPORT_OBJFILES) $(LDEPS)
+	$(CXX) -o $@ $(LDFLAGS) $(BARD_OBJFILES) $(HTCDREAM_SUPPORT_OBJFILES)
