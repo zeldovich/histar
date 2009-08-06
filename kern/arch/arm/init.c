@@ -120,9 +120,11 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 #if defined(JOS_ARM_GOLDFISH)
 	goldfish_irq_init();
 	goldfish_ttycons_init();
+	goldfish_timer_init();
 #elif defined(JOS_ARM_HTCDREAM)
 	msm_irq_init(0xc0000000);
 	msm_ttycons_init(0xa9c00000, 11);
+	msm_timer_init(0xc0100000, 7, MSM_TIMER_GP, 32768);
 #endif
 
 	while (atp != NULL && atp->words != 0 && atp->tag != ATAG_NONE) {
@@ -177,10 +179,7 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 	exception_init();
 
 	/* late device init */
-#if defined(JOS_ARM_GOLDFISH)
-	goldfish_timer_init();
-#elif defined(JOS_ARM_HTCDREAM)
-	msm_timer_init(0xc0100000, 7, MSM_TIMER_GP, 32768);
+#if defined(JOS_ARM_HTCDREAM)
 	msm_gpio_init(0xa9200800, 0xa9300c00);
 	msm_mddi_init(0xaa600000);
 	msm_smd_init(0x01f00000, 1024*1024, 0xc0100000, 0, 5);
