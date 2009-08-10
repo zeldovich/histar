@@ -33,7 +33,11 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
 
+#ifdef JOS_ARCH_arm
+enum { vt_count = 2 };
+#else
 enum { vt_count = 6 };
+#endif
 
 static fbcons_seg *all_fs[vt_count];
 static uint64_t cur_vt;
