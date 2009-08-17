@@ -573,8 +573,6 @@ as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 			if (*pvp & PVP_DIRTYEMU) {
 				pagetree_decpin_write(pa2kva(PTE_ADDR(*ptep)));
 			} else {
-				assert((*ptep & ARM_MMU_L2_SMALL_AP_MASK) ==
-				    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO));
 				pagetree_decpin_read(pa2kva(PTE_ADDR(*ptep)));
 			}
 		}
