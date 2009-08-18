@@ -100,6 +100,16 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t err)
 	trapframe_print(tf);
 	panic("kernel page fault");
     } else {
+	// see if we're trapping page dirtiers first
+	if (err & FEC_W) {
+	    struct Pagemap *pgmap;
+
+	    pgmap = (struct Pagemap *)pa2kva(rcr3());
+	    r = x86_dirtyemu(pgmap, fault_va);
+	    if (r == 0)
+		return;
+	}
+
 	int r = thread_pagefault(t, fault_va, reqflags);
 	if (r == 0 || r == -E_RESTART)
 	    return;
