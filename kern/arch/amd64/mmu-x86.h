@@ -41,17 +41,19 @@
 #define PGADDR(la)	(((uintptr_t) (la)) & ~CAST64(PGMASK))
 
 /* Page table/directory entry flags. */
-#define PTE_P	0x001		/* Present */
-#define PTE_W	0x002		/* Writeable */
-#define PTE_U	0x004		/* User */
-#define PTE_PWT 0x008		/* Write-Through */
-#define PTE_PCD 0x010		/* Cache-Disable */
-#define PTE_A	0x020		/* Accessed */
-#define PTE_D	0x040		/* Dirty */
-#define PTE_PS	0x080		/* Page size */
-#define PTE_G	0x100		/* Global */
-#define PTE_PAT 0x1000		/* Page Attribute Table */
-#define PTE_NX	UINT64(0x8000000000000000) /* No execute */
+#define PTE_P		0x0001		/* Present */
+#define PTE_W		0x0002		/* Writeable */
+#define PTE_U		0x0004		/* User */
+#define PTE_PWT		0x0008		/* Write-Through */
+#define PTE_PCD		0x0010		/* Cache-Disable */
+#define PTE_A		0x0020		/* Accessed */
+#define PTE_D		0x0040		/* Dirty */
+#define PTE_PS		0x0080		/* Page size, in PD/PDP/PML4 */
+#define PTE_PAT		0x0080		/* Page attribute table, in 4KB PTE */
+#define PTE_G		0x0100		/* Global */
+#define PTE_AVAIL	0x0E00		/* 3 bits not used by hardware */
+#define PTE_PAT_PS	0x1000		/* Page attribute table, in 2MB PTE */
+#define PTE_NX		UINT64(0x8000000000000000) /* No execute */
 
 /* address in page table entry */
 #define PTE_ADDR(pte) ((physaddr_t) (pte) & UINT64(0xffffffffff000))
