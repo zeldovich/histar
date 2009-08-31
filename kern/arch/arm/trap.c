@@ -13,6 +13,8 @@
 #include <machine/trapcodes.h>
 #include <dev/goldfish_irq.h>
 
+extern int arm_dirtyemu(struct Pagemap *, const void *);
+
 static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;
 static int trap_thread_syscall_writeback;

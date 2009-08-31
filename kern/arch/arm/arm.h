@@ -28,9 +28,6 @@
 
 #if defined(JOS_KERNEL) && !defined(__ASSEMBLER__)
 
-//dirty bit emulation
-int arm_dirtyemu(struct Pagemap *, const void *);
-
 extern uint32_t	cpsr_get(void);
 extern void	cpsr_set(uint32_t);
 extern uint32_t	cp15_ctrl_get(void);
