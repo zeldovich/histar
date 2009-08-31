@@ -14,6 +14,10 @@ extern "C" {
 #include "../smdd/msm_rpcrouter2.h"
 #include <inc/smdd.h>
 
+#include <machine/mmu.h>
+#include <inc/syscall.h>
+#include <inc/error.h>
+
 #include "misc.h"
 #include "smddgate.h"
 
@@ -204,11 +208,36 @@ smddgate_rpc_read(void *endpt, void *buf, size_t s)
 {
 	GATECALL_SETUP(rpc_read);
 	req->token = endpt;
-	req->bufbytes = MIN(s, sizeof(rep->buf));
+
+	if (s > PGSIZE) {
+		cprintf("%s: WARNING: s > PGSIZE\n", __func__);
+		return -E_INVAL;
+	}
+
+	void *ptr;
+	int64_t ct;
+	label ct_label(1);
+	error_check((ct = sys_container_alloc(start_env->shared_container,
+	    ct_label.to_ulabel(), "rpcbuf-r-ct", 0, CT_QUOTA_INF)));
+	int64_t segid = sys_segment_create(ct, PGSIZE, 0, "rpcbuf-r");
+	if (segid < 0)
+		return segid;
+	struct cobj_ref ref = COBJ(ct, segid);
+	error_check(segment_map(ref, 0, SEGMAP_READ | SEGMAP_WRITE,
+                            (void **)&ptr, 0, 0));
+
+	req->obj = ref;
+	req->bufbytes = s;
 	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
+	if (!rep->err)
+		memcpy(buf, ptr, rep->bufbytes);
+
+	segment_unmap(ptr);
+	sys_obj_unref(COBJ(ct, segid));
+	sys_obj_unref(COBJ(start_env->shared_container, ct));
+
 	if (rep->err)
 		return rep->err;
-	memcpy(buf, rep->buf, rep->bufbytes);
 	return (rep->bufbytes);
 }
 
@@ -217,10 +246,35 @@ smddgate_rpc_write(void *endpt, const void *buf, size_t s)
 {
 	GATECALL_SETUP(rpc_write);
 	req->token = endpt;
-	req->bufbytes = MIN(s, sizeof(req->buf));
-if (s > sizeof(req->buf)) { cprintf("%s: WARNING !!!! !!! !!! WRITE TOO BIG!\n", __func__); return -1; }
-	memcpy(req->buf, buf, req->bufbytes);
+
+	if (s > PGSIZE) {
+		cprintf("%s: WARNING: s > PGSIZE\n", __func__);
+		return -E_INVAL;
+	}
+
+	void *ptr;
+	int64_t ct;
+	label ct_label(1);
+	error_check((ct = sys_container_alloc(start_env->shared_container,
+	    ct_label.to_ulabel(), "rpcbuf-w-ct", 0, CT_QUOTA_INF)));
+	int64_t segid = sys_segment_create(ct, PGSIZE, 0, "rpcbuf-w");
+	if (segid < 0)
+		return segid;
+	struct cobj_ref ref = COBJ(ct, segid);
+cprintf("%s: MAPPING SEGMENT %lld.%lld\n", __func__, ref.container, ref.object);
+	error_check(segment_map(ref, 0, SEGMAP_READ | SEGMAP_WRITE,
+                            (void **)&ptr, 0, 0));
+cprintf("%s: MAPPED SEGMENT %lld.%lld\n", __func__, ref.container, ref.object);
+	memcpy(ptr, buf, s);
+
+	req->obj = ref;
+	req->bufbytes = s;
 	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
+
+	segment_unmap(ptr);
+	sys_obj_unref(COBJ(ct, segid));
+	sys_obj_unref(COBJ(start_env->shared_container, ct));
+
 	if (rep->err)
 		return rep->err;
 	return (rep->bufbytes);

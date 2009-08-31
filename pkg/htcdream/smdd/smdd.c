@@ -182,7 +182,14 @@ smdd_rpc_read(struct smdd_req *request, struct smdd_reply *reply)
 {
 	struct rr_fragment *frag, *next;
 
-	request->bufbytes = MIN(request->bufbytes, (int)sizeof(reply->buf));
+	void *ptr;
+	if (segment_map(request->obj, 0, SEGMAP_READ | SEGMAP_WRITE,
+                            (void **)&ptr, 0, 0) < 0) {
+		reply->err = -E_INVAL;
+		reply->bufbytes = 0;
+		return;
+	}
+
 	reply->bufbytes = __msm_rpc_read((struct msm_rpc_endpoint *)request->token, &frag, request->bufbytes, -1);
 	reply->err = 0;
 	if (reply->bufbytes < 0) {
@@ -191,7 +198,7 @@ smdd_rpc_read(struct smdd_req *request, struct smdd_reply *reply)
 	}
 
 	if (reply->err == 0) {
-		char *buf = reply->buf;
+		char *buf = (char *)ptr;
 		while (frag != NULL) {
 			memcpy(buf, frag->data, frag->length);
 			buf += frag->length;
@@ -200,12 +207,26 @@ smdd_rpc_read(struct smdd_req *request, struct smdd_reply *reply)
 			frag = next;
 		}
 	}
+
+	segment_unmap(ptr);
 }
 
 static void
 smdd_rpc_write(struct smdd_req *request, struct smdd_reply *reply)
 {
-	reply->bufbytes = msm_rpc_write((struct msm_rpc_endpoint *)request->token, request->buf, request->bufbytes);
+	void *ptr;
+cprintf("%s: MAPPING SEGMENT %lld.%lld\n", __func__, request->obj.container, request->obj.object);
+	if (segment_map(request->obj, 0, SEGMAP_READ | SEGMAP_WRITE,
+                            (void **)&ptr, 0, 0) < 0) {
+cprintf("%s: FAILED TO MAP SEGMENT %lld.%lld\n", __func__, request->obj.container, request->obj.object);
+		reply->err = -E_INVAL;
+		reply->bufbytes = 0;
+		return;
+	}
+cprintf("%s: MAPPED SEGMENT %lld.%lld\n", __func__, request->obj.container, request->obj.object);
+
+	reply->bufbytes = msm_rpc_write((struct msm_rpc_endpoint *)request->token, ptr, request->bufbytes);
+	segment_unmap(ptr);
 	reply->err = (reply->bufbytes < 0) ? reply->bufbytes : 0;
 }
 
