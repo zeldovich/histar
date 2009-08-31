@@ -15,6 +15,8 @@
 // This bit is always mutually exclusive with PTE_W.
 #define PTE_DIRTYEMU	PTE_PWT
 
+static void pmap_queue_invlpg(const struct Pagemap *pgmap, void *addr);
+
 static void
 page_map_free_level(struct Pagemap *pgmap, int pmlevel)
 {
@@ -181,7 +183,7 @@ check_user_access2(const void *ptr, uint64_t nbytes,
 
 	    ptent_t *ptep;
 	    if (cur_as->as_pgmap &&
-		page_lookup(cur_as->as_pgmap, (void *) va, &ptep)) { &&
+		page_lookup(cur_as->as_pgmap, (void *) va, &ptep)) {
 
 		// Adjust accordingly if the pte is really read/write
 		// and we're checking for writable access. We must do
@@ -193,7 +195,7 @@ check_user_access2(const void *ptr, uint64_t nbytes,
 		    pmap_queue_invlpg(cur_as->as_pgmap, (void *)va);
 		}
 
-		if (*ptep & pte_flags) == pte_flags)
+		if ((*ptep & pte_flags) == pte_flags)
 		    continue;
 	    }
 
@@ -369,13 +371,17 @@ x86_dirtyemu(struct Pagemap *pgmap, const void *fault_va)
 {
     ptent_t *ptep;
 
-    assert(pgmap != &kpagemap);
+#ifdef JOS_ARCH_amd64
+    assert(pgmap != &bootpml4);
+#else
+    assert(pgmap != &bootpd);
+#endif
 
     int r = pgdir_walk(pgmap, fault_va, 0, &ptep);
     if (r < 0 || ptep == NULL)
 	return 1;
 
-    if ((*ptep PTE_DIRTYEMU) == 0)
+    if ((*ptep & PTE_DIRTYEMU) == 0)
 	return 1;
 
     assert((*ptep & PTE_D) == 0);

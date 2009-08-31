@@ -14,6 +14,8 @@
 #include <kern/utrap.h>
 #include <inc/error.h>
 
+extern int x86_dirtyemu(struct Pagemap *, const void *);
+
 static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;
 static int trap_thread_syscall_writeback;
