@@ -430,28 +430,32 @@ check_user_access2(const void *ptr, uint64_t nbytes,
 		if (va >= ULIM)
 			return (-E_INVAL);
 
+		pvp_t *pvp;
 		ptent_t *ptep;
+
 		if (cur_as->as_pgmap &&
 		    page_lookup(cur_as->as_pgmap, (void *)va, &ptep)) {
-			pvp_t *pvp;
-
 			r = pvp_get(cur_as->as_pgmap, (void *)va, &pvp, 0);
 			assert(r == 0);
 
-			// Adjust accordingly if the pte is really read/write
-			// and we're checking for writable access. We must do
-			// this here so that the kernel doesn't trap on a write.
-			if ((*pvp & PVP_DIRTYEMU) &&
-			    (reqflags & SEGMAP_WRITE) &&
-			    (*ptep & ARM_MMU_L2_SMALL_AP_MASK) ==
-			     ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO)) {
+			// The kernel is always permitted to write pages, but
+			// since we don't trap we won't be able to bill for
+			// user-initiated kernel writes. So, assume that a
+			// check_user_access call will immediately precede a
+			// write and toggle our dirty bit.
+			if ((*pvp & PVP_DIRTYEMU) && (reqflags & SEGMAP_WRITE)){
 				*pvp |= PVP_DIRTYBIT;
-				*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
-				*ptep |= ARM_MMU_L2_SMALL_AP(
-				    ARM_MMU_AP_KRWURW);
-				cpufunc.cf_dcache_flush_invalidate_range(ptep,
-				    sizeof(*ptep));
-				pmap_queue_invlpg(cur_as->as_pgmap, (void *)va);
+
+				if ((*ptep & ARM_MMU_L2_SMALL_AP_MASK) ==
+				    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO)) {
+					*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
+					*ptep |= ARM_MMU_L2_SMALL_AP(
+					    ARM_MMU_AP_KRWURW);
+					cpufunc.cf_dcache_flush_invalidate_range
+					    (ptep, sizeof(*ptep));
+					pmap_queue_invlpg(cur_as->as_pgmap,
+					    (void *)va);
+				}
 			}
 
 			if ((*ptep & pte_flags) == pte_flags)
@@ -462,9 +466,30 @@ check_user_access2(const void *ptr, uint64_t nbytes,
 		// permissions aren't appropriate, take a page fault.
 
 		aspf = 1;
-		r = as_pagefault(cur_as, (void *) va, reqflags);
+		r = as_pagefault(cur_as, (void *)va, reqflags);
 		if (r < 0)
 			return (r);
+
+		// Second chance to predict a dirtying operation. See above.
+		r = pvp_get(cur_as->as_pgmap, (void *)va, &pvp, 0);
+		assert(r == 0);
+		if ((*pvp & PVP_DIRTYEMU) && (reqflags & SEGMAP_WRITE)) {
+			*pvp |= PVP_DIRTYBIT;
+
+			ptep = NULL;
+			assert(cur_as->as_pgmap);
+			page_lookup(cur_as->as_pgmap, (void *)va, &ptep);
+			assert(ptep);
+
+			if ((*ptep & ARM_MMU_L2_SMALL_AP_MASK) ==
+			    ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURO)) {
+				*ptep &= ~ARM_MMU_L2_SMALL_AP_MASK;
+				*ptep |= ARM_MMU_L2_SMALL_AP(ARM_MMU_AP_KRWURW);
+				cpufunc.cf_dcache_flush_invalidate_range(ptep,
+				    sizeof(*ptep));
+				pmap_queue_invlpg(cur_as->as_pgmap, (void *)va);
+			}
+		}
 	}
 
 	//Flush any stale TLB entries that might have arisen from as_pagefault()
