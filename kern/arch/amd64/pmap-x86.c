@@ -8,14 +8,9 @@
 #include <inc/safeint.h>
 #include <inc/intmacro.h>
 
-// Use the PTE_PWT (write-through toggle bit) as an indicator that the
-// associated entry is truly read/write, but mapped read-only to catch
-// the first dirtying of it.
-//
-// This bit is always mutually exclusive with PTE_W.
-#define PTE_DIRTYEMU	PTE_PWT
-
-static void pmap_queue_invlpg(const struct Pagemap *pgmap, void *addr);
+// Bit to indicate whether or not we're performing dirty bit emulation
+// on the associated page. This uses one of the three AVL bits of the PTE.
+#define PTE_DIRTYEMU	(1 << 9)
 
 static void
 page_map_free_level(struct Pagemap *pgmap, int pmlevel)
@@ -165,9 +160,10 @@ check_user_access2(const void *ptr, uint64_t nbytes,
 
     ptent_t pte_flags = PTE_P | PTE_U;
     if (reqflags & SEGMAP_WRITE)
-	pte_flags |= PTE_W;
+	pte_flags |= PTE_DIRTYEMU;
 
     int aspf = 0;
+
     if (nbytes > 0) {
 	int overflow = 0;
 	uintptr_t iptr = (uintptr_t) ptr;
@@ -183,26 +179,40 @@ check_user_access2(const void *ptr, uint64_t nbytes,
 
 	    ptent_t *ptep;
 	    if (cur_as->as_pgmap &&
-		page_lookup(cur_as->as_pgmap, (void *) va, &ptep)) {
+		page_lookup(cur_as->as_pgmap, (void *) va, &ptep) &&
+		(*ptep & pte_flags) == pte_flags) {
 
-		// Adjust accordingly if the pte is really read/write
-		// and we're checking for writable access. We must do
-		// this here so that the kernel doesn't trap on a write.
-		if ((*ptep & PTE_DIRTYEMU) && (reqflags & SEGMAP_WRITE)) {
-		    assert((*ptep & PTE_W) == 0);
+		// If the mapping exists and is mapped read-only for dirty
+		// bit emulation, we need to map it read-write now and assume
+		// that the kernel will dirty it momentarily.
+		if ((reqflags & SEGMAP_WRITE) && (*ptep & PTE_W) == 0) {
+		    assert(*ptep & PTE_DIRTYEMU);
 		    *ptep |= PTE_W;
-		    *ptep &= ~PTE_DIRTYEMU;
-		    pmap_queue_invlpg(cur_as->as_pgmap, (void *)va);
+		    invlpg(va);
+/* XXX - we're almost assuredly going to dirty shit now. */
 		}
 
-		if ((*ptep & pte_flags) == pte_flags)
-		    continue;
+		continue;
 	    }
 
 	    aspf = 1;
 	    int r = as_pagefault(cur_as, (void *) va, reqflags);
 	    if (r < 0)
 		return r;
+
+	    // Like above, a newly generated mapping may be emulating the dirty
+	    // bit, so we must assume it will be dirtied and mark read-write in
+	    // order for the kernel to write without faulting.
+	    ptep = NULL;
+	    assert(cur_as->as_pgmap);
+	    page_lookup(cur_as->as_pgmap, (void *) va, &ptep);
+	    assert(ptep);
+	    if ((reqflags & SEGMAP_WRITE) && (*ptep & PTE_W) == 0) {
+		assert(*ptep & PTE_DIRTYEMU);
+		*ptep |= PTE_W;
+		invlpg(va);
+/* XXX - we're almost assuredly going to dirty shit now. */
+	    }
 	}
     }
 
@@ -287,6 +297,8 @@ as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
     struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(pte)));
     if (pi) {
 	pi->pi_dirty = 1;
+	if (pte & PTE_DIRTYEMU)
+		*ptep &= ~PTE_W;
 	*ptep &= ~PTE_D;
     }
     pmap_queue_invlpg(pgmap, va);
@@ -296,27 +308,14 @@ void
 as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 {
     const struct Pagemap *pgmap = arg;
-
-    int was_rw = (*ptep & PTE_W);
     as_arch_collect_dirty_bits(arg, ptep, va);
 
     uint64_t pte = *ptep;
     if ((pte & PTE_P)) {
-	// sane? as_arch_collect_dirty_bits should clear
-	// dirty, make r/o
-	assert((pte & PTE_W) == 0);
-	assert((pte & PTE_D) == 0);
-	if (was_rw)
-	    assert((pte & PTE_DIRTYEMU) == 0);
-
-	// PTE_DIRTYEMU => what the mapping truly is,
-	// regardless of whether PTE_W was set or not.
-	if ((pte & PTE_DIRTYEMU) || was_rw) {
+	if (pte & PTE_DIRTYEMU)
 	    pagetree_decpin_write(pa2kva(PTE_ADDR(pte)));
-	} else {
+	else
 	    pagetree_decpin_read(pa2kva(PTE_ADDR(pte)));
-	}
-
 	*ptep = 0;
 	pmap_queue_invlpg(pgmap, va);
     }
@@ -329,8 +328,7 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
     as_arch_collect_dirty_bits(arg, ptep, va);
 
     uint64_t pte = *ptep;
-    if ((pte & PTE_P) && ((pte & PTE_W) || (pte & PTE_DIRTYEMU))) {
-	assert((pte & (PTE_W | PTE_DIRTYEMU)) != (PTE_W | PTE_DIRTYEMU));
+    if ((pte & PTE_P) && (pte & PTE_DIRTYEMU)) {
 	pagetree_decpin_write(pa2kva(PTE_ADDR(pte)));
 	pagetree_incpin_read(pa2kva(PTE_ADDR(pte)));
 	*ptep &= ~(PTE_W | PTE_DIRTYEMU);
@@ -354,13 +352,20 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 
     as_arch_page_invalidate_cb(pgmap, ptep, va);
     *ptep = kva2pa(pp) | ptflags;
-    if ((ptflags & PTE_W))
+    if ((ptflags & PTE_DIRTYEMU))
 	pagetree_incpin_write(pp);
     else
 	pagetree_incpin_read(pp);
 
     pmap_queue_invlpg(pgmap, va);
     return 0;
+}
+
+int
+as_arch_putdevpage(struct Pagemap *pgmap, void *va, physaddr_t physaddr,
+    uint32_t flags)
+{
+    panic("unimplemented on x86");
 }
 
 // Handle dirty bit emulation page faults. All data access faults come through
@@ -387,7 +392,6 @@ x86_dirtyemu(struct Pagemap *pgmap, const void *fault_va)
     assert((*ptep & PTE_D) == 0);
 
     *ptep |= (PTE_D | PTE_W);
-    *ptep &= ~PTE_DIRTYEMU;
     pmap_queue_invlpg(pgmap, (void *)fault_va);
 
     return 0;

@@ -98,7 +98,7 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t err)
 	reqflags |= SEGMAP_EXEC;
 
     if ((tf->tf_cs & 3) == 0) {
-	cprintf("kernel page fault: va=%p\n", fault_va);
+	cprintf("kernel page fault: va=%p, err=0x%08x\n", fault_va, err);
 	trapframe_print(tf);
 	panic("kernel page fault");
     } else {
@@ -107,7 +107,7 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t err)
 	    struct Pagemap *pgmap;
 
 	    pgmap = (struct Pagemap *)pa2kva(rcr3());
-	    r = x86_dirtyemu(pgmap, fault_va);
+	    int r = x86_dirtyemu(pgmap, fault_va);
 	    if (r == 0)
 		return;
 	}
@@ -318,6 +318,12 @@ int
 thread_arch_set_mask(const struct Thread *t, int mask)
 {
     return -E_INVAL;
+}
+
+void
+thread_arch_utf2tf(const struct UTrapframe *utf, struct Trapframe *tf)
+{
+    panic("unimplemented on x86");
 }
 
 int
