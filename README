@@ -1,3 +1,59 @@
+# Quickstart Instructions to build/run HiStar on Ubuntu/Debian amd64/i386
+
+# install required packages
+sudo apt-get install git-core build-essential texinfo flex bison qemu
+
+# get GNU tools
+mkdir tools
+cd tools
+wget http://mirrors.kernel.org/gnu/gcc/gcc-4.1.2/gcc-core-4.1.2.tar.bz2 \
+	http://mirrors.kernel.org/gnu/gcc/gcc-4.1.2/gcc-g++-4.1.2.tar.bz2 \
+	http://www.kernel.org/pub/linux/devel/binutils/binutils-2.19.50.0.1.tar.bz2
+
+# unpack them
+tar jxvf *.tar.bz2
+
+# setup binutils
+cd binutils*
+./configure --target=x86_64-jos-linux --prefix=/usr/local \
+        --disable-nls --enable-64-bit-bfd
+make
+sudo make install
+cd ..
+
+# setup gcc
+rm -r gcc-4.1.2/libstdc++-v3
+cd gcc-4.1.2/
+./configure --target=x86_64-jos-linux --prefix=/usr/local \
+        --disable-nls --without-headers --with-newlib \
+        --disable-threads --disable-shared --disable-libmudflap \
+        --disable-libssp 
+make
+sudo make install
+cd ..
+
+# checkout histar
+git clone http://www.scs.stanford.edu/histar/gitrepo/ histar
+
+# configure histar
+cd histar/conf/embedbin
+cp default.mk local.mk
+# edit local.mk and at your option comment out anything you don't want to
+# compile, probably: development, demo, X11 graphics sections and also comment
+# out usr/file and terminfo.tar
+cd ../..
+make
+cp conf/sample-qemu.sh qemu.sh
+
+# histar compiles in a directory called "obj.${git-branch-name}.${arch}"
+# so edit the qemu.sh to run the version of histar you compiled
+# the default case is the "master" branch for "amd64" so 
+edit qemu.sh, change "obj" to "obj.master.amd64"
+
+From here you should be able to run ./qemu.sh and you should be at the shell
+of a working histar box.
+
+== Instructions to build other tools that may be useful ==
 
 * To configure bochs, you need --enable-x86-64:
 
