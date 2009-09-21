@@ -1,7 +1,7 @@
 # Quickstart Instructions to build/run HiStar on Ubuntu/Debian amd64/i386
 
 # install required packages
-sudo apt-get install git-core build-essential texinfo flex bison qemu
+sudo apt-get install git-core build-essential texinfo flex bison qemu autoconf automake
 
 # get GNU tools
 mkdir tools
