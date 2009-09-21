@@ -1,12 +1,15 @@
 #!/bin/sh
+branch=$( git symbolic-ref -q HEAD |                sed -e s,refs/heads/,,)
+echo Running $branch
 qemu-system-x86_64 \
 	-serial stdio \
-	-hda ./obj/boot/bochs.img \
-	-hdb ./obj/fs/fs.img \
-	-m 256 \
+	-m 768 \
 	-redir tcp:9923::23 \
 	-redir tcp:9922::22 \
-	-redir tcp:9980::80
+	-redir tcp:9980::80 \
+	-hda ./obj.$branch.amd64/boot/bochs.img
+#	-kernel ./obj.$branch.amd64/boot/bimage.init \
+#	-nographic
 
 # To run qemu from an ISO image:
 #
