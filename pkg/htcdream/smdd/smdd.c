@@ -104,9 +104,18 @@ smdd_qmi_close(struct smdd_req *request, struct smdd_reply *reply)
 }
 
 static void
-smdd_qmi_select(struct smdd_req *request, struct smdd_reply *reply)
+smdd_qmi_readwait(struct smdd_req *request, struct smdd_reply *reply)
 {
-	cprintf("SMDD_QMI_SELECT!!!\n");
+	int cnt, ns[3], rdys[3];
+
+	memcpy(&cnt, &request->buf[0], 4);
+	memcpy(ns, &request->buf[4], 12);
+
+	smd_qmi_readwait(ns, rdys, cnt);
+
+	memcpy(&reply->buf[0], rdys, 12);
+	reply->bufbytes = 12;
+	reply->err = 0;
 }
 
 static void
@@ -380,8 +389,8 @@ smdd_dispatch(struct gate_call_data *parm)
 			smdd_qmi_close(req, reply);
 			break;
 
-		case qmi_select:
-			smdd_qmi_select(req, reply);
+		case qmi_readwait:
+			smdd_qmi_readwait(req, reply);
 			break;
 
 		case rpcrouter_create_local_endpoint:

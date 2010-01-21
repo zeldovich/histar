@@ -3,6 +3,8 @@ TARGET	:= arm-jos-linux-gnueabi
 OBJTYPE := elf32-littlearm
 BFDARCH := arm
 # goldfish uses arm926ej-s, htc dream is arm1136jf-s
+#ARMCPU	:= arm926ej-s
+#ARCH_BASECFLAGS := -DJOS_ARM_GOLDFISH
 ARMCPU  := arm1136jf-s
 ARCH_BASECFLAGS := -DJOS_ARM_HTCDREAM
 ARCH_USER_COMFLAGS := -mthumb-interwork -mthumb

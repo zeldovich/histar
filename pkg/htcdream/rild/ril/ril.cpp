@@ -1831,7 +1831,19 @@ RIL_onRequestComplete(RIL_Token t, RIL_Errno e, void *response, size_t responsel
     if (pRI->local > 0) {
         // Locally issued command...void only!
         // response does not go back up the command socket
-        LOGD("C[locl]< %s", requestToString(pRI->pCI->requestNumber));
+        LOGD("C[locl]< %s (# %d, errno %d)", requestToString(pRI->pCI->requestNumber),
+	    pRI->pCI->requestNumber, e);
+
+	if (pRI->pCI->requestNumber == RIL_REQUEST_SETUP_DEFAULT_PDP) {
+		fprintf(stderr, "SETUP_DEFAULT_PDP complete!\n");
+		if (e == RIL_E_SUCCESS) {
+			const char **strs = (const char **)response;
+			fprintf(stderr, " - SUCCESS: cid [%s], iface [%s], ip [%s]\n",
+			    strs[0], strs[1], strs[2]);
+		} else {
+			fprintf(stderr, " - FAILED: %s\n", failCauseToString(e));
+		}
+	} 
 
         goto done;
     }
@@ -2011,6 +2023,18 @@ void RIL_onUnsolicitedResponse(int unsolResponse, void *data,
 	case RIL_UNSOL_RESPONSE_NEW_SMS: 
 		handle_new_sms((const char *)data);
 		break;
+
+	case RIL_UNSOL_PDP_CONTEXT_LIST_CHANGED:
+	{
+		fprintf(stderr, "PDP CONTEXT LIST CHANGED!");
+		RIL_PDP_Context_Response *r = (RIL_PDP_Context_Response *)data;
+		unsigned int l = datalen;
+		while (l >= sizeof(*r)) {
+			fprintf(stderr, "  cid [%d], active [%d], type [%s], apn [%s], addr [%s]\n", r->cid, r->active, r->type, r->apn, r->address);
+			l -= sizeof(*r);
+		}
+		break;
+	}
 
 	default:
 	    break;	

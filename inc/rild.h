@@ -10,6 +10,7 @@ enum {
 	dial_number,
 	answer_call,
 	end_call,
+	default_pdp_on,
 	get_ril_interface_version,
 	get_ril_lib_version,
 	get_ril_state

@@ -151,9 +151,22 @@ smddgate_qmi_write(int n, const void *buf, size_t s)
 }
 
 int
-smddgate_qmi_select()
+smddgate_qmi_readwait(int *ns, int *rdys, int cnt)
 {
-	return (-1);
+	if (cnt < 0 || cnt > 3 || ns == NULL || rdys == NULL) {
+		fprintf(stderr, "%s: bad args\n"); 
+		return (E_INVAL);
+	}
+
+	GATECALL_SETUP(qmi_readwait);
+	memcpy(&req->buf[0], &cnt, 4);
+	memcpy(&req->buf[4], ns, 12);
+	req->bufbytes = 16;
+	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
+	if (rep->err)
+		return (rep->err);
+	memcpy(rdys, &rep->buf[0], 12);
+	return (rep->err);
 }
 
 void *

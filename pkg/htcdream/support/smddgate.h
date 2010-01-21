@@ -13,7 +13,7 @@ int smddgate_qmi_open(int);
 int smddgate_qmi_close(int);
 int smddgate_qmi_read(int, void *, size_t);
 int smddgate_qmi_write(int, const void *, size_t);
-int smddgate_qmi_select();
+int smddgate_qmi_readwait(int *, int *, int);
 void *smddgate_rpcrouter_create_local_endpoint(int, uint32_t, uint32_t);
 int smddgate_rpcrouter_destroy_local_endpoint(void *);
 int smddgate_rpc_register_server(void *, uint32_t, uint32_t);

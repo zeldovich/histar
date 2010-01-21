@@ -258,6 +258,8 @@ qmi_read(int fd, void *buf, size_t nbyte)
 	return (ret);
 }
 
+// NB: we for now assume only waiting on read sets (probably bogus
+//     once we get PPP actually working!).
 static int
 qmi_select(int nfd, bfd_set *rfds, bfd_set *wfds, bfd_set *efds, struct timeval *timeout)
 {
@@ -292,21 +294,21 @@ qmi_select(int nfd, bfd_set *rfds, bfd_set *wfds, bfd_set *efds, struct timeval 
 	rfds->b[qmi1_fd / 32] &= ~(0x1 << (qmi1_fd % 32));
 	rfds->b[qmi2_fd / 32] &= ~(0x1 << (qmi2_fd % 32));
 
-//XXXXX
-while (1) sleep(9999);
-//	smd_qmi_readwait(ns, rdys, cnt);
+	smddgate_qmi_readwait(ns, rdys, cnt);
 
 	int i;
+	int nrdys = 0;
 	for (i = 0; i < cnt; i++) {
 		if (rdys[i]) {
 			int fds[3] = { qmi0_fd, qmi1_fd, qmi2_fd };
 			int fd = fds[ns[i]];
 			DPRINTF(("%s: qmi fd %d set\n", __func__, fd));
 			rfds->b[fd / 32] |= (0x1 << (fd % 32));
+			nrdys++;
 		}
 	}
 
-	return (0);
+	return (nrdys);
 }
 
 static ssize_t
@@ -317,7 +319,7 @@ qmi_write(int fd, const void *buf, size_t nbyte)
 	int n = qmi_fd_to_num(fd);
 
 #ifdef DEBUG
-	DPRINTF(("------ WRITE TO SMD %d ------\n", n));
+	DPRINTF(("------ WRITE TO QMI %d ------\n", n));
 	hexdump((const unsigned char *)buf, nbyte);
 #endif
 
@@ -492,8 +494,13 @@ SOCKET(int domain, int type, int proto)
 {
 	DPRINTF(("SOCKET: dom %d, type %d, proto %d\n", domain, type,
 	    proto));
-exit(1);
-	return (0);
+
+	// libhtc_ril.so seems to open an AF_INET, SOCK_DGRAM socket
+	// when setting up PDP. It then does 3 ioctls on it (35094,
+	// 35091, 35100) -- whatever the hell those are.
+	// Doesn't appear that failing those keeps it from moving forward,
+	// though.
+	return (42);
 }
 
 int

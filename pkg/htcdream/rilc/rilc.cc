@@ -26,6 +26,7 @@ usage(const char *progname)
 	fprintf(stderr, "    dial [number]     - dial phone number\n");
 	fprintf(stderr, "    answer            - answer phone\n");
 	fprintf(stderr, "    end               - end call (hang up)\n");
+	fprintf(stderr, "    pdpon             - initiate packet data protocol (PDP) context\n");
 	fprintf(stderr, "    ifacever          - get RIL interface version\n");
 	fprintf(stderr, "    libver            - get RIL .so library version string\n");
 	fprintf(stderr, "    state             - get RIL state\n");
@@ -87,6 +88,9 @@ try
 		req->op = end_call;
 		gate_call(rildgate, 0, 0, 0).call(&gcd, 0);
 		printf("ending call.\n");
+	} else if (strcmp(argv[1], "pdpon") == 0) {
+		req->op = default_pdp_on;
+		gate_call(rildgate, 0, 0, 0).call(&gcd, 0);
 	} else if (strcmp(argv[1], "ifacever") == 0) {
 		req->op = get_ril_interface_version;
 		gate_call(rildgate, 0, 0, 0).call(&gcd, 0);

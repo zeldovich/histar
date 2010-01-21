@@ -137,6 +137,16 @@ gate_end_call()
 }
 
 static void
+gate_default_pdp_on()
+{
+	// APN, username, password
+	fprintf(stderr, "%s: issuing SETUP_DEFAULT_PDP ril request!\n", __func__);
+	const char *arg[1] = { "epc.tmobile.com" };
+	RIL_issueLocalRequest(RIL_REQUEST_SETUP_DEFAULT_PDP, arg,
+		      sizeof(arg));
+}
+
+static void
 rild_dispatch(struct gate_call_data *parm)
 {
 	struct rild_req *req = (struct rild_req *) &parm->param_buf[0];
@@ -170,6 +180,10 @@ rild_dispatch(struct gate_call_data *parm)
 
 	case end_call:
 		gate_end_call();
+		break;
+
+	case default_pdp_on:
+		gate_default_pdp_on();
 		break;
 
 	case get_ril_interface_version:

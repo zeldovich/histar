@@ -27,7 +27,7 @@ enum {
 	qmi_read,
 	qmi_write,
 	qmi_close,
-	qmi_select,
+	qmi_readwait,
 	rpcrouter_create_local_endpoint,
 	rpcrouter_destroy_local_endpoint,
 	rpc_register_server,
