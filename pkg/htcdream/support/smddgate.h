@@ -21,6 +21,7 @@ int smddgate_rpc_unregister_server(void *, uint32_t, uint32_t);
 int smddgate_rpc_read(void *, void *, size_t);
 int smddgate_rpc_write(void *, const void *, size_t);
 int smddgate_rpc_endpoint_read_select(void **, int, uint64_t);
+int smddgate_rmnet_open(int);
 
 }
 

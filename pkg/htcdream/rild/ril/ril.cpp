@@ -42,6 +42,7 @@ extern "C" {
 #include "../../support/misc.h"
 #include "../../support/record_stream.h"
 #include "../../support/Parcel.h"
+#include "../../support/smddgate.h"
 #define RIL_SHLIB
 #include "ril.h"
 #include "ril_event.h"
@@ -1814,6 +1815,22 @@ checkAndDequeueRequestInfo(struct RequestInfo *pRI)
     return ret;
 }
 
+static int
+handle_pdp_up()
+{
+	int ret;
+
+	ret = smddgate_rmnet_open(0);
+	if (ret) {
+		fprintf(stderr, "%s:%d: smddgate_rmnet_open failed: %d\n",
+		    __FILE__, __LINE__, ret);
+		return ret;
+	}
+
+	fprintf(stderr, "RMNET IS UP AND RUNNING!");
+
+	return 0;
+}
 
 extern "C" void
 RIL_onRequestComplete(RIL_Token t, RIL_Errno e, void *response, size_t responselen)
@@ -1843,7 +1860,10 @@ RIL_onRequestComplete(RIL_Token t, RIL_Errno e, void *response, size_t responsel
 		} else {
 			fprintf(stderr, " - FAILED: %s\n", failCauseToString(e));
 		}
-	} 
+	}
+
+	// now that we've got data, let's set this shit up.
+	handle_pdp_up();
 
         goto done;
     }

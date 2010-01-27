@@ -35,7 +35,8 @@ enum {
 	rpc_read,
 	rpc_write,
 	rpc_endpoint_read_select,
-	get_battery_info
+	get_battery_info,
+	rmnet_open
 };
 
 struct smdd_req {

@@ -35,173 +35,137 @@ extern "C" {
 }
 
 #include "msm_smd.h"
-#include "smd_qmi.h"
-
-/* XXX should come from smd headers */
-#define SMD_PORT_ETHER0 11
+#include "smd_rmnet.h"
 
 struct rmnet_private {
 	smd_channel_t *ch;
 	const char *chname;
+	size_t tx_frames, tx_frame_bytes;
+	size_t rx_frames, rx_frame_bytes, rx_dropped;
 } rmnet_private[3] = {
-	{ NULL, "SMD_DATA5" },
-	{ NULL, "SMD_DATA6" },
-	{ NULL, "SMD_DATA7" }
+	{ NULL, "SMD_DATA5", 0, 0, 0, 0, 0 },
+	{ NULL, "SMD_DATA6", 0, 0, 0, 0, 0 },
+	{ NULL, "SMD_DATA7", 0, 0, 0, 0, 0 }
 };
 
-/* Called in soft-irq context */
-static void smd_net_data_handler(unsigned long arg)
+
+
+#include <ctype.h>
+static void
+hexdump(const unsigned char *buf, unsigned int len)
 {
-	struct net_device *dev = (struct net_device *) arg;
-	struct rmnet_private *p = netdev_priv(dev);
-	struct sk_buff *skb;
-	void *ptr = 0;
-	int sz;
+	unsigned int i, j;
 
-	for (;;) {
-		sz = smd_cur_packet_size(p->ch);
-		if (sz == 0) break;
-		if (smd_read_avail(p->ch) < sz) break;
+	i = 0;
+	while (i < len) {
+		char offset[9];
+		char hex[16][3];
+		char ascii[17];
 
-		if (sz > 1514) {
-			pr_err("rmnet_recv() discarding %d len\n", sz);
-			ptr = 0;
-		} else {
-			skb = dev_alloc_skb(sz + NET_IP_ALIGN);
-			if (skb == NULL) {
-				pr_err("rmnet_recv() cannot allocate skb\n");
+		snprintf(offset, sizeof(offset), "%08x  ", i);
+		offset[sizeof(offset) - 1] = '\0';
+
+		for (j = 0; j < 16; j++) {
+			if ((i + j) >= len) {
+				strcpy(hex[j], "  ");
+				ascii[j] = '\0';
 			} else {
-				skb->dev = dev;
-				skb_reserve(skb, NET_IP_ALIGN);
-				ptr = skb_put(skb, sz);
-				if (smd_read(p->ch, ptr, sz) != sz) {
-					pr_err("rmnet_recv() smd lied about avail?!");
-					ptr = 0;
-					dev_kfree_skb_irq(skb);
-				} else {
-					skb->protocol = eth_type_trans(skb, dev);
-					if (count_this_packet(ptr, skb->len)) {
-						p->stats.rx_packets++;
-						p->stats.rx_bytes += skb->len;
-					}
-					netif_rx(skb);
-				}
-				continue;
+				snprintf(hex[j], sizeof(hex[0]), "%02x",
+				    buf[i + j]);
+				hex[j][sizeof(hex[0]) - 1] = '\0';
+				if (isprint((int)buf[i + j]))
+					ascii[j] = buf[i + j];
+				else
+					ascii[j] = '.';
 			}
 		}
-		if (smd_read(p->ch, ptr, sz) != sz)
-			pr_err("rmnet_recv() smd lied about avail?!");
+		ascii[sizeof(ascii) - 1] = '\0';
+
+		printf("%s  %s %s %s %s %s %s %s %s  %s %s %s %s %s %s %s %s  "
+		    "|%s|\n", offset, hex[0], hex[1], hex[2], hex[3], hex[4],
+		    hex[5], hex[6], hex[7], hex[8], hex[9], hex[10], hex[11],
+		    hex[12], hex[13], hex[14], hex[15], ascii);
+
+		i += 16;
 	}
 }
 
-static DECLARE_TASKLET(smd_net_data_tasklet, smd_net_data_handler, 0);
 
-static void smd_net_notify(void *_dev, unsigned event)
+static void smd_net_notify(void *_priv, unsigned event)
 {
 	if (event != SMD_EVENT_DATA)
 		return;
 
-	smd_net_data_tasklet.data = (unsigned long) _dev;
+	struct rmnet_private *p = (struct rmnet_private *)_priv;
+	int sz;
 
-	tasklet_schedule(&smd_net_data_tasklet);
+	for (;;) {
+		sz = smd_cur_packet_size(p->ch);
+		if (sz == 0)
+			break;
+		if (smd_read_avail(p->ch) < sz)
+			break;
+
+		if (sz > 1514) {
+			cprintf("rmnet_recv() discarding %d len\n", sz);
+			if (smd_read(p->ch, NULL, sz) != sz)
+				cprintf("rmnet_recv() smd lied about avail?!");
+			p->rx_dropped++;
+		} else {
+			char pktbuf[1514];
+			if (smd_read(p->ch, pktbuf, sz) != sz) {
+				cprintf("rmnet_recv() smd lied about avail?!");
+			} else {
+				p->rx_frames++;
+				p->rx_frame_bytes += sz;	
+				// XXX- do shit!
+			}
+
+			printf("RECEIVED FRAME (%d bytes):", sz);
+			hexdump((const unsigned char *)pktbuf, sz);
+		}
+	}
 }
 
-static int rmnet_open(struct net_device *dev)
+extern "C" int smd_rmnet_open(int which)
 {
 	int r;
-	struct rmnet_private *p = netdev_priv(dev);
 
-	cprintf("rmnet_open()\n");
+	if (which < 0 || which >= 3)
+		return -E_NOT_FOUND;
+
+	cprintf("rmnet_open(%d)\n", which);
+
+	struct rmnet_private *p = &rmnet_private[which]; 
 	if (!p->ch) {
-		r = smd_open(p->chname, &p->ch, dev, smd_net_notify);
+		r = smd_open(p->chname, &p->ch, p, smd_net_notify);
 
 		if (r < 0)
-			return -ENODEV;
+			return r;
 	}
 
-	netif_start_queue(dev);
 	return 0;
 }
 
-static int rmnet_stop(struct net_device *dev)
+extern "C" void smd_rmnet_close(int which)
 {
-	struct rmnet_private *p = netdev_priv(dev);
-
-	cprintf("rmnet_stop()\n");
-	netif_stop_queue(dev);
-	return 0;
 }
 
-static int rmnet_xmit(struct sk_buff *skb, struct net_device *dev)
+extern "C" int smd_rmnet_xmit(int which, void *buf, int len)
 {
-	struct rmnet_private *p = netdev_priv(dev);
-	smd_channel_t *ch = p->ch;
+	if (which < 0 || which >= 3)
+		return -E_NOT_FOUND;
 
-	if (smd_write(ch, skb->data, skb->len) != skb->len) {
-		pr_err("rmnet fifo full, dropping packet\n");
+	struct rmnet_private *p = &rmnet_private[which]; 
+	if (p->ch == NULL)
+		return -E_INVAL;
+
+	if (smd_write(p->ch, buf, len) != len) {
+		cprintf("rmnet fifo full, dropping packet\n");
 	} else {
-		if (count_this_packet(skb->data, skb->len)) {
-			p->stats.tx_packets++;
-			p->stats.tx_bytes += skb->len;
-		}
+		p->tx_frames++;
+		p->tx_frame_bytes += len;	
 	}
 
-	dev_kfree_skb_irq(skb);
-	return 0;
-}
-
-static struct net_device_stats *rmnet_get_stats(struct net_device *dev)
-{
-	struct rmnet_private *p = netdev_priv(dev);
-	return &p->stats;
-}
-
-static void __init rmnet_setup(struct net_device *dev)
-{
-	dev->open = rmnet_open;
-	dev->stop = rmnet_stop;
-	dev->hard_start_xmit = rmnet_xmit;
-	dev->get_stats = rmnet_get_stats;
-	dev->set_multicast_list = rmnet_set_multicast_list;
-	dev->tx_timeout = rmnet_tx_timeout;
-
-	dev->watchdog_timeo = 20; /* ??? */
-
-	ether_setup(dev);
-
-	dev->change_mtu = 0; /* ??? */
-
-	random_ether_addr(dev->dev_addr);
-}
-
-static const char *ch_name[3] = {
-	"SMD_DATA5",
-	"SMD_DATA6",
-	"SMD_DATA7",
-};
-
-static int __init rmnet_init(void)
-{
-	int ret;
-	struct net_device *dev;
-	struct rmnet_private *p;
-	unsigned n;
-
-	for (n = 0; n < 3; n++) {
-		dev = alloc_netdev(sizeof(struct rmnet_private),
-				   "rmnet%d", rmnet_setup);
-
-		if (!dev)
-			return -ENOMEM;
-
-		p = netdev_priv(dev);
-		p->chname = ch_name[n];
-
-		ret = register_netdev(dev);
-		if (ret) {
-			free_netdev(dev);
-			return ret;
-		}
-	}
 	return 0;
 }

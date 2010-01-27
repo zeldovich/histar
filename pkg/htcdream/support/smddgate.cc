@@ -309,3 +309,13 @@ smddgate_rpc_endpoint_read_select(void **endpts, int nendpts, uint64_t timeout)
 }
 
 }
+
+int
+smddgate_rmnet_open(int which)
+{
+	GATECALL_SETUP(rmnet_open);
+	req->fd = which;
+	req->bufbytes = 0;
+	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
+	return (rep->err);
+}

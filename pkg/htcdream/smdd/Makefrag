@@ -1,6 +1,6 @@
 OBJDIRS += pkg/htcdream/smdd
 
-SMDD_SRCFILES := smdd.c smd.c smd_tty.c smd_qmi.c smd_rpcrouter.c smd_rpcrouter_servers.c
+SMDD_SRCFILES := smdd.c smd.c smd_tty.c smd_qmi.c smd_rmnet.c smd_rpcrouter.c smd_rpcrouter_servers.c
 SMDD_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/htcdream/smdd/%.o, $(SMDD_SRCFILES))
 
 $(OBJDIR)/pkg/htcdream/smdd/%.o: pkg/htcdream/smdd/%.c

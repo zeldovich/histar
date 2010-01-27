@@ -17,6 +17,7 @@ extern "C" {
 #include "msm_smd.h"
 #include "smd_tty.h"
 #include "smd_qmi.h"
+#include "smd_rmnet.h"
 #include "smd_rpcrouter.h"
 #include "msm_rpcrouter.h"
 #include "msm_rpcrouter2.h"
@@ -346,6 +347,13 @@ out:
 }
 
 static void
+smdd_rmnet_open(struct smdd_req *request, struct smdd_reply *reply)
+{
+	reply->bufbytes = 0;
+	reply->err = smd_rmnet_open(request->fd);
+}
+
+static void
 smdd_dispatch(struct gate_call_data *parm)
 {
 	struct smdd_req *req = (struct smdd_req *) &parm->param_buf[0];
@@ -423,6 +431,10 @@ smdd_dispatch(struct gate_call_data *parm)
 
 		case get_battery_info:
 			smdd_get_battery_info(req, reply);
+			break;
+
+		case rmnet_open:
+			smdd_rmnet_open(req, reply);
 			break;
 
 		default:
