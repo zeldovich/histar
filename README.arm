@@ -60,6 +60,30 @@ do so with the command line options. Now, run the emulator as follows:
     $EMU -system $SYSIMG -data $USRIMG -no-window -show-kernel -shell \
         -kernel ~/histar/obj.arm*/boot/bimage.init 
 
+* Flashing Google G1 (HTC Dream)
+
+    1) Build a boot image with histar/tools/htcdream_g1/mkbtimg.c using the histar
+       bimage.init and a fake ramdisk image (it's required):
+	>cc -o mkbtimg histar/tools/htcdream_g1/mkbtimg.c
+	>dd if=/dev/zero of=fake_ramdisk bs=2048 count=1
+    	>mkbtimg histar_boot 2048 0x10000100 \
+	 0x10010000:../histar/obj.arm/boot/bimage.init \
+	 0x11000000:fake_ramdisk
+
+    2) Flash to the recovery partition on the G1 (since there's 2x as much space).
+       Turn the phone off, then hold power and the side camera button simultaneously
+       until the boot loader junk comes up. Plug in the USB cable and hit the back
+       button (back arrow next to power button). The screen should read 'FASTBOOT'.
+	>sudo fastboot flash recovery histar_boot
+
+       Hit power, menu and the green call buttons simulatenously to reboot the phone.
+       When it resets, hold home (the house button) to boot from the recovery, rather
+       than the regular boot, partition.
+
+       The 'fastboot' utility is a Linux binary distributed by HTC. Get it at:
+	http://developer.htc.com/adp.html
+       We're using SHA1(fastboot)= 9a51ea313f3419053d3d1cc19e51de8cb7a915c4.
+
 * Setting up the N800 in Linux
 
     http://people.csail.mit.edu/calvinon/org/setup_inst
