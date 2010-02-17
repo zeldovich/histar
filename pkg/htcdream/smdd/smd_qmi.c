@@ -898,3 +898,30 @@ extern "C" int smd_qmi_init(void)
 
 	return 0;
 }
+
+static uint32_t
+ctxt_ip_to_uint(const unsigned char *buf)
+{
+	return (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
+}
+
+extern "C" void smd_qmi_config(struct qmi_config *qmc0, struct qmi_config *qmc1,
+    struct qmi_config *qmc2)
+{
+	const struct qmi_ctxt *ctxts[3] = { &qmi_device0, &qmi_device1, &qmi_device2 };
+	struct qmi_config *cfgs[3] = { qmc0, qmc1, qmc2 };
+
+	for (int i = 0; i < 3; i++) {
+		const struct qmi_ctxt *ctxt = ctxts[i];
+		struct qmi_config *cfg = cfgs[i];
+
+		if (cfg == NULL)
+			continue;
+
+		cfg->ip      = ctxt_ip_to_uint(ctxt->addr);
+		cfg->mask    = ctxt_ip_to_uint(ctxt->mask);
+		cfg->gateway = ctxt_ip_to_uint(ctxt->gateway);
+		cfg->dns1    = ctxt_ip_to_uint(ctxt->dns1);
+		cfg->dns2    = ctxt_ip_to_uint(ctxt->dns2);
+	}
+}

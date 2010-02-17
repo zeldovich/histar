@@ -354,6 +354,57 @@ smdd_rmnet_open(struct smdd_req *request, struct smdd_reply *reply)
 }
 
 static void
+smdd_rmnet_config(struct smdd_req *request, struct smdd_reply *reply)
+{
+	struct htc_netconfig *hnc = &reply->netconfig; 
+	struct qmi_config qm0;
+
+	smd_qmi_config(&qm0, NULL, NULL);
+	hnc->ip   = qm0.ip; 
+	hnc->mask = qm0.mask;
+	hnc->gw   = qm0.gateway;
+	hnc->dns1 = qm0.dns1;
+	hnc->dns2 = qm0.dns2;
+
+	reply->bufbytes = sizeof(*hnc);
+	reply->err = 0;
+}
+
+static void
+smdd_rmnet_tx(struct smdd_req *request, struct smdd_reply *reply)
+{
+	void *ptr;
+	if (segment_map(request->obj, 0, SEGMAP_READ | SEGMAP_WRITE,
+                            (void **)&ptr, 0, 0) < 0) {
+		cprintf("%s: segment_map failed\n", __func__);
+		reply->err = -E_INVAL;
+		reply->bufbytes = 0;
+		return;
+	}
+
+	reply->err = smd_rmnet_xmit(request->fd, ptr, request->bufbytes);
+	reply->bufbytes = 0;
+	segment_unmap(ptr);
+}
+
+static void
+smdd_rmnet_rx(struct smdd_req *request, struct smdd_reply *reply)
+{
+	void *ptr;
+	if (segment_map(request->obj, 0, SEGMAP_READ | SEGMAP_WRITE,
+                            (void **)&ptr, 0, 0) < 0) {
+		cprintf("%s: segment_map failed\n", __func__);
+		reply->err = -E_INVAL;
+		reply->bufbytes = 0;
+		return;
+	}
+
+	reply->bufbytes = smd_rmnet_recv(request->fd, ptr, request->bufbytes);
+	reply->err = (reply->bufbytes >= 0) ? 0 : reply->bufbytes;
+	segment_unmap(ptr);
+}
+
+static void
 smdd_dispatch(struct gate_call_data *parm)
 {
 	struct smdd_req *req = (struct smdd_req *) &parm->param_buf[0];
@@ -437,6 +488,18 @@ smdd_dispatch(struct gate_call_data *parm)
 			smdd_rmnet_open(req, reply);
 			break;
 
+		case rmnet_config:
+			smdd_rmnet_config(req, reply);
+			break;
+
+		case rmnet_tx:
+			smdd_rmnet_tx(req, reply);
+			break;
+
+		case rmnet_rx:
+			smdd_rmnet_rx(req, reply);
+			break;
+
 		default:
 			throw error(-E_BAD_OP, "unknown op %d", req->op);
 		}
@@ -484,6 +547,7 @@ try
 	smd_qmi_init();
 	smd_rpcrouter_init();
 	smd_rpc_servers_init();
+	smd_rmnet_init();
 	fprintf(stderr, "done.\n");
 
 	static struct msm_rpc_server battery_server;

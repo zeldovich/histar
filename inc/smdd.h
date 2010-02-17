@@ -36,7 +36,10 @@ enum {
 	rpc_write,
 	rpc_endpoint_read_select,
 	get_battery_info,
-	rmnet_open
+	rmnet_open,
+	rmnet_config,
+	rmnet_tx,
+	rmnet_rx
 };
 
 struct smdd_req {
@@ -50,6 +53,10 @@ struct smdd_req {
 	};
 };
 
+struct htc_netconfig {
+	uint32_t ip, mask, gw, dns1, dns2;
+};
+
 struct smdd_reply {
 	int err;
 	int fd;
@@ -58,6 +65,7 @@ struct smdd_reply {
 	union {
 		char buf[256];
 		struct htc_get_batt_info_rep batt_info; 
+		struct htc_netconfig netconfig;
 	};
 };
 

@@ -16,6 +16,12 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <netd/netdsrv.hh>
 
+#ifdef JOS_ARCH_arm
+#include <pkg/htcdream/smdd/msm_rpcrouter2.h>
+#include <inc/smdd.h>
+#include <pkg/htcdream/support/smddgate.h>
+#endif
+
 static int netd_debug = 0;
 enum { netd_do_taint = 0 };
 
@@ -33,6 +39,19 @@ main(int ac, char **av)
 	printf("Usage: %s grant-handle taint-handle inet-taint\n", av[0]);
 	return -1;
     }
+
+    uint32_t ip = 0, mask = 0, gw = 0;
+
+#ifdef JOS_ARCH_arm
+    // XXX- nasty hack for HTC Dream
+    smddgate_init();
+    struct htc_netconfig netcfg; 
+    smddgate_rmnet_config(0, &netcfg);
+    ip   = netcfg.ip;
+    mask = netcfg.mask;
+    gw   = netcfg.gw;
+    printf("netd using HTC ip 0x%08x, mask 0x%08x, gw 0x%08x\n", ip, mask, gw);
+#endif
 
     struct cobj_ref netdev;
 
@@ -106,5 +125,5 @@ main(int ac, char **av)
 	panic("%s", e.what());
     }
 
-    netd_lwip_init(&ready_cb, 0, netd_if_jif, &netdev, 0, 0, 0);
+    netd_lwip_init(&ready_cb, 0, netd_if_jif, &netdev, ip, mask, gw);
 }

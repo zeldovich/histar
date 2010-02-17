@@ -35,6 +35,36 @@ static struct cobj_ref smddgate;
 	}									\
 	req->op = (_op)
 
+struct tmpseg {
+	void *ptr;
+	int64_t ct;
+	int64_t segid;
+	struct cobj_ref ref;
+};
+
+static int
+create_tmp_segment(const char *cname, const char *sname, size_t size, struct tmpseg *ts)
+{
+	label ct_label(1);
+	error_check((ts->ct = sys_container_alloc(start_env->shared_container,
+	    ct_label.to_ulabel(), cname, 0, CT_QUOTA_INF)));
+	ts->segid = sys_segment_create(ts->ct, size, 0, sname);
+	if (ts->segid < 0)
+		return ts->segid;
+	ts->ref = COBJ(ts->ct, ts->segid);
+	error_check(segment_map(ts->ref, 0, SEGMAP_READ | SEGMAP_WRITE,
+                            (void **)&ts->ptr, 0, 0));
+	return 0;
+}
+
+static void
+cleanup_tmp_segment(struct tmpseg *ts)
+{
+	segment_unmap(ts->ptr);
+	sys_obj_unref(COBJ(ts->ct, ts->segid));
+	sys_obj_unref(COBJ(start_env->shared_container, ts->ct));
+}
+
 int
 smddgate_init()
 {
@@ -227,27 +257,16 @@ smddgate_rpc_read(void *endpt, void *buf, size_t s)
 		return -E_INVAL;
 	}
 
-	void *ptr;
-	int64_t ct;
-	label ct_label(1);
-	error_check((ct = sys_container_alloc(start_env->shared_container,
-	    ct_label.to_ulabel(), "rpcbuf-r-ct", 0, CT_QUOTA_INF)));
-	int64_t segid = sys_segment_create(ct, PGSIZE, 0, "rpcbuf-r");
-	if (segid < 0)
-		return segid;
-	struct cobj_ref ref = COBJ(ct, segid);
-	error_check(segment_map(ref, 0, SEGMAP_READ | SEGMAP_WRITE,
-                            (void **)&ptr, 0, 0));
+	struct tmpseg ts;
+	error_check(create_tmp_segment("rpcbuf-r-ct", "rpcbuf-r", PGSIZE, &ts));
 
-	req->obj = ref;
+	req->obj = ts.ref;
 	req->bufbytes = s;
 	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
 	if (!rep->err)
-		memcpy(buf, ptr, rep->bufbytes);
+		memcpy(buf, ts.ptr, rep->bufbytes);
 
-	segment_unmap(ptr);
-	sys_obj_unref(COBJ(ct, segid));
-	sys_obj_unref(COBJ(start_env->shared_container, ct));
+	cleanup_tmp_segment(&ts);
 
 	if (rep->err)
 		return rep->err;
@@ -265,28 +284,15 @@ smddgate_rpc_write(void *endpt, const void *buf, size_t s)
 		return -E_INVAL;
 	}
 
-	void *ptr;
-	int64_t ct;
-	label ct_label(1);
-	error_check((ct = sys_container_alloc(start_env->shared_container,
-	    ct_label.to_ulabel(), "rpcbuf-w-ct", 0, CT_QUOTA_INF)));
-	int64_t segid = sys_segment_create(ct, PGSIZE, 0, "rpcbuf-w");
-	if (segid < 0)
-		return segid;
-	struct cobj_ref ref = COBJ(ct, segid);
-cprintf("%s: MAPPING SEGMENT %lld.%lld\n", __func__, ref.container, ref.object);
-	error_check(segment_map(ref, 0, SEGMAP_READ | SEGMAP_WRITE,
-                            (void **)&ptr, 0, 0));
-cprintf("%s: MAPPED SEGMENT %lld.%lld\n", __func__, ref.container, ref.object);
-	memcpy(ptr, buf, s);
+	struct tmpseg ts;
+	error_check(create_tmp_segment("rpcbuf-w-ct", "rpcbuf-w", PGSIZE, &ts));
+	memcpy(ts.ptr, buf, s);
 
-	req->obj = ref;
+	req->obj = ts.ref;
 	req->bufbytes = s;
 	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
 
-	segment_unmap(ptr);
-	sys_obj_unref(COBJ(ct, segid));
-	sys_obj_unref(COBJ(start_env->shared_container, ct));
+	cleanup_tmp_segment(&ts);
 
 	if (rep->err)
 		return rep->err;
@@ -318,4 +324,64 @@ smddgate_rmnet_open(int which)
 	req->bufbytes = 0;
 	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
 	return (rep->err);
+}
+
+int
+smddgate_rmnet_config(int which, struct htc_netconfig *hnc)
+{
+	GATECALL_SETUP(rmnet_config);
+	req->fd = which;
+	req->bufbytes = sizeof(*hnc);
+	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
+	memcpy(hnc, &rep->netconfig, sizeof(*hnc));
+	return (rep->err);
+}
+
+int
+smddgate_rmnet_tx(int which, char *buf, size_t len)
+{
+	if (len > PGSIZE) {
+		cprintf("%s: bogus\n", __func__);
+		return -E_INVAL;
+	}
+cprintf("SMDDGATE_RMNET_TX: WANT TO TRANSMIT PACKET OF LEN %d\n", len);
+	struct tmpseg ts;
+	error_check(create_tmp_segment("rmnet-tx-ct", "rmnet_tx", PGSIZE, &ts));
+
+	GATECALL_SETUP(rmnet_tx);
+	req->fd = which;
+	req->bufbytes = len;
+	req->obj = ts.ref;
+	memcpy(ts.ptr, buf, len);
+	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
+
+	cleanup_tmp_segment(&ts);
+
+	return (rep->err);
+}
+
+int
+smddgate_rmnet_rx(int which, char *buf, size_t len)
+{
+	if (len > PGSIZE) {
+		cprintf("%s: bogus\n", __func__);
+		return -E_INVAL;
+	}
+cprintf("SMDDGATE_RMNET_RX: WANT TO RECV UP TO %d\n", len);
+	struct tmpseg ts;
+	error_check(create_tmp_segment("rmnet-rx-ct", "rmnet_rx", PGSIZE, &ts));
+
+	GATECALL_SETUP(rmnet_rx);
+	req->fd = which;
+	req->bufbytes = len;
+	req->obj = ts.ref;
+	gate_call(smddgate, 0, 0, 0).call(&gcd, 0);
+	if (rep->err == 0)
+		memcpy(buf, ts.ptr, req->bufbytes);	//XXX danger
+
+	cleanup_tmp_segment(&ts);
+
+	if (rep->err)
+		return (rep->err);
+	return (rep->bufbytes);
 }

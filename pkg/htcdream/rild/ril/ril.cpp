@@ -101,7 +101,7 @@ namespace android {
     #define startRequest           sprintf(printBuf, "(")
     #define closeRequest           sprintf(printBuf, "%s)", printBuf)
     #define printRequest(token, req)           \
-            LOGD("[%04d]> %s %s", token, requestToString(req), printBuf)
+            LOGD("[%04d]> %s %s\n", token, requestToString(req), printBuf)
 
     #define startResponse           sprintf(printBuf, "%s {", printBuf)
     #define closeResponse           sprintf(printBuf, "%s}", printBuf)
@@ -310,7 +310,7 @@ RIL_issueLocalRequest(int request, void *data, int len)
     ret = pthread_mutex_unlock(&s_pendingRequestsMutex);
     assert (ret == 0);
 
-    LOGD("C[locl]> %s", requestToString(request));
+    LOGD("C[locl]> %s\n", requestToString(request));
 
     s_callbacks.onRequest(request, data, len, pRI);
 }
@@ -1848,7 +1848,7 @@ RIL_onRequestComplete(RIL_Token t, RIL_Errno e, void *response, size_t responsel
     if (pRI->local > 0) {
         // Locally issued command...void only!
         // response does not go back up the command socket
-        LOGD("C[locl]< %s (# %d, errno %d)", requestToString(pRI->pCI->requestNumber),
+        LOGD("C[locl]< %s (# %d, errno %d)\n", requestToString(pRI->pCI->requestNumber),
 	    pRI->pCI->requestNumber, e);
 
 	if (pRI->pCI->requestNumber == RIL_REQUEST_SETUP_DEFAULT_PDP) {
@@ -2008,7 +2008,7 @@ void RIL_onUnsolicitedResponse(int unsolResponse, void *data,
         timeReceived = elapsedRealtime();
     }
 
-    appendPrintBuf("[UNSL]< %s", requestToString(unsolResponse));
+    appendPrintBuf("[UNSL]< %s\n", requestToString(unsolResponse));
 
     Parcel p;
 

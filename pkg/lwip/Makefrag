@@ -41,9 +41,14 @@ LWIP_SRCFILES += \
 	pkg/lwip/netif/etharp.c \
 	pkg/lwip/netif/loopif.c \
 	pkg/lwip/jos64/arch/sys_arch.c \
-	pkg/lwip/jos64/jif/jif.c \
 	pkg/lwip/jos64/jif/tun.c \
 	pkg/lwip/jos64/api/event.c
+
+ifeq ($(K_ARCH),arm)
+LWIP_SRCFILES += pkg/lwip/jos64/jif/jif_htcdream.c
+else
+LWIP_SRCFILES += pkg/lwip/jos64/jif/jif.c
+endif
 
 LWIP_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LWIP_SRCFILES))
 

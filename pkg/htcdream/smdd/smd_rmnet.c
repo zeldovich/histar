@@ -42,54 +42,11 @@ struct rmnet_private {
 	const char *chname;
 	size_t tx_frames, tx_frame_bytes;
 	size_t rx_frames, rx_frame_bytes, rx_dropped;
-} rmnet_private[3] = {
-	{ NULL, "SMD_DATA5", 0, 0, 0, 0, 0 },
-	{ NULL, "SMD_DATA6", 0, 0, 0, 0, 0 },
-	{ NULL, "SMD_DATA7", 0, 0, 0, 0, 0 }
-};
-
-
-
-#include <ctype.h>
-static void
-hexdump(const unsigned char *buf, unsigned int len)
-{
-	unsigned int i, j;
-
-	i = 0;
-	while (i < len) {
-		char offset[9];
-		char hex[16][3];
-		char ascii[17];
-
-		snprintf(offset, sizeof(offset), "%08x  ", i);
-		offset[sizeof(offset) - 1] = '\0';
-
-		for (j = 0; j < 16; j++) {
-			if ((i + j) >= len) {
-				strcpy(hex[j], "  ");
-				ascii[j] = '\0';
-			} else {
-				snprintf(hex[j], sizeof(hex[0]), "%02x",
-				    buf[i + j]);
-				hex[j][sizeof(hex[0]) - 1] = '\0';
-				if (isprint((int)buf[i + j]))
-					ascii[j] = buf[i + j];
-				else
-					ascii[j] = '.';
-			}
-		}
-		ascii[sizeof(ascii) - 1] = '\0';
-
-		printf("%s  %s %s %s %s %s %s %s %s  %s %s %s %s %s %s %s %s  "
-		    "|%s|\n", offset, hex[0], hex[1], hex[2], hex[3], hex[4],
-		    hex[5], hex[6], hex[7], hex[8], hex[9], hex[10], hex[11],
-		    hex[12], hex[13], hex[14], hex[15], ascii);
-
-		i += 16;
-	}
-}
-
+	int pktbytes;
+	char pktbuf[2000];
+	pthread_mutex_t mtx;
+	pthread_cond_t  cond;
+} rmnet_private[3];
 
 static void smd_net_notify(void *_priv, unsigned event)
 {
@@ -109,20 +66,29 @@ static void smd_net_notify(void *_priv, unsigned event)
 		if (sz > 1514) {
 			cprintf("rmnet_recv() discarding %d len\n", sz);
 			if (smd_read(p->ch, NULL, sz) != sz)
-				cprintf("rmnet_recv() smd lied about avail?!");
+				cprintf("rmnet_recv() smd lied about avail?!\n");
 			p->rx_dropped++;
 		} else {
 			char pktbuf[1514];
 			if (smd_read(p->ch, pktbuf, sz) != sz) {
-				cprintf("rmnet_recv() smd lied about avail?!");
+				cprintf("rmnet_recv() smd lied about avail?!\n");
 			} else {
 				p->rx_frames++;
 				p->rx_frame_bytes += sz;	
 				// XXX- do shit!
 			}
 
-			printf("RECEIVED FRAME (%d bytes):", sz);
-			hexdump((const unsigned char *)pktbuf, sz);
+			cprintf("RMNET RECEIVED A FRAME (%d bytes)\n", sz);
+
+			pthread_mutex_lock(&p->mtx);
+			if (p->pktbytes) {
+				cprintf("PREVIOUS PACKET NOT YET READ (sz = %d)"
+				    " - DROPPING!\n", p->pktbytes);
+			}
+			memcpy(p->pktbuf, pktbuf, sz); //XXX extra copy
+			p->pktbytes = sz;
+			pthread_cond_broadcast(&p->cond);
+			pthread_mutex_unlock(&p->mtx);
 		}
 	}
 }
@@ -160,6 +126,7 @@ extern "C" int smd_rmnet_xmit(int which, void *buf, int len)
 	if (p->ch == NULL)
 		return -E_INVAL;
 
+	// NB: smd_write already does mutual exclusion
 	if (smd_write(p->ch, buf, len) != len) {
 		cprintf("rmnet fifo full, dropping packet\n");
 	} else {
@@ -168,4 +135,35 @@ extern "C" int smd_rmnet_xmit(int which, void *buf, int len)
 	}
 
 	return 0;
+}
+
+extern "C" int smd_rmnet_recv(int which, void *buf, int len)
+{
+	if (which < 0 || which >= 3)
+		return -E_NOT_FOUND;
+
+	struct rmnet_private *p = &rmnet_private[which]; 
+	if (p->ch == NULL)
+		return -E_INVAL;
+
+	pthread_mutex_lock(&p->mtx);
+	while (p->pktbytes == 0)
+		pthread_cond_wait(&p->cond, &p->mtx);
+	memcpy(buf, p->pktbuf, MIN(len, p->pktbytes));
+	p->pktbytes = 0;
+	pthread_mutex_unlock(&p->mtx);
+
+	return MIN(len, p->pktbytes);
+}
+
+extern "C" void smd_rmnet_init()
+{
+	static const char *names[3] = { "SMD_DATA5", "SMD_DATA6", "SMD_DATA7" };
+	for (int i = 0; i < 3; i++) {
+		struct rmnet_private *p = &rmnet_private[i]; 
+		memset(p, 0, sizeof(*p));
+		p->chname = names[i];
+		pthread_mutex_init(&p->mtx, NULL);
+		pthread_cond_init(&p->cond, NULL);
+	}
 }

@@ -15,7 +15,9 @@
  *
  */
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 
 #ifndef __ASM__ARCH_MSM_RPCROUTER_H
 #define __ASM__ARCH_MSM_RPCROUTER_H
@@ -146,4 +148,7 @@ struct msm_rpc_server
 int msm_rpc_create_server(struct msm_rpc_server *server);
 
 #endif
+
+#ifdef __cplusplus
 }
+#endif

@@ -10,9 +10,14 @@ NETD_SRCFILES := \
 	netd/netd_lwipif.c \
 	netd/netd_linux.cc
 
+ifeq ($(K_ARCH),arm)
+NETD_SRCFILES += pkg/htcdream/support/smddgate.cc
+endif
+
 NETD_OBJFILES := $(NETD_SRCFILES)
 NETD_OBJFILES := $(patsubst netd/%.c, $(OBJDIR)/netd/%.o, $(NETD_OBJFILES))
 NETD_OBJFILES := $(patsubst netd/%.cc, $(OBJDIR)/netd/%.o, $(NETD_OBJFILES))
+NETD_OBJFILES := $(patsubst pkg/htcdream/support/%.cc, $(OBJDIR)/pkg/htcdream/support/%.o, $(NETD_OBJFILES))
 
 NETD_CFLAGS	= $(USER_CFLAGS) $(UCLIBC_COMFLAGS)
 NETD_CXXFLAGS	= $(USER_CXXFLAGS) $(UCLIBC_COMFLAGS)

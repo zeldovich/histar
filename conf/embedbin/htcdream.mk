@@ -1,5 +1,5 @@
 KERN_BINFILES	:= user/init user/jshell user/ksh user/inittab user/init.sh
-#KERN_BINFILES	+= user/netd_mom user/jntpd
+KERN_BINFILES	+= user/netd_mom
 
 ## Shared libraries, if enabled
 ifeq ($(SHARED_ENABLE),yes)
@@ -15,7 +15,7 @@ endif
 ifeq ($(K_ARCH),amd64)
 #KERN_BINFILES	+= user/vmlinux user/initrd
 else
-#KERN_BINFILES	+= user/netd
+KERN_BINFILES	+= user/netd
 endif
 
 ## Basic command-line programs
@@ -30,8 +30,9 @@ KERN_BINFILES	+= user/jtrace
 ## Common Unix tools
 #KERN_BINFILES	+= user/ln user/tr user/expr user/chmod user/touch user/sort
 KERN_BINFILES	+= user/ln user/tr user/expr user/chmod user/touch
-KERN_BILFILES	+= user/uname
-#KERN_BINFILES	+= user/find user/sed user/uname user/awk user/perl user/wget
+KERN_BINFILES	+= user/uname
+KERN_BINFILES   += user/wget
+#KERN_BINFILES	+= user/find user/sed user/uname user/awk user/perl
 #KERN_BINFILES	+= user/tar user/gzip user/gunzip user/ls user/rm user/cp
 #KERN_BINFILES	+= user/bash user/grep user/egrep user/uniq user/mv user/cat
 #KERN_BINFILES	+= user/links user/od user/du user/head user/tail user/sync
@@ -44,6 +45,9 @@ KERN_BILFILES	+= user/uname
 #KERN_BINFILES	+= user/bzip2 user/bunzip2 user/cmp user/cut user/true
 #KERN_BINFILES	+= user/install user/zcat user/whoami
 #KERN_BINFILES	+= user/terminfo.tar.gz
+
+## SSH
+#KERN_BINFILES   += user/ssh
 
 ## Development
 #KERN_BINFILES	+= user/gdb user/gdbserver

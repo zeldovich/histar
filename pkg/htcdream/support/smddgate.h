@@ -1,7 +1,9 @@
 #ifndef _SMDDGATE_H_
 #define _SMDDGATE_H_
 
+#ifdef __cplusplus 
 extern "C" {
+#endif
 
 int smddgate_init();
 int smddgate_get_battery_info(struct htc_get_batt_info_rep *);
@@ -22,7 +24,12 @@ int smddgate_rpc_read(void *, void *, size_t);
 int smddgate_rpc_write(void *, const void *, size_t);
 int smddgate_rpc_endpoint_read_select(void **, int, uint64_t);
 int smddgate_rmnet_open(int);
+int smddgate_rmnet_config(int, struct htc_netconfig *);
+int smddgate_rmnet_tx(int, char *, size_t);
+int smddgate_rmnet_rx(int, char *, size_t);
 
+#ifdef __cplusplus
 }
+#endif
 
 #endif	/* !_SMDDGATE_H_ */
