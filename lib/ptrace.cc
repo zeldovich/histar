@@ -245,7 +245,7 @@ ptrace(enum __ptrace_request request, ...) __THROW
 #endif
     case PTRACE_SYSCALL:
 	cprintf("ptrace: unknown request %d\n", request);
-	print_backtrace(1);
+	print_backtrace(1, NULL);
 	set_enosys();
 	return -1;
     }

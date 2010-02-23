@@ -5,10 +5,40 @@
 
 #if defined(JOS_ARCH_arm)
 
+/*
+ * fp -->   [ pc ]
+ *          [ lr ]
+ *          [ ip ]
+ *          [ fp ]   --> ...
+ */
+static int
+backtrace_common(void **tracebuf, int maxents, const uint32_t *fp)
+{
+	int i;
+	for (i = 0; fp != 0 && *fp != 0 && i < maxents; i++) {
+		tracebuf[i] = (void *)*fp;
+		uint32_t *newfp = (uint32_t *)*(fp - 3);	
+		if ((uintptr_t)newfp <= (uintptr_t)fp)
+			fp = 0;
+		else
+			fp = newfp;
+	}
+
+	return i;
+}
+
 int
 backtrace(void **tracebuf, int maxents)
 {
-	return (0);
+	return backtrace_common(tracebuf, maxents, __builtin_frame_address(0));
+}
+
+int
+backtrace_utf(void **tracebuf, int maxents, const struct UTrapframe *utf)
+{
+	if (utf == 0)
+		return backtrace(tracebuf, maxents);
+	return backtrace_common(tracebuf, maxents, (uint32_t *)utf->utf_fp);
 }
 
 #elif defined(JOS_ARCH_i386)
@@ -35,12 +65,18 @@ backtrace(void **tracebuf, int maxents)
 	    if (idx >= maxents)
 		break;
 
-	    struct UTrapframe *utf = ((void *) ebpp) + 8;
-	    tracebuf[idx++] = (void *) utf->utf_eip;
-	    ebp = utf->utf_ebp;
+	    struct UTrapframe *lutf = ((void *) ebpp) + 8;
+	    tracebuf[idx++] = (void *) lutf->utf_eip;
+	    ebp = lutf->utf_ebp;
 	}
     }
     return idx;
+}
+
+int
+backtrace_utf(void **tracebuf, int maxents, const struct UTrapframe *utf)
+{
+	return backtrace(tracebuf, maxents);
 }
 
 #else
@@ -68,6 +104,12 @@ backtrace(void **tracebuf, int maxents)
     struct backtrace_state s = { tracebuf, maxents, 0 };
     _Unwind_Backtrace(&backtrace_cb, &s);
     return s.idx;
+}
+
+int
+backtrace_utf(void **tracebuf, int maxents, const struct UTrapframe *utf)
+{
+	return backtrace(tracebuf, maxents);
 }
 
 #endif

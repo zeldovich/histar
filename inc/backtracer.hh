@@ -2,6 +2,7 @@
 #define JOS_INC_BACKTRACER_HH
 
 extern "C" {
+#include <machine/utrap.h>
 #include <inc/backtrace.h>
 #include <string.h>
 }
@@ -12,6 +13,11 @@ class backtracer {
  public:
     backtracer()
 	: depth_(backtrace(&addrs_[0], BACKTRACER_SLOTS))
+    {
+    }
+
+    backtracer(const struct UTrapframe *utf)
+	: depth_(backtrace_utf(&addrs_[0], BACKTRACER_SLOTS, utf))
     {
     }
 

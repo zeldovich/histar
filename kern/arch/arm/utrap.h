@@ -20,7 +20,11 @@ struct UTrapframe {
 	uint32_t	utf_r9;
 	uint32_t	utf_r10;
 	uint32_t	utf_r11;
-	uint32_t	utf_r12;
+
+	union {
+		uint32_t	utf_r12;
+		uint32_t	utf_fp;
+	};
 
 	union {
 		uint32_t	utf_r13;

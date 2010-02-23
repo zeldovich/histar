@@ -8,9 +8,9 @@ extern "C" {
 #include <inc/backtracer.hh>
 
 void
-print_backtrace(int use_cprintf)
+print_backtrace(int use_cprintf, const struct UTrapframe *utf)
 {
-    backtracer bt;
+    backtracer bt(utf);
     for (int i = 0; i < bt.backtracer_depth(); i++) {
 	void *addr = bt.backtracer_addr(i);
 

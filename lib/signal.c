@@ -247,7 +247,7 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
 	if (fatalities == 2) {
 	    cprintf("[%"PRIu64"] %s: sig_fatal: recursive\n",
 		    sys_self_id(), jos_progname);
-	    print_backtrace(1);
+	    print_backtrace(1, &sc->sc_utf);
 	}
 
 	sys_self_halt();
@@ -264,13 +264,13 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
 		sys_self_id(), jos_progname, si->si_signo,
 		sc->sc_utf.utf_pc, sc->sc_utf.utf_stackptr);
 	utf_dump(&sc->sc_utf);
-	print_backtrace(0);
+	print_backtrace(0, &sc->sc_utf);
 	segfault_helper(si, sc);
 	break;
 
     case SIGABRT:
 	fprintf(stderr, "[%"PRIu64"] %s: abort\n", sys_self_id(), jos_progname);
-	print_backtrace(0);
+	print_backtrace(0, &sc->sc_utf);
 	break;
 
     default:
@@ -450,7 +450,7 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
 	fprintf(stderr,
 		"%s (pid %"PRIu64", tid %"PRIu64"): SIGINFO backtrace..\n",
 		jos_progname, start_env->shared_container, thread_id());
-	print_backtrace(0);
+	print_backtrace(0, &sc->sc_utf);
     }
 
     if (si->si_signo == SIGCHLD) {
