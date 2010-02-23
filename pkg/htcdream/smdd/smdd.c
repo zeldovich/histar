@@ -541,7 +541,16 @@ try
 	struct cobj_ref g = gate_create(start_env->root_container,
 	    "smdd gate", 0, 0, 0, &smdd_entry, 0);
 
-	fprintf(stderr, "Starting smd core...");
+	if (argc == 2 && strcmp(argv[1], "--fake") == 0) {
+		fprintf(stderr, "Starting fake smd core...\n");
+		thread_halt();
+	} else if (argc != 1) {
+		fprintf(stderr, "usage: %s [--fake]\n", argv[0]);
+		fprintf(stderr, "       '--fake' does not init the smd\n");
+		exit(1);
+	}
+
+	fprintf(stderr, "Starting smd core...\n");
 	msm_smd_init();
 	smd_tty_init();
 	smd_qmi_init();
