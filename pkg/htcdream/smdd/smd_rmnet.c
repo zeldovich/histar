@@ -16,6 +16,8 @@
  *
  */
 
+//#define DEBUG WOOHOO
+
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,12 +34,13 @@ extern "C" {
 #include <inc/stdio.h>
 #include <inc/queue.h>
 #include <inc/syscall.h>
+#include <inc/jhexdump.h>
 }
 
 #include "msm_smd.h"
 #include "smd_rmnet.h"
 
-struct rmnet_private {
+static struct rmnet_private {
 	smd_channel_t *ch;
 	const char *chname;
 	size_t tx_frames, tx_frame_bytes;
@@ -78,7 +81,10 @@ static void smd_net_notify(void *_priv, unsigned event)
 				// XXX- do shit!
 			}
 
+#ifdef DEBUG
 			cprintf("RMNET RECEIVED A FRAME (%d bytes)\n", sz);
+			jhexdump((const unsigned char *)pktbuf, sz);
+#endif
 
 			pthread_mutex_lock(&p->mtx);
 			if (p->pktbytes) {
@@ -100,7 +106,9 @@ extern "C" int smd_rmnet_open(int which)
 	if (which < 0 || which >= 3)
 		return -E_NOT_FOUND;
 
+#ifdef DEBUG
 	cprintf("rmnet_open(%d)\n", which);
+#endif
 
 	struct rmnet_private *p = &rmnet_private[which]; 
 	if (!p->ch) {
@@ -126,6 +134,11 @@ extern "C" int smd_rmnet_xmit(int which, void *buf, int len)
 	if (p->ch == NULL)
 		return -E_INVAL;
 
+#ifdef DEBUG
+	cprintf("RMNET XMITTING A FRAME: which = %d, %d bytes\n", which, len);
+	jhexdump((const unsigned char *)buf, len);
+#endif
+
 	// NB: smd_write already does mutual exclusion
 	if (smd_write(p->ch, buf, len) != len) {
 		cprintf("rmnet fifo full, dropping packet\n");
@@ -149,11 +162,12 @@ extern "C" int smd_rmnet_recv(int which, void *buf, int len)
 	pthread_mutex_lock(&p->mtx);
 	while (p->pktbytes == 0)
 		pthread_cond_wait(&p->cond, &p->mtx);
-	memcpy(buf, p->pktbuf, MIN(len, p->pktbytes));
+	int recvd = MIN(len, p->pktbytes);
+	memcpy(buf, p->pktbuf, recvd);
 	p->pktbytes = 0;
 	pthread_mutex_unlock(&p->mtx);
 
-	return MIN(len, p->pktbytes);
+	return recvd;
 }
 
 extern "C" void smd_rmnet_init()
