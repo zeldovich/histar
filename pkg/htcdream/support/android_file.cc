@@ -13,6 +13,7 @@ extern "C" {
 
 #include <inc/stdio.h>
 #include <inc/lib.h>
+#include <inc/jhexdump.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -95,47 +96,6 @@ static const int acoustic_fd = 14;
 
 #define ACOUSTIC_DEV	"/dev/fb3"
 
-#ifdef DEBUG
-static void
-hexdump(const unsigned char *buf, unsigned int len)
-{
-	unsigned int i, j;
-
-	i = 0;
-	while (i < len) {
-		char offset[9];
-		char hex[16][3];
-		char ascii[17];
-
-		snprintf(offset, sizeof(offset), "%08x  ", i);
-		offset[sizeof(offset) - 1] = '\0';
-
-		for (j = 0; j < 16; j++) {
-			if ((i + j) >= len) {
-				strcpy(hex[j], "  ");
-				ascii[j] = '\0';
-			} else {
-				snprintf(hex[j], sizeof(hex[0]), "%02x",
-				    buf[i + j]);
-				hex[j][sizeof(hex[0]) - 1] = '\0';
-				if (isprint((int)buf[i + j]))
-					ascii[j] = buf[i + j];
-				else
-					ascii[j] = '.';
-			}
-		}
-		ascii[sizeof(ascii) - 1] = '\0';
-
-		cprintf("%s  %s %s %s %s %s %s %s %s  %s %s %s %s %s %s %s %s  "
-		    "|%s|\n", offset, hex[0], hex[1], hex[2], hex[3], hex[4],
-		    hex[5], hex[6], hex[7], hex[8], hex[9], hex[10], hex[11],
-		    hex[12], hex[13], hex[14], hex[15], ascii);
-
-		i += 16;
-	}
-}
-#endif
-
 static int
 smd_open(const char *path, int flags)
 {
@@ -182,7 +142,7 @@ smd_read(int fd, void *buf, size_t nbyte)
 #ifdef DEBUG
 	if (ret > 0) {
 		DPRINTF(("------ READ FROM SMD ------\n"));
-		hexdump((const unsigned char *)buf, ret);
+		jhexdump((const unsigned char *)buf, ret);
 	}
 #endif
 
@@ -196,7 +156,7 @@ smd_write(int fd, const void *buf, size_t nbyte)
 
 #ifdef DEBUG
 	DPRINTF(("------ WRITE TO SMD ------\n"));
-	hexdump((const unsigned char *)buf, nbyte);
+	jhexdump((const unsigned char *)buf, nbyte);
 #endif
 
 	ssize_t ret = smddgate_tty_write(0, (const unsigned char *)buf, nbyte);
@@ -251,7 +211,7 @@ qmi_read(int fd, void *buf, size_t nbyte)
 #ifdef DEBUG
 	if (ret > 0) {
 		DPRINTF(("------ READ FROM QMI %d ------\n", n));
-		hexdump((const unsigned char *)buf, ret);
+		jhexdump((const unsigned char *)buf, ret);
 	}
 #endif
 
@@ -320,7 +280,7 @@ qmi_write(int fd, const void *buf, size_t nbyte)
 
 #ifdef DEBUG
 	DPRINTF(("------ WRITE TO QMI %d ------\n", n));
-	hexdump((const unsigned char *)buf, nbyte);
+	jhexdump((const unsigned char *)buf, nbyte);
 #endif
 
 	ssize_t ret = smddgate_qmi_write(n, (const unsigned char *)buf, nbyte);
