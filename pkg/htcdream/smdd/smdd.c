@@ -26,6 +26,8 @@ extern "C" {
 
 static struct msm_rpc_endpoint *battery_endpt;
 
+static int fake_smd = 0;
+
 static void
 smdd_get_battery_info(struct smdd_req *request, struct smdd_reply *reply)
 {
@@ -357,14 +359,23 @@ static void
 smdd_rmnet_config(struct smdd_req *request, struct smdd_reply *reply)
 {
 	struct htc_netconfig *hnc = &reply->netconfig; 
-	struct qmi_config qm0;
 
-	smd_qmi_config(&qm0, NULL, NULL);
-	hnc->ip   = qm0.ip; 
-	hnc->mask = qm0.mask;
-	hnc->gw   = qm0.gateway;
-	hnc->dns1 = qm0.dns1;
-	hnc->dns2 = qm0.dns2;
+	if (fake_smd) {
+		cprintf("%s: faking rmnet addresses\n", __func__);
+		hnc->ip   = 0xab42038f;
+		hnc->mask = 0xffffff00; 
+		hnc->gw   = 0xab420300; 
+		hnc->dns1 = 0xab42030a;
+		hnc->dns2 = 0xab42030b;
+	} else {
+		struct qmi_config qm0;
+		smd_qmi_config(&qm0, NULL, NULL);
+		hnc->ip   = qm0.ip; 
+		hnc->mask = qm0.mask;
+		hnc->gw   = qm0.gateway;
+		hnc->dns1 = qm0.dns1;
+		hnc->dns2 = qm0.dns2;
+	}
 
 	reply->bufbytes = sizeof(*hnc);
 	reply->err = 0;
@@ -373,7 +384,7 @@ smdd_rmnet_config(struct smdd_req *request, struct smdd_reply *reply)
 static void
 smdd_rmnet_tx(struct smdd_req *request, struct smdd_reply *reply)
 {
-	void *ptr;
+	void *ptr = 0;
 	if (segment_map(request->obj, 0, SEGMAP_READ | SEGMAP_WRITE,
                             (void **)&ptr, 0, 0) < 0) {
 		cprintf("%s: segment_map failed\n", __func__);
@@ -390,7 +401,7 @@ smdd_rmnet_tx(struct smdd_req *request, struct smdd_reply *reply)
 static void
 smdd_rmnet_rx(struct smdd_req *request, struct smdd_reply *reply)
 {
-	void *ptr;
+	void *ptr = 0;
 	if (segment_map(request->obj, 0, SEGMAP_READ | SEGMAP_WRITE,
                             (void **)&ptr, 0, 0) < 0) {
 		cprintf("%s: segment_map failed\n", __func__);
@@ -543,6 +554,7 @@ try
 
 	if (argc == 2 && strcmp(argv[1], "--fake") == 0) {
 		fprintf(stderr, "Starting fake smd core...\n");
+		fake_smd = 1;
 		thread_halt();
 	} else if (argc != 1) {
 		fprintf(stderr, "usage: %s [--fake]\n", argv[0]);
