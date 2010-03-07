@@ -11,6 +11,8 @@ extern "C" {
 #include <string.h>
 #include <inttypes.h>
 #include <unistd.h>
+
+#include <arpa/inet.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -50,9 +52,9 @@ main(int ac, char **av)
 
     while (1) {
 	smddgate_rmnet_config(0, &netcfg);
-	ip   = netcfg.ip;
-	mask = netcfg.mask;
-	gw   = netcfg.gw;
+	ip   = htonl(netcfg.ip);
+	mask = htonl(netcfg.mask);
+	gw   = htonl(netcfg.gw);
 	if (ip != 0)
 		break;
 
