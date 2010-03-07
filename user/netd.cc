@@ -10,6 +10,7 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <unistd.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -44,13 +45,36 @@ main(int ac, char **av)
 
 #ifdef JOS_ARCH_arm
     // XXX- nasty hack for HTC Dream
-    smddgate_init();
     struct htc_netconfig netcfg; 
-    smddgate_rmnet_config(0, &netcfg);
-    ip   = netcfg.ip;
-    mask = netcfg.mask;
-    gw   = netcfg.gw;
+    smddgate_init();
+
+    while (1) {
+	smddgate_rmnet_config(0, &netcfg);
+	ip   = netcfg.ip;
+	mask = netcfg.mask;
+	gw   = netcfg.gw;
+	if (ip != 0)
+		break;
+
+	static int report = 0;
+	if (!report) {
+		printf("netd waiting on smdd for IP address...\n");
+		report++;
+	}
+	sleep(5);
+    }
     printf("netd using HTC ip 0x%08x, mask 0x%08x, gw 0x%08x\n", ip, mask, gw);
+
+    FILE *fp = fopen("/netd/resolv.conf", "w");
+    fprintf(fp, "nameserver %d.%d.%d.%d\n", (netcfg.dns1 >> 24) & 0xff,
+                                            (netcfg.dns1 >> 16) & 0xff,
+                                            (netcfg.dns1 >>  8) & 0xff,
+                                            (netcfg.dns1 >>  0) & 0xff);
+    fprintf(fp, "nameserver %d.%d.%d.%d\n", (netcfg.dns2 >> 24) & 0xff,
+                                            (netcfg.dns2 >> 16) & 0xff,
+                                            (netcfg.dns2 >>  8) & 0xff,
+                                            (netcfg.dns2 >>  0) & 0xff);
+    fclose(fp);
 #endif
 
     struct cobj_ref netdev;
