@@ -32,6 +32,10 @@ KERN_BINFILES	+= user/jtrace
 KERN_BINFILES	+= user/ln user/tr user/expr user/chmod user/touch
 KERN_BINFILES	+= user/uname
 KERN_BINFILES   += user/wget
+KERN_BINFILES	+= user/cp
+KERN_BINFILES	+= user/mv
+KERN_BINFILES	+= user/rm
+KERN_BINFILES	+= user/ls
 #KERN_BINFILES	+= user/find user/sed user/uname user/awk user/perl
 #KERN_BINFILES	+= user/tar user/gzip user/gunzip user/ls user/rm user/cp
 #KERN_BINFILES	+= user/bash user/grep user/egrep user/uniq user/mv user/cat
@@ -78,3 +82,9 @@ endif
 endif
 
 KERN_BINFILES	+= user/irqwait
+
+## What gets run at startup; flags are:
+##  "r" for root
+##  "a" for passing args
+##  "c" for running in root container
+INITTAB_ENTRIES := /bin/netd_mom:ra
