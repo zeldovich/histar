@@ -520,8 +520,12 @@ init_smdd(int basecons)
         /* just be sure it's there... */
         struct jos_fb_mode fb;
         if (sys_fb_get_mode(devs[i], &fb) < 0) {
+#ifdef JOS_ARM_GOLDFISH
+            // don't worry about this in the goldfish case...
+#else
             cprintf("init: %s: device %d missing\n", __func__, i);
 	    return 1;
+#endif
         }
     }
 
@@ -531,18 +535,25 @@ init_smdd(int basecons)
 	return 1;
     }
 
-    label ds(3), dr(0);
-    ds.set(fbc_grant, LB_LEVEL_STAR);
-    ds.set(fbc_taint, LB_LEVEL_STAR);
-    dr.set(fbc_grant, 1);
-    dr.set(fbc_taint, 1);
+    label root_ds(3);
+    root_ds.set(start_env->user_grant, LB_LEVEL_STAR);
+    root_ds.set(start_env->user_taint, LB_LEVEL_STAR);
 
+    label root_dr(0);
+    root_dr.set(start_env->user_grant, 3);
+    root_dr.set(start_env->user_taint, 3);
+
+#ifdef JOS_ARM_GOLDFISH
+    const char *argv[] = { "smdd", "--fake" };
+#else
     const char *argv[] = { "smdd" };
+#endif
+
     child_process cp = spawn(start_env->process_pool,
 		   ino, basecons, basecons, basecons,
-		   1, &argv[0],
+		   sizeof(argv)/sizeof(argv[0]), &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
-		   0, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
+		   0, &root_ds, 0, &root_dr, 0, SPAWN_NO_AUTOGRANT);
 
     return (0);
 }
@@ -738,6 +749,15 @@ try
     setup_env(0, start_arg0, 0);
 
     init_fs(cons);
+
+#ifdef JOS_ARCH_arm 
+    // fire up smdd before netd_mom from inittab
+    cprintf("starting smdd...\n");
+    int smddfail = init_smdd(cons);
+    if (smddfail)
+        cprintf("Failed to initialize smdd\n");
+#endif
+
     init_procs(cons);
 
     /* shell gets another console that's mutable */
@@ -756,10 +776,6 @@ try
     int mousefail = init_mouse();
     if (mousefail)
         cprintf("Failed to initialize /dev/psaux\n");
-
-    int smddfail = init_smdd(cons);
-    if (smddfail)
-        cprintf("Failed to initialize smdd\n");
 
     run_shell(cons_fds[0]);
 } catch (std::exception &e) {
