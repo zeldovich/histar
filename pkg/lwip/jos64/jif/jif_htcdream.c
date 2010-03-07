@@ -135,9 +135,15 @@ low_level_input(struct netif *netif)
 
     /* grab a packet from smdd via the receive gate */
     char buf[len];
+
+    lwip_core_unlock();
     len = smddgate_rmnet_rx(0, buf, len);
+    lwip_core_lock();
+
     if (len <= 0 || len > 2000) {
-        fprintf(stderr, "%s: invalid rmnet_rx packet length = %d\n", len);
+        fprintf(stderr, "%s: invalid rmnet_rx packet length = %d\n",
+	    __func__, len);
+	pbuf_free(p);
         return NULL;
     }
 
