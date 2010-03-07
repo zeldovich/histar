@@ -22,7 +22,6 @@ extern "C" {
 
 #include "smddgate.h"
 
-#define DEBUG
 #ifdef DEBUG
 #define DPRINTF(_x)	cprintf _x
 #else
