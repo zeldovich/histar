@@ -21,7 +21,7 @@ typedef int8_t s8_t;
 typedef uintptr_t mem_ptr_t;
 
 #define PACK_STRUCT_FIELD(x)	x
-#define PACK_STRUCT_STRUCT
+#define PACK_STRUCT_STRUCT	__attribute__((__packed__))
 #define PACK_STRUCT_BEGIN
 #define PACK_STRUCT_END
 
