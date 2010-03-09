@@ -341,7 +341,7 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 {
     uint64_t ptflags = PTE_P | PTE_U | PTE_NX;
     if ((flags & SEGMAP_WRITE))
-	ptflags |= PTE_DIRTYEMU;
+	ptflags |= PTE_DIRTYEMU | PTE_W;
     if ((flags & SEGMAP_EXEC))
 	ptflags &= ~PTE_NX;
 
