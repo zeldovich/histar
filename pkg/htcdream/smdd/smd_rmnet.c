@@ -40,13 +40,21 @@ extern "C" {
 #include "msm_smd.h"
 #include "smd_rmnet.h"
 
+#define NPKTQUEUE	64
+
+struct rxpkt {
+	char buf[1514];
+	int bytes;
+};
+
 static struct rmnet_private {
 	smd_channel_t *ch;
 	const char *chname;
 	size_t tx_frames, tx_frame_bytes;
 	size_t rx_frames, rx_frame_bytes, rx_dropped;
-	int pktbytes;
-	char pktbuf[2000];
+	struct rxpkt rxq[NPKTQUEUE];
+	int rxq_head;
+	int rxq_tail;
 	pthread_mutex_t mtx;
 	pthread_cond_t  cond;
 } rmnet_private[3];
@@ -72,13 +80,11 @@ static void smd_net_notify(void *_priv, unsigned event)
 				cprintf("rmnet_recv() smd lied about avail?!\n");
 			p->rx_dropped++;
 		} else {
-			char pktbuf[1514];
-			if (smd_read(p->ch, pktbuf, sz) != sz) {
+			struct rxpkt *rxp = &p->rxq[p->rxq_head];
+
+			if (smd_read(p->ch, rxp->buf, sz) != sz) {
 				cprintf("rmnet_recv() smd lied about avail?!\n");
-			} else {
-				p->rx_frames++;
-				p->rx_frame_bytes += sz;	
-				// XXX- do shit!
+				return;
 			}
 
 #ifdef DEBUG
@@ -86,13 +92,14 @@ static void smd_net_notify(void *_priv, unsigned event)
 			jhexdump((const unsigned char *)pktbuf, sz);
 #endif
 
+			p->rx_frames++;
+			p->rx_frame_bytes += sz;
+
 			pthread_mutex_lock(&p->mtx);
-			if (p->pktbytes) {
-				cprintf("PREVIOUS PACKET NOT YET READ (sz = %d)"
-				    " - DROPPING!\n", p->pktbytes);
-			}
-			memcpy(p->pktbuf, pktbuf, sz); //XXX extra copy
-			p->pktbytes = sz;
+			rxp->bytes = sz;
+			p->rxq_head = (p->rxq_head + 1) % NPKTQUEUE;
+			if (p->rxq_head == p->rxq_tail)
+				cprintf("RMNET OVERRAN THE WHOLE RING!!\n");
 			pthread_cond_broadcast(&p->cond);
 			pthread_mutex_unlock(&p->mtx);
 		}
@@ -160,11 +167,14 @@ extern "C" int smd_rmnet_recv(int which, void *buf, int len)
 		return -E_INVAL;
 
 	pthread_mutex_lock(&p->mtx);
-	while (p->pktbytes == 0)
+	while (p->rxq_tail == p->rxq_head)
 		pthread_cond_wait(&p->cond, &p->mtx);
-	int recvd = MIN(len, p->pktbytes);
-	memcpy(buf, p->pktbuf, recvd);
-	p->pktbytes = 0;
+
+	struct rxpkt *rxp = &p->rxq[p->rxq_tail];
+	int recvd = MIN(len, rxp->bytes);
+	memcpy(buf, rxp->buf, recvd);
+	rxp->bytes = 0;
+	p->rxq_tail = (p->rxq_tail + 1) % NPKTQUEUE;
 	pthread_mutex_unlock(&p->mtx);
 
 	return recvd;
