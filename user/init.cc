@@ -478,6 +478,7 @@ init_mouse(void)
     return 0;
 }
 
+#ifdef JOS_ARCH_arm
 static int
 init_smdd(int basecons)
 {
@@ -557,6 +558,7 @@ init_smdd(int basecons)
 
     return (0);
 }
+#endif
 
 static int
 init_fbcons(int basecons, int *consp, int maxvt)
