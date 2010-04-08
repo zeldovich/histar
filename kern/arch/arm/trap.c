@@ -15,8 +15,6 @@
 
 extern int arm_dirtyemu(struct Pagemap *, const void *);
 
-static uint64_t trap_initial_tsc;
-static uint64_t trap_idle_ticks;
 static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;
 static int trap_thread_syscall_writeback;
@@ -339,7 +337,7 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, const int code)
 }
 
 static void
-exception_dispatch(int trapcode, struct Trapframe *tf, uint64_t tsc_now)
+exception_dispatch(int trapcode, struct Trapframe *tf)
 {
 	if (trap_thread == NULL && trapcode != T_IRQ && trapcode != T_FIQ) {
 		trapframe_print(tf);
@@ -372,8 +370,6 @@ exception_dispatch(int trapcode, struct Trapframe *tf, uint64_t tsc_now)
 
 	case T_IRQ:
 		assert(CPSR_MODE(cpsr_get()) == CPSR_MODE_IRQ);
-		if (trap_thread == NULL)
-			trap_idle_ticks += (tsc_now - trap_user_iret_tsc);
 		irq_arch_handle();	
 		break;
 
@@ -455,10 +451,7 @@ exception_handler(int trapcode, struct Trapframe *tf, uint32_t sp)
 		prof_user(1, start - trap_user_iret_tsc);
 	}
 
-	if (trap_initial_tsc == 0)
-		trap_initial_tsc = start;
-
-	exception_dispatch(trapcode, tf, start);
+	exception_dispatch(trapcode, tf);
 	prof_trap(trapcode, karch_get_tsc() - start);
 
 	thread_run();
