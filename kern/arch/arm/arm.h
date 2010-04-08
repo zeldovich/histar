@@ -51,6 +51,7 @@ extern void	cp15_dcache_flush_invalidate_tci(void);
 extern void	cp15_dcache_flush_invalidate(void);
 extern uint32_t	cp15_main_id_get(void);
 extern uint32_t	cp15_cache_type_get(void);
+extern void	cp15_wait_for_interrupt_arm1136(void);
 
 #endif /* !(defined(JOS_KERNEL) && !defined(__ASSEMBLER__)) */
 
