@@ -242,8 +242,9 @@ prof_print(void)
 	print_entry(&sysc_table[0], i, syscall2s(i));
 
     cprintf("prof_print: traps\n");
-    for (int i = 0; i < NTRAPS; i++)
-	print_entry(&trap_table[0], i, "trap");
+    for (int i = 0; i < NTRAPS; i++) {
+	print_entry(&trap_table[0], i, karch_trapnames[i]);
+    }
 
     cprintf("prof_print: user\n");
     for (int i = 0; i < 2; i++)

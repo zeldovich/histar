@@ -21,6 +21,9 @@ static int trap_thread_syscall_writeback;
 
 static void trapframe_print(const struct Trapframe *);
 
+const char *karch_trapnames[NTRAPS] =
+    { "reset", "ui", "swi", "pa", "da", "unused", "irq", "fiq" };
+
 //XXX- notes
 static void
 trap_thread_set(const struct Thread *t)
