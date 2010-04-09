@@ -645,13 +645,14 @@ main()
 		}
 	}
 
-	cachedestroy = malloc(16*1024*1024);
+#define CACHEDESTROYLEN 1024 * 1024
+	cachedestroy = malloc(CACHEDESTROYLEN);
 
 	sw_full_ls_setup(genome_len, maxreadlen, -40, -7,
 	    -40, -7, 10, -10, 1);
 
 	for (i = 0; i < iter; i++) {
-		for (j = 0; j < 16*1024*1024; j++)
+		for (j = 0; j < CACHEDESTROYLEN; j++)
 			cachedestroy[j] = 0xce;
 		nsec0 = sys_clock_nsec();
 		sw_full_ls(genome, 0, genome_len, reads[0], read_lens[0],
