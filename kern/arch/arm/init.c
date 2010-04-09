@@ -9,6 +9,7 @@
 #include <dev/goldfish_irq.h>
 #include <dev/goldfish_timer.h>
 #include <dev/goldfish_ttycons.h>
+#include <dev/msm_cpufreq.h>
 #include <dev/msm_gpio.h>
 #include <dev/msm_irq.h>
 #include <dev/msm_mddi.h>
@@ -180,6 +181,7 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 
 	/* late device init */
 #if defined(JOS_ARM_HTCDREAM)
+	msm_cpufreq_init(0xc0100000);
 	msm_gpio_init(0xa9200800, 0xa9300c00);
 	msm_mddi_init(0xaa600000);
 	msm_smd_init(0x01f00000, 1024*1024, 0xc0100000, 0, 5);
