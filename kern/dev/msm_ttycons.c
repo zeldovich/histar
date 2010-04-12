@@ -3,9 +3,13 @@
 #include <kern/intr.h>
 #include <kern/lib.h>
 #include <kern/prof.h>
+#include <kern/timer.h>
 #include <inc/intmacro.h>
 #include <dev/msm_ttycons.h>
 #include <dev/msm_ttyconsreg.h>
+
+enum { polling = 1 };
+static struct msm_ttycons_reg *g_mtr;
 
 static void
 msm_ttycons_putc(void *arg, int c, cons_source src)
@@ -34,6 +38,7 @@ msm_ttycons_proc_data(void *arg)
 {
 	struct msm_ttycons_reg *mtr = arg;
 	uint32_t sr;
+	int ret = -1;
 
 	if (mtr->uart_sr & UART_SR_UART_OVERRUN) {
 		cprintf("cons: OVERRUN detected\n");
@@ -51,16 +56,22 @@ msm_ttycons_proc_data(void *arg)
 			return (0);
 		}
 
-		return (mtr->uart_rf);
+		ret = mtr->uart_rf;
 	}
 
-	return (-1);
+	return (ret);
 }
 
 static void
 msm_ttycons_intr(void *arg)
 {
 	cons_intr(msm_ttycons_proc_data, arg);
+}
+
+static void
+msm_ttycons_poll()
+{
+	cons_intr(msm_ttycons_proc_data, g_mtr);
 }
 
 void
@@ -75,22 +86,32 @@ msm_ttycons_init(uint32_t base, int irq)
 		.ih_arg = (void *)0xdeadbeef,
 	};
 
-	struct msm_ttycons_reg *mtr = (void *)base;
-	msm_ttycons_cd.cd_arg = ih.ih_arg = mtr;
+	g_mtr = (void *)base;
+	msm_ttycons_cd.cd_arg = ih.ih_arg = g_mtr;
 
 	// only rx irq's
-	mtr->uart_imr = UART_IMR_RXLEV;
+	g_mtr->uart_imr = UART_IMR_RXLEV;
 
 	// interrupt when > 0 chars in the fifo
-	mtr->uart_rfwr = 0;
+	g_mtr->uart_rfwr = 0;
 
 	// character mode: error bits only for next guy in fifo
-	mtr->uart_mr2 &= ~UART_MR2_ERROR_MODE;
+	g_mtr->uart_mr2 &= ~UART_MR2_ERROR_MODE;
 
 	cons_register(&msm_ttycons_cd);
 
-	cprintf("MSM serial console @ 0x%08x, irq %d, rfwr %d, tfwr %d\n",
-	    base, irq, mtr->uart_rfwr, mtr->uart_tfwr);
+	cprintf("MSM serial console @ 0x%08x, irq %d, rfwr %d, tfwr %d%s\n",
+	    base, irq, g_mtr->uart_rfwr, g_mtr->uart_tfwr,
+	    (polling) ? " (POLLED)" : "");
 
-	irq_register(irq, &ih);
+	// I keep getting spurious IRQs and can't figure out why.
+	// Screw it. We'll just poll the sucker.
+	if (polling) {
+	    static struct periodic_task msm_ttycons_timer;
+	    msm_ttycons_timer.pt_interval_msec = 25;
+	    msm_ttycons_timer.pt_fn = msm_ttycons_poll;
+	    timer_add_periodic(&msm_ttycons_timer);
+	} else {
+		irq_register(irq, &ih);
+	}
 }
