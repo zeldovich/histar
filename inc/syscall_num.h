@@ -103,8 +103,10 @@
 						\
     SYSCALL_ENTRY(irq_wait)			\
 						\
-    SYSCALL_ENTRY(masked_jump)
-
+    SYSCALL_ENTRY(masked_jump)			\
+						\
+    SYSCALL_ENTRY(reserve_split)		\
+    
 
 #ifndef __ASSEMBLER__
 #define SYSCALL_ENTRY(name)	SYS_##name,

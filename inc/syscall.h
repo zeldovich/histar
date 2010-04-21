@@ -150,6 +150,9 @@ int64_t	sys_irq_wait(uint32_t irq, int64_t lastcount);
 
 void	sys_masked_jump(uint32_t mask, struct UTrapframe *utf);
 
+int64_t	sys_reserve_split(uint64_t container, struct cobj_ref origrsref,
+			  const struct ulabel *l, uint64_t new_level, const char *name);
+
 #define SYSCALL(name, ...)						\
     case SYS_##name:							\
 	return sys_##name(__VA_ARGS__);

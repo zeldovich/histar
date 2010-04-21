@@ -547,3 +547,10 @@ sys_masked_jump(uint32_t mask, struct UTrapframe *utf)
 {
     syscall(SYS_masked_jump, mask, SPTR(utf), 0, 0, 0, 0, 0);
 }
+
+int64_t
+sys_reserve_split(uint64_t container, struct cobj_ref origrsref,
+		  const struct ulabel *l, uint64_t new_level, const char *name)
+{
+    return syscall(SYS_reserve_split, container, SOBJ(origrsref), SPTR(l), new_level, SPTR(name), 0);
+}

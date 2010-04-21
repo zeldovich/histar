@@ -14,6 +14,8 @@ enum kobject_type_enum {
     kobj_segment,
     kobj_address_space,
     kobj_device,
+    kobj_reserve,
+    kobj_limit,
     kobj_label,
     kobj_dead,
 

@@ -699,6 +699,8 @@ kobject_gc(struct kobject *ko)
     case kobj_device:
     case kobj_segment:
     case kobj_label:
+    case kobj_reserve:
+    case kobj_limit:
 	break;
 
     default:

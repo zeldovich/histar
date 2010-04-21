@@ -14,6 +14,8 @@
 #include <kern/as.h>
 #include <kern/device.h>
 #include <kern/netdev.h>
+#include <kern/reserve.h>
+#include <kern/limit.h>
 
 #define KOBJ_DISK_SIZE	512
 #define KOBJ_MEM_SIZE	1024
@@ -30,6 +32,8 @@ struct kobject_persistent {
 	struct Segment sg;
 	struct Label lb;
 	struct Device dv;
+	struct Reserve rs;
+	struct Limit lm;
     };
 };
 
