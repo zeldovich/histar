@@ -127,5 +127,6 @@ int  thread_utrap(const struct Thread *t,
 		  uint32_t src, uint32_t num, uint64_t arg)
     __attribute__ ((warn_unused_result));
 int thread_bill_energy(struct Thread *t, uint64_t amount);
+int thread_has_energy(struct Thread *t);
 
 #endif

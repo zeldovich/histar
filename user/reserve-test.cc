@@ -3,12 +3,19 @@ extern "C" {
 #include <stdio.h>
 #include <inc/syscall.h>
 #include <unistd.h>
+#include <stdlib.h>
 }
 #include <inc/labelutil.hh>
 
 int
 main(int ac, char *av[])
 {
+    if (ac < 2) {
+	printf("usage: wattage\n");
+	return -1;
+    }
+    uint64_t rate = atol(av[1]);
+
     int64_t rsid = container_find(start_env->root_container, kobj_reserve, "root_reserve");
     if (rsid < 0) {
 	perror("couldn't find root_reserve");
@@ -58,13 +65,14 @@ main(int ac, char *av[])
     }
     printf("New limit is at %lu\n", r);
     cobj_ref lm1 = COBJ(start_env->process_pool, r);
-    r = sys_limit_set_rate(lm1, 100);
+    r = sys_limit_set_rate(lm1, rate);
     if (r < 0) {
 	perror("couldn't set rate on limit1");
 	return r;
     }
 
-    for (uint64_t i = 0; i < 5; i++) {
+    /*
+    for (uint64_t i = 0; i < 2; i++) {
 	int64_t level0 = sys_reserve_get_level(rs0);
 	// TODO what about errors from get_level?
 	printf("rs0 level %lu\n", level0);
@@ -73,21 +81,31 @@ main(int ac, char *av[])
 	printf("rs1 level %lu\n", level1);
 	sleep(1);
     }
+    */
 
-    r = sys_self_set_active_reserve(rs0);
+    r = sys_self_set_active_reserve(rs1);
     if (r < 0) {
 	perror("couldn't set active reserve");
 	return r;
     }
 
     for (uint64_t i = 0; i < 5; i++) {
+	uint64_t start = sys_clock_nsec();
 	int64_t level0 = sys_reserve_get_level(rs0);
 	// TODO what about errors from get_level?
-	printf("rs0 level %lu\n", level0);
+	printf("rs0 level %ld\n", level0);
 
 	int64_t level1 = sys_reserve_get_level(rs1);
-	printf("rs1 level %lu\n", level1);
-	sleep(1);
+	printf("rs1 level %ld\n", level1);
+
+	uint64_t l = 0;
+	for (uint64_t j = 0; j < 1 * 1000 * 1000 * 1000; j++)
+	    for (uint64_t k = 0; j < 1 * 1000 * 1000 * 1000; j++)
+		l += j * k;
+	printf("stuff: %lu\n", l);
+
+	uint64_t end = sys_clock_nsec();
+	printf("time to loop: %lu\n", end - start);
     }
 
     return 0;

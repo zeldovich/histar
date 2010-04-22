@@ -557,5 +557,16 @@ thread_bill_energy(struct Thread *t, uint64_t amount)
 	return r;
 
     struct Reserve *rs = &kobject_dirty(&ko->hdr)->rs;
-    return reserve_consume(rs, amount);
+    return reserve_consume(rs, amount, 1);
+}
+
+int
+thread_has_energy(struct Thread *t)
+{
+    const struct kobject *ko;
+    int64_t r = cobj_get(t->th_rs, kobj_reserve, &ko, iflow_rw);
+    if (r < 0)
+	return r;
+
+    return (ko->rs.rs_level > 0);
 }

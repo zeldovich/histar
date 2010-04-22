@@ -66,8 +66,15 @@ schedule(void)
 	const struct Thread *t, *min_pass_th = 0;
 	LIST_FOREACH(t, &thread_list_runnable, th_link)
 	    if (!min_pass_th ||
-		sched_pass_below(t->th_sched_pass, min_pass_th->th_sched_pass))
-		min_pass_th = t;
+		sched_pass_below(t->th_sched_pass, min_pass_th->th_sched_pass)) {
+		// NOTICE thread_has_energy(t) neg (but true) if no reserve on thread
+		// 0 if no energy
+		// 1 if energy
+		// hence this allows threads with no res or threads with filled res to run
+		int r = thread_has_energy(t);
+		if (r)
+		    min_pass_th = t;
+	    }
 
 	cur_thread = min_pass_th;
 	if (!cur_thread) {
