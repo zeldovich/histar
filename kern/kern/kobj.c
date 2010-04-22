@@ -699,11 +699,14 @@ kobject_gc(struct kobject *ko)
 	r = limit_gc(&ko->lm);
 	break;
 
+    case kobj_reserve:
+	r = reserve_gc(&ko->rs);
+	break;
+
     case kobj_gate:
     case kobj_device:
     case kobj_segment:
     case kobj_label:
-    case kobj_reserve:
 	break;
 
     default:

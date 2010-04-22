@@ -6,6 +6,7 @@
 #include <kern/sync.h>
 #include <kern/arch.h>
 #include <inc/error.h>
+#include <kern/reserve.h>
 #include <kern/limit.h>
 #include <kern/energy.h>
 #include <kern/kobj.h>
@@ -60,6 +61,7 @@ schedule(void)
     timer_periodic_notify();
 
     bill_energy();
+    // limit_update_all actually does decay just before distributing energy
     limit_update_all();
 
     do {
@@ -71,7 +73,7 @@ schedule(void)
 		// 0 if no energy
 		// 1 if energy
 		// hence this allows threads with no res or threads with filled res to run
-		int r = thread_has_energy(t);
+		int r = thread_has_energy(&kobject_dirty(&t->th_ko)->th);
 		if (r)
 		    min_pass_th = t;
 	    }

@@ -59,7 +59,6 @@ limit_alloc(const struct Label *l, struct Limit **lmp)
     lm->lm_sink = COBJ(0, 0);
 
     lm->lm_linked = 0;
-
     limit_link(lm, &limit_list);
 
     *lmp = lm;
@@ -115,6 +114,9 @@ limit_update_all(void)
 
     if (now - limits_last_updated < 1 * 1000 * 1000 * 1000)
 	return;
+
+    // first do decay and then do additions
+    reserve_decay_all();
 
     struct Limit *lm;
     int r;

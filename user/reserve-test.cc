@@ -71,17 +71,14 @@ main(int ac, char *av[])
 	return r;
     }
 
-    /*
-    for (uint64_t i = 0; i < 2; i++) {
+    for (uint64_t i = 0; i < 10; i++) {
 	int64_t level0 = sys_reserve_get_level(rs0);
-	// TODO what about errors from get_level?
 	printf("rs0 level %lu\n", level0);
 
 	int64_t level1 = sys_reserve_get_level(rs1);
 	printf("rs1 level %lu\n", level1);
 	sleep(1);
     }
-    */
 
     r = sys_self_set_active_reserve(rs1);
     if (r < 0) {

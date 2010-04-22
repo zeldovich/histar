@@ -4,6 +4,36 @@
 #include <kern/reserve.h>
 #include <inc/error.h>
 
+enum { debug_reserves = 0 };
+
+struct Reserve_list reserve_list;
+
+static void
+reserve_unlink(struct Reserve *rs)
+{
+    if (rs->rs_linked) {
+	LIST_REMOVE(rs, rs_link);
+	rs->rs_linked = 0;
+    }
+}
+
+static void
+reserve_link(struct Reserve *rs, struct Reserve_list *rs_list)
+{
+    assert(!rs->rs_linked);
+    LIST_INSERT_HEAD(rs_list, rs, rs_link);
+    rs->rs_linked = 1;
+}
+
+int
+reserve_gc(struct Reserve *rs)
+{
+    if (debug_reserves)
+	cprintf("reserve_gc\n");
+    reserve_unlink(rs);
+    return 0;
+}
+
 // Don't call this from outside this module
 // users must use reserve_split
 int
@@ -18,6 +48,9 @@ reserve_alloc(const struct Label *l, struct Reserve **rsp)
     ko->hdr.ko_flags = KOBJ_FIXED_QUOTA;
 
     rs->rs_level = 0;
+
+    rs->rs_linked = 0;
+    reserve_link(rs, &reserve_list);
 
     *rsp = rs;
     return 0;
@@ -85,5 +118,24 @@ reserve_consume(struct Reserve *rs, int64_t amount, uint64_t force)
     rs->rs_level -= amount;
 
     return 0;
+}
+
+void
+reserve_decay_all(void)
+{
+    struct Reserve *rs;
+    int r;
+    LIST_FOREACH(rs, &reserve_list, rs_link)
+	do {
+	    if (debug_reserves)
+		cprintf("Working on reserve %lu\n", rs->rs_ko.ko_id);
+	    if (rs->rs_level <= 0)
+		break;
+	    // TODO - this magic 12 should be calculated dynamically
+	    // +1 since otherwise decay won't kick in until apps
+	    // have 2**12 mJ
+	    int64_t decay = (rs->rs_level >> 12) + 1;
+	    rs->rs_level -= decay;
+	} while (0);
 }
 
