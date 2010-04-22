@@ -25,9 +25,9 @@ reserve_alloc(const struct Label *l, struct Reserve **rsp)
 
 // Caller needs to check iflow between reserves wrt to thread label
 static int
-reserve_do_transfer(struct Reserve *src, struct Reserve *dest, uint64_t amount)
+reserve_do_transfer(struct Reserve *src, struct Reserve *dest, int64_t amount)
 {
-    if (src->rs_level < amount)
+    if (amount < 0 || src->rs_level < amount)
 	return -E_NO_SPACE;
 
     src->rs_level -= amount;
@@ -38,9 +38,9 @@ reserve_do_transfer(struct Reserve *src, struct Reserve *dest, uint64_t amount)
 
 // Caller must guarantee the creating thread can create an object with this label
 int
-reserve_split(const struct Label *l, struct Reserve *origrs, struct Reserve **newrsp, uint64_t new_level)
+reserve_split(const struct Label *l, struct Reserve *origrs, struct Reserve **newrsp, int64_t new_level)
 {
-    if (origrs->rs_level < new_level)
+    if (new_level < 0 || origrs->rs_level < new_level)
 	return -E_NO_SPACE;
 
     struct Reserve *newrs;
@@ -56,7 +56,7 @@ reserve_split(const struct Label *l, struct Reserve *origrs, struct Reserve **ne
 }
 
 int
-reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, uint64_t amount)
+reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t amount)
 {
     int64_t r;
 

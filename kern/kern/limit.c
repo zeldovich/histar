@@ -10,6 +10,7 @@
 enum { debug_limits = 0 };
 
 struct Limit_list limit_list;
+uint64_t limits_last_updated = 0;
 
 static void
 limit_unlink(struct Limit *lm)
@@ -31,7 +32,8 @@ limit_link(struct Limit *lm, struct Limit_list *lm_list)
 int
 limit_gc(struct Limit *lm)
 {
-    cprintf("limit_gc\n");
+    if (debug_limits)
+	cprintf("limit_gc\n");
     limit_unlink(lm);
     return 0;
 }
@@ -105,10 +107,9 @@ limit_set_rate(struct Limit *lm, uint64_t rate)
     return 0;
 }
 
-uint64_t limits_last_updated = 0;
-
+// uses and modifies limits_last_updated global
 void
-limit_update_all()
+limit_update_all(void)
 {
     uint64_t now = timer_user_nsec();
 
@@ -117,6 +118,7 @@ limit_update_all()
 
     struct Limit *lm;
     int r;
+    struct Limit *last_lm;
     LIST_FOREACH(lm, &limit_list, lm_link)
 	do {
 	    if (debug_limits)
@@ -126,7 +128,15 @@ limit_update_all()
 		if (debug_limits)
 		    cprintf("source was out of energy\n");
 	    }
+	    if (lm)
+		last_lm = lm;
 	} while (0);
+    // Move the last_lm to the head of the list
+    // to prevent starvation
+    if (last_lm) {
+	limit_unlink(last_lm);
+	limit_link(last_lm, &limit_list);
+    }
 
     limits_last_updated = now;
 }
