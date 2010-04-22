@@ -26,13 +26,33 @@ main(int ac, char *av[])
 
     label l(1);
     //int64_t r = sys_reserve_split(start_env->shared_container, origrsref, l.to_ulabel(), 0, "new_reserve");
-    int64_t r = sys_reserve_split(start_env->process_pool, origrsref, l.to_ulabel(), 0, "new_reserve");
+
+    // fork off one reserve
+    int64_t r = sys_reserve_split(start_env->process_pool, origrsref, l.to_ulabel(), 0, "reserve0");
     if (r < 0) {
 	perror("couldn't split");
 	return r;
     }
+    printf("New reserve is at %lu\n", r);
+    cobj_ref rs0 = COBJ(start_env->process_pool, r);
 
-    printf("New reserve is at %lu\n", rsid);
+    // fork off another reserve
+    r = sys_reserve_split(start_env->process_pool, origrsref, l.to_ulabel(), 0, "reserve1");
+    if (r < 0) {
+	perror("couldn't split");
+	return r;
+    }
+    printf("New reserve is at %lu\n", r);
+    cobj_ref rs1 = COBJ(start_env->process_pool, r);
+
+    // create a limit between the two reserves
+    r = sys_limit_create(start_env->process_pool, rs0, rs1, l.to_ulabel(), "limit0");
+    if (r < 0) {
+	perror("couldn't create limit");
+	return r;
+    }
+    printf("New limit is at %lu\n", r);
+    //cobj_ref lm0 = COBJ(start_env->process_pool, r);
 
     return 0;
 }

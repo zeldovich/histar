@@ -1,5 +1,94 @@
+#include <kern/lib.h>
 #include <kern/label.h>
 #include <kern/kobj.h>
 #include <kern/limit.h>
 #include <kern/reserve.h>
+#include <inc/error.h>
 
+struct Limit_list limit_list;
+
+static void
+limit_unlink(struct Limit *lm)
+{
+    if (lm->lm_linked) {
+	LIST_REMOVE(lm, lm_link);
+	lm->lm_linked = 0;
+    }
+}
+
+static void
+limit_link(struct Limit *lm, struct Limit_list *lm_list)
+{
+    assert(!lm->lm_linked);
+    LIST_INSERT_HEAD(lm_list, lm, lm_link);
+    lm->lm_linked = 1;
+}
+
+int
+limit_gc(struct Limit *lm)
+{
+    cprintf("limit_gc\n");
+    limit_unlink(lm);
+    return 0;
+}
+
+static int
+limit_alloc(const struct Label *l, struct Limit **lmp)
+{
+    struct kobject *ko;
+    int r = kobject_alloc(kobj_limit, l, 0, &ko);
+    if (r < 0)
+        return r;
+
+    struct Limit *lm = &kobject_dirty(&ko->hdr)->lm;
+    ko->hdr.ko_flags = KOBJ_FIXED_QUOTA;
+
+    lm->lm_type = 0;
+    lm->lm_rate = 0;
+
+    lm->lm_level = 0;
+    lm->lm_limit = 0;
+
+    lm->lm_source = COBJ(0, 0);
+    lm->lm_sink = COBJ(0, 0);
+
+    lm->lm_linked = 0;
+
+    limit_link(lm, &limit_list);
+
+    *lmp = lm;
+
+    return 0;
+}
+
+int
+limit_create(const struct Label *l, struct cobj_ref sourcersref,
+	     struct cobj_ref sinkrsref, struct Limit **lmp)
+{
+    const struct kobject *ko;
+
+    int64_t r = cobj_get(sourcersref, kobj_reserve, &ko, iflow_rw);
+    if (r < 0)
+	return r;
+
+    //struct Reserve *sourcers = &kobject_dirty(&ko->hdr)->rs;
+
+    r = cobj_get(sinkrsref, kobj_reserve, &ko, iflow_rw);
+    if (r < 0)
+	return r;
+    //struct Reserve *sinkrs = &kobject_dirty(&ko->hdr)->rs;
+
+    struct Limit *lm;
+    r = limit_alloc(l, &lm);
+    if (r < 0)
+	return r;
+
+    // default to constant type edge
+
+    lm->lm_source = sourcersref;
+    lm->lm_sink = sinkrsref;
+
+    *lmp = lm;
+
+    return 0;
+}

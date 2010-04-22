@@ -1264,6 +1264,27 @@ sys_reserve_split(uint64_t ct, struct cobj_ref origrsref, struct ulabel *ul, uin
     return newrs->rs_ko.ko_id;
 }
 
+static int64_t __attribute__ ((warn_unused_result))
+sys_limit_create(uint64_t ct,
+		 struct cobj_ref sourcersref,
+		 struct cobj_ref sinkrsref,
+		 struct ulabel *ul,
+		 const char *name)
+{
+    const struct Container *c;
+    check(container_find(&c, ct, iflow_rw));
+
+    const struct Label *l;
+    check(alloc_ulabel(ul, &l, &c->ct_ko));
+
+    struct Limit *lm;
+    check(limit_create(l, sourcersref, sinkrsref, &lm));
+    check(alloc_set_name(&lm->lm_ko, name));
+
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &lm->lm_ko, 0));
+    return lm->lm_ko.ko_id;
+}
+
 #define SYSCALL(name, ...)						\
     case SYS_##name:							\
 	return sys_##name(__VA_ARGS__);
@@ -1380,6 +1401,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(masked_jump, a1, p2);
 
 	SYSCALL(reserve_split, a1, COBJ(a2, a3), p4, a5, p6);
+	SYSCALL(limit_create, a1, COBJ(a2, a3), COBJ(a4, a5), p6, p7);
 
     default:
 	cprintf("Unknown syscall %"PRIu64"\n", num);

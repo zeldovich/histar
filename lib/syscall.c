@@ -554,3 +554,12 @@ sys_reserve_split(uint64_t container, struct cobj_ref origrsref,
 {
     return syscall(SYS_reserve_split, container, SOBJ(origrsref), SPTR(l), new_level, SPTR(name), 0);
 }
+
+int64_t sys_limit_create(uint64_t ct,
+		 struct cobj_ref sourcersref,
+		 struct cobj_ref sinkrsref,
+		 struct ulabel *ul,
+		 const char *name)
+{
+    return syscall(SYS_limit_create, ct, SOBJ(sourcersref), SOBJ(sinkrsref), SPTR(ul), SPTR(name));
+}

@@ -106,6 +106,7 @@
     SYSCALL_ENTRY(masked_jump)			\
 						\
     SYSCALL_ENTRY(reserve_split)		\
+    SYSCALL_ENTRY(limit_create)			\
     
 
 #ifndef __ASSEMBLER__

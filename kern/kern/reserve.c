@@ -44,13 +44,14 @@ reserve_split(const struct Label *l, struct Reserve *origrs, struct Reserve **ne
 	return -E_NO_SPACE;
 
     struct Reserve *newrs;
-    reserve_alloc(l, &newrs);
+    int r = reserve_alloc(l, &newrs);
+    if (r < 0)
+	return r;
 
     // shouldn't be possible to fail because of check at beginning of function
     assert(!reserve_transfer(origrs, newrs, new_level));
 
     *newrsp = newrs;
     return 0;
-
 }
 
