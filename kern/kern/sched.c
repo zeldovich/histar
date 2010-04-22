@@ -6,6 +6,7 @@
 #include <kern/sync.h>
 #include <kern/arch.h>
 #include <inc/error.h>
+#include <kern/limit.h>
 
 static uint64_t global_tickets;
 static uint64_t global_pass;
@@ -39,6 +40,8 @@ schedule(void)
 {
     sync_wakeup_timer();
     timer_periodic_notify();
+
+    limit_update_all();
 
     do {
 	const struct Thread *t, *min_pass_th = 0;

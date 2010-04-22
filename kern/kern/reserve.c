@@ -25,7 +25,7 @@ reserve_alloc(const struct Label *l, struct Reserve **rsp)
 
 // Caller needs to check iflow between reserves wrt to thread label
 static int
-reserve_transfer(struct Reserve *src, struct Reserve *dest, uint64_t amount)
+reserve_do_transfer(struct Reserve *src, struct Reserve *dest, uint64_t amount)
 {
     if (src->rs_level < amount)
 	return -E_NO_SPACE;
@@ -49,9 +49,29 @@ reserve_split(const struct Label *l, struct Reserve *origrs, struct Reserve **ne
 	return r;
 
     // shouldn't be possible to fail because of check at beginning of function
-    assert(!reserve_transfer(origrs, newrs, new_level));
+    assert(!reserve_do_transfer(origrs, newrs, new_level));
 
     *newrsp = newrs;
     return 0;
+}
+
+int
+reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, uint64_t amount)
+{
+    int64_t r;
+
+    const struct kobject *sourceko;
+    r = cobj_get(sourceref, kobj_reserve, &sourceko, iflow_rw);
+    if (r < 0)
+	return r;
+    struct Reserve *source = &kobject_dirty(&sourceko->hdr)->rs;
+
+    const struct kobject *sinkko;
+    r = cobj_get(sinkref, kobj_reserve, &sinkko, iflow_rw);
+    if (r < 0)
+	return r;
+    struct Reserve *sink = &kobject_dirty(&sinkko->hdr)->rs;
+
+    return reserve_do_transfer(source, sink, amount);
 }
 

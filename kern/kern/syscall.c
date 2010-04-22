@@ -1265,6 +1265,15 @@ sys_reserve_split(uint64_t ct, struct cobj_ref origrsref, struct ulabel *ul, uin
 }
 
 static int64_t __attribute__ ((warn_unused_result))
+sys_reserve_get_level(struct cobj_ref rsref)
+{
+    const struct kobject *ko;
+    check(cobj_get(rsref, kobj_reserve, &ko, iflow_read));
+    struct Reserve *rs = &kobject_dirty(&ko->hdr)->rs;
+    return rs->rs_level;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
 sys_limit_create(uint64_t ct,
 		 struct cobj_ref sourcersref,
 		 struct cobj_ref sinkrsref,
@@ -1283,6 +1292,15 @@ sys_limit_create(uint64_t ct,
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &lm->lm_ko, 0));
     return lm->lm_ko.ko_id;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_limit_set_rate(struct cobj_ref lmref, uint64_t rate)
+{
+    const struct kobject *ko;
+    check(cobj_get(lmref, kobj_limit, &ko, iflow_rw));
+    kobject_dirty(&ko->hdr)->lm.lm_rate = rate;
+    return 0;
 }
 
 #define SYSCALL(name, ...)						\
@@ -1401,7 +1419,9 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(masked_jump, a1, p2);
 
 	SYSCALL(reserve_split, a1, COBJ(a2, a3), p4, a5, p6);
+	SYSCALL(reserve_get_level, COBJ(a1, a2));
 	SYSCALL(limit_create, a1, COBJ(a2, a3), COBJ(a4, a5), p6, p7);
+	SYSCALL(limit_set_rate, COBJ(a1, a2), a3);
 
     default:
 	cprintf("Unknown syscall %"PRIu64"\n", num);

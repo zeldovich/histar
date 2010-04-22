@@ -555,6 +555,11 @@ sys_reserve_split(uint64_t container, struct cobj_ref origrsref,
     return syscall(SYS_reserve_split, container, SOBJ(origrsref), SPTR(l), new_level, SPTR(name), 0);
 }
 
+int64_t sys_reserve_get_level(struct cobj_ref rsref)
+{
+    return syscall(SYS_reserve_get_level, SOBJ(rsref), 0, 0, 0, 0, 0);
+}
+
 int64_t sys_limit_create(uint64_t ct,
 		 struct cobj_ref sourcersref,
 		 struct cobj_ref sinkrsref,
@@ -563,3 +568,9 @@ int64_t sys_limit_create(uint64_t ct,
 {
     return syscall(SYS_limit_create, ct, SOBJ(sourcersref), SOBJ(sinkrsref), SPTR(ul), SPTR(name));
 }
+
+int64_t sys_limit_set_rate(struct cobj_ref lmref, uint64_t rate)
+{
+    return syscall(SYS_limit_set_rate, SOBJ(lmref), rate, 0, 0, 0, 0);
+}
+

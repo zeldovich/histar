@@ -4,6 +4,8 @@
 #include <kern/limit.h>
 #include <kern/reserve.h>
 #include <inc/error.h>
+#include <kern/timer.h>
+#include <kern/reserve.h>
 
 struct Limit_list limit_list;
 
@@ -91,4 +93,36 @@ limit_create(const struct Label *l, struct cobj_ref sourcersref,
     *lmp = lm;
 
     return 0;
+}
+
+int
+limit_set_rate(struct Limit *lm, uint64_t rate)
+{
+    lm->lm_rate = rate;
+
+    return 0;
+}
+
+uint64_t limits_last_updated = 0;
+
+void
+limit_update_all()
+{
+    uint64_t now = timer_user_nsec();
+
+    if (now - limits_last_updated < 1 * 1000 * 1000 * 1000)
+	return;
+
+    struct Limit *lm;
+    int r;
+    LIST_FOREACH(lm, &limit_list, lm_link)
+	do {
+	    cprintf("Working on limit %lu (transferring %lu)\n", lm->lm_ko.ko_id, lm->lm_rate);
+	    r = reserve_transfer(lm->lm_source, lm->lm_sink, lm->lm_rate);
+	    if (r < 0) {
+		cprintf("source was out of energy\n");
+	    }
+	} while (0);
+
+    limits_last_updated = now;
 }

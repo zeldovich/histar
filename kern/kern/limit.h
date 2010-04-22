@@ -23,8 +23,10 @@ struct Limit {
 LIST_HEAD(Limit_list, Limit);
 
 int limit_gc(struct Limit *lm);
-
 int limit_create(const struct Label *l, struct cobj_ref sourcersref,
 	     struct cobj_ref sinkrsref, struct Limit **lmp);
+int limit_set_rate(struct Limit *lm, uint64_t rate);
+void limit_update_all();
+
 
 #endif

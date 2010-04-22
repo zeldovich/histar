@@ -106,7 +106,9 @@
     SYSCALL_ENTRY(masked_jump)			\
 						\
     SYSCALL_ENTRY(reserve_split)		\
+    SYSCALL_ENTRY(reserve_get_level)		\
     SYSCALL_ENTRY(limit_create)			\
+    SYSCALL_ENTRY(limit_set_rate)		\
     
 
 #ifndef __ASSEMBLER__
