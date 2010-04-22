@@ -7,6 +7,8 @@
 #include <kern/arch.h>
 #include <inc/error.h>
 #include <kern/limit.h>
+#include <kern/energy.h>
+#include <kern/kobj.h>
 
 static uint64_t global_tickets;
 static uint64_t global_pass;
@@ -35,6 +37,22 @@ sched_pass_below(uint64_t pass, uint64_t thresh)
     return (delta < 0) ? 1 : 0;
 }
 
+static void
+bill_energy()
+{
+    static uint64_t last_nsec;
+
+    uint64_t elapsed = timer_user_nsec() - last_nsec;
+    if (cur_thread) {
+	if (last_nsec) {
+	    // TODO need to ensure this succeeds once accounting is mandatory
+	    thread_bill_energy(&kobject_dirty(&cur_thread->th_ko)->th,
+			       energy_cpu_mJ(elapsed));
+	}
+    }
+    last_nsec += elapsed;
+}
+
 void
 schedule(void)
 {
@@ -42,6 +60,7 @@ schedule(void)
     timer_periodic_notify();
 
     limit_update_all();
+    bill_energy();
 
     do {
 	const struct Thread *t, *min_pass_th = 0;
@@ -86,6 +105,8 @@ sched_leave(struct Thread *t)
 
     t->th_sched_remain = t->th_sched_pass - global_pass;
     global_tickets -= t->th_sched_tickets;
+
+    bill_energy();
 }
 
 void

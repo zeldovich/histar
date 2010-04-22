@@ -45,7 +45,8 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/mousedev.c \
 	    kern/kern/disk.c \
 	    kern/kern/reserve.c \
-	    kern/kern/limit.c
+	    kern/kern/limit.c \
+	    kern/kern/energy.c
 
 KERN_BTREE := \
 	    kern/btree/btree.c \

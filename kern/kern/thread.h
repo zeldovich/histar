@@ -49,6 +49,9 @@ struct Thread {
 	int64_t th_sched_remain;
     };
 
+    // the thread's active energy resource reserve
+    struct cobj_ref th_rs;
+
     // Machine-dependent per-thread bits
     struct md_Thread th_md;
 
@@ -123,5 +126,6 @@ int  thread_pagefault(const struct Thread *t, void *va, uint32_t reqflags)
 int  thread_utrap(const struct Thread *t,
 		  uint32_t src, uint32_t num, uint64_t arg)
     __attribute__ ((warn_unused_result));
+int thread_bill_energy(struct Thread *t, uint64_t amount);
 
 #endif

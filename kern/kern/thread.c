@@ -14,6 +14,7 @@
 #include <inc/elf64.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
+#include <kern/reserve.h>
 
 enum { thread_pf_debug = 0 };
 
@@ -126,6 +127,8 @@ thread_alloc(const struct Label *tracking,
     t->th_sched_tickets = 1024;
     t->th_status = thread_not_started;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
+    // Threads start with no energy reserve by default
+    t->th_rs = COBJ(0, 0);
 
     struct Segment *sg;
     r = segment_alloc(tracking, &sg);
@@ -543,4 +546,16 @@ thread_suspend_cur(struct Thread_list *waitq)
 	if (t)
 	    thread_suspend(t, waitq);
     }
+}
+
+int
+thread_bill_energy(struct Thread *t, uint64_t amount)
+{
+    const struct kobject *ko;
+    int64_t r = cobj_get(t->th_rs, kobj_reserve, &ko, iflow_rw);
+    if (r < 0)
+	return r;
+
+    struct Reserve *rs = &kobject_dirty(&ko->hdr)->rs;
+    return reserve_consume(rs, amount);
 }

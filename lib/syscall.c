@@ -560,6 +560,13 @@ int64_t sys_reserve_get_level(struct cobj_ref rsref)
     return syscall(SYS_reserve_get_level, SOBJ(rsref), 0, 0, 0, 0, 0);
 }
 
+int
+sys_self_set_active_reserve(struct cobj_ref rsref)
+{
+    return syscall(SYS_self_set_active_reserve, SOBJ(rsref), 0, 0, 0, 0, 0);
+}
+
+
 int64_t sys_limit_create(uint64_t ct,
 		 struct cobj_ref sourcersref,
 		 struct cobj_ref sinkrsref,

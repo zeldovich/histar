@@ -7,6 +7,8 @@
 #include <kern/timer.h>
 #include <kern/reserve.h>
 
+enum { debug_limits = 0 };
+
 struct Limit_list limit_list;
 
 static void
@@ -117,10 +119,12 @@ limit_update_all()
     int r;
     LIST_FOREACH(lm, &limit_list, lm_link)
 	do {
-	    cprintf("Working on limit %lu (transferring %lu)\n", lm->lm_ko.ko_id, lm->lm_rate);
+	    if (debug_limits)
+		cprintf("Working on limit %lu (transferring %lu)\n", lm->lm_ko.ko_id, lm->lm_rate);
 	    r = reserve_transfer(lm->lm_source, lm->lm_sink, lm->lm_rate);
 	    if (r < 0) {
-		cprintf("source was out of energy\n");
+		if (debug_limits)
+		    cprintf("source was out of energy\n");
 	    }
 	} while (0);
 

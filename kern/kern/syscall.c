@@ -1264,6 +1264,7 @@ sys_reserve_split(uint64_t ct, struct cobj_ref origrsref, struct ulabel *ul, uin
     return newrs->rs_ko.ko_id;
 }
 
+// TODO Problem errors are indicated by negative but levels can be negative too
 static int64_t __attribute__ ((warn_unused_result))
 sys_reserve_get_level(struct cobj_ref rsref)
 {
@@ -1271,6 +1272,17 @@ sys_reserve_get_level(struct cobj_ref rsref)
     check(cobj_get(rsref, kobj_reserve, &ko, iflow_read));
     struct Reserve *rs = &kobject_dirty(&ko->hdr)->rs;
     return rs->rs_level;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_self_set_active_reserve(struct cobj_ref rsref)
+{
+    const struct kobject *ko;
+    // TODO are we going to be able to deal with the iflow here?
+    check(cobj_get(rsref, kobj_reserve, &ko, iflow_rw));
+
+    kobject_dirty(&cur_thread->th_ko)->th.th_rs = rsref;
+    return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1420,6 +1432,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 
 	SYSCALL(reserve_split, a1, COBJ(a2, a3), p4, a5, p6);
 	SYSCALL(reserve_get_level, COBJ(a1, a2));
+	SYSCALL(self_set_active_reserve, COBJ(a1, a2));
 	SYSCALL(limit_create, a1, COBJ(a2, a3), COBJ(a4, a5), p6, p7);
 	SYSCALL(limit_set_rate, COBJ(a1, a2), a3);
 

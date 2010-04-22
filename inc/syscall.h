@@ -153,6 +153,7 @@ void	sys_masked_jump(uint32_t mask, struct UTrapframe *utf);
 int64_t	sys_reserve_split(uint64_t container, struct cobj_ref origrsref,
 			  const struct ulabel *l, uint64_t new_level, const char *name);
 int64_t sys_reserve_get_level(struct cobj_ref rs);
+int     sys_self_set_active_reserve(struct cobj_ref rsref);
 int64_t sys_limit_create(uint64_t ct,
 		 struct cobj_ref sourcersref,
 		 struct cobj_ref sinkrsref,

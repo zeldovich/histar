@@ -75,3 +75,15 @@ reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, uint64_t am
     return reserve_do_transfer(source, sink, amount);
 }
 
+// returns success or failure
+int64_t
+reserve_consume(struct Reserve *rs, int64_t amount)
+{
+    if (rs->rs_level < amount)
+	return -E_NO_SPACE;
+
+    rs->rs_level -= amount;
+
+    return 0;
+}
+

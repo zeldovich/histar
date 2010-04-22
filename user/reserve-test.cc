@@ -16,15 +16,6 @@ main(int ac, char *av[])
     }
     struct cobj_ref rootrs = COBJ(start_env->root_container, rsid);
 
-    /*
-    struct ulabel *ul;
-    int64_t r = sys_obj_get_label(origrsref, ul);
-    if (r < 0) {
-	perror("couldn't get root_reserve label");
-	return rsid;
-    }
-    */
-
     label l(1);
 
     // fork off one reserve
@@ -75,17 +66,26 @@ main(int ac, char *av[])
 
     for (uint64_t i = 0; i < 5; i++) {
 	int64_t level0 = sys_reserve_get_level(rs0);
-	if (r < 0) {
-	    perror("couldn't get level on reserve");
-	    return r;
-	}
+	// TODO what about errors from get_level?
 	printf("rs0 level %lu\n", level0);
 
 	int64_t level1 = sys_reserve_get_level(rs1);
-	if (r < 0) {
-	    perror("couldn't get level on reserve");
-	    return r;
-	}
+	printf("rs1 level %lu\n", level1);
+	sleep(1);
+    }
+
+    r = sys_self_set_active_reserve(rs0);
+    if (r < 0) {
+	perror("couldn't set active reserve");
+	return r;
+    }
+
+    for (uint64_t i = 0; i < 5; i++) {
+	int64_t level0 = sys_reserve_get_level(rs0);
+	// TODO what about errors from get_level?
+	printf("rs0 level %lu\n", level0);
+
+	int64_t level1 = sys_reserve_get_level(rs1);
 	printf("rs1 level %lu\n", level1);
 	sleep(1);
     }
