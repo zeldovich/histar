@@ -85,6 +85,7 @@ extern const struct Thread *cur_thread;
 
 int  thread_alloc(const struct Label *tracking,
 		  const struct Label *clearance,
+		  struct cobj_ref reserveref,
 		  struct Thread **tp)
     __attribute__ ((warn_unused_result));
 void thread_swapin(struct Thread *t);

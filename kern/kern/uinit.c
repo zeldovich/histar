@@ -256,7 +256,7 @@ thread_create_embed(struct Container *c,
     assert(container_put(c, &tc->ct_ko, 0) >= 0);
 
     struct Thread *t;
-    assert_check(thread_alloc(th_label, th_clearance, &t));
+    assert_check(thread_alloc(th_label, th_clearance, COBJ(user_root_ct, user_root_rs), &t));
     strncpy(&t->th_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     thread_set_sched_parents(t, tc->ct_ko.ko_id, 0);
 

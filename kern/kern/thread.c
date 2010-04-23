@@ -116,6 +116,7 @@ thread_halt(const struct Thread *const_t)
 int
 thread_alloc(const struct Label *tracking,
 	     const struct Label *clearance,
+	     struct cobj_ref reserveref,
 	     struct Thread **tp)
 {
     struct kobject *ko;
@@ -127,8 +128,8 @@ thread_alloc(const struct Label *tracking,
     t->th_sched_tickets = 1024;
     t->th_status = thread_not_started;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
-    // Threads start with no energy reserve by default
-    t->th_rs = COBJ(0, 0);
+    // Threads start with no energy reserve of creator
+    t->th_rs = reserveref;
 
     struct Segment *sg;
     r = segment_alloc(tracking, &sg);

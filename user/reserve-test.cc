@@ -72,6 +72,9 @@ main(int ac, char *av[])
     }
 
     for (uint64_t i = 0; i < 10; i++) {
+	int64_t levelr = sys_reserve_get_level(rootrs);
+	printf("rootrs level %lu\n", levelr);
+
 	int64_t level0 = sys_reserve_get_level(rs0);
 	printf("rs0 level %lu\n", level0);
 

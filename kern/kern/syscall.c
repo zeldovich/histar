@@ -642,7 +642,7 @@ sys_thread_create(uint64_t ct, const char *name)
     check(container_find(&c, ct, iflow_rw));
 
     struct Thread *t;
-    check(thread_alloc(cur_th_label, cur_th_clearance, &t));
+    check(thread_alloc(cur_th_label, cur_th_clearance, cur_thread->th_rs, &t));
     check(alloc_set_name(&t->th_ko, name));
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &t->th_ko, 0));
@@ -1292,6 +1292,7 @@ sys_limit_create(uint64_t ct,
 		 struct ulabel *ul,
 		 const char *name)
 {
+    // TODO label checks
     const struct Container *c;
     check(container_find(&c, ct, iflow_rw));
 
