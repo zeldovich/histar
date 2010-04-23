@@ -62,7 +62,7 @@ main(int ac, const char **av)
 try
 {
     if (ac < 4) {
-	printf("usage: main_mW print_stats prog_path prog_args...\n");
+	printf("usage: print_stats main_mW prog_path prog_args...\n");
 	return -1;
     }
     const int print_stats = atoi(av[1]);

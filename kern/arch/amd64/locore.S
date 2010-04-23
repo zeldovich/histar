@@ -147,6 +147,7 @@ trapframe_pop:
 thread_arch_idle_asm:
 	movq	%rdi,%rsp
 	sti
+	hlt
 1:	jmp 1b
 
 // Local Variables:
