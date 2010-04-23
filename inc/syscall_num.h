@@ -105,7 +105,7 @@
 						\
     SYSCALL_ENTRY(masked_jump)			\
 						\
-    SYSCALL_ENTRY(reserve_split)		\
+    SYSCALL_ENTRY(reserve_create)		\
     SYSCALL_ENTRY(reserve_get_level)		\
     SYSCALL_ENTRY(self_set_active_reserve)	\
     SYSCALL_ENTRY(limit_create)			\

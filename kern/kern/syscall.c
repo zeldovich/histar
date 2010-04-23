@@ -1242,26 +1242,20 @@ sys_masked_jump(uint32_t mask, struct UTrapframe *utf)
 } 
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_reserve_split(uint64_t ct, struct cobj_ref origrsref, struct ulabel *ul, uint64_t new_level,
-		   const char *name)
+sys_reserve_create(uint64_t ct, struct ulabel *ul, const char *name)
 {
     const struct Container *c;
     check(container_find(&c, ct, iflow_rw));
 
-    const struct kobject *ko;
-    // TODO iflow checking going to be too strict for testing?
-    check(cobj_get(origrsref, kobj_reserve, &ko, iflow_rw));
-    struct Reserve *origrs = &kobject_dirty(&ko->hdr)->rs;
-
     const struct Label *l;
     check(alloc_ulabel(ul, &l, &c->ct_ko));
 
-    struct Reserve *newrs;
-    check(reserve_split(l, origrs, &newrs, new_level));
-    check(alloc_set_name(&newrs->rs_ko, name));
+    struct Reserve *rs;
+    check(reserve_alloc(l, &rs));
+    check(alloc_set_name(&rs->rs_ko, name));
 
-    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &newrs->rs_ko, 0));
-    return newrs->rs_ko.ko_id;
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &rs->rs_ko, 0));
+    return rs->rs_ko.ko_id;
 }
 
 // TODO Problem errors are indicated by negative but levels can be negative too
@@ -1431,7 +1425,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 
 	SYSCALL(masked_jump, a1, p2);
 
-	SYSCALL(reserve_split, a1, COBJ(a2, a3), p4, a5, p6);
+	SYSCALL(reserve_create, a1, p2, p3);
 	SYSCALL(reserve_get_level, COBJ(a1, a2));
 	SYSCALL(self_set_active_reserve, COBJ(a1, a2));
 	SYSCALL(limit_create, a1, COBJ(a2, a3), COBJ(a4, a5), p6, p7);

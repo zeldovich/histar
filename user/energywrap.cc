@@ -93,11 +93,11 @@ try
     uint64_t ctid = start_env->shared_container;
     //uint64_t ctid = start_env->process_pool
 
-    // fork off a reserve at the thread's current label
+    // create a reserve at the thread's current label
     label l(1);
     //thread_cur_label(&l);
     int64_t r;
-    error_check(r = sys_reserve_split(ctid, rootrs, l.to_ulabel(), 0, "wrapreserve"));
+    error_check(r = sys_reserve_create(ctid, l.to_ulabel(), "wrapreserve"));
     printf("New reserve is at %lu\n", r);
     cobj_ref rs0 = COBJ(ctid, r);
 
