@@ -89,6 +89,37 @@ reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t amo
     return reserve_do_transfer(source, sink, amount);
 }
 
+// amount here is 1/1024ths to transfer
+int
+reserve_transfer_proportional(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t frac)
+{
+    int64_t r;
+
+    assert(frac <= 1024);
+
+    const struct kobject *sourceko;
+    r = cobj_get(sourceref, kobj_reserve, &sourceko, iflow_rw);
+    if (r < 0)
+	return r;
+    struct Reserve *source = &kobject_dirty(&sourceko->hdr)->rs;
+
+    // If no energy we're done
+    if (source->rs_level <= 0)
+	return;
+
+    const struct kobject *sinkko;
+    r = cobj_get(sinkref, kobj_reserve, &sinkko, iflow_rw);
+    if (r < 0)
+	return r;
+    struct Reserve *sink = &kobject_dirty(&sinkko->hdr)->rs;
+
+    int64_t amount = (source->rs_level * frac) >> 10;
+    source->rs_level -= amount;
+    sink->rs_level += amount;
+
+    return 0;
+}
+
 // returns success or failure
 int64_t
 reserve_consume(struct Reserve *rs, int64_t amount, uint64_t force)

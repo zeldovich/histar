@@ -1302,10 +1302,13 @@ sys_limit_create(uint64_t ct,
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_limit_set_rate(struct cobj_ref lmref, uint64_t rate)
+sys_limit_set_rate(struct cobj_ref lmref, uint64_t type, uint64_t rate)
 {
+    if (type == LIMIT_TYPE_PROP && rate > 1024)
+	return -E_INVAL;
     const struct kobject *ko;
     check(cobj_get(lmref, kobj_limit, &ko, iflow_rw));
+    kobject_dirty(&ko->hdr)->lm.lm_type = type;
     kobject_dirty(&ko->hdr)->lm.lm_rate = rate;
     return 0;
 }
@@ -1429,7 +1432,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(reserve_get_level, COBJ(a1, a2));
 	SYSCALL(self_set_active_reserve, COBJ(a1, a2));
 	SYSCALL(limit_create, a1, COBJ(a2, a3), COBJ(a4, a5), p6, p7);
-	SYSCALL(limit_set_rate, COBJ(a1, a2), a3);
+	SYSCALL(limit_set_rate, COBJ(a1, a2), a3, a4);
 
     default:
 	cprintf("Unknown syscall %"PRIu64"\n", num);

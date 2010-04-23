@@ -575,8 +575,8 @@ int64_t sys_limit_create(uint64_t ct,
     return syscall(SYS_limit_create, ct, SOBJ(sourcersref), SOBJ(sinkrsref), SPTR(ul), SPTR(name));
 }
 
-int64_t sys_limit_set_rate(struct cobj_ref lmref, uint64_t rate)
+int64_t sys_limit_set_rate(struct cobj_ref lmref, uint64_t type, uint64_t rate)
 {
-    return syscall(SYS_limit_set_rate, SOBJ(lmref), rate, 0, 0, 0, 0);
+    return syscall(SYS_limit_set_rate, SOBJ(lmref), type, rate, 0, 0, 0);
 }
 

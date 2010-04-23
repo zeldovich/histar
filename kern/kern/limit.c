@@ -99,8 +99,11 @@ limit_create(const struct Label *l, struct cobj_ref sourcersref,
 }
 
 int
-limit_set_rate(struct Limit *lm, uint64_t rate)
+limit_set_rate(struct Limit *lm, uint64_t type, uint64_t rate)
 {
+    assert(type == LIMIT_TYPE_CONST || type == LIMIT_TYPE_PROP);
+
+    lm->lm_type = type;
     lm->lm_rate = rate;
 
     return 0;
@@ -125,10 +128,16 @@ limit_update_all(void)
 	do {
 	    if (debug_limits)
 		cprintf("Working on limit %lu (transferring %lu)\n", lm->lm_ko.ko_id, lm->lm_rate);
-	    r = reserve_transfer(lm->lm_source, lm->lm_sink, lm->lm_rate);
-	    if (r < 0) {
-		if (debug_limits)
-		    cprintf("source was out of energy\n");
+	    if (lm->lm_type == LIMIT_TYPE_CONST) {
+		r = reserve_transfer(lm->lm_source, lm->lm_sink, lm->lm_rate);
+		if (r < 0) {
+		    if (debug_limits)
+			cprintf("source was out of energy\n");
+		}
+	    } else if (lm->lm_type == LIMIT_TYPE_PROP) {
+		reserve_transfer_proportional(lm->lm_source, lm->lm_sink, lm->lm_rate);
+	    } else {
+		assert(0);
 	    }
 	    if (lm)
 		last_lm = lm;

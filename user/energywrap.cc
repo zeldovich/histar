@@ -93,8 +93,15 @@ try
     uint64_t ctid = start_env->shared_container;
     //uint64_t ctid = start_env->process_pool
 
+    // allocate a category to ensure only this process and the child can use it
+    //uint64_t rs0_grant = handle_alloc(); // integrity
+    //uint64_t rs0_taint = handle_alloc(); // secrecy
+
     // create a reserve at the thread's current label
     label l(1);
+    //l.set(rs0_grant, 0);
+    //l.set(rs0_taint, 3);
+    //label l;
     //thread_cur_label(&l);
     int64_t r;
     error_check(r = sys_reserve_create(ctid, l.to_ulabel(), "wrapreserve"));
@@ -105,7 +112,7 @@ try
     error_check(r = sys_limit_create(ctid, rootrs, rs0, l.to_ulabel(), "wraplimit"));
     printf("New limit is at %lu\n", r);
     cobj_ref lm0 = COBJ(ctid, r);
-    error_check(sys_limit_set_rate(lm0, throttle));
+    error_check(sys_limit_set_rate(lm0, LIMIT_TYPE_CONST, throttle));
 
     // === start subprocess ===
 
@@ -115,8 +122,8 @@ try
     error_check(pid);
     if (!pid) {
 	// child
-	error_check(sys_self_set_active_reserve(rs0));
 	signal(SIGCHLD, SIG_DFL);
+	error_check(sys_self_set_active_reserve(rs0));
 	error_check(execv(args[0], args));
 	return 0;
     }

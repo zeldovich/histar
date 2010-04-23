@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/syscall.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <assert.h>
 }
 #include <inc/labelutil.hh>
 
@@ -11,10 +12,12 @@ int
 main(int ac, char *av[])
 {
     if (ac < 2) {
-	printf("usage: wattage\n");
+	printf("usage: wattage leakage_1024_frac\n");
 	return -1;
     }
     uint64_t rate = atol(av[1]);
+    uint64_t leak = atol(av[2]);
+    assert(leak <= 1024);
 
     int64_t rsid = container_find(start_env->root_container, kobj_reserve, "root_reserve");
     if (rsid < 0) {
@@ -51,7 +54,7 @@ main(int ac, char *av[])
     }
     printf("New limit is at %lu\n", r);
     cobj_ref lm0 = COBJ(start_env->process_pool, r);
-    r = sys_limit_set_rate(lm0, 1000);
+    r = sys_limit_set_rate(lm0, LIMIT_TYPE_CONST, 1000);
     if (r < 0) {
 	perror("couldn't set rate on limit0");
 	return r;
@@ -65,21 +68,35 @@ main(int ac, char *av[])
     }
     printf("New limit is at %lu\n", r);
     cobj_ref lm1 = COBJ(start_env->process_pool, r);
-    r = sys_limit_set_rate(lm1, rate);
+    r = sys_limit_set_rate(lm1, LIMIT_TYPE_CONST, rate);
     if (r < 0) {
 	perror("couldn't set rate on limit1");
 	return r;
     }
 
+    // create a backedge
+    if (leak) {
+	r = sys_limit_create(start_env->process_pool, rs1, rs0, l.to_ulabel(), "limit2");
+	if (r < 0) {
+	    perror("couldn't create limit");
+	    return r;
+	}
+	printf("New limit is at %lu\n", r);
+	cobj_ref lm2 = COBJ(start_env->process_pool, r);
+	r = sys_limit_set_rate(lm2, LIMIT_TYPE_PROP, leak);
+	if (r < 0) {
+	    perror("couldn't set rate on limit2");
+	    return r;
+	}
+    }
+
+    printf("rootrs rs0 rs1\n");
     for (uint64_t i = 0; i < 10; i++) {
+	uint64_t ts = sys_clock_nsec();
 	int64_t levelr = sys_reserve_get_level(rootrs);
-	printf("rootrs level %lu\n", levelr);
-
 	int64_t level0 = sys_reserve_get_level(rs0);
-	printf("rs0 level %lu\n", level0);
-
 	int64_t level1 = sys_reserve_get_level(rs1);
-	printf("rs1 level %lu\n", level1);
+	printf("%lu %lu %lu %lu\n", ts, levelr, level0, level1);
 	sleep(1);
     }
 
@@ -89,22 +106,19 @@ main(int ac, char *av[])
 	return r;
     }
 
-    for (uint64_t i = 0; i < 5; i++) {
-	uint64_t start = sys_clock_nsec();
+    for (uint64_t i = 0; i < 10; i++) {
+	uint64_t ts = sys_clock_nsec();
+	int64_t levelr = sys_reserve_get_level(rootrs);
 	int64_t level0 = sys_reserve_get_level(rs0);
-	// TODO what about errors from get_level?
-	printf("rs0 level %ld\n", level0);
-
 	int64_t level1 = sys_reserve_get_level(rs1);
-	printf("rs1 level %ld\n", level1);
-
+	printf("%lu %lu %lu %lu\n", ts, levelr, level0, level1);
 	uint64_t l = 0;
+	uint64_t start = sys_clock_nsec();
 	for (uint64_t j = 0; j < 1 * 1000 * 1000 * 1000; j++)
 	    for (uint64_t k = 0; j < 1 * 1000 * 1000 * 1000; j++)
 		l += j * k;
-	printf("stuff: %lu\n", l);
-
 	uint64_t end = sys_clock_nsec();
+	printf("stuff: %lu\n", l);
 	printf("time to loop: %lu\n", end - start);
     }
 
