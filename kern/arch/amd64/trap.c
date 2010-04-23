@@ -14,6 +14,30 @@
 #include <kern/utrap.h>
 #include <inc/error.h>
 
+const char *karch_trapnames[NTRAPS] = {
+    "DIVIDE",
+    "DEBUG",
+    "NMI",
+    "BRKPT",
+    "OFLOW",
+    "BOUND",
+    "ILLOP",
+    "DEVICE",
+    "DBLFLT",
+    "COPROC",
+    "TSS",
+    "SEGNP",
+    "STACK",
+    "GPFLT",
+    "PGFLT",
+    "RES",
+    "FPERR",
+    "ALIGN",
+    "MCHK",
+    "SIMDERR",
+    [48] = "SYSCALL",
+};
+
 extern int x86_dirtyemu(struct Pagemap *, const void *);
 
 static uint64_t trap_user_iret_tsc;
