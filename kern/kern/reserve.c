@@ -6,6 +6,8 @@
 
 enum { debug_reserves = 0 };
 
+struct Reserve *root_rs = 0;
+
 struct Reserve_list reserve_list;
 
 static void

@@ -7,6 +7,7 @@
 #include <kern/timer.h>
 #include <kern/reserve.h>
 
+enum { debug_limit_levels = 1 };
 enum { debug_limits = 0 };
 
 struct Limit_list limit_list;
@@ -117,6 +118,12 @@ limit_update_all(void)
 
     if (now - limits_last_updated < 1 * 1000 * 1000 * 1000)
 	return;
+
+    // subtract baseline cost for running the system for 1 s
+    assert(root_rs);
+    root_rs->rs_level -= energy_baseline_mJ();
+    if (debug_limit_levels)
+	cprintf("root_rs->rs_level: %ld\n", root_rs->rs_level);
 
     // first do decay and then do additions
     reserve_decay_all();

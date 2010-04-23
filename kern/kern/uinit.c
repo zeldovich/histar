@@ -14,6 +14,7 @@
 #include <inc/elf32.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
+#include <kern/energy.h>
 
 #if JOS_ARCH_BITS==32
 #define ARCH_ELF_CLASS	ELF_CLASS_32
@@ -314,10 +315,11 @@ user_bootstrap(void)
     // root reserve
     struct Reserve *rrs;
     assert_check(reserve_alloc(obj_label, &rrs));
-    rrs->rs_level = 20 * 1000 * 1000; // 20 kJ = 20 million mJ
+    rrs->rs_level = battery_full_charge_mJ();
     assert_check(container_put(rc, &rrs->rs_ko, 0));
     strncpy(&rrs->rs_ko.ko_name[0], "root_reserve", KOBJ_NAME_LEN - 1);
     user_root_rs = rrs->rs_ko.ko_id;
+    root_rs = rrs;
 
     // filesystem
     struct Container *fsc;

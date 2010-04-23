@@ -3,15 +3,18 @@
 
 #include <machine/types.h>
 
-uint64_t energy_cpu_mW(void)
+int64_t battery_full_charge_mJ(void)
     __attribute__ ((warn_unused_result));
 
-uint64_t energy_cpu_mJ(uint64_t nsecs)
+int64_t energy_cpu_mW(void)
     __attribute__ ((warn_unused_result));
 
-uint64_t energy_hd_mW(void)
+int64_t energy_cpu_mJ(uint64_t nsecs)
     __attribute__ ((warn_unused_result));
 
-uint64_t energy_hd_mJ(uint64_t nsecs)
+int64_t energy_baseline_mW(void)
+    __attribute__ ((warn_unused_result));
+
+int64_t energy_baseline_mJ(uint64_t nsecs)
     __attribute__ ((warn_unused_result));
 #endif

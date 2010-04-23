@@ -21,4 +21,6 @@ int64_t reserve_consume(struct Reserve *rs, int64_t amount, uint64_t force);
 int reserve_gc(struct Reserve *rs);
 void reserve_decay_all(void);
 
+extern struct Reserve *root_rs;
+
 #endif

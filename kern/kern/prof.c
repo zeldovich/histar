@@ -26,8 +26,8 @@ struct entry user_table[2];
 struct tentry thread_table[NTHREADS];
 
 static struct periodic_task prof_timer;
-static int prof_enable = 0;
-static int prof_thread_enable = 0;
+static int prof_enable = 1;
+static int prof_thread_enable = 1;
 static uint64_t prof_start_tsc;
 enum { prof_print_count_threshold = 100 };
 enum { prof_print_cycles_threshold = UINT64(10000000) };

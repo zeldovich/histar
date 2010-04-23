@@ -62,6 +62,7 @@ schedule(void)
 
     bill_energy();
     // limit_update_all actually does decay just before distributing energy
+    // also debit for baseline power consumption there as well
     limit_update_all();
 
     do {
