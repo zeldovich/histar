@@ -109,6 +109,7 @@ identify_cpu()
 		    cp15_dcache_flush_invalidate_arm11;
 		cpufunc.cf_dcache_flush_invalidate_range =
 		    cp15_dcache_flush_invalidate_range_arm11;
+		cpufunc.cf_sleep = cp15_wait_for_interrupt_arm1136;
 		break;
 
 	case CLASS_ARM9EJS:
@@ -118,6 +119,7 @@ identify_cpu()
 		cpufunc.cf_icache_invalidate = (void *)cpu_noop;
 		cpufunc.cf_dcache_flush_invalidate = (void *)cpu_noop;
 		cpufunc.cf_dcache_flush_invalidate_range = (void *)cpu_noop;
+		cpufunc.cf_sleep = (void *)cpu_noop;
 		break;
 
 	default:

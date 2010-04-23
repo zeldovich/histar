@@ -130,7 +130,7 @@ ENTRY(cp15_icache_invalidate)
 	mov	pc, lr
 
 ENTRY(cp15_icache_invalidate_arm11)
-	// Erratum 411920 workaround
+	// From NetBSD: Erratum 411920 workaround
 	mov     r0, #0				// should be zero (SBZ)
 	mrs     r1, cpsr
 #ifdef JOS_ARM_HTCDREAM				// XXX arm11-specific
@@ -184,4 +184,12 @@ ENTRY(cp15_main_id_get)
 
 ENTRY(cp15_cache_type_get)
 	mrc	p15, 0, r0, c0, c0, 1
+	mov	pc, lr
+
+ENTRY(cp15_wait_for_interrupt_arm1136)
+	// From NetBSD: Erratum 336501 workaround
+        mov	r0, #0
+        mcr	p15, 0, r0, c7, c10, 2	// clean data cache line (via index)
+        mcr	p15, 0, r0, c7, c10, 5	// data memory barrier
+        mcr	p15, 0, r0, c7, c0, 4	// wait for interrupt
 	mov	pc, lr

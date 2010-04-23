@@ -204,9 +204,9 @@ jif_input(struct netif *netif)
 
     jif = netif->state;
   
-    p = low_level_input(netif);		/* move received packet into a new pbuf */
-    if (p == NULL) return;		/* no packet could be read, silently ignore this */
-    ethhdr = p->payload;		/* points to packet payload, which starts with an Ethernet header */
+    p = low_level_input(netif);		// move received packet into a new pbuf
+    if (p == NULL) return;		// no packet read, silently ignore
+    ethhdr = p->payload;		// payload starts with enet header	
 
 #if LINK_STATS
     lwip_stats.link.recv++;
@@ -216,16 +216,19 @@ jif_input(struct netif *netif)
 
     switch (htons(ethhdr->type)) {
     case ETHTYPE_IP:
-	etharp_ip_input(netif, p);			/* update ARP table */
-	pbuf_header(p, -(int)sizeof(struct eth_hdr));	/* skip Ethernet header */
-	netif->input(p, netif);				/* pass to network layer */
+	etharp_ip_input(netif, p);			// update ARP table
+	pbuf_header(p, -(int)sizeof(struct eth_hdr));	// skip Ethernet header
+	netif->input(p, netif);				// pass to network layer
+							// (netd uses ip_input) 
 	break;
       
     case ETHTYPE_ARP:
-	etharp_arp_input(netif, jif->ethaddr, p);	/* pass p to ARP module  */
+	etharp_arp_input(netif, jif->ethaddr, p);	// pass p to ARP module
 	break;
 
     default:
+	cprintf("%s: unknown ethernet type (%0x04x); dropping\n",
+	    __func__, htons(ethhdr->type));
 	pbuf_free(p);
     }
 }

@@ -26,8 +26,9 @@ struct entry user_table[2];
 struct tentry thread_table[NTHREADS];
 
 static struct periodic_task prof_timer;
-static int prof_enable = 0;
-static int prof_thread_enable = 0;
+static int prof_enable = 1;
+static int prof_thread_enable = 1;
+static uint64_t prof_start_tsc;
 enum { prof_print_count_threshold = 100 };
 enum { prof_print_cycles_threshold = UINT64(10000000) };
 enum { prof_thread_nsec_threshold = 1000000000 };
@@ -79,6 +80,8 @@ static struct {
 void __attribute__ ((no_instrument_function))
 prof_init(void)
 {
+    prof_start_tsc = karch_get_tsc();
+
     memset(sysc_table, 0, sizeof(sysc_table));
     memset(trap_table, 0, sizeof(trap_table));
     memset(thread_table, 0, sizeof(thread_table));
@@ -182,6 +185,8 @@ prof_thread(const struct Thread *th, uint64_t time)
 static void
 prof_reset(void)
 {
+    prof_start_tsc = karch_get_tsc();
+
     memset(sysc_table, 0, sizeof(sysc_table));
     memset(trap_table, 0, sizeof(trap_table));
     memset(user_table, 0, sizeof(user_table));
@@ -191,11 +196,19 @@ prof_reset(void)
 static void
 print_entry(struct entry *tab, int i, const char *name)
 {
+    uint64_t total_time = karch_get_tsc() - prof_start_tsc;
+    if (total_time == 0)
+	total_time = 1;
+
     if (tab[i].count > prof_print_count_threshold ||
 	tab[i].time > prof_print_cycles_threshold)
-	cprintf("%3d cnt %-12"PRIu64" tot %-12"PRIu64" avg %-12"PRIu64" %s\n",
+	cprintf("%3d cnt %-10"PRIu64" tot %-10"PRIu64" avg %-8"PRIu64
+		" pct %2"PRIu64".%-4"PRIu64" %s\n",
 		i,
-		tab[i].count, tab[i].time, tab[i].time / tab[i].count, name);
+		tab[i].count, tab[i].time, tab[i].time / tab[i].count,
+		(100 * tab[i].time) / total_time,
+		((1000 * tab[i].time) / total_time) % 10,
+		name);
 }
 
 static void
@@ -204,22 +217,34 @@ print_tentry(struct tentry *tab, int i)
     if (!tab[i].asname[0])
 	return;
 
-    cprintf("%3d cnt %-12"PRIu64" tot %-12"PRIu64" avg %-12"PRIu64" %s\n",
+    uint64_t total_time = karch_get_tsc() - prof_start_tsc;
+    if (total_time == 0)
+	total_time = 1;
+
+    cprintf("%3d cnt %-10"PRIu64" tot %-10"PRIu64" avg %-8"PRIu64
+	    " pct %2"PRIu64".%-4"PRIu64" %s\n",
 	    i,
 	    tab[i].entry.count, tab[i].entry.time, 
-	    tab[i].entry.time / tab[i].entry.count, tab[i].asname);
+	    tab[i].entry.time / tab[i].entry.count,
+	    (100 * tab[i].entry.time) / total_time,
+	    ((1000 * tab[i].entry.time) / total_time) % 10,
+	    tab[i].asname);
 }
 
 void
 prof_print(void)
 {
+    cprintf("prof_print: %"PRIu64" ticks in %"PRIu64" milliseconds\n",
+	karch_get_tsc() - prof_start_tsc, prof_timer.pt_interval_msec);
+
     cprintf("prof_print: syscalls\n");
     for (int i = 0; i < NSYSCALLS; i++)
 	print_entry(&sysc_table[0], i, syscall2s(i));
 
     cprintf("prof_print: traps\n");
-    for (int i = 0; i < NTRAPS; i++)
-	print_entry(&trap_table[0], i, "trap");
+    for (int i = 0; i < NTRAPS; i++) {
+	print_entry(&trap_table[0], i, karch_trapnames[i]);
+    }
 
     cprintf("prof_print: user\n");
     for (int i = 0; i < 2; i++)

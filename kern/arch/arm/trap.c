@@ -21,6 +21,9 @@ static int trap_thread_syscall_writeback;
 
 static void trapframe_print(const struct Trapframe *);
 
+const char *karch_trapnames[NTRAPS] =
+    { "reset", "ui", "swi", "pa", "da", "unused", "irq", "fiq" };
+
 //XXX- notes
 static void
 trap_thread_set(const struct Thread *t)
@@ -64,9 +67,8 @@ thread_arch_idle(void)
 	trap_user_iret_tsc = karch_get_tsc();
 	cpsr_set(cpsr_get() & ~CPSR_IRQ_OFF);
 
-	// must be a more efficient means of sleeping...
 	while (1)
-		;
+		cpufunc.cf_sleep();
 }
 
 // Used by sys_self_get_entry_args() to get the thread's entry arguments on

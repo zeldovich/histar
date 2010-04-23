@@ -22,6 +22,7 @@ struct cpufunc {
 	void (*cf_icache_invalidate)(void);
 	void (*cf_dcache_flush_invalidate)(void);
 	void (*cf_dcache_flush_invalidate_range)(void *, uint32_t);
+	void (*cf_sleep)(void);
 };
 extern struct cpufunc cpufunc;
 

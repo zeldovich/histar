@@ -57,10 +57,13 @@ KERN_BINFILES	+= user/ls
 #KERN_BINFILES	+= user/gdb user/gdbserver
 
 ## Graphics stuff
-KERN_BINFILES	+= user/fbconsd
+#KERN_BINFILES	+= user/fbconsd
 
 ## Miscellaneous stuff: testing, benchmarking, experimental..
-#KERN_BINFILES	+= user/swbench
+KERN_BINFILES	+= user/swbench
+KERN_BINFILES	+= user/udptest
+KERN_BINFILES	+= user/spin
+KERN_BINFILES	+= user/spinbench
 
 ## HTC Radio junk
 ifeq ($(K_ARCH),arm)

@@ -12,4 +12,8 @@
 
 #define NTRAPS 8
 
+#ifndef __ASSEMBLER__
+extern const char *karch_trapnames[NTRAPS];
+#endif
+
 #endif
