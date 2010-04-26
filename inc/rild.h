@@ -13,7 +13,9 @@ enum {
 	default_pdp_on,
 	get_ril_interface_version,
 	get_ril_lib_version,
-	get_ril_state
+	get_ril_state,
+	neighboring_cells,
+	registration_status
 };
 
 struct rild_req {
