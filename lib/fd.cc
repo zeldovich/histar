@@ -1457,8 +1457,7 @@ __libc_fcntl(int fdnum, int cmd, ...)
     }
 
     cprintf("Unimplemented fcntl call: %d\n", cmd);
-    __set_errno(ENOSYS);
-    return -1;
+    return 0;
 }
 
 off_t
@@ -1508,8 +1507,7 @@ int
 flock(int fd, int operation) __THROW
 {
     jos_trace("%d, %d", fd, operation);
-    __set_errno(ENOLCK);
-    return -1;
+    return 0;
 }
 
 int

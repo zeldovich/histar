@@ -215,6 +215,9 @@ DISTURL_font-alias-1.0.1    := http://xorg.freedesktop.org/releases/X11R7.3/src/
 DISTURL_font-cursor-misc-1.0.0 := http://xorg.freedesktop.org/releases/X11R7.3/src/font/font-cursor-misc-1.0.0.tar.gz
 DISTURL_xdpyinfo-1.0.1	    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/xdpyinfo-1.0.1.tar.gz
 
+DISTURL_mailutils-2.1	    := http://ftp.gnu.org/gnu/mailutils/mailutils-2.1.tar.gz
+
+
 ##
 ## ./configure arguments for different packages
 ##
@@ -252,6 +255,9 @@ AUTOCONF_xorg-server-1.4    := --disable-aiglx --disable-mitshm --disable-glx --
 AUTOCONF_lesstif-0.95.0	    := --x-includes= --x-libraries=
 AUTOCONF_bash-3.1	    := --disable-multibyte --disable-nls
 
+AUTOCONF_mailutils-2.1	    := --disable-cxx
+
+
 ##
 ## Patches to apply to various packages
 ##
@@ -288,6 +294,8 @@ PATCHFILE_linux-2.6.20.4    := linux-2.6.20.4.patch
 PATCHFILE_xf86-input-void-1.1.0 := xf86-input-void-1.1.0.patch
 PATCHFILE_xrandr-1.2.2	    := xrandr-1.2.2.patch
 PATCHFILE_default	    := empty.patch
+
+PATCHFILE_mailutils-2.1        := mailutils-2.1.patch
 
 ##
 ## Packages we want to include
@@ -1287,4 +1295,28 @@ $(ACPKG_BUILDDIR)/qemu-0.9.1/__build: $(ACPKG_BUILDDIR)/qemu-0.9.1/__patch
 	touch $@
 
 $(ACPKG_BUILDDIR)/libXfont-1.4.0/Makefile: $(ACPKG_BUILDDIR)/libXfont-1.4.0/__reconf
+
+$(ACPKG_BUILDDIR)/mailutils-2.1/__build: $(ACPKG_BUILDDIR)/mailutils-2.1/__patch
+
+$(OBJDIR)/acpkg/bin/movemail: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
+
+$(OBJDIR)/acpkg/lib/libmu_cfg.so.0: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
+
+$(OBJDIR)/acpkg/lib/llibmu_mbox.so.2: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
+
+$(OBJDIR)/acpkg/lib/llibmu_imap.so.2: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
+
+$(OBJDIR)/acpkg/lib/llibmu_pop.so.2: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
+
+$(OBJDIR)/acpkg/lib/llibmu_auth.so.2: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
+
+$(OBJDIR)/acpkg/lib/llibmu_nntp.so.2: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
+
+$(OBJDIR)/acpkg/lib/llibmu_mh.so.2: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
+
+$(OBJDIR)/acpkg/lib/llibmu_maildir.so.2: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
+
+$(OBJDIR)/acpkg/lib/libmailutils.so.2: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
+
+
 

@@ -1,0 +1,28 @@
+--- mailutils-2.1/mail/mail.h.orig	2010-04-06 12:21:41.302104059 -0700
++++ mailutils-2.1/mail/mail.h	2010-04-05 15:10:17.382104043 -0700
+@@ -476,6 +476,7 @@
+ # define alias_compl NULL
+ # define var_compl NULL
+ # define exec_compl NULL     
++# define mailvar_set_compl NULL     
+ #endif
+ 
+ #ifdef __cplusplus
+--- mailutils-2.1/configure.orig	2010-04-06 13:36:03.766104039 -0700
++++ mailutils-2.1/configure	2009-09-10 12:16:51.000000000 -0700
+@@ -31843,7 +31843,6 @@
+ 
+ 
+ cat >>confdefs.h <<\_ACEOF
+-#define malloc rpl_malloc
+ _ACEOF
+ 
+ fi
+@@ -33462,7 +33461,6 @@
+ 
+ 
+ cat >>confdefs.h <<\_ACEOF
+-#define realloc rpl_realloc
+ _ACEOF
+ 
+ fi
