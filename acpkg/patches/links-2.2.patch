@@ -1,0 +1,151 @@
+diff --git a/configure.in b/configure.in
+index e8bf8bc..d80945e 100644
+--- a/configure.in
++++ b/configure.in
+@@ -18,7 +18,7 @@ AM_CONFIG_HEADER(config.h)
+ dnl Checks for programs.
+ AC_PROG_CC
+ 
+-#AC_PROG_CXX
++AC_PROG_CXX
+ #AC_PROG_AWK
+ #AM_PROG_LEX
+ #AC_PROG_YACC
+@@ -456,7 +456,7 @@ if test "$disable_fb" != yes ; then
+ 	AC_CHECK_HEADERS(linux/kd.h)
+ 	AC_CHECK_HEADERS(linux/vt.h)
+ 	AC_CHECK_HEADERS(sys/mman.h)
+-	if test "$ac_cv_header_linux_fb_h" = yes && test "$ac_cv_header_linux_kd_h" = yes && test "$ac_cv_header_linux_vt_h" = yes && test "$ac_cv_header_sys_mman_h" = yes && test "$ac_cv_header_sys_ioctl_h" = yes && test "$cf_have_gpm" = yes; then
++	if test "$ac_cv_header_linux_fb_h" = yes && test "$ac_cv_header_linux_kd_h" = yes && test "$ac_cv_header_linux_vt_h" = yes && test "$ac_cv_header_sys_mman_h" = yes && test "$ac_cv_header_sys_ioctl_h" = yes; then
+ 		AC_DEFINE(GRDRV_FB)
+ 		drivers="$drivers FB"
+ 	fi
+@@ -580,32 +580,7 @@ fi
+ 			LIBS="$LIBPNG12_LIBS $LIBS"
+ 		fi
+ 	fi
+-	AC_CHECK_HEADERS(png.h libpng/png.h)
+-	AC_HAVE_FUNCS(png_create_info_struct)
+-	if test "$ac_cv_func_png_create_info_struct" != yes; then
+-		AC_CHECK_LIB(png, png_create_info_struct)
+-	fi
+-	if test "$ac_cv_header_png_h" != yes -a "$ac_cv_header_libpng_png_h" != yes || test "$ac_cv_func_png_create_info_struct" != yes -a "$ac_cv_lib_png_png_create_info_struct" != yes; then
+-		AC_ERROR([You need libpng to compile Links in graphics mode])
+-	fi
+-
+-	AC_HAVE_FUNCS(png_set_rgb_to_gray)
+-	AC_HAVE_FUNCS(png_get_image_width png_get_image_height png_get_gAMA png_get_color_type png_get_bit_depth png_set_strip_alpha png_get_valid png_get_sRGB)
+-	if test "$ac_cv_func_png_get_image_width" != yes ||
+-	   test "$ac_cv_func_png_get_image_height" != yes ||
+-	   test "$ac_cv_func_png_get_gAMA" != yes ||
+-	   test "$ac_cv_func_png_get_color_type" != yes ||
+-	   test "$ac_cv_func_png_get_bit_depth" != yes ||
+-	   test "$ac_cv_func_png_set_strip_alpha" != yes ||
+-	   test "$ac_cv_func_png_get_valid" != yes ||
+-	   test "$ac_cv_func_png_get_sRGB" != yes; then
+-		AC_ERROR([Your libpng is too old])
+-	fi
+-
+-	AC_CACHE_CHECK(if you can include both setjmp.h and png.h, ac_cv_include_setjmp_png,
+-		AC_TRY_COMPILE([#include <setjmp.h>
+-		#include <png.h>], [jmp_buf bla;], ac_cv_include_setjmp_png=yes, ac_cv_include_setjmp_png=no)
+-	)
++	AC_CHECK_HEADERS(png.h)
+ 
+ 	if test "$ac_cv_include_setjmp_png" != yes; then
+ 		AC_DEFINE(DONT_INCLUDE_SETJMP)
+diff --git a/connect.c b/connect.c
+index 7cdd050..46d6fea 100644
+--- a/connect.c
++++ b/connect.c
+@@ -295,20 +295,19 @@ void dns_found(struct connection *c, int state)
+ void connected(struct connection *c)
+ {
+ 	struct conn_info *b = c->newconn;
+-	int err = 0;
+-	socklen_t len = sizeof(int);
++	/*long err = 0;
++	socklen_t len = sizeof(long);
+ 	if (getsockopt(*b->sock, SOL_SOCKET, SO_ERROR, (void *)&err, &len))
+ 		if (!(err = errno)) {
+ 			err = -(S_STATE);
+ 			goto bla;
+ 		}
+-	if (err >= 10000) err -= 10000;	/* Why does EMX return so large values? */
+ 	if (err > 0) {
+ 		bla:
+ 		setcstate(c, -err);
+ 		retry_connection(c);
+ 		return;
+-	}
++	}*/
+ 	set_timeout(c);
+ 	if (b->real_port != -1) {
+ 		handle_socks(c);
+diff --git a/framebuffer.c b/framebuffer.c
+index f873fc9..b47c778 100644
+--- a/framebuffer.c
++++ b/framebuffer.c
+@@ -31,7 +31,11 @@
+ 
+ #include "bits.h"
+ 
++#define __u16 uint16_t
++
++#ifdef USE_GPM
+ #include <gpm.h>
++#endif
+ 
+ #include <sys/mman.h>
+ #include <sys/ioctl.h>
+@@ -920,6 +924,7 @@ void unhandle_fb_mouse(void);
+ 
+ static void fb_gpm_in(void *nic)
+ {
++#ifdef USE_GPM
+ #ifndef USE_GPM_DX
+ 	static int lx = -1, ly = -1;
+ #endif
+@@ -991,10 +996,12 @@ static void fb_gpm_in(void *nic)
+ 	if (!current_virtual_device) return;
+ 	if (current_virtual_device->mouse_handler) current_virtual_device->mouse_handler(current_virtual_device, ev.x, ev.y, ev.b);
+ 	redraw_mouse();
++#endif
+ }
+ 
+ static int handle_fb_mouse(void)
+ {
++#ifdef USE_GPM
+ 	Gpm_Connect conn;
+ #ifndef USE_GPM_DX
+ 	int gpm_ver = 0;
+@@ -1033,11 +1040,13 @@ static int handle_fb_mouse(void)
+ 	install_signal_handler(SIGTTIN, (void (*)(void *))sig_tstp, NULL, 0);
+ #endif
+ 
++#endif
+ 	return 0;
+ }
+ 
+ void unhandle_fb_mouse(void)
+ {
++#ifdef USE_GPM
+ 	if (fb_hgpm >= 0) set_handlers(fb_hgpm, NULL, NULL, NULL, NULL);
+ #ifndef USE_GPM_DX
+ 	fb_hgpm = -1;
+@@ -1056,6 +1065,7 @@ void unhandle_fb_mouse(void)
+ #ifdef SIGTTIN
+ 	install_signal_handler(SIGTTIN, (void (*)(void *))sig_tstp, NULL, 0);
+ #endif
++#endif
+ }
+ 
+ #ifndef USE_GPM_DX
+@@ -1229,6 +1239,7 @@ static unsigned char *fb_init_driver(unsigned char *param, unsigned char *ignore
+ 		fb_switch_shutdown();
+ 		if(fb_driver_param) { mem_free(fb_driver_param); fb_driver_param=NULL; }
+ 		fb_show_cursor();
++		printf("Unknown bit depth %d\n", fb_bits_pp);
+ 		return stracpy("Unknown bit depth");
+ 	}
+ 	fb_colors=1<<fb_bits_pp;

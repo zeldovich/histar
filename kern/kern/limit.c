@@ -7,7 +7,7 @@
 #include <kern/timer.h>
 #include <kern/reserve.h>
 
-enum { debug_limit_levels = 1 };
+enum { debug_limit_levels = 0 };
 enum { debug_limits = 0 };
 
 struct Limit_list limit_list;

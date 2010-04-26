@@ -126,7 +126,7 @@ DISTURL_clamav-0.91.2	    := http://easynews.dl.sourceforge.net/sourceforge/clam
 DISTURL_ghostscript-8.54-gpl := http://internap.dl.sourceforge.net/sourceforge/ghostscript/ghostscript-8.54-gpl.tar.gz
 DISTURL_fbida-2.06	    := http://dl.bytesex.org/releases/fbida/fbida-2.06.tar.gz
 DISTURL_libexif-0.6.16	    := http://easynews.dl.sourceforge.net/sourceforge/libexif/libexif-0.6.16.tar.gz
-DISTURL_jpeg-6b		    := http://www.ijg.org/files/jpegsrc.v6b.tar.gz
+DISTURL_jpeg-7              := http://www.ijg.org/files/jpegsrc.v7.tar.gz
 DISTURL_libpng-1.2.24	    := http://internap.dl.sourceforge.net/sourceforge/libpng/libpng-1.2.24.tar.gz
 DISTURL_freetype-2.3.5	    := http://download.savannah.gnu.org/releases/freetype/freetype-2.3.5.tar.gz
 DISTURL_fontconfig-2.5.0    := http://fontconfig.org/release/fontconfig-2.5.0.tar.gz
@@ -216,7 +216,7 @@ DISTURL_font-cursor-misc-1.0.0 := http://xorg.freedesktop.org/releases/X11R7.3/s
 DISTURL_xdpyinfo-1.0.1	    := http://xorg.freedesktop.org/releases/X11R7.3/src/everything/xdpyinfo-1.0.1.tar.gz
 
 DISTURL_mailutils-2.1	    := http://ftp.gnu.org/gnu/mailutils/mailutils-2.1.tar.gz
-
+DISTURL_links-2.2           := http://links.twibright.com/download/links-2.2.tar.bz2
 
 ##
 ## ./configure arguments for different packages
@@ -256,7 +256,7 @@ AUTOCONF_lesstif-0.95.0	    := --x-includes= --x-libraries=
 AUTOCONF_bash-3.1	    := --disable-multibyte --disable-nls
 
 AUTOCONF_mailutils-2.1	    := --disable-cxx
-
+AUTOCONF_links-2.2          := --enable-graphics --with-fb --without-x --without-directfb
 
 ##
 ## Patches to apply to various packages
@@ -296,6 +296,7 @@ PATCHFILE_xrandr-1.2.2	    := xrandr-1.2.2.patch
 PATCHFILE_default	    := empty.patch
 
 PATCHFILE_mailutils-2.1        := mailutils-2.1.patch
+PATCHFILE_links-2.2         := links-2.2.patch
 
 ##
 ## Packages we want to include
@@ -949,10 +950,9 @@ $(ACPKG_BUILDDIR)/python-svn/Makefile: $(ACPKG_BUILDDIR)/python-svn/__patch | $(
 		$(AUTOCONF_ARGS) $(AUTOCONF_python-svn)" )
 	touch $@
 
-$(ACPKG_BUILDDIR)/jpeg-6b/__build: $(ACPKG_BUILDDIR)/jpeg-6b/Makefile | $(LDEPS)
+$(ACPKG_BUILDDIR)/jpeg-7/__build: $(ACPKG_BUILDDIR)/jpeg-7/Makefile | $(LDEPS)
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE)" )
 	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) install" )
-	( cd $(ACPKG_BUILDDIR)/$(PKGNAME) && sh -c "$(ACENV) $(MAKE) install-lib" )
 	touch $@
 
 $(ACPKG_BUILDDIR)/svgalib-1.9.25/__build: $(ACPKG_BUILDDIR)/svgalib-1.9.25/__patch | $(LDEPS)
@@ -978,7 +978,7 @@ $(OBJDIR)/acpkg/lib/libfreetype.so.6: $(ACPKG_BUILDDIR)/freetype-2.3.5/__build
 $(OBJDIR)/acpkg/lib/libexpat.so.1: $(ACPKG_BUILDDIR)/expat-2.0.1/__build
 	@
 
-$(OBJDIR)/acpkg/lib/libjpeg.a: $(ACPKG_BUILDDIR)/jpeg-6b/__build
+$(OBJDIR)/acpkg/lib/libjpeg.a: $(ACPKG_BUILDDIR)/jpeg-7/__build
 	@
 
 $(OBJDIR)/acpkg/lib/libpng.a $(OBJDIR)/acpkg/lib/libpng12.so.0: $(ACPKG_BUILDDIR)/libpng-1.2.24/__build
@@ -1318,5 +1318,12 @@ $(OBJDIR)/acpkg/lib/llibmu_maildir.so.2: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
 
 $(OBJDIR)/acpkg/lib/libmailutils.so.2: $(ACPKG_BUILDDIR)/mailutils-2.1/__build
 
+$(OBJDIR)/acpkg/bin/links: $(ACPKG_BUILDDIR)/links-2.2/__build
 
+$(ACPKG_BUILDDIR)/links-2.2/__reconf: $(ACPKG_BUILDDIR)/links-2.2/__patch
+
+$(ACPKG_BUILDDIR)/links-2.2/Makefile: \
+                $(ACPKG_BUILDDIR)/links-2.2/__reconf \
+                $(OBJDIR)/acpkg/lib/libpng.a \
+                $(OBJDIR)/acpkg/lib/libjpeg.a
 
