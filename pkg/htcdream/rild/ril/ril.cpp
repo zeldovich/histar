@@ -1857,13 +1857,30 @@ RIL_onRequestComplete(RIL_Token t, RIL_Errno e, void *response, size_t responsel
 			const char **strs = (const char **)response;
 			fprintf(stderr, " - SUCCESS: cid [%s], iface [%s], ip [%s]\n",
 			    strs[0], strs[1], strs[2]);
+
+			// now that we've got data, let's set this shit up.
+			handle_pdp_up();
 		} else {
 			fprintf(stderr, " - FAILED: %s\n", failCauseToString(e));
 		}
 	}
 
-	// now that we've got data, let's set this shit up.
-	handle_pdp_up();
+	if (pRI->pCI->requestNumber == RIL_REQUEST_GET_NEIGHBORING_CELL_IDS) {
+		int num = responselen / sizeof(RIL_NeighboringCell *);
+		fprintf(stderr, "%d NEIGHBORING CELL IDS:\n", num);
+		for (int i = 0 ; i < num ; i++) {
+			RIL_NeighboringCell *p_cur =
+				((RIL_NeighboringCell **) response)[i];
+			fprintf(stderr, "  %d: cid=%s,rssi=%d", i, p_cur->cid,
+			    p_cur->rssi);
+		}
+	}
+
+	if (pRI->pCI->requestNumber == RIL_REQUEST_REGISTRATION_STATE) {
+		const char **strs = (const char **)response;
+		fprintf(stderr, "REGISTRATION STATE: state %s, LAC %s, "
+		    "CID %s\n", strs[0], strs[1], strs[2]);
+	}
 
         goto done;
     }

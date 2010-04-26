@@ -147,6 +147,22 @@ gate_default_pdp_on()
 }
 
 static void
+gate_neighboring_cells()
+{
+	fprintf(stderr, "%s: issuing RIL_REQUEST_GET_NEIGHBORING_CELL_IDS ril "
+	    "request!\n", __func__);
+	RIL_issueLocalRequest(RIL_REQUEST_GET_NEIGHBORING_CELL_IDS, NULL, 0);
+}
+
+static void
+gate_registration_status()
+{
+	fprintf(stderr, "%s: issuing RIL_REQUEST_REGISTRATION_STATE ril request"
+	    "\n", __func__);
+	RIL_issueLocalRequest(RIL_REQUEST_REGISTRATION_STATE, NULL, 0);
+}
+
+static void
 rild_dispatch(struct gate_call_data *parm)
 {
 	struct rild_req *req = (struct rild_req *) &parm->param_buf[0];
@@ -188,6 +204,14 @@ rild_dispatch(struct gate_call_data *parm)
 
 	case get_ril_interface_version:
 		err = funcs->version;
+		break;
+
+	case neighboring_cells:
+		gate_neighboring_cells();
+		break;
+
+	case registration_status:
+		gate_registration_status();
 		break;
 
 	case get_ril_lib_version:
