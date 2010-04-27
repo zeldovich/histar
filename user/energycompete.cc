@@ -122,6 +122,7 @@ try
     // ---- Create the reserves for the bad process fork bomb ----
     cobj_ref rs0;
     cobj_ref rss[count];
+    cobj_ref lms[count];
     const size_t namel = 20;
     char name[namel];
     for (uint64_t i = 0; i < count; i++) {
@@ -134,7 +135,7 @@ try
 	snprintf(&name[0], namel, "limit%"PRIu64, i);
 	error_check(r = sys_limit_create(ctid, badrs, rs0, l.to_ulabel(), name));
 	cobj_ref lm0 = COBJ(ctid, r);
-	error_check(sys_limit_set_rate(lm0, LIMIT_TYPE_CONST, throttle / 2));
+	lms[i] = lm0;
     }
 
     signal(SIGCHLD, sigchld_handler);
@@ -152,11 +153,16 @@ try
 	    if (!pid) {
 		// child
 		signal(SIGCHLD, SIG_DFL);
+		// turn on the faucet
+		error_check(sys_limit_set_rate(lms[i], LIMIT_TYPE_CONST, throttle / 2));
 		error_check(sys_self_set_active_reserve(rss[i]));
 		error_check(execv(args[0], args));
 		return 0;
 	    }
 	}
+	// spin the bad thread besides the hell its children raise
+	for (;;);
+	return 0;
     }
 
     uint64_t last_nsec = 0, last_level = 0;
@@ -168,6 +174,7 @@ try
 	last_levels[i] = 0;
     }
     while (1) {
+	uint64_t last = sys_clock_nsec();
 	if (print_stats) {
 	    print_res_stats(rootrs, &last_nsec, &last_level, 99);
 	    print_res_stats(goodrs, &glast_nsec, &glast_level, 98);
@@ -175,7 +182,8 @@ try
 	    for (uint64_t i = 0; i < count; i++)
 		print_res_stats(rss[i], &last_nsecs[i], &last_levels[i], i);
 	}
-	usleep(1000000);
+	while (sys_clock_nsec() - last < 1000000000lu) {
+	}
     }
 
     return 0;

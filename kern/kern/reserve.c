@@ -6,6 +6,8 @@
 
 enum { debug_reserves = 0 };
 
+uint64_t reserve_profile = 0;
+
 struct Reserve *root_rs = 0;
 
 struct Reserve_list reserve_list;
@@ -109,7 +111,7 @@ reserve_transfer_proportional(struct cobj_ref sourceref, struct cobj_ref sinkref
 
     // If no energy we're done
     if (source->rs_level <= 0)
-	return;
+	return 0;
 
     const struct kobject *sinkko;
     r = cobj_get(sinkref, kobj_reserve, &sinkko, iflow_rw);
@@ -137,23 +139,36 @@ reserve_consume(struct Reserve *rs, int64_t amount, uint64_t force)
     return 0;
 }
 
+static void
+reserve_prof_dump(struct Reserve *rs, uint64_t ts)
+{
+    cprintf("Reserve %"PRIu64" %s"
+	    " %"PRIu64" %"PRIu64" %"PRIu64" %"PRIu64"\n",
+	    rs->rs_ko.ko_id, &rs->rs_ko.ko_name[0],
+	    rs->rs_level, rs->rs_consumed, rs->rs_decayed, ts);
+}
+
 void
-reserve_decay_all(void)
+reserve_decay_all(uint64_t now)
 {
     struct Reserve *rs;
-    int r;
     LIST_FOREACH(rs, &reserve_list, rs_link)
 	do {
-	    if (debug_reserves)
-		cprintf("Working on reserve %lu\n", rs->rs_ko.ko_id);
-	    if (rs->rs_level <= 0)
-		break;
-	    // TODO - this magic 12 should be calculated dynamically
-	    // +1 since otherwise decay won't kick in until apps
-	    // have 2**12 mJ
-	    int64_t decay = (rs->rs_level >> 12) + 1;
-	    rs->rs_level -= decay;
-	    rs->rs_decayed += decay;
+	    if (rs->rs_level > 0) {
+		// TODO - this magic 12 should be calculated dynamically
+		// +1 since otherwise decay won't kick in until apps
+		// have 2**12 mJ
+		int64_t decay = (rs->rs_level >> 12) + 1;
+		rs->rs_level -= decay;
+		rs->rs_decayed += decay;
+	    }
+	    if (reserve_profile)
+		reserve_prof_dump(rs, now);
 	} while (0);
 }
 
+void
+reserve_prof_toggle()
+{
+    reserve_profile = !reserve_profile;
+}
