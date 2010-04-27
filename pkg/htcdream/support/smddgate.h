@@ -27,6 +27,7 @@ int smddgate_rmnet_open(int);
 int smddgate_rmnet_config(int, struct htc_netconfig *);
 int smddgate_rmnet_tx(int, char *, size_t);
 int smddgate_rmnet_rx(int, char *, size_t);
+int smddgate_rmnet_fast_setup(int, void **, void **);
 
 #ifdef __cplusplus
 }
