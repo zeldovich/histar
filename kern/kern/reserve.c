@@ -5,7 +5,7 @@
 #include <inc/error.h>
 
 enum { debug_reserves = 0 };
-enum { disable_decay = 0 };
+enum { disable_decay = 1 };
 
 uint64_t reserve_profile = 0;
 
@@ -65,8 +65,9 @@ reserve_alloc(const struct Label *l, struct Reserve **rsp)
 
 // Caller needs to check iflow between reserves wrt to thread label
 static int
-reserve_do_transfer(struct Reserve *src, struct Reserve *dest, int64_t amount)
+reserve_do_transfer(struct Reserve *src, struct Reserve *dest, int64_t rate, uint64_t elapsed)
 {
+    int64_t amount = (rate * elapsed) / (1 * 1000 * 1000 * 1000);
     if (amount < 0 || src->rs_level < amount)
 	return -E_NO_SPACE;
 
@@ -77,7 +78,7 @@ reserve_do_transfer(struct Reserve *src, struct Reserve *dest, int64_t amount)
 }
 
 int
-reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t amount)
+reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t rate, uint64_t elapsed)
 {
     int64_t r;
 
@@ -93,12 +94,12 @@ reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t amo
 	return r;
     struct Reserve *sink = &kobject_dirty(&sinkko->hdr)->rs;
 
-    return reserve_do_transfer(source, sink, amount);
+    return reserve_do_transfer(source, sink, rate, elapsed);
 }
 
 // amount here is 1/1024ths to transfer
 int
-reserve_transfer_proportional(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t frac)
+reserve_transfer_proportional(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t frac, uint64_t elapsed)
 {
     int64_t r;
 
@@ -150,7 +151,7 @@ reserve_prof_dump(struct Reserve *rs, uint64_t ts)
 }
 
 void
-reserve_decay_all(uint64_t now)
+reserve_decay_all(uint64_t elapsed, uint64_t now)
 {
     struct Reserve *rs;
     LIST_FOREACH(rs, &reserve_list, rs_link)

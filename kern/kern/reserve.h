@@ -18,11 +18,11 @@ struct Reserve {
 LIST_HEAD(Reserve_list, Reserve);
 
 int reserve_alloc(const struct Label *l, struct Reserve **rsp);
-int reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t amount);
+int reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t amount, uint64_t elapsed);
 int64_t reserve_consume(struct Reserve *rs, int64_t amount, uint64_t force);
 int reserve_gc(struct Reserve *rs);
-void reserve_decay_all(uint64_t now);
-int reserve_transfer_proportional(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t frac);
+void reserve_decay_all(uint64_t elapsed, uint64_t now);
+int reserve_transfer_proportional(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t frac, uint64_t elapsed);
 void reserve_prof_toggle(void);
 
 extern struct Reserve *root_rs;

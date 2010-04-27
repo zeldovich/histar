@@ -14,6 +14,7 @@ uint64_t limit_profile = 0;
 
 struct Limit_list limit_list;
 uint64_t limits_last_updated = 0;
+const uint64_t limit_period = 100 * 1000 * 1000;
 
 static void
 limit_unlink(struct Limit *lm)
@@ -122,16 +123,21 @@ void
 limit_update_all(void)
 {
     uint64_t now = timer_user_nsec();
-
-    if (now - limits_last_updated < 1 * 1000 * 1000 * 1000)
+    uint64_t elapsed = now - limits_last_updated;
+    if (!limits_last_updated) {
+	limits_last_updated = now;
+	return;
+    }
+	
+    if (elapsed < limit_period)
 	return;
 
     // subtract baseline cost for running the system for 1 s
     assert(root_rs);
-    root_rs->rs_level -= energy_baseline_mJ(now - limits_last_updated);
+    root_rs->rs_level -= energy_baseline_mJ(elapsed);
 
     // first do decay and then do additions
-    reserve_decay_all(now);
+    reserve_decay_all(elapsed, now);
 
     struct Limit *lm;
     int r;
@@ -139,13 +145,13 @@ limit_update_all(void)
     LIST_FOREACH(lm, &limit_list, lm_link)
 	do {
 	    if (lm->lm_type == LIMIT_TYPE_CONST) {
-		r = reserve_transfer(lm->lm_source, lm->lm_sink, lm->lm_rate);
+		r = reserve_transfer(lm->lm_source, lm->lm_sink, lm->lm_rate, elapsed);
 		if (r < 0) {
 		    if (debug_limits)
 			cprintf("source was out of energy\n");
 		}
 	    } else if (lm->lm_type == LIMIT_TYPE_PROP) {
-		reserve_transfer_proportional(lm->lm_source, lm->lm_sink, lm->lm_rate);
+		reserve_transfer_proportional(lm->lm_source, lm->lm_sink, lm->lm_rate, elapsed);
 	    } else {
 		assert(0);
 	    }
