@@ -47,9 +47,11 @@ struct ringseg rxsegs[3];
 static struct rmnet_private {
 	smd_channel_t *ch;
 	const char *chname;
+	int chnum;
 	size_t tx_frames, tx_frame_bytes;
 	size_t rx_frames, rx_frame_bytes, rx_dropped;
-	struct ringseg *rxseg;
+	volatile struct ringseg *rxseg;
+	volatile struct ringseg *txseg;
 	int fast_path;
 	pthread_mutex_t mtx;
 	pthread_cond_t  cond;
@@ -77,8 +79,8 @@ static void smd_net_notify(void *_priv, unsigned event)
 				cprintf("rmnet_recv() smd lied about avail?!\n");
 			p->rx_dropped++;
 		} else {
-			struct ringseg *seg = p->rxseg;
-			struct ringpkt *rxp = &seg->q[seg->q_head];
+			volatile struct ringseg *seg = p->rxseg;
+			volatile struct ringpkt *rxp = &seg->q[seg->q_head];
 
 			if (smd_read(p->ch, (void *)rxp->buf, sz) != sz) {
 				cprintf("rmnet_recv() smd lied about avail?!\n");
@@ -183,7 +185,7 @@ extern "C" int smd_rmnet_recv(int which, void *buf, int len)
 	while (p->rxseg->q_tail == p->rxseg->q_head)
 		pthread_cond_wait(&p->cond, &p->mtx);
 
-	struct ringpkt *rxp = &p->rxseg->q[p->rxseg->q_tail];
+	volatile struct ringpkt *rxp = &p->rxseg->q[p->rxseg->q_tail];
 	int recvd = MIN(len, rxp->bytes);
 	memcpy(buf, (void *)rxp->buf, recvd);
 	rxp->bytes = 0;
@@ -191,6 +193,26 @@ extern "C" int smd_rmnet_recv(int which, void *buf, int len)
 	pthread_mutex_unlock(&p->mtx);
 
 	return recvd;
+}
+
+static void *
+fast_xmit_thread(void *arg)
+{
+	struct rmnet_private *p = (struct rmnet_private *)arg;
+	volatile struct ringseg *txseg = p->txseg;
+
+	while (1) {
+		uint64_t head = txseg->q_head;
+		uint64_t tail = txseg->q_tail;
+		while (txseg->q_head == txseg->q_tail)
+			sys_sync_wait(&txseg->q_head, head, ~UINT64(0));
+
+		smd_rmnet_xmit(p->chnum, (void *)txseg->q[tail].buf, txseg->q[tail].bytes);
+		txseg->q[tail].bytes = 0;
+		txseg->q_tail = (tail + 1) % NPKTQUEUE;
+	};
+	
+	return NULL;
 }
 
 extern "C" int smd_rmnet_fast_setup(int which, void *tx, int txlen,
@@ -210,11 +232,17 @@ extern "C" int smd_rmnet_fast_setup(int which, void *tx, int txlen,
 	}
 
 	struct rmnet_private *p = &rmnet_private[which]; 
-	p->rxseg = (struct ringseg *)rx;
+	p->rxseg = (volatile struct ringseg *)rx;
 	p->fast_path = 1;
-	memset(p->rxseg, 0, sizeof(*p->rxseg));
+	memset((void *)p->rxseg, 0, sizeof(*p->rxseg));
 cprintf("%s: shared memory: rx @ %p, len %d\n", __func__, rx, rxlen); 
-	//xxx - do tx later if we care. downstream is what we care about anyhow 
+
+	p->txseg = (volatile struct ringseg *)tx;
+	memset((void *)p->txseg, 0, sizeof(*p->txseg));
+
+	// spawn a thread that handles transmits 
+	pthread_t tid;
+	pthread_create(&tid, NULL, fast_xmit_thread, p);
 
 	return 0;
 }
@@ -227,6 +255,7 @@ extern "C" void smd_rmnet_init()
 		memset(p, 0, sizeof(*p));
 		p->rxseg = &rxsegs[i];
 		p->chname = names[i];
+		p->chnum = i;
 		pthread_mutex_init(&p->mtx, NULL);
 		pthread_cond_init(&p->cond, NULL);
 	}

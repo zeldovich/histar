@@ -97,6 +97,21 @@ low_level_init(struct netif *netif)
     }
 }
 
+// fast path tx.
+//
+// put the next packet into the tx ring.
+static void
+fast_put_next_packet(struct jif *jif, void *buf, int len)
+{
+    uint64_t head = jif->txring->q_head;
+
+    volatile struct ringpkt *rpp = &jif->txring->q[head];
+    memcpy((void *)rpp->buf, buf, len); 
+    rpp->bytes = len;
+    jif->txring->q_head = (head + 1) % NPKTQUEUE;
+    sys_sync_wakeup(&jif->txring->q_head);
+}
+
 /*
  * low_level_output():
  *
@@ -121,7 +136,10 @@ low_level_output(struct netif *netif, struct pbuf *p)
 	txsize += q->len;
     }
 
-    smddgate_rmnet_tx(0, buf, txsize);
+    if (go_fast)
+	fast_put_next_packet(netif->state, buf, txsize);
+    else
+	smddgate_rmnet_tx(0, buf, txsize);
 
 #if LINK_STATS
     lwip_stats.link.xmit++;
@@ -152,7 +170,7 @@ fast_get_next_packet(struct jif *jif, int *len)
     volatile struct ringpkt *rpp = &jif->rxring->q[tail];
     *len = rpp->bytes; 
     rpp->bytes = 0;
-    jif->rxring->q_tail = (jif->rxring->q_tail + 1) % NPKTQUEUE;
+    jif->rxring->q_tail = (tail + 1) % NPKTQUEUE;
     return rpp->buf;
 }
 
