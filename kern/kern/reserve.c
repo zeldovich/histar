@@ -5,6 +5,7 @@
 #include <inc/error.h>
 
 enum { debug_reserves = 0 };
+enum { disable_decay = 0 };
 
 uint64_t reserve_profile = 0;
 
@@ -154,7 +155,7 @@ reserve_decay_all(uint64_t now)
     struct Reserve *rs;
     LIST_FOREACH(rs, &reserve_list, rs_link)
 	do {
-	    if (rs->rs_level > 0) {
+	    if (!disable_decay && rs->rs_level > 0) {
 		// TODO - this magic 12 should be calculated dynamically
 		// +1 since otherwise decay won't kick in until apps
 		// have 2**12 mJ

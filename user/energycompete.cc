@@ -147,14 +147,16 @@ try
 	signal(SIGCHLD, badsigchld_handler);
 	error_check(sys_self_set_active_reserve(badrs));
 	for (uint64_t i = 0; i < count; i++) {
-	    // === start bad fork bomb ===
+	    // === start bad fork bomb 5 sec delay to each child ===
+	    uint64_t last = sys_clock_nsec();
+	    while (sys_clock_nsec() - last < 5000000000lu) {}
 	    pid_t pid = fork();
 	    error_check(pid);
 	    if (!pid) {
 		// child
 		signal(SIGCHLD, SIG_DFL);
 		// turn on the faucet
-		error_check(sys_limit_set_rate(lms[i], LIMIT_TYPE_CONST, throttle / 2));
+		error_check(sys_limit_set_rate(lms[i], LIMIT_TYPE_CONST, throttle / (2 * count)));
 		error_check(sys_self_set_active_reserve(rss[i]));
 		error_check(execv(args[0], args));
 		return 0;
