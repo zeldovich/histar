@@ -51,6 +51,7 @@ void
 cons_intr(int (*proc)(void*), void *arg)
 {
     int c;
+    int new = 0;
 
     while ((c = (*proc)(arg)) != -1) {
 	if (c == 0)
@@ -58,7 +59,13 @@ cons_intr(int (*proc)(void*), void *arg)
 	cons_inq.buf[cons_inq.wpos++] = c;
 	if (cons_inq.wpos == sizeof(cons_inq.buf))
 	    cons_inq.wpos = 0;
+	new++;
     }
+
+    // don't wake waiters if no input was received
+    // this can occur due to shared interrupts or polling
+    if (new == 0)
+	return;
 
     while (!LIST_EMPTY(&console_waiting)) {
 	struct Thread *t = LIST_FIRST(&console_waiting);

@@ -124,8 +124,8 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 	goldfish_timer_init();
 #elif defined(JOS_ARM_HTCDREAM)
 	msm_irq_init(0xc0000000);
-	msm_ttycons_init(0xa9c00000, 11);
 	msm_timer_init(0xc0100000, 7, MSM_TIMER_GP, 32768);
+	msm_ttycons_init(0xa9c00000, 11);			// uart3
 #endif
 
 	while (atp != NULL && atp->words != 0 && atp->tag != ATAG_NONE) {
