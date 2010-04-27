@@ -281,8 +281,6 @@ smddgate_rpc_endpoint_read_select(void **endpts, int nendpts, uint64_t timeout)
 	return (rep->bufbytes / 4);
 }
 
-}
-
 int
 smddgate_rmnet_open(int which)
 {
@@ -352,3 +350,39 @@ smddgate_rmnet_rx(int which, char *buf, size_t len)
 		return (rep->err);
 	return (rep->bufbytes);
 }
+
+int
+smddgate_rmnet_fast_setup(int which, void **tx, int *txlen,
+    void **rx, int *rxlen)
+{
+	GATECALL_SETUP(rmnet_fast_setup);
+
+	// XXX these stupid 24 * PGSIZE dealies are due to the smd_rmnet.c
+	//     64 packet assumption
+
+	*tx = 0;
+	*txlen = 24 * PGSIZE;
+	error_check(segment_alloc(g.call_ct(), 24 * PGSIZE, &req->obj, tx, 0,
+	    "smddgate_rmnet_fast_tx"));
+
+	*rx = 0;
+	*rxlen = 24 * PGSIZE;
+	error_check(segment_alloc(g.call_ct(), 24 * PGSIZE, &req->obj2, rx, 0,
+	    "smddgate_rmnet_fast_rx"));
+	// XXX. leak on error case.
+
+	req->fd = which;
+	req->bufbytes  = *txlen;
+	req->bufbytes2 = *rxlen;
+	g.call(&gcd, 0);
+
+	if (rep->err) {
+		segment_unmap(*tx);
+		segment_unmap(*rx);
+		return (rep->err);
+	}
+
+	return 0;
+}
+
+} // extern C

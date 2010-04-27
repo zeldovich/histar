@@ -39,15 +39,16 @@ enum {
 	rmnet_open,
 	rmnet_config,
 	rmnet_tx,
-	rmnet_rx
+	rmnet_rx,
+	rmnet_fast_setup
 };
 
 struct smdd_req {
 	int op;
-	struct cobj_ref obj;
+	struct cobj_ref obj, obj2;
 	int fd;
 	void *token;
-	int bufbytes;
+	int bufbytes, bufbytes2;
 	union {
 		char buf[256];
 	};

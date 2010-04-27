@@ -118,7 +118,7 @@ struct prop_pair {
 int
 property_set(const char *key, const char *val)
 {
-	cprintf("property_set: [%s] [%s]\n", key, val);
+//	cprintf("property_set: [%s] [%s]\n", key, val);
 	return (0);
 }
 
@@ -126,7 +126,7 @@ int
 property_get(const char *key, char *val, const char *default_val)
 {
 	int i;
-	cprintf("property_get: [%s] [%s]\n", key, default_val);
+//cprintf("property_get: [%s] [%s]\n", key, default_val);
 	for (i = 0; properties[i].key != NULL; i++) {
 		if (strcmp(key, properties[i].key) == 0)
 			break;
@@ -135,7 +135,7 @@ property_get(const char *key, char *val, const char *default_val)
 		strcpy(val, default_val);
 	else
 		strcpy(val, properties[i].val);
-	cprintf("  _get: got [%s]\n", val);
+//cprintf("  _get: got [%s]\n", val);
 	return (strlen(default_val));
 }
 
