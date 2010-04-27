@@ -9,6 +9,8 @@ struct Reserve {
     struct kobject_hdr rs_ko;
 
     int64_t rs_level;
+    int64_t rs_consumed;
+    int64_t rs_decayed;
 
     uint64_t rs_linked;
     LIST_ENTRY(Reserve) rs_link;

@@ -107,6 +107,7 @@
 						\
     SYSCALL_ENTRY(reserve_create)		\
     SYSCALL_ENTRY(reserve_get_level)		\
+    SYSCALL_ENTRY(reserve_get_info)		\
     SYSCALL_ENTRY(self_set_active_reserve)	\
     SYSCALL_ENTRY(limit_create)			\
     SYSCALL_ENTRY(limit_set_rate)		\

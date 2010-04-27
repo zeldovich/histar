@@ -50,6 +50,8 @@ reserve_alloc(const struct Label *l, struct Reserve **rsp)
     ko->hdr.ko_flags = KOBJ_FIXED_QUOTA;
 
     rs->rs_level = 0;
+    rs->rs_consumed = 0;
+    rs->rs_decayed = 0;
 
     rs->rs_linked = 0;
     reserve_link(rs, &reserve_list);
@@ -130,6 +132,7 @@ reserve_consume(struct Reserve *rs, int64_t amount, uint64_t force)
 	return -E_NO_SPACE;
 
     rs->rs_level -= amount;
+    rs->rs_consumed += amount;
 
     return 0;
 }
@@ -150,6 +153,7 @@ reserve_decay_all(void)
 	    // have 2**12 mJ
 	    int64_t decay = (rs->rs_level >> 12) + 1;
 	    rs->rs_level -= decay;
+	    rs->rs_decayed += decay;
 	} while (0);
 }
 

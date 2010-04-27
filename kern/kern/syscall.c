@@ -25,6 +25,7 @@
 #include <inc/netdev.h>
 #include <inc/safeint.h>
 #include <machine/atomic.h>
+#include <inc/reserve.h>
 
 // Helper functions
 static const struct Label *cur_th_label;
@@ -1269,6 +1270,16 @@ sys_reserve_get_level(struct cobj_ref rsref)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
+sys_reserve_get_info(struct cobj_ref rsref, struct ReserveInfo *rsinfo)
+{
+    const struct kobject *ko;
+    check(cobj_get(rsref, kobj_reserve, &ko, iflow_read));
+    check(check_user_access(rsinfo, sizeof(*rsinfo), SEGMAP_WRITE));
+    memcpy(rsinfo, &ko->rs.rs_level, sizeof(*rsinfo));
+    return 0;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_set_active_reserve(struct cobj_ref rsref)
 {
     const struct kobject *ko;
@@ -1430,6 +1441,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 
 	SYSCALL(reserve_create, a1, p2, p3);
 	SYSCALL(reserve_get_level, COBJ(a1, a2));
+	SYSCALL(reserve_get_info, COBJ(a1, a2), p3);
 	SYSCALL(self_set_active_reserve, COBJ(a1, a2));
 	SYSCALL(limit_create, a1, COBJ(a2, a3), COBJ(a4, a5), p6, p7);
 	SYSCALL(limit_set_rate, COBJ(a1, a2), a3, a4);
