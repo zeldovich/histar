@@ -415,13 +415,14 @@ smdd_rmnet_rx(struct smdd_req *request, struct smdd_reply *reply)
 	segment_unmap(ptr);
 }
 
+#if 0
 static void
 smdd_rmnet_fast_setup(struct smdd_req *request, struct smdd_reply *reply)
 {
 	void *tx_seg = 0;
 	void *rx_seg = 0;
 
-	if (segment_map(request->obj, 0, SEGMAP_READ,
+	if (segment_map(request->obj, 0, SEGMAP_READ | SEGMAP_WRITE,
 	    (void **)&tx_seg, 0, 0) < 0) {
 		cprintf("%s: tx segment_map failed\n", __func__);
 		reply->err = -E_INVAL;
@@ -429,7 +430,7 @@ smdd_rmnet_fast_setup(struct smdd_req *request, struct smdd_reply *reply)
 		return;
 	}
 
-	if (segment_map(request->obj, 0, SEGMAP_WRITE,
+	if (segment_map(request->obj2, 0, SEGMAP_READ | SEGMAP_WRITE,
 	    (void **)&rx_seg, 0, 0) < 0) {
 		cprintf("%s: tx segment_map failed\n", __func__);
 		reply->err = -E_INVAL;
@@ -441,8 +442,30 @@ smdd_rmnet_fast_setup(struct smdd_req *request, struct smdd_reply *reply)
 	reply->err = smd_rmnet_fast_setup(request->fd, tx_seg, request->bufbytes, rx_seg, request->bufbytes2);
 	reply->bufbytes = 0;
 
-	cprintf("%s: fast setup succeeded. tx and rw segments mapped\n", __func__);
+	cprintf("%s: fast setup succeeded. tx and rx segments mapped\n", __func__);
 }
+#else
+#include <fcntl.h>
+#include <sys/mman.h>
+static void
+smdd_rmnet_fast_setup(struct smdd_req *request, struct smdd_reply *reply)
+{
+	int fd;
+	void *tx_seg = 0;
+	void *rx_seg = 0;
+
+	fd = open("/tmp/rmnet-tx", O_RDWR);
+	tx_seg = mmap(0, request->bufbytes,  PROT_READ | PROT_WRITE, 0, fd, 0);	
+
+	fd = open("/tmp/rmnet-rx", O_RDWR);
+	rx_seg = mmap(0, request->bufbytes2, PROT_READ | PROT_WRITE, 0, fd, 0);	
+	
+	cprintf("SMDD_RMNET_FAST_SETUP mapped /rmnet-tx and /rmnet-rx @ %p and %p\n", tx_seg, rx_seg);
+
+	reply->err = smd_rmnet_fast_setup(request->fd, tx_seg, request->bufbytes, rx_seg, request->bufbytes2);
+	reply->bufbytes = 0;
+}
+#endif
 
 static void
 smdd_dispatch(struct gate_call_data *parm)

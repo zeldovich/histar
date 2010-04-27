@@ -55,15 +55,21 @@
 #include <pkg/htcdream/smdd/msm_rpcrouter2.h>
 #include <inc/smdd.h>
 #include <pkg/htcdream/support/smddgate.h>
+#include <pkg/htcdream/smdd/smd_rmnet.h>
+
+// use shared memory, rather than one gate call per packet?
+enum { go_fast = 1 };
 
 struct jif {
     struct eth_addr *ethaddr;
+    volatile struct ringseg *txring;
+    volatile struct ringseg *rxring;
 };
 
 static void
 low_level_init(struct netif *netif)
 {
-    //struct jif *jif = netif->state;
+    struct jif *jif = netif->state;
 
     netif->hwaddr_len = 6;
     netif->mtu = 1500;
@@ -76,6 +82,19 @@ low_level_init(struct netif *netif)
     netif->hwaddr[3] = 0xbe;
     netif->hwaddr[4] = 0xef;
     netif->hwaddr[5] = 0xee;
+
+    if (go_fast) {
+	smddgate_rmnet_fast_setup(0, (void **)&jif->txring,
+	    (void **)&jif->rxring);
+
+	cprintf("%s: txring @ %p, rxring @ %p\n", __func__,
+	    jif->txring, jif->rxring);
+
+	cprintf("%s: poke at q_head (%p), q_tail (%p)...\n", __func__,
+	    &jif->rxring->q_head, &jif->rxring->q_tail);
+	jif->rxring->q_head = jif->rxring->q_tail = 0;
+	cprintf("%s: success!\n", __func__);
+    }
 }
 
 /*
@@ -111,6 +130,32 @@ low_level_output(struct netif *netif, struct pbuf *p)
     return ERR_OK;
 }
 
+// fast path rx.
+//
+// get the next packet from the rx ring. if none, wait on it.
+static volatile char *
+fast_get_next_packet(struct jif *jif, int *len)
+{
+    uint64_t head, tail;
+
+    while (1) {
+	head = jif->rxring->q_head;
+	tail = jif->rxring->q_tail;
+	if (head != tail)
+	    break;
+	sys_sync_wait(&jif->rxring->q_head, head, UINT64(~0));
+    }
+
+    assert(head < NPKTQUEUE);
+    assert(tail < NPKTQUEUE);
+
+    volatile struct ringpkt *rpp = &jif->rxring->q[tail];
+    *len = rpp->bytes; 
+    rpp->bytes = 0;
+    jif->rxring->q_tail = (jif->rxring->q_tail + 1) % NPKTQUEUE;
+    return rpp->buf;
+}
+
 /*
  * low_level_input():
  *
@@ -134,10 +179,14 @@ low_level_input(struct netif *netif)
     }
 
     /* grab a packet from smdd via the receive gate */
-    char buf[len];
+    char backing[len];
+    volatile char *buf = backing;
 
     lwip_core_unlock();
-    len = smddgate_rmnet_rx(0, buf, len);
+    if (go_fast)
+	buf = fast_get_next_packet(netif->state, &len);
+    else
+	len = smddgate_rmnet_rx(0, (char *)buf, len);
     lwip_core_lock();
 
     if (len <= 0 || len > 2000) {
@@ -157,7 +206,7 @@ low_level_input(struct netif *netif)
 	int bytes = q->len;
 	if (bytes > (len - copied))
 	    bytes = len - copied;
-	memcpy(q->payload, buf + copied, bytes);
+	memcpy(q->payload, (char *)buf + copied, bytes);
 	copied += bytes;
     }
 

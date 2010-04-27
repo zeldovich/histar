@@ -42,25 +42,14 @@ extern "C" {
 
 #define NPKTQUEUE	64
 
-struct rxpkt {
-	char buf[1514];
-	int bytes;
-};
-
-struct rxseg {
-	struct rxpkt rxq[NPKTQUEUE];
-	int rxq_head;
-	int rxq_tail;
-};
-
-struct rxseg rxsegs[3];
+struct ringseg rxsegs[3];
 
 static struct rmnet_private {
 	smd_channel_t *ch;
 	const char *chname;
 	size_t tx_frames, tx_frame_bytes;
 	size_t rx_frames, rx_frame_bytes, rx_dropped;
-	struct rxseg *rxseg;
+	struct ringseg *rxseg;
 	int fast_path;
 	pthread_mutex_t mtx;
 	pthread_cond_t  cond;
@@ -73,7 +62,7 @@ static void smd_net_notify(void *_priv, unsigned event)
 
 	struct rmnet_private *p = (struct rmnet_private *)_priv;
 	int sz;
-	int wakeup = 0;
+	int fast_wakeup = 0;
 
 	for (;;) {
 		sz = smd_cur_packet_size(p->ch);
@@ -88,10 +77,10 @@ static void smd_net_notify(void *_priv, unsigned event)
 				cprintf("rmnet_recv() smd lied about avail?!\n");
 			p->rx_dropped++;
 		} else {
-			struct rxseg *seg = p->rxseg;
-			struct rxpkt *rxp = &seg->rxq[seg->rxq_head];
+			struct ringseg *seg = p->rxseg;
+			struct ringpkt *rxp = &seg->q[seg->q_head];
 
-			if (smd_read(p->ch, rxp->buf, sz) != sz) {
+			if (smd_read(p->ch, (void *)rxp->buf, sz) != sz) {
 				cprintf("rmnet_recv() smd lied about avail?!\n");
 				return;
 			}
@@ -106,9 +95,10 @@ static void smd_net_notify(void *_priv, unsigned event)
 
 			if (p->fast_path) {
 				rxp->bytes = sz; 
-				seg->rxq_head = (seg->rxq_head + 1) % NPKTQUEUE;
-				if (seg->rxq_head == seg->rxq_tail)
+				seg->q_head = (seg->q_head + 1) % NPKTQUEUE;
+				if (seg->q_head == seg->q_tail)
 					cprintf("RMNET OVERRAN THE WHOLE RING!!\n");
+				fast_wakeup = 1;
 			} else {
 				// XXX- slow ass.
 				//      could be better to move the locking out
@@ -116,8 +106,8 @@ static void smd_net_notify(void *_priv, unsigned event)
 				//      is pretty bad anyway
 				pthread_mutex_lock(&p->mtx);
 				rxp->bytes = sz;
-				seg->rxq_head = (seg->rxq_head + 1) % NPKTQUEUE;
-				if (seg->rxq_head == seg->rxq_tail)
+				seg->q_head = (seg->q_head + 1) % NPKTQUEUE;
+				if (seg->q_head == seg->q_tail)
 					cprintf("RMNET OVERRAN THE WHOLE RING!!\n");
 				pthread_cond_broadcast(&p->cond);
 				pthread_mutex_unlock(&p->mtx);
@@ -125,8 +115,8 @@ static void smd_net_notify(void *_priv, unsigned event)
 		}
 	}
 
-	if (wakeup)
-		sys_sync_wakeup((volatile uint64_t *)p->rxseg);
+	if (fast_wakeup)
+		sys_sync_wakeup(&p->rxseg->q_head);
 }
 
 extern "C" int smd_rmnet_open(int which)
@@ -190,14 +180,14 @@ extern "C" int smd_rmnet_recv(int which, void *buf, int len)
 		return -E_INVAL;
 
 	pthread_mutex_lock(&p->mtx);
-	while (p->rxseg->rxq_tail == p->rxseg->rxq_head)
+	while (p->rxseg->q_tail == p->rxseg->q_head)
 		pthread_cond_wait(&p->cond, &p->mtx);
 
-	struct rxpkt *rxp = &p->rxseg->rxq[p->rxseg->rxq_tail];
+	struct ringpkt *rxp = &p->rxseg->q[p->rxseg->q_tail];
 	int recvd = MIN(len, rxp->bytes);
-	memcpy(buf, rxp->buf, recvd);
+	memcpy(buf, (void *)rxp->buf, recvd);
 	rxp->bytes = 0;
-	p->rxseg->rxq_tail = (p->rxseg->rxq_tail + 1) % NPKTQUEUE;
+	p->rxseg->q_tail = (p->rxseg->q_tail + 1) % NPKTQUEUE;
 	pthread_mutex_unlock(&p->mtx);
 
 	return recvd;
@@ -209,21 +199,21 @@ extern "C" int smd_rmnet_fast_setup(int which, void *tx, int txlen,
 	if (which < 0 || which >= 3)
 		return -E_NOT_FOUND;
 
-	if (txlen < (int)sizeof(struct rxpkt)) {
+	if (txlen < (int)sizeof(struct ringseg)) {
 		cprintf("%s: txlen too small!\n", __func__);
 		return -E_INVAL;
 	}
 
-	if (rxlen < (int)sizeof(struct rxseg)) {
+	if (rxlen < (int)sizeof(struct ringseg)) {
 		cprintf("%s: rxbuf len too small!\n", __func__);
 		return -E_INVAL;
 	}
 
 	struct rmnet_private *p = &rmnet_private[which]; 
-	p->rxseg = (rxseg *)rx;
+	p->rxseg = (struct ringseg *)rx;
 	p->fast_path = 1;
 	memset(p->rxseg, 0, sizeof(*p->rxseg));
-
+cprintf("%s: shared memory: rx @ %p, len %d\n", __func__, rx, rxlen); 
 	//xxx - do tx later if we care. downstream is what we care about anyhow 
 
 	return 0;

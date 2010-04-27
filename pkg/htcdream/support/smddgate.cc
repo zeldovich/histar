@@ -13,6 +13,7 @@ extern "C" {
 
 #include "../smdd/msm_rpcrouter2.h"
 #include <inc/smdd.h>
+#include "../smdd/smd_rmnet.h"
 
 #include <machine/mmu.h>
 #include <inc/syscall.h>
@@ -351,38 +352,93 @@ smddgate_rmnet_rx(int which, char *buf, size_t len)
 	return (rep->bufbytes);
 }
 
+#if 0
 int
-smddgate_rmnet_fast_setup(int which, void **tx, int *txlen,
-    void **rx, int *rxlen)
+smddgate_rmnet_fast_setup(int which, void **tx_ret, void **rx_ret)
 {
-	GATECALL_SETUP(rmnet_fast_setup);
+	//GATECALL_SETUP(rmnet_fast_setup);
 
-	// XXX these stupid 24 * PGSIZE dealies are due to the smd_rmnet.c
-	//     64 packet assumption
+	struct gate_call_data gcd;
+	struct smdd_req *req = (struct smdd_req *)&gcd.param_buf[0];
+	struct smdd_reply *rep = (struct smdd_reply *)&gcd.param_buf[0];
+	req->op = rmnet_fast_setup;
+	label any(1);
+	gate_call *g = new gate_call(smddgate, 0, &any, &any);
+ 
+	*tx_ret = *rx_ret = 0;
 
-	*tx = 0;
-	*txlen = 24 * PGSIZE;
-	error_check(segment_alloc(g.call_ct(), 24 * PGSIZE, &req->obj, tx, 0,
-	    "smddgate_rmnet_fast_tx"));
+	int len = sizeof(struct ringseg);
+	int npages = (len + (PGSIZE - 1)) / PGSIZE;
 
-	*rx = 0;
-	*rxlen = 24 * PGSIZE;
-	error_check(segment_alloc(g.call_ct(), 24 * PGSIZE, &req->obj2, rx, 0,
-	    "smddgate_rmnet_fast_rx"));
-	// XXX. leak on error case.
+	error_check(segment_alloc(g->call_ct(), npages * PGSIZE, &req->obj,
+	    0, 0, "smddgate_rmnet_fast_tx"));
+	error_check(segment_alloc(g->call_ct(), npages * PGSIZE, &req->obj2,
+	    0, 0, "smddgate_rmnet_fast_rx"));
+
+	error_check(sys_obj_set_fixedquota(req->obj));
+	error_check(sys_obj_set_fixedquota(req->obj2));
+
+	error_check(sys_segment_addref(req->obj,  start_env->proc_container));
+	error_check(sys_segment_addref(req->obj2, start_env->proc_container));
+
+	void *tx = 0;
+	error_check(segment_map(
+	    COBJ(start_env->proc_container, req->obj.object),
+	    0, SEGMAP_READ | SEGMAP_WRITE, &tx, 0, 0));
+	void *rx = 0;
+	error_check(segment_map(
+	    COBJ(start_env->proc_container, req->obj2.object),
+	    0, SEGMAP_READ | SEGMAP_WRITE, &rx, 0, 0));
 
 	req->fd = which;
-	req->bufbytes  = *txlen;
-	req->bufbytes2 = *rxlen;
-	g.call(&gcd, 0);
+	req->bufbytes  = len;
+	req->bufbytes2 = len;
+	g->call(&gcd, 0);
 
 	if (rep->err) {
-		segment_unmap(*tx);
-		segment_unmap(*rx);
+		segment_unmap(tx);
+		segment_unmap(rx);
+		cprintf("%s: SOMETHING FAILED!\n", __func__);
 		return (rep->err);
 	}
 
+	cprintf("%s: allocated tx and rx segments (%d bytes each, %d pages)\n",
+	    __func__, npages * PGSIZE, npages);
+
+	*tx_ret = tx;
+	*rx_ret = rx;
+
 	return 0;
 }
+#else
+#include <fcntl.h>
+#include <sys/mman.h>
+int
+smddgate_rmnet_fast_setup(int which, void **tx_ret, void **rx_ret)
+{
+	GATECALL_SETUP(rmnet_fast_setup);
+	(void)rep;
+
+	int fd;
+
+	fd = open("/tmp/rmnet-tx", O_CREAT | O_RDWR | O_TRUNC, 0777);
+	ftruncate(fd, sizeof(struct ringseg));
+	*tx_ret = mmap(0, sizeof(struct ringseg),  PROT_READ | PROT_WRITE, 0, fd, 0);
+
+	fd = open("/tmp/rmnet-rx", O_CREAT | O_RDWR | O_TRUNC, 0777);
+	ftruncate(fd, sizeof(struct ringseg));
+	*rx_ret = mmap(0, sizeof(struct ringseg),  PROT_READ | PROT_WRITE, 0, fd, 0);
+
+	cprintf("SMDDGATE mapped /tmp/rmnet-tx and /tmp/rmnet-rx @ %p and %p\n",
+	    *tx_ret, *rx_ret);
+
+	req->fd = which;
+	req->bufbytes  = sizeof(struct ringseg);
+	req->bufbytes2 = sizeof(struct ringseg);
+	g.call(&gcd, 0);
+
+	return 0;
+}
+#endif
 
 } // extern C
