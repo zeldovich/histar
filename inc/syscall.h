@@ -13,6 +13,7 @@
 #include <inc/fb.h>
 #include <inc/atomic.h>
 #include <machine/utrap.h>
+#include <inc/reserve.h>
 
 uint64_t syscall(uint32_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 		 uint64_t a4, uint64_t a5, uint64_t a6, uint64_t a7);
@@ -152,6 +153,7 @@ void	sys_masked_jump(uint32_t mask, struct UTrapframe *utf);
 
 int64_t	sys_reserve_create(uint64_t container, const struct ulabel *l, const char *name);
 int64_t sys_reserve_get_level(struct cobj_ref rs);
+int64_t sys_reserve_get_info(struct cobj_ref rs, struct ReserveInfo *rsinfo);
 int     sys_self_set_active_reserve(struct cobj_ref rsref);
 int64_t sys_limit_create(uint64_t ct,
 		 struct cobj_ref sourcersref,

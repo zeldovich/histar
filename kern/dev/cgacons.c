@@ -7,6 +7,8 @@
 #include <dev/kbdreg.h>
 #include <inc/kbdcodes.h>
 #include <inc/intmacro.h>
+#include <kern/limit.h>
+#include <kern/reserve.h>
 
 /***** Text-mode CGA/VGA display output *****/
 
@@ -337,6 +339,25 @@ kbd_proc_data(void *arg)
     // Ctrl-Alt-End: halt
     if (!(~shift & (CTL | ALT)) && c == KEY_END)
 	panic("halt requested");
+
+    // Ctrl-Alt-Down: dump limit info
+    if (!(~shift & (CTL | ALT)) && c == KEY_DN) {
+	limit_prof_toggle();
+	return 0;
+    }
+
+    // Ctrl-Alt-Up: dump reserve info
+    if (!(~shift & (CTL | ALT)) && c == KEY_UP) {
+	reserve_prof_toggle();
+	return 0;
+    }
+
+    // Ctrl-Alt-Right: dump limit & reserve info
+    if (!(~shift & (CTL | ALT)) && c == KEY_RT) {
+	limit_prof_toggle();
+	reserve_prof_toggle();
+	return 0;
+    }
 
     return c;
 }

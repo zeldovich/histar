@@ -2,6 +2,7 @@
 #include <inc/syscall.h>
 #include <inc/syscall_num.h>
 #include <inc/device.h>
+#include <inc/reserve.h>
 
 #define SOBJ(obj)	(obj).container, (obj).object
 #define SPTR(ptr)	((uint64_t) (uintptr_t) (ptr))
@@ -557,6 +558,11 @@ sys_reserve_create(uint64_t container, const struct ulabel *l, const char *name)
 int64_t sys_reserve_get_level(struct cobj_ref rsref)
 {
     return syscall(SYS_reserve_get_level, SOBJ(rsref), 0, 0, 0, 0, 0);
+}
+
+int64_t sys_reserve_get_info(struct cobj_ref rsref, struct ReserveInfo *rsinfo)
+{
+    return syscall(SYS_reserve_get_info, SOBJ(rsref), SPTR(rsinfo), 0, 0, 0, 0);
 }
 
 int

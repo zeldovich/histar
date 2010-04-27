@@ -6,9 +6,11 @@
 #include <inc/error.h>
 #include <kern/timer.h>
 #include <kern/reserve.h>
+#include <kern/energy.h>
 
-enum { debug_limit_levels = 0 };
 enum { debug_limits = 0 };
+
+uint64_t limit_profile = 0;
 
 struct Limit_list limit_list;
 uint64_t limits_last_updated = 0;
@@ -53,9 +55,6 @@ limit_alloc(const struct Label *l, struct Limit **lmp)
     lm->lm_type = 0;
     lm->lm_rate = 0;
 
-    lm->lm_level = 0;
-    lm->lm_limit = 0;
-
     lm->lm_source = COBJ(0, 0);
     lm->lm_sink = COBJ(0, 0);
 
@@ -77,14 +76,11 @@ limit_create(const struct Label *l, struct cobj_ref sourcersref,
     if (r < 0)
 	return r;
 
-    //struct Reserve *sourcers = &kobject_dirty(&ko->hdr)->rs;
-
     r = cobj_get(sinkrsref, kobj_reserve, &ko, iflow_rw);
     if (r < 0)
 	return r;
-    //struct Reserve *sinkrs = &kobject_dirty(&ko->hdr)->rs;
 
-    struct Limit *lm;
+    struct Limit *lm = 0;
     r = limit_alloc(l, &lm);
     if (r < 0)
 	return r;
@@ -110,6 +106,17 @@ limit_set_rate(struct Limit *lm, uint64_t type, uint64_t rate)
     return 0;
 }
 
+static void
+limit_prof_dump(struct Limit *lm, uint64_t ts)
+{
+    cprintf("Limit %"PRIu64" %s %"PRIu64".%"PRIu64" %"PRIu64".%"PRIu64
+	    " %"PRIu64" %"PRIu64" %"PRIu64"\n",
+	    lm->lm_ko.ko_id, &lm->lm_ko.ko_name[0],
+	    lm->lm_source.container, lm->lm_source.object,
+	    lm->lm_sink.container, lm->lm_sink.object,
+	    lm->lm_rate, lm->lm_type, ts);
+}
+
 // uses and modifies limits_last_updated global
 void
 limit_update_all(void)
@@ -121,20 +128,16 @@ limit_update_all(void)
 
     // subtract baseline cost for running the system for 1 s
     assert(root_rs);
-    root_rs->rs_level -= energy_baseline_mJ();
-    if (debug_limit_levels)
-	cprintf("root_rs->rs_level: %ld\n", root_rs->rs_level);
+    root_rs->rs_level -= energy_baseline_mJ(now - limits_last_updated);
 
     // first do decay and then do additions
-    reserve_decay_all();
+    reserve_decay_all(now);
 
     struct Limit *lm;
     int r;
-    struct Limit *last_lm;
+    struct Limit *last_lm = 0;
     LIST_FOREACH(lm, &limit_list, lm_link)
 	do {
-	    if (debug_limits)
-		cprintf("Working on limit %lu (transferring %lu)\n", lm->lm_ko.ko_id, lm->lm_rate);
 	    if (lm->lm_type == LIMIT_TYPE_CONST) {
 		r = reserve_transfer(lm->lm_source, lm->lm_sink, lm->lm_rate);
 		if (r < 0) {
@@ -148,6 +151,8 @@ limit_update_all(void)
 	    }
 	    if (lm)
 		last_lm = lm;
+	    if (limit_profile)
+		limit_prof_dump(lm, now);
 	} while (0);
     // Move the last_lm to the head of the list
     // to prevent starvation
@@ -157,4 +162,10 @@ limit_update_all(void)
     }
 
     limits_last_updated = now;
+}
+
+void
+limit_prof_toggle()
+{
+    limit_profile = !limit_profile;
 }
