@@ -19,6 +19,12 @@ energy_cpu_mJ(uint64_t nsecs)
 }
 
 int64_t
+energy_net_mJ(uint64_t bytes)
+{
+    return bytes * 20;	// XXX- get number from arjun. may need to add overhead
+}
+
+int64_t
 energy_baseline_mW()
 {
     return 87300;

@@ -586,3 +586,8 @@ int64_t sys_limit_set_rate(struct cobj_ref lmref, uint64_t type, uint64_t rate)
     return syscall(SYS_limit_set_rate, SOBJ(lmref), type, rate, 0, 0, 0);
 }
 
+int64_t sys_self_bill(uint64_t type, uint64_t value)
+{
+    return syscall(SYS_self_bill, type, value, 0, 0, 0, 0, 0);
+}
+

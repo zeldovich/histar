@@ -12,6 +12,9 @@ int64_t energy_cpu_mW(void)
 int64_t energy_cpu_mJ(uint64_t nsecs)
     __attribute__ ((warn_unused_result));
 
+int64_t energy_net_mJ(uint64_t bytes)
+    __attribute__ ((warn_unused_result));
+
 int64_t energy_baseline_mW(void)
     __attribute__ ((warn_unused_result));
 

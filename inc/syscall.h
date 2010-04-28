@@ -162,6 +162,7 @@ int64_t sys_limit_create(uint64_t ct,
 		 const char *name);
 enum { LIMIT_TYPE_CONST, LIMIT_TYPE_PROP };
 int64_t sys_limit_set_rate(struct cobj_ref lmref, uint64_t type, uint64_t rate);
+int64_t sys_self_bill(uint64_t type, uint64_t value);
 
 #define SYSCALL(name, ...)						\
     case SYS_##name:							\

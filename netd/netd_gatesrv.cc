@@ -28,6 +28,41 @@ static uint64_t netd_server_enabled;
 static struct cobj_ref declassify_gate;
 static struct cobj_ref netd_asref;
 
+static void
+netd_bill_energy_pre(const struct netd_op_args *netd_op)
+{
+    uint32_t count;
+
+    switch (netd_op->op_type) {
+    case netd_op_send:
+	count = netd_op->send.count;
+	break;
+
+    case netd_op_sendto:
+	count = netd_op->sendto.count;
+	break;
+
+    default:
+	return;
+    }
+
+    // user could do an arbitrarily large send, but they just
+    // screw themselves over.
+    sys_self_bill(THREAD_BILL_ENERGY_NET, count);
+}
+
+static void
+netd_bill_energy_post(const struct netd_op_args *netd_op)
+{
+    if (netd_op->op_type != netd_op_recvfrom)
+	return;
+
+    if (netd_op->rval >= 0)
+	sys_self_bill(THREAD_BILL_ENERGY_NET, netd_op->rval);
+
+    //XXX what about error case?
+}
+
 static void __attribute__((noreturn))
 netd_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 {
@@ -52,7 +87,9 @@ netd_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
     if (r < 0)
 	panic("netd_gate_entry: cannot map args: %s\n", e2s(r));
 
+    netd_bill_energy_pre(netd_op);
     h(netd_op);
+    netd_bill_energy_post(netd_op);
     segment_unmap(netd_op);
 
     uint64_t copy_back_ct = gcd->taint_container;
@@ -162,7 +199,9 @@ netd_fast_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 	    while (ipc_shared->sync == NETD_IPC_SYNC_REQUEST) {
 		memcpy(&ipc_copy->args, &ipc_shared->args,
 		       ipc_shared->args.size);
+		netd_bill_energy_pre(&ipc_copy->args);
 		h(&ipc_copy->args);
+		netd_bill_energy_post(&ipc_copy->args);
 		memcpy(&ipc_shared->args, &ipc_copy->args,
 		       ipc_copy->args.size);
 

@@ -111,6 +111,7 @@
     SYSCALL_ENTRY(self_set_active_reserve)	\
     SYSCALL_ENTRY(limit_create)			\
     SYSCALL_ENTRY(limit_set_rate)		\
+    SYSCALL_ENTRY(self_bill)			\
     
 
 #ifndef __ASSEMBLER__

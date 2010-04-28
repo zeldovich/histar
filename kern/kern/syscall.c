@@ -20,6 +20,7 @@
 #include <kern/fb.h>
 #include <kern/mousedev.h>
 #include <kern/intr.h>
+#include <kern/energy.h>
 #include <inc/error.h>
 #include <inc/thread.h>
 #include <inc/netdev.h>
@@ -1324,6 +1325,19 @@ sys_limit_set_rate(struct cobj_ref lmref, uint64_t type, uint64_t rate)
     return 0;
 }
 
+static int64_t __attribute__ ((warn_unused_result))
+sys_self_bill(uint64_t type, uint64_t value)
+{
+    switch (type) {
+    case THREAD_BILL_ENERGY_NET:
+        thread_bill_energy(&kobject_dirty(&cur_thread->th_ko)->th,
+                               energy_net_mJ(value));
+	return 0;
+    default:
+	return -E_INVAL;
+    }
+}
+
 #define SYSCALL(name, ...)						\
     case SYS_##name:							\
 	return sys_##name(__VA_ARGS__);
@@ -1445,6 +1459,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(self_set_active_reserve, COBJ(a1, a2));
 	SYSCALL(limit_create, a1, COBJ(a2, a3), COBJ(a4, a5), p6, p7);
 	SYSCALL(limit_set_rate, COBJ(a1, a2), a3, a4);
+	SYSCALL(self_bill, a1, a2);
 
     default:
 	cprintf("Unknown syscall %"PRIu64"\n", num);

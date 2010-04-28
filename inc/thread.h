@@ -18,4 +18,7 @@ struct thread_entry_args {
     uint64_t te_arg[thread_entry_narg];
 };
 
+// energy billing types
+enum { THREAD_BILL_ENERGY_NET };
+
 #endif
