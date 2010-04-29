@@ -1281,6 +1281,13 @@ sys_reserve_get_info(struct cobj_ref rsref, struct ReserveInfo *rsinfo)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
+sys_reserve_set_global_skew(int64_t skew)
+{
+    // XXX- this should be restricted - it's a privileged op
+    return reserve_set_global_skew(skew);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_set_active_reserve(struct cobj_ref rsref)
 {
     const struct kobject *ko;
@@ -1329,13 +1336,19 @@ static int64_t __attribute__ ((warn_unused_result))
 sys_self_bill(uint64_t type, uint64_t value)
 {
     switch (type) {
-    case THREAD_BILL_ENERGY_NET:
+    case THREAD_BILL_ENERGY_NET_SEND:
         thread_bill_energy(&kobject_dirty(&cur_thread->th_ko)->th,
-                               energy_net_mJ(value));
-	return 0;
+                               energy_net_send_mJ(value));
+	break;
+    case THREAD_BILL_ENERGY_NET_RECV:
+        thread_bill_energy(&kobject_dirty(&cur_thread->th_ko)->th,
+                               energy_net_recv_mJ(value));
+	break;
     default:
 	return -E_INVAL;
     }
+
+    return 0;
 }
 
 #define SYSCALL(name, ...)						\
@@ -1456,6 +1469,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(reserve_create, a1, p2, p3);
 	SYSCALL(reserve_get_level, COBJ(a1, a2));
 	SYSCALL(reserve_get_info, COBJ(a1, a2), p3);
+	SYSCALL(reserve_set_global_skew, a1);
 	SYSCALL(self_set_active_reserve, COBJ(a1, a2));
 	SYSCALL(limit_create, a1, COBJ(a2, a3), COBJ(a4, a5), p6, p7);
 	SYSCALL(limit_set_rate, COBJ(a1, a2), a3, a4);

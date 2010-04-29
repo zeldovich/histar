@@ -13,6 +13,9 @@ struct Reserve *root_rs = 0;
 
 struct Reserve_list reserve_list;
 
+// skew billing amounts. units are 0.01%, i.e. 1,000 => 100% skew
+static int64_t reserve_skew = 0;
+
 static void
 reserve_unlink(struct Reserve *rs)
 {
@@ -28,6 +31,17 @@ reserve_link(struct Reserve *rs, struct Reserve_list *rs_list)
     assert(!rs->rs_linked);
     LIST_INSERT_HEAD(rs_list, rs, rs_link);
     rs->rs_linked = 1;
+}
+
+int
+reserve_set_global_skew(int64_t skew)
+{
+    // limit to +/- 100%
+    if (skew > 1000 || skew < -1000)
+	return -E_INVAL;
+    reserve_skew = skew;
+cprintf("%s: reserve_skew set to %d\n", __func__, (int)skew);
+    return 0;
 }
 
 int
@@ -134,6 +148,11 @@ reserve_consume(struct Reserve *rs, int64_t amount, uint64_t force)
 {
     if (!force && rs->rs_level < amount)
 	return -E_NO_SPACE;
+
+    // allow billing skew so we can over- or under-bill to catch up
+    // with the battery
+    amount = amount + ((amount * reserve_skew) / 1000);
+    assert(amount >= 0);
 
     rs->rs_level -= amount;
     rs->rs_consumed += amount;

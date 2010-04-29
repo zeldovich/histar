@@ -164,7 +164,7 @@ handle_bar(uint16_t *fb, int xres, int yres)
 		printline(fb, 1, line2);
 
 		// could just be event-driven...
-		sleep(1);
+		sleep(5);
 	}
 }
 

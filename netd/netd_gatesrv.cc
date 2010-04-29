@@ -48,7 +48,7 @@ netd_bill_energy_pre(const struct netd_op_args *netd_op)
 
     // user could do an arbitrarily large send, but they just
     // screw themselves over.
-    sys_self_bill(THREAD_BILL_ENERGY_NET, count);
+    sys_self_bill(THREAD_BILL_ENERGY_NET_SEND, count);
 }
 
 static void
@@ -58,7 +58,7 @@ netd_bill_energy_post(const struct netd_op_args *netd_op)
 	return;
 
     if (netd_op->rval >= 0)
-	sys_self_bill(THREAD_BILL_ENERGY_NET, netd_op->rval);
+	sys_self_bill(THREAD_BILL_ENERGY_NET_RECV, netd_op->rval);
 
     //XXX what about error case?
 }

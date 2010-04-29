@@ -647,6 +647,13 @@ try
 		}
 	} while (IS_ERR(battery_endpt));
 
+	// linux does this. why?
+	struct htc_set_batt_delta_req req; 
+	req.data = cpu_to_be32(1);
+	int rc = msm_rpc_call(battery_endpt, 4, &req, sizeof(req), 5000);
+	if (rc < 0)
+		fprintf(stderr, "%s: htc set batt delta failed\n", argv[0]);
+
 	thread_halt();
 } catch (std::exception &e) {
 	printf("smdd: %s\n", e.what());

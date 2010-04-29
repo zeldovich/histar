@@ -14,9 +14,14 @@ struct htc_get_batt_info_rep {
 		uint32_t level;              /* formula */
 		uint32_t charging_source;    /* 0: no cable, 1:usb, 2:AC */
 		uint32_t charging_enabled;   /* 0: Disable, 1: Enable */
-		uint32_t full_bat;           /* Full capacity of battery (mAh) */
+		uint32_t full_bat;           /* Full capacity of battery (microamp-hours (uAh)) */
 	} info;
 };
+
+struct htc_set_batt_delta_req {
+	struct rpc_request_hdr hdr;
+	uint32_t data;				// linux sets to 1... what does
+};						// it do?
 
 enum {
 	tty_open,

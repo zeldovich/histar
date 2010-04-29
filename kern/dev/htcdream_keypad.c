@@ -4,6 +4,7 @@
 #include <kern/timer.h>
 #include <kern/console.h>
 #include <dev/msm_gpio.h>
+#include <dev/htcdream_backlight.h>
 #include <dev/htcdream_keypad.h>
 #include <inc/kbdcodes.h>
 
@@ -26,8 +27,8 @@ static int gpio_rows[] = { 42, 41, 40, 39, 38, 37, 36 };
 //	 - MENU (row 0, col 1)
 //	 - HOME (row 1, col 0)
 //	 - SEND (row 1, col 1) [the green phone key] 
-//	 - VOLUME UP (row 3, col 5)
-//	 - VOLUME DOWN (row 3, col 7)
+//	 - VOLUME UP (row 3, col 5)	-- hacked: backlight on
+//	 - VOLUME DOWN (row 3, col 7)	-- hacked: backlight off
 
 static const uint8_t keymap_normal[NGPIO_ROWS][NGPIO_COLS] = {
 	{  0,         0,       'u',  '5',  '4',  '2',  'i',  '3'      }, 
@@ -135,6 +136,12 @@ get_key()
 		    row, col); 
 	}
 #endif
+	// XXX
+	if (key == 0 && row == 3 && col == 5)
+		htcdream_backlight_level(100);	
+	if (key == 0 && row == 3 && col == 7)
+		htcdream_backlight_level(0);
+
 
 	return (key);
 }
