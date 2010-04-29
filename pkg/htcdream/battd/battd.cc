@@ -50,23 +50,23 @@ handle_change(int last_pct, int now_pct)
 	uint64_t rs_mJ_used = last_rs_level - ri.rs_level;
 	uint64_t this_time = sys_clock_nsec() / (1000 * 1000);
 
-	printf("----------------------------------------------------------\n");
-	printf("batt changed by %d%% in %" PRIu64 " milliseconds\n", delta,
+	printf("----------------------------------------\n");
+	printf("batt now at %d%% (was %d%%)\n", now_pct, last_pct);
+	printf("batt delta %d%% in %" PRIu64 " milliseconds\n", delta,
 	     this_time - last_time);
-	printf("%" PRIu64 " joules per 1%% battery\n", mJ_per_pct);
-	printf("%" PRIu64 " joules used since last (%" PRIu64 "mW)\n", mJ_used,
-	    mJ_used / (this_time - last_time) / 1000);
-	printf("%" PRIu64 " joules consumed in reserve\n", rs_mJ_used); 
-	printf("----------------------------------------------------------\n");
+	printf("%" PRIu64 " mJ per 1%% battery\n", mJ_per_pct);
+	printf("%" PRIu64 " mJ used since last (%" PRIu64 "mW)\n", mJ_used,
+	    mJ_used / ((this_time - last_time) / 1000));
+	printf("%" PRIu64 " mJ consumed in reserve\n", rs_mJ_used); 
+	printf("----------------------------------------\n");
 
 	if (rs_mJ_used < mJ_used) {
 		printf("reserve used less than reality! off by %" PRIu64
-		    "mJ\n", mJ_used - rs_mJ_used);
+		    " mJ\n", mJ_used - rs_mJ_used);
 	} else if (mJ_used < rs_mJ_used) {
 		printf("reserve used more than battery! off by %" PRIu64
-		    "mJ\n", rs_mJ_used - mJ_used);
+		    " mJ\n", rs_mJ_used - mJ_used);
 	}
-	printf("----------------------------------------------------------\n");
 
 	last_time = this_time;
 }
@@ -77,14 +77,15 @@ try
 {
 	struct htc_get_batt_info_rep batt_info;
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s batt_max_J\n", argv[0]);
+	if (argc != 1 && argc != 2) {
+		fprintf(stderr, "usage: %s [batt_max_J]\n", argv[0]);
 		exit(1);
 	}
 
-	strtou64(argv[1], NULL, 10, &batt_max);
-	batt_max *= 1000;	// want in mJ
-	printf("%s: 100%% charge => %" PRIu64 " mJ\n", argv[0], batt_max);
+	if (argc == 2) {
+		strtou64(argv[1], NULL, 10, &batt_max);
+		batt_max *= 1000;	//to mJ
+	}
 
 	int64_t rsid = container_find(start_env->root_container,
 	    kobj_reserve, "root_reserve");
@@ -114,6 +115,17 @@ try
 	}
 	last_rs_level = ri.rs_level;
 
+	// 3.7v battery; htc tells us microamp-hours, so we get mJ from below
+	uint64_t batt_claimed_max =
+	    ((uint64_t)be32_to_cpu(batt_info.info.full_bat) * 37 * 3600) / 10000;
+
+	if (batt_max == 0)
+		batt_max = batt_claimed_max;
+	else
+		printf("%s: overriding batt_max with user input [%s]!\n", argv[0], argv[1]);
+
+	printf("%s: battery claims %u mAh (%" PRIu64 "mJ)\n", argv[0],
+	    be32_to_cpu(batt_info.info.full_bat)/1000, batt_claimed_max);
 	printf("%s: battery initially at %d%% (%" PRIu64 "mJ)\n", argv[0],
 	    last_pct, last_pct * (batt_max / 100));
 
