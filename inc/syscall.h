@@ -154,6 +154,7 @@ void	sys_masked_jump(uint32_t mask, struct UTrapframe *utf);
 int64_t	sys_reserve_create(uint64_t container, const struct ulabel *l, const char *name);
 int64_t sys_reserve_get_level(struct cobj_ref rs);
 int64_t sys_reserve_get_info(struct cobj_ref rs, struct ReserveInfo *rsinfo);
+int	sys_reserve_set_global_skew(int64_t skew);
 int     sys_self_set_active_reserve(struct cobj_ref rsref);
 int64_t sys_limit_create(uint64_t ct,
 		 struct cobj_ref sourcersref,

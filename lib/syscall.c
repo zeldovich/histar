@@ -565,6 +565,11 @@ int64_t sys_reserve_get_info(struct cobj_ref rsref, struct ReserveInfo *rsinfo)
     return syscall(SYS_reserve_get_info, SOBJ(rsref), SPTR(rsinfo), 0, 0, 0, 0);
 }
 
+int sys_reserve_set_global_skew(int64_t skew)
+{
+    return syscall(SYS_reserve_set_global_skew, skew, 0, 0, 0, 0, 0, 0);
+}
+
 int
 sys_self_set_active_reserve(struct cobj_ref rsref)
 {

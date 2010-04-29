@@ -4,6 +4,7 @@
 #include <kern/timer.h>
 #include <kern/console.h>
 #include <dev/msm_gpio.h>
+#include <dev/htcdream_backlight.h>
 #include <dev/htcdream_keypad.h>
 #include <inc/kbdcodes.h>
 
@@ -137,9 +138,9 @@ get_key()
 #endif
 	// XXX
 	if (key == 0 && row == 3 && col == 5)
-		msm_gpio_write(27, 1);
+		htcdream_backlight_level(100);	
 	if (key == 0 && row == 3 && col == 7)
-		msm_gpio_write(27, 0);
+		htcdream_backlight_level(0);
 
 
 	return (key);

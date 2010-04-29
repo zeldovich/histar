@@ -188,6 +188,7 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 	htcdream_acoustic_init(0x01fe0000, 64 * 1024);
 	htcdream_keypad_init(board_rev);
 	htcdream_gpio_init(0x98000000);
+	htcdream_backlight_init();
 	htcdream_reset_init();
 
 #ifdef BLINK
