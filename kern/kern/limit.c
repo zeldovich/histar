@@ -134,7 +134,7 @@ limit_update_all(void)
 
     // subtract baseline cost for running the system for 1 s
     assert(root_rs);
-    root_rs->rs_level -= energy_baseline_mJ(elapsed);
+    reserve_consume(root_rs, energy_baseline_mJ(elapsed), 1);
 
     // first do decay and then do additions
     reserve_decay_all(elapsed, now);

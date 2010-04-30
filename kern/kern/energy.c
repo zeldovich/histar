@@ -31,8 +31,7 @@ energy_cpu_mW()
 }
 
 int64_t
-energy_net_send_mJ(uint64_t bytes)
-{
+energy_net_send_mJ(uint64_t bytes) {
     return bytes * 200;	// XXX- need real numbers
 }
 
@@ -85,7 +84,7 @@ energy_net_recv_mJ(uint64_t bytes)
 }
 
 int64_t
-energy_backlight_mW()
+energy_backlight_mW(int level)
 {
     return 0;
 }
