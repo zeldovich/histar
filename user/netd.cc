@@ -68,7 +68,8 @@ htc_poll_address(uint32_t *ip, uint32_t *mask, uint32_t *gw, int zero_ok)
 	sleep(5);
     }
 
-    printf("netd using HTC ip 0x%08x, mask 0x%08x, gw 0x%08x\n", *ip, *mask, *gw);
+    if (netd_ip != *ip)
+	printf("netd using HTC ip 0x%08x, mask 0x%08x, gw 0x%08x\n", *ip, *mask, *gw);
 
     FILE *fp = fopen("/netd/resolv.conf", "w");
     fprintf(fp, "nameserver %d.%d.%d.%d\n", (netcfg.dns1 >> 24) & 0xff,
