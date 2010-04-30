@@ -131,12 +131,11 @@ htc_poll_thread(void *arg)
 static void
 ready_cb(void *arg)
 {
-    struct netif *nif = (struct netif *)arg;
-
     netd_server_enable();
     printf("netd: ready\n");
 
 #ifdef JOS_ARCH_arm
+    struct netif *nif = (struct netif *)arg;
     // network will go up and down a lot, that's the nature of the beast
     // so create a thread to check for this
     pthread_t pid;
