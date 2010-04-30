@@ -293,6 +293,16 @@ smddgate_rmnet_open(int which)
 }
 
 int
+smddgate_rmnet_close(int which)
+{
+	GATECALL_SETUP(rmnet_close);
+	req->fd = which;
+	req->bufbytes = 0;
+	g.call(&gcd, 0);
+	return (rep->err);
+}
+
+int
 smddgate_rmnet_config(int which, struct htc_netconfig *hnc)
 {
 	GATECALL_SETUP(rmnet_config);
@@ -440,5 +450,17 @@ smddgate_rmnet_fast_setup(int which, void **tx_ret, void **rx_ret)
 	return 0;
 }
 #endif
+
+int
+smddgate_rmnet_stats(int which, struct rmnet_stats *rsp)
+{
+	GATECALL_SETUP(rmnet_stats);
+	req->fd = which;
+	req->bufbytes = 0;
+	g.call(&gcd, 0);
+	if (!rep->err)
+		memcpy(rsp, rep->buf, sizeof(*rsp));
+	return (rep->err);
+}
 
 } // extern C

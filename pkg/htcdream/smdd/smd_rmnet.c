@@ -48,8 +48,7 @@ static struct rmnet_private {
 	smd_channel_t *ch;
 	const char *chname;
 	int chnum;
-	size_t tx_frames, tx_frame_bytes;
-	size_t rx_frames, rx_frame_bytes, rx_dropped;
+	struct rmnet_stats stats;
 	volatile struct ringseg *rxseg;
 	volatile struct ringseg *txseg;
 	int fast_path;
@@ -77,7 +76,7 @@ static void smd_net_notify(void *_priv, unsigned event)
 			cprintf("rmnet_recv() discarding %d len\n", sz);
 			if (smd_read(p->ch, NULL, sz) != sz)
 				cprintf("rmnet_recv() smd lied about avail?!\n");
-			p->rx_dropped++;
+			p->stats.rx_dropped++;
 		} else {
 			volatile struct ringseg *seg = p->rxseg;
 			volatile struct ringpkt *rxp = &seg->q[seg->q_head];
@@ -92,8 +91,8 @@ static void smd_net_notify(void *_priv, unsigned event)
 			jhexdump((const unsigned char *)pktbuf, sz);
 #endif
 
-			p->rx_frames++;
-			p->rx_frame_bytes += sz;
+			p->stats.rx_frames++;
+			p->stats.rx_frame_bytes += sz;
 
 			if (p->fast_path) {
 				rxp->bytes = sz; 
@@ -135,7 +134,6 @@ extern "C" int smd_rmnet_open(int which)
 	struct rmnet_private *p = &rmnet_private[which]; 
 	if (!p->ch) {
 		r = smd_open(p->chname, &p->ch, p, smd_net_notify);
-
 		if (r < 0)
 			return r;
 	}
@@ -143,8 +141,27 @@ extern "C" int smd_rmnet_open(int which)
 	return 0;
 }
 
-extern "C" void smd_rmnet_close(int which)
+extern "C" int smd_rmnet_close(int which)
 {
+	int r;
+
+	if (which < 0 || which >= 3)
+		return -E_NOT_FOUND;
+
+#ifdef DEBUG
+	cprintf("rmnet_open(%d)\n", which);
+#endif
+
+	struct rmnet_private *p = &rmnet_private[which]; 
+	if (p->ch) {
+		pthread_mutex_lock(&p->mtx);
+		r = smd_close(p->ch);
+		pthread_mutex_unlock(&p->mtx);
+		if (r < 0)
+			return r;
+	}
+
+	return 0;
 }
 
 extern "C" int smd_rmnet_xmit(int which, void *buf, int len)
@@ -164,9 +181,10 @@ extern "C" int smd_rmnet_xmit(int which, void *buf, int len)
 	// NB: smd_write already does mutual exclusion
 	if (smd_write(p->ch, buf, len) != len) {
 		cprintf("rmnet fifo full, dropping packet\n");
+		p->stats.tx_dropped++;
 	} else {
-		p->tx_frames++;
-		p->tx_frame_bytes += len;	
+		p->stats.tx_frames++;
+		p->stats.tx_frame_bytes += len;	
 	}
 
 	return 0;
@@ -243,6 +261,17 @@ cprintf("%s: shared memory: rx @ %p, len %d\n", __func__, rx, rxlen);
 	// spawn a thread that handles transmits 
 	pthread_t tid;
 	pthread_create(&tid, NULL, fast_xmit_thread, p);
+
+	return 0;
+}
+
+extern "C" int smd_rmnet_stats(int which, struct rmnet_stats *rsp)
+{
+	if (which < 0 || which >= 3)
+		return -E_NOT_FOUND;
+
+	struct rmnet_private *p = &rmnet_private[which]; 
+	*rsp = p->stats;
 
 	return 0;
 }

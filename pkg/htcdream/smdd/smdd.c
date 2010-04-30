@@ -356,6 +356,12 @@ smdd_rmnet_open(struct smdd_req *request, struct smdd_reply *reply)
 }
 
 static void
+smdd_rmnet_close(struct smdd_req *request, struct smdd_reply *reply)
+{
+	reply->err = smd_rmnet_close(request->fd);
+}
+
+static void
 smdd_rmnet_config(struct smdd_req *request, struct smdd_reply *reply)
 {
 	struct htc_netconfig *hnc = &reply->netconfig; 
@@ -468,6 +474,14 @@ smdd_rmnet_fast_setup(struct smdd_req *request, struct smdd_reply *reply)
 #endif
 
 static void
+smdd_rmnet_stats(struct smdd_req *request, struct smdd_reply *reply)
+{
+	struct rmnet_stats *rsp = (struct rmnet_stats *)reply->buf;
+	reply->err = smd_rmnet_stats(request->fd, rsp);
+	reply->bufbytes = sizeof(*rsp);
+}
+
+static void
 smdd_dispatch(struct gate_call_data *parm)
 {
 	struct smdd_req *req = (struct smdd_req *) &parm->param_buf[0];
@@ -551,6 +565,10 @@ smdd_dispatch(struct gate_call_data *parm)
 			smdd_rmnet_open(req, reply);
 			break;
 
+		case rmnet_close:
+			smdd_rmnet_close(req, reply);
+			break;
+
 		case rmnet_config:
 			smdd_rmnet_config(req, reply);
 			break;
@@ -565,6 +583,10 @@ smdd_dispatch(struct gate_call_data *parm)
 
 		case rmnet_fast_setup:
 			smdd_rmnet_fast_setup(req, reply);
+			break;
+
+		case rmnet_stats:
+			smdd_rmnet_stats(req, reply);
 			break;
 
 		default:
