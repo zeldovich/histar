@@ -1832,6 +1832,17 @@ handle_pdp_up()
 	return 0;
 }
 
+static int
+handle_pdp_down()
+{
+	int ret;
+	smddgate_rmnet_close(0);
+
+	fprintf(stderr, "RMNET IS DOWN!\n");
+
+	return 0;
+}
+
 extern "C" void
 RIL_onRequestComplete(RIL_Token t, RIL_Errno e, void *response, size_t responselen)
 {
@@ -1863,6 +1874,11 @@ RIL_onRequestComplete(RIL_Token t, RIL_Errno e, void *response, size_t responsel
 		} else {
 			fprintf(stderr, " - FAILED: %s\n", failCauseToString(e));
 		}
+	}
+
+	if (pRI->pCI->requestNumber == RIL_REQUEST_DEACTIVATE_DEFAULT_PDP) {
+		fprintf(stderr, "DEACTIVATE_DEFAULT_PDP complete!\n");
+		handle_pdp_down();
 	}
 
 	if (pRI->pCI->requestNumber == RIL_REQUEST_GET_NEIGHBORING_CELL_IDS) {

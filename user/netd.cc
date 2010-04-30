@@ -1,18 +1,32 @@
 extern "C" {
-#include <inc/memlayout.h>
-#include <inc/syscall.h>
-#include <inc/string.h>
-#include <inc/lib.h>
 #include <inc/assert.h>
+#include <inc/error.h>
+#include <inc/lib.h>
+#include <inc/syscall.h>
+#include <inc/memlayout.h>
+#include <inc/stdio.h>
+#include <inc/string.h>
 #include <inc/netd.h>
+#include <inc/assert.h>
 #include <netd/netdlwip.h>
-
-#include <stdio.h>
 #include <string.h>
-#include <inttypes.h>
+#include <stdio.h>
+#include <errno.h>
 #include <unistd.h>
 
-#include <arpa/inet.h>
+#include <lwip/sockets.h>
+#include <lwip/netif.h>
+#include <lwip/stats.h>
+#include <lwip/sys.h>
+#include <lwip/tcp.h>
+#include <lwip/udp.h>
+#include <lwip/dhcp.h>
+#include <lwip/tcpip.h>
+#include <arch/sys_arch.h>
+#include <netif/etharp.h>
+
+#include <inttypes.h>
+#include <pthread.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -28,44 +42,34 @@ extern "C" {
 static int netd_debug = 0;
 enum { netd_do_taint = 0 };
 
-static void
-ready_cb(void *arg)
-{
-    netd_server_enable();
-    printf("netd: ready\n");
-}
-
-int
-main(int ac, char **av)
-{
-    if (ac != 4) {
-	printf("Usage: %s grant-handle taint-handle inet-taint\n", av[0]);
-	return -1;
-    }
-
-    uint32_t ip = 0, mask = 0, gw = 0;
+static uint32_t netd_ip, netd_mask, netd_gw;
 
 #ifdef JOS_ARCH_arm
-    // XXX- nasty hack for HTC Dream
+static void
+htc_poll_address(uint32_t *ip, uint32_t *mask, uint32_t *gw, int zero_ok)
+{
     struct htc_netconfig netcfg; 
-    smddgate_init();
+    int report = 0;
 
     while (1) {
 	smddgate_rmnet_config(0, &netcfg);
-	ip   = htonl(netcfg.ip);
-	mask = htonl(netcfg.mask);
-	gw   = htonl(netcfg.gw);
-	if (ip != 0)
+	*ip   = htonl(netcfg.ip);
+	*mask = htonl(netcfg.mask);
+	*gw   = htonl(netcfg.gw);
+	if (*ip != 0)
+		break;
+	if (zero_ok)
 		break;
 
-	static int report = 0;
 	if (!report) {
 		printf("netd waiting on smdd for IP address...\n");
 		report++;
 	}
 	sleep(5);
     }
-    printf("netd using HTC ip 0x%08x, mask 0x%08x, gw 0x%08x\n", ip, mask, gw);
+
+    if (netd_ip != *ip)
+	printf("netd using HTC ip 0x%08x, mask 0x%08x, gw 0x%08x\n", *ip, *mask, *gw);
 
     FILE *fp = fopen("/netd/resolv.conf", "w");
     fprintf(fp, "nameserver %d.%d.%d.%d\n", (netcfg.dns1 >> 24) & 0xff,
@@ -77,6 +81,81 @@ main(int ac, char **av)
                                             (netcfg.dns2 >>  8) & 0xff,
                                             (netcfg.dns2 >>  0) & 0xff);
     fclose(fp);
+}
+
+static void *
+htc_poll_thread(void *arg)
+{
+    struct netif *nif = (struct netif *)arg;
+
+    while (1) {
+        uint32_t ip, mask, gw;
+
+	htc_poll_address(&ip, &mask, &gw, 1);
+
+	struct ip_addr ipaddr, netmask, gateway;
+	ipaddr.addr  = ip;
+	netmask.addr = mask;
+	gateway.addr = gw;
+
+        if (ip != netd_ip) {
+		if (ip == 0) {
+			printf("netd: ip address == 0: network down\n");
+			lwip_core_lock();
+			netif_set_down(nif);
+			lwip_core_unlock();
+		} else {
+			printf("netd: ip address != 0: network up!\n");
+			lwip_core_lock();
+			netif_set_down(nif);
+			netif_set_addr(nif, &ipaddr, &netmask, &gateway);
+			netif_set_up(nif);
+			lwip_core_unlock();
+		}
+	}
+
+	netd_ip = ip;
+	netd_mask = mask;
+	netd_gw = gw;
+
+	// gcc, shut up about the noreturn attribute candidacy shit
+	if (ip == 0 && mask != 0 && gw != 0) break;
+
+	sleep(2);
+    }
+
+    return NULL;
+}
+#endif
+
+static void
+ready_cb(void *arg)
+{
+    struct netif *nif = (struct netif *)arg;
+
+    netd_server_enable();
+    printf("netd: ready\n");
+
+#ifdef JOS_ARCH_arm
+    // network will go up and down a lot, that's the nature of the beast
+    // so create a thread to check for this
+    pthread_t pid;
+    pthread_create(&pid, NULL, htc_poll_thread, nif);
+#endif
+}
+
+int
+main(int ac, char **av)
+{
+    if (ac != 4) {
+	printf("Usage: %s grant-handle taint-handle inet-taint\n", av[0]);
+	return -1;
+    }
+
+#ifdef JOS_ARCH_arm
+    // XXX- nasty hack for HTC Dream
+    smddgate_init();
+    htc_poll_address(&netd_ip, &netd_mask, &netd_gw, 0);
 #endif
 
     struct cobj_ref netdev;
@@ -151,5 +230,5 @@ main(int ac, char **av)
 	panic("%s", e.what());
     }
 
-    netd_lwip_init(&ready_cb, 0, netd_if_jif, &netdev, ip, mask, gw);
+    netd_lwip_init(&ready_cb, 0, netd_if_jif, &netdev, netd_ip, netd_mask, netd_gw);
 }

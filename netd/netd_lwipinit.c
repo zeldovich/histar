@@ -179,7 +179,8 @@ netd_lwip_init(void (*cb)(void *), void *cbarg,
     sys_sem_wait(tcpip_init_sem);
     sys_sem_free(tcpip_init_sem);
 
-    cb(cbarg);
+    //cb(cbarg);
+    cb(nif); // XXX
 
     int dhcp_state = 0;
     const char *dhcp_states[] = {

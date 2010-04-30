@@ -42,10 +42,12 @@ enum {
 	rpc_endpoint_read_select,
 	get_battery_info,
 	rmnet_open,
+	rmnet_close,
 	rmnet_config,
 	rmnet_tx,
 	rmnet_rx,
-	rmnet_fast_setup
+	rmnet_fast_setup,
+	rmnet_stats
 };
 
 struct smdd_req {

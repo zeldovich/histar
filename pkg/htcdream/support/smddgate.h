@@ -1,6 +1,8 @@
 #ifndef _SMDDGATE_H_
 #define _SMDDGATE_H_
 
+#include <pkg/htcdream/smdd/smd_rmnet.h>
+
 #ifdef __cplusplus 
 extern "C" {
 #endif
@@ -24,10 +26,12 @@ int smddgate_rpc_read(void *, void *, size_t);
 int smddgate_rpc_write(void *, const void *, size_t);
 int smddgate_rpc_endpoint_read_select(void **, int, uint64_t);
 int smddgate_rmnet_open(int);
+int smddgate_rmnet_close(int);
 int smddgate_rmnet_config(int, struct htc_netconfig *);
 int smddgate_rmnet_tx(int, char *, size_t);
 int smddgate_rmnet_rx(int, char *, size_t);
 int smddgate_rmnet_fast_setup(int, void **, void **);
+int smddgate_rmnet_stats(int, struct rmnet_stats *); 
 
 #ifdef __cplusplus
 }

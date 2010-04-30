@@ -147,6 +147,16 @@ gate_default_pdp_on()
 }
 
 static void
+gate_default_pdp_off()
+{
+	// CID
+	fprintf(stderr, "%s: issuing DEACTIVATE_DEFAULT_PDP ril request!\n", __func__);
+	const char *arg[1] = { "1" };	//XXX- always the same CID?
+	RIL_issueLocalRequest(RIL_REQUEST_DEACTIVATE_DEFAULT_PDP, arg,
+		      sizeof(arg));
+}
+
+static void
 gate_neighboring_cells()
 {
 	fprintf(stderr, "%s: issuing RIL_REQUEST_GET_NEIGHBORING_CELL_IDS ril "
@@ -200,6 +210,10 @@ rild_dispatch(struct gate_call_data *parm)
 
 	case default_pdp_on:
 		gate_default_pdp_on();
+		break;
+
+	case default_pdp_off:
+		gate_default_pdp_off();
 		break;
 
 	case get_ril_interface_version:

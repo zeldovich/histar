@@ -27,6 +27,7 @@ usage(const char *progname)
 	fprintf(stderr, "    answer            - answer phone\n");
 	fprintf(stderr, "    end               - end call (hang up)\n");
 	fprintf(stderr, "    pdpon             - initiate packet data protocol (PDP) context\n");
+	fprintf(stderr, "    pdpoff            - turn off latest PDP context\n");
 	fprintf(stderr, "    neighbors         - list GSM neighbor cells\n");
 	fprintf(stderr, "    registration      - get registration status\n");
 	fprintf(stderr, "    ifacever          - get RIL interface version\n");
@@ -92,6 +93,9 @@ try
 		printf("ending call.\n");
 	} else if (strcmp(argv[1], "pdpon") == 0) {
 		req->op = default_pdp_on;
+		gate_call(rildgate, 0, 0, 0).call(&gcd, 0);
+	} else if (strcmp(argv[1], "pdpoff") == 0) {
+		req->op = default_pdp_off;
 		gate_call(rildgate, 0, 0, 0).call(&gcd, 0);
 	} else if (strcmp(argv[1], "neighbors") == 0) {
 		req->op = neighboring_cells;
