@@ -26,8 +26,10 @@ sigchld_handler(int i)
 {
     static uint64_t quit_count = 0;
     quit_count++;
-    if (quit_count == count)
+    if (quit_count == count) {
+	sys_toggle_debug(1);
 	exit(0);
+    }
 }
 
 int
@@ -38,13 +40,14 @@ try
 	printf("usage: foremW backmW prog_path prog_args...\n");
 	return -1;
     }
-    const int forethrottle = atoi(av[1]);
-    const int backthrottle = atoi(av[2]);
+    const int print_stats = atoi(av[1]);
+    const int forethrottle = atoi(av[2]);
+    const int backthrottle = atoi(av[3]);
 
-    char *args[ac - 3 + 1];
-    for (int i = 0; i < ac - 3; i++)
-	args[i] = (char *)av[3 + i];
-    args[ac - 3] = NULL;
+    char *args[ac - 4 + 1];
+    for (int i = 0; i < ac - 4; i++)
+	args[i] = (char *)av[4 + i];
+    args[ac - 4] = NULL;
 
     // find the root reserve
     int64_t rsid = container_find(start_env->root_container, kobj_reserve, "root_reserve");
@@ -133,6 +136,8 @@ try
     sleep(10);
     error_check(sys_limit_set_rate(forelms[1], LIMIT_TYPE_CONST, 0));
 
+    if (print_stats)
+	sys_toggle_debug(1);
     sleep(1200);
 
     return 0;

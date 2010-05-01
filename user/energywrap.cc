@@ -21,40 +21,8 @@ extern "C" {
 void __attribute__((noreturn))
 sigchld_handler(int i)
 {
+    sys_toggle_debug(1);
     exit(0);
-}
-
-void
-print_res_stats(struct cobj_ref rsref,
-		uint64_t *last_nsec,
-		uint64_t *last_level,
-		int prefix)
-{
-    if (!*last_nsec)
-	*last_nsec = sys_clock_nsec();
-
-    int64_t level = sys_reserve_get_level(rsref);
-
-    if (!*last_level)
-	*last_level = level;
-
-    uint64_t elapsed;
-    char name[256];
-
-    printf("%d>reserve %ld:\n", prefix, rsref.object);
-    sys_obj_get_name(rsref, &name[0]);
-    printf("%d>  name    : %s\n", prefix, name);
-    printf("%d>  level   : %ld\n", prefix, level);
-
-    elapsed = sys_clock_nsec() - *last_nsec;
-    *last_nsec += elapsed;
-    int64_t r = (level - *last_level) * 1000000000 / elapsed;
-    printf("%d>  est mW  : %ld\n", prefix, r);
-
-    printf("%d>elapsed   : %lu\n", prefix, elapsed / 1000000);
-    printf("%d>     ts   : %lu\n", prefix, *last_nsec);
-
-    printf("\n");
 }
 
 int
@@ -128,11 +96,9 @@ try
 	return 0;
     }
 
-    // want to sync here to get thread started first
-    uint64_t last_nsec = 0, last_level = 0;
+    if (print_stats)
+	sys_toggle_debug(1);
     while (1) {
-	if (print_stats)
-	    print_res_stats(rs0, &last_nsec, &last_level, 0);
 	usleep(1000000);
     }
 

@@ -113,6 +113,7 @@
     SYSCALL_ENTRY(limit_create)			\
     SYSCALL_ENTRY(limit_set_rate)		\
     SYSCALL_ENTRY(self_bill)			\
+    SYSCALL_ENTRY(toggle_debug)		 	\
     
 
 #ifndef __ASSEMBLER__

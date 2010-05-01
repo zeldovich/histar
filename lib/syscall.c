@@ -596,3 +596,8 @@ int64_t sys_self_bill(uint64_t type, uint64_t value)
     return syscall(SYS_self_bill, type, value, 0, 0, 0, 0, 0);
 }
 
+int64_t sys_toggle_debug(uint64_t type)
+{
+    return syscall(SYS_toggle_debug, type, 0, 0, 0, 0, 0, 0);
+}
+

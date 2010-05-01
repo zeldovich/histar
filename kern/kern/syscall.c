@@ -1351,6 +1351,20 @@ sys_self_bill(uint64_t type, uint64_t value)
     return 0;
 }
 
+// bit 0, toggle reserve dump; bit 1, toggle limit dump
+static int64_t __attribute__ ((warn_unused_result))
+sys_toggle_debug(uint64_t type)
+{
+    cprintf("%s:%d\n", __FILE__, __LINE__);
+    if (type & 0x1) {
+	cprintf("%s:%d\n", __FILE__, __LINE__);
+	reserve_prof_toggle();
+    } else if (type & 0x2) {
+	limit_prof_toggle();
+    }
+    return 0;
+}
+
 #define SYSCALL(name, ...)						\
     case SYS_##name:							\
 	return sys_##name(__VA_ARGS__);
@@ -1474,6 +1488,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(limit_create, a1, COBJ(a2, a3), COBJ(a4, a5), p6, p7);
 	SYSCALL(limit_set_rate, COBJ(a1, a2), a3, a4);
 	SYSCALL(self_bill, a1, a2);
+	SYSCALL(toggle_debug, a1);
 
     default:
 	cprintf("Unknown syscall %"PRIu64"\n", num);

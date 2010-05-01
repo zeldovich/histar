@@ -3,7 +3,7 @@
 #include <dev/vesa.h>
 #include <boot/code16gcc.h>
 
-enum { enable_vesa = 1 };
+enum { enable_vesa = 0 };
 
 struct sysx_info sysx_info;
 

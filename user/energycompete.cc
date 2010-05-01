@@ -24,6 +24,7 @@ const uint64_t count = 2;
 void __attribute((noreturn))
 sigchld_handler(int i)
 {
+    sys_toggle_debug(1);
     exit(0);
 }
 
@@ -34,42 +35,6 @@ badsigchld_handler(int i)
     quit_count++;
     if (quit_count == count)
 	exit(0);
-}
-
-void
-print_res_stats(struct cobj_ref rsref,
-		uint64_t *last_nsec,
-		uint64_t *last_level,
-		int prefix)
-{
-    if (!*last_nsec)
-	*last_nsec = sys_clock_nsec();
-
-    ReserveInfo info;
-    sys_reserve_get_info(rsref, &info);
-
-    if (!*last_level)
-	*last_level = info.rs_level;
-
-    uint64_t elapsed;
-    char name[256];
-
-    printf("%d>reserve %ld:\n", prefix, rsref.object);
-    sys_obj_get_name(rsref, &name[0]);
-    printf("%d>  name    : %s\n", prefix, name);
-    printf("%d>  level   : %ld\n", prefix, info.rs_level);
-    printf("%d>  consumed: %ld\n", prefix, info.rs_consumed);
-    printf("%d>  decayed : %ld\n", prefix, info.rs_decayed);
-
-    elapsed = sys_clock_nsec() - *last_nsec;
-    *last_nsec += elapsed;
-    int64_t r = (info.rs_level - *last_level) * 1000000000 / elapsed;
-    printf("%d>  est mW  : %ld\n", prefix, r);
-
-    printf("%d>elapsed   : %lu\n", prefix, elapsed / 1000000);
-    printf("%d>     ts   : %lu\n", prefix, *last_nsec);
-
-    printf("\n");
 }
 
 int
@@ -167,26 +132,9 @@ try
 	return 0;
     }
 
-    uint64_t last_nsec = 0, last_level = 0;
-    uint64_t glast_nsec = 0, glast_level = 0;
-    uint64_t blast_nsec = 0, blast_level = 0;
-    uint64_t last_nsecs[count], last_levels[count];
-    for (uint64_t i = 0; i < count; i++) {
-	last_nsecs[i] = 0;
-	last_levels[i] = 0;
-    }
-    while (1) {
-	uint64_t last = sys_clock_nsec();
-	if (print_stats) {
-	    print_res_stats(rootrs, &last_nsec, &last_level, 99);
-	    print_res_stats(goodrs, &glast_nsec, &glast_level, 98);
-	    print_res_stats(badrs, &blast_nsec, &blast_level, 97);
-	    for (uint64_t i = 0; i < count; i++)
-		print_res_stats(rss[i], &last_nsecs[i], &last_levels[i], i);
-	}
-	while (sys_clock_nsec() - last < 1000000000lu) {
-	}
-    }
+    if (print_stats)
+	sys_toggle_debug(1);
+    sleep(120);
 
     return 0;
 } catch (std::exception &e) {
