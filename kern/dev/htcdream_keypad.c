@@ -3,6 +3,7 @@
 #include <kern/intr.h>
 #include <kern/timer.h>
 #include <kern/console.h>
+#include <kern/reserve.h>
 #include <dev/msm_gpio.h>
 #include <dev/htcdream_backlight.h>
 #include <dev/htcdream_keypad.h>
@@ -24,7 +25,7 @@ static int gpio_rows[] = { 42, 41, 40, 39, 38, 37, 36 };
 //     - Internal magnifying glass (row 2, col 7) is mapped as KEY_F2. 
 //     - The following external buttons are unmapped:
 //       - BACK (row 0, col 0)
-//	 - MENU (row 0, col 1)
+//	 - MENU (row 0, col 1)		-- hacked: reserve info dump on
 //	 - HOME (row 1, col 0)
 //	 - SEND (row 1, col 1) [the green phone key] 
 //	 - VOLUME UP (row 3, col 5)	-- hacked: backlight on
@@ -137,6 +138,8 @@ get_key()
 	}
 #endif
 	// XXX
+	if (key == 0 && row == 0 && col == 1)
+		reserve_prof_toggle();
 	if (key == 0 && row == 3 && col == 5)
 		htcdream_backlight_level(100);	
 	if (key == 0 && row == 3 && col == 7)
@@ -199,7 +202,7 @@ htcdream_keypad_init(uint32_t board_rev)
 		msm_gpio_set_direction(gpio_rows[i], GPIO_DIRECTION_IN);
 	}
 
-	htcdream_keypad_timer.pt_interval_msec = 10;
+	htcdream_keypad_timer.pt_interval_msec = 100;	//XXX a bit high
 	htcdream_keypad_timer.pt_fn = keypad_timer;
 	timer_add_periodic(&htcdream_keypad_timer);
 
