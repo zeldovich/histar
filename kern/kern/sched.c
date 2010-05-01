@@ -74,7 +74,11 @@ schedule(void)
 		// 0 if no energy
 		// 1 if energy
 		// hence this allows threads with no res or threads with filled res to run
-		int r = thread_has_energy(&kobject_dirty(&t->th_ko)->th);
+		struct Thread *dt = &kobject_dirty(&t->th_ko)->th;
+		int r = thread_has_energy(dt);
+		// Adjust pass of thread that can't run due to lack of energy
+		// so that when it can run again it can't starve others
+		dt->th_sched_pass = global_pass + dt->th_sched_remain;
 		if (r)
 		    min_pass_th = t;
 	    }
