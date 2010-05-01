@@ -149,3 +149,185 @@ index f873fc9..b47c778 100644
  		return stracpy("Unknown bit depth");
  	}
  	fb_colors=1<<fb_bits_pp;
+diff -u links-2.2-orig/http.c links-2.2/http.c
+--- links-2.2-orig/http.c	2010-05-01 10:52:19.238662765 -0700
++++ links-2.2/http.c	2010-05-01 10:51:15.038662798 -0700
+@@ -461,6 +461,30 @@
+ 		http_end_request(c, 0);
+ 		return;
+ 	}
++
++	// ---- begin Cinder plugin call ----
++	size_t size = getpagesize() * 16;
++	printf("%s: %d %ld\n", __func__, rb->len, size);
++	struct plugin_message {
++	    uint64_t volatile go;
++	    uint64_t volatile len;
++	    char data[32760];
++	};
++	extern struct plugin_message *plugin_message;
++	plugin_message->go = 0;
++	if (rb->len > size - sizeof(uint64_t)) {
++	    printf("%s: data too large to pass to plugin", __func__);
++	    exit(-1);
++	}
++	memcpy(plugin_message->data, rb->data, rb->len);
++	plugin_message->len = rb->len;
++	plugin_message->go = 1;
++	sys_sync_wakeup(&plugin_message->go);
++	sys_sync_wait(&plugin_message->go, 1, ~UINT64(0));
++	memcpy(rb->data, plugin_message->data, rb->len);
++	plugin_message->go = 0;
++	// ---- end Cinder plugin call ----
++
+ 	if (info->length != -2) {
+ 		int l = rb->len;
+ 		if (info->length >= 0 && info->length < l) l = info->length;
+diff -u links-2.2-orig/main.c links-2.2/main.c
+--- links-2.2-orig/main.c	2010-05-01 10:52:19.074662780 -0700
++++ links-2.2/main.c	2010-05-01 10:51:20.934662806 -0700
+@@ -429,8 +429,144 @@
+ 	if (clipboard) mem_free(clipboard);
+ }
+ 
++#include <inc/lib.h>
++#include <inc/syscall.h>
++#include <sys/mman.h>
++
++struct plugin_message {
++    uint64_t volatile go;
++    uint64_t volatile len;
++    char data[0];
++};
++
++struct plugin_message *plugin_message;
++
++void *
++plugin(void *args)
++{
++    while (1) {
++	sys_sync_wait(&plugin_message->go, 0, ~UINT64(0));
++	printf("plugin: processing %lu byte chunk\n", plugin_message->len);
++	unsigned char *p = plugin_message->data;
++	unsigned char *data = plugin_message->data;
++	uint64_t len = plugin_message->len;
++	while (p < data + len && (p = strstr(p, "Ryan"))) {
++	    p[0] = 'T';
++	    p[1] = 'e';
++	    p[2] = 's';
++	    p[3] = 't';
++	}
++	plugin_message->go = 0;
++	sys_sync_wakeup(&plugin_message->go);
++    }
++}
++
++void
++setup_plugin(uint64_t ctid, struct cobj_ref browserrs, struct ulabel *l)
++{
++    // setup shm
++    size_t size = getpagesize() * 16;
++    int fd = open("/tmp/plugin", O_CREAT | O_TRUNC, 0666);
++    int r = ftruncate(fd, size);
++    if (r < 0) {
++	perror("couldn't truncate\n");
++	exit(r);
++    }
++    plugin_message = mmap(NULL, size,
++			  PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
++    if (plugin_message == MAP_FAILED)  {
++	perror("couldn't mmap\n");
++	exit((uintptr_t)plugin_message);
++    }
++    plugin_message->go = 0;
++    sprintf(&plugin_message->data[0], "Hello from the browser\n");
++
++    // setup reserves
++    int64_t rc;
++    rc = sys_reserve_create(ctid, l, "pluginrs");
++    if (rc < 0) {
++	perror("couldn't create reserve");
++	exit(rc);
++    }
++    struct cobj_ref pluginrs = COBJ(ctid, rc);
++
++    // create a limit between the browserrs and pluginrs
++    rc = sys_limit_create(ctid, browserrs, pluginrs, l, "pluginlm");
++    if (rc < 0) {
++	perror("couldn't create limit");
++	exit(rc);
++    }
++    struct cobj_ref pluginlm = COBJ(ctid, rc);
++    rc = sys_limit_set_rate(pluginlm, LIMIT_TYPE_CONST, 1000);
++    if (rc < 0) {
++	perror("couldn't set limit rate");
++	exit(rc);
++    }
++
++    // start thread
++    pid_t pid;
++    pid = fork();
++    if (!pid) {
++	int64_t r = sys_self_set_active_reserve(pluginrs);
++	if (r < 0) {
++	    perror("plugin could set reserve\n");
++	    exit(r);
++	}
++	plugin(NULL);
++    }
++}
++
++void
++setup_reserves()
++{
++    // find the root reserve
++    int64_t rsid = container_find(start_env->root_container, kobj_reserve, "root_reserve");
++    if (rsid < 0) {
++	perror("couldn't find root_reserve");
++	exit(rsid);
++    }
++    struct cobj_ref rootrs = COBJ(start_env->root_container, rsid);
++
++    uint64_t ctid = start_env->shared_container;
++
++    struct ulabel l;
++    sys_obj_get_label(rootrs, &l);
++    int64_t r;
++    r = sys_reserve_create(ctid, &l, "linksrs");
++    if (r < 0) {
++	perror("couldn't create reserve");
++	exit(r);
++    }
++    printf("New reserve is at %lu\n", r);
++    struct cobj_ref rs0 = COBJ(ctid, r);
++
++    // create a limit between the root and rs0
++    r = sys_limit_create(ctid, rootrs, rs0, &l, "wraplimit");
++    if (r < 0) {
++	perror("couldn't create limit");
++	exit(r);
++    }
++    printf("New limit is at %lu\n", r);
++    struct cobj_ref lm0 = COBJ(ctid, r);
++    r = sys_limit_set_rate(lm0, LIMIT_TYPE_CONST, 100000);
++    if (r < 0) {
++	perror("couldn't set limit rate");
++	exit(r);
++    }
++
++    r = sys_self_set_active_reserve(rs0);
++    if (r < 0) {
++	perror("couldn't set active reserve\n");
++	exit(r);
++    }
++
++    setup_plugin(ctid, rs0, &l);
++}
++
+ int main(int argc, char *argv[])
+ {
++	setup_reserves();
++
+ 	path_to_exe = argv[0];
+ 	g_argc = argc;
+ 	g_argv = (unsigned char **)argv;
