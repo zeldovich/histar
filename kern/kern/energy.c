@@ -27,7 +27,7 @@ battery_full_charge_mJ()
 int64_t
 energy_cpu_mW()
 {
-    return 100;
+    return 137;
 }
 
 int64_t
@@ -45,16 +45,14 @@ int64_t
 energy_backlight_mW(int level)
 {
     if (level)
-	return 800;		// XXX- arjun
+	return 555;
     return 0;
 }
 
 int64_t
 energy_baseline_mW()
 {
-    return 100;		// XXX- depends greatly on backlight on/off
-			//      the kernel should keep track and bill that
-			//      separately
+    return 699;			// backlight off
 }
 
 #else

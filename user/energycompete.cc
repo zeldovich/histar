@@ -114,7 +114,7 @@ try
 	for (uint64_t i = 0; i < count; i++) {
 	    // === start bad fork bomb 5 sec delay to each child ===
 	    uint64_t last = sys_clock_nsec();
-	    while (sys_clock_nsec() - last < 5000000000lu) {}
+	    while (sys_clock_nsec() - last < UINT64(5000000000)) {}
 	    pid_t pid = fork();
 	    error_check(pid);
 	    if (!pid) {
