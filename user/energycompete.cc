@@ -134,7 +134,7 @@ try
 
     if (print_stats)
 	sys_toggle_debug(1);
-    sleep(120);
+    for (;;);
 
     return 0;
 } catch (std::exception &e) {
