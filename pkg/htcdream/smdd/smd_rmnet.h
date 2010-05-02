@@ -20,7 +20,7 @@ void	smd_rmnet_init(void);
 };
 #endif
 
-#define NPKTQUEUE 64
+#define NPKTQUEUE 128 
 struct ringpkt {
         char buf[1514];
         int bytes;
