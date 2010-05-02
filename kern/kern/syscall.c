@@ -1355,9 +1355,7 @@ sys_self_bill(uint64_t type, uint64_t value)
 static int64_t __attribute__ ((warn_unused_result))
 sys_toggle_debug(uint64_t type)
 {
-    cprintf("%s:%d\n", __FILE__, __LINE__);
     if (type & 0x1) {
-	cprintf("%s:%d\n", __FILE__, __LINE__);
 	reserve_prof_toggle();
     } else if (type & 0x2) {
 	limit_prof_toggle();
