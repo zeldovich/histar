@@ -16,6 +16,8 @@
 #include <dev/msm_smd.h>
 #include <dev/msm_timer.h>
 #include <dev/msm_ttycons.h>
+#include <dev/htcdream_acoustic.h>
+#include <dev/htcdream_backlight.h>
 #include <dev/htcdream_keypad.h>
 #include <dev/htcdream_reset.h>
 #include <dev/htcdream_gpio.h>
