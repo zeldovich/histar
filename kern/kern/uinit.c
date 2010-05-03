@@ -315,7 +315,7 @@ user_bootstrap(void)
     // root reserve
     struct Reserve *rrs;
     assert_check(reserve_alloc(obj_label, &rrs));
-    rrs->rs_level = battery_full_charge_mJ();
+    rrs->rs_level = battery_full_charge_uJ();
     assert_check(container_put(rc, &rrs->rs_ko, 0));
     strncpy(&rrs->rs_ko.ko_name[0], "root_reserve", KOBJ_NAME_LEN - 1);
     user_root_rs = rrs->rs_ko.ko_id;

@@ -49,7 +49,7 @@ bill_energy()
 	if (last_nsec) {
 	    // TODO need to ensure this succeeds once accounting is mandatory
 	    thread_bill_energy(&kobject_dirty(&cur_thread->th_ko)->th,
-			       energy_cpu_mJ(elapsed));
+			       energy_cpu_uJ(elapsed));
 	}
     }
     last_nsec = now;

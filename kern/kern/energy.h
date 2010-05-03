@@ -3,27 +3,27 @@
 
 #include <machine/types.h>
 
-int64_t battery_full_charge_mJ(void)
+int64_t battery_full_charge_uJ(void)
     __attribute__ ((warn_unused_result));
 
-int64_t energy_cpu_mW(void)
+int64_t energy_cpu_uW(void)
     __attribute__ ((warn_unused_result));
 
-int64_t energy_cpu_mJ(uint64_t nsecs)
+int64_t energy_cpu_uJ(uint64_t nsecs)
     __attribute__ ((warn_unused_result));
 
-int64_t energy_net_send_mJ(uint64_t bytes)
+int64_t energy_net_send_uJ(uint64_t bytes)
     __attribute__ ((warn_unused_result));
 
-int64_t energy_net_recv_mJ(uint64_t bytes)
+int64_t energy_net_recv_uJ(uint64_t bytes)
     __attribute__ ((warn_unused_result));
 
-int64_t energy_backlight_mW(int level)
+int64_t energy_backlight_uW(int level)
     __attribute__ ((warn_unused_result));
 
-int64_t energy_baseline_mW(void)
+int64_t energy_baseline_uW(void)
     __attribute__ ((warn_unused_result));
 
-int64_t energy_baseline_mJ(uint64_t nsecs)
+int64_t energy_baseline_uJ(uint64_t nsecs)
     __attribute__ ((warn_unused_result));
 #endif

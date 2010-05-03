@@ -5,7 +5,7 @@
 #include <inc/error.h>
 
 enum { debug_reserves = 0 };
-enum { disable_decay = 0 };
+enum { disable_decay = 1 };
 
 uint64_t reserve_profile = 0;
 
