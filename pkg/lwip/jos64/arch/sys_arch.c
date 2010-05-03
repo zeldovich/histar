@@ -10,9 +10,9 @@
 #include <arch/cc.h>
 #include <arch/sys_arch.h>
 
-#define NSEM		256
-#define NMBOX		64
-#define MBOXSLOTS	32
+#define NSEM		8192	
+#define NMBOX		256	
+#define MBOXSLOTS	128	
 
 struct sys_sem_entry {
     int freed;
