@@ -37,7 +37,7 @@ main(int ac, const char **av)
 try
 {
     if (ac < 4) {
-	printf("usage: foremW backmW prog_path prog_args...\n");
+	printf("usage: print_stats foremW backmW prog_path prog_args...\n");
 	return -1;
     }
     const int print_stats = atoi(av[1]);
@@ -121,6 +121,8 @@ try
     }
 
     // leave the wm running in the root_reserve
+    if (print_stats)
+	sys_toggle_debug(1);
 
     sleep(10);
 
@@ -136,8 +138,6 @@ try
     sleep(10);
     error_check(sys_limit_set_rate(forelms[1], LIMIT_TYPE_CONST, 0));
 
-    if (print_stats)
-	sys_toggle_debug(1);
     sleep(1200);
 
     return 0;
