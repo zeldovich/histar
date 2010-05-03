@@ -16,10 +16,10 @@ static void
 htcdream_backlight_bill()
 {
 	uint64_t now = timer_user_nsec();
-	uint64_t diff_ms = (now - last_time_nsec) / (1000 * 1000);
+	uint64_t diff_us = (now - last_time_nsec) / 1000;
 
-	int64_t mW = energy_backlight_mW(current_level);
-	reserve_consume(root_rs, (diff_ms * mW) / 1000, 1);
+	int64_t uW = energy_backlight_uW(current_level);
+	reserve_consume(root_rs, (diff_us * uW) / (1000 * 1000), 1);
 
 	last_time_nsec = now;
 }
