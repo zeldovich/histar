@@ -3,94 +3,52 @@
 // generic stuff
 
 int64_t
-energy_cpu_mJ(uint64_t nsecs)
+energy_cpu_uJ(uint64_t nsecs)
 {
-    return energy_cpu_mW() * nsecs / 1000000000;
+    return energy_cpu_uW() * nsecs / 1000000000;
 }
 
 int64_t
-energy_baseline_mJ(uint64_t nsecs)
+energy_baseline_uJ(uint64_t nsecs)
 {
-    return energy_baseline_mW() * nsecs / 1000000000;
+    return energy_baseline_uW() * nsecs / 1000000000;
 }
 
 // arch-specific stuff
 
-#ifdef JOS_ARCH_arm
-
 int64_t
-battery_full_charge_mJ()
+battery_full_charge_uJ()
 {
-    return 15318 * 1000;	// 1150mAh at 3.7v
+    return 15318lu * 1000 * 1000;	// 1150mAh at 3.7v
 }
 
 int64_t
-energy_cpu_mW()
+energy_cpu_uW()
 {
-    return 137;
+    return 137lu * 1000;
 }
 
 int64_t
-energy_net_send_mJ(uint64_t bytes) {
-    return bytes * 200;	// XXX- need real numbers
+energy_net_send_uJ(uint64_t bytes) {
+    return bytes * 200 * 1000;	// XXX- need real numbers
 }
 
 int64_t
-energy_net_recv_mJ(uint64_t bytes)
+energy_net_recv_uJ(uint64_t bytes)
 {
-    return bytes * 20;  // XXX- need real numbers
+    return bytes * 20 * 1000;  // XXX- need real numbers
 }
 
 int64_t
-energy_backlight_mW(int level)
+energy_backlight_uW(int level)
 {
     if (level)
-	return 555;
+	return 555lu * 1000;
     return 0;
 }
 
 int64_t
-energy_baseline_mW()
+energy_baseline_uW()
 {
-    return 699;			// backlight off
+    return 699lu * 1000;			// backlight off
 }
-
-#else
-
-int64_t
-battery_full_charge_mJ()
-{
-    return 1885680000;
-}
-
-int64_t
-energy_cpu_mW()
-{
-    return 12000;
-}
-
-int64_t
-energy_net_send_mJ(uint64_t bytes)
-{
-    return bytes * 20;	// XXX- no idea
-}
-
-int64_t
-energy_net_recv_mJ(uint64_t bytes)
-{
-    return bytes * 20;	// XXX- no idea
-}
-
-int64_t
-energy_backlight_mW(int level)
-{
-    return 0;
-}
-
-int64_t
-energy_baseline_mW()
-{
-    return 87300;
-}
-
-#endif

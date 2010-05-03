@@ -43,15 +43,16 @@ bill_energy()
 {
     static uint64_t last_nsec;
 
-    uint64_t elapsed = timer_user_nsec() - last_nsec;
+    uint64_t now = timer_user_nsec();
+    uint64_t elapsed = now - last_nsec;
     if (cur_thread) {
 	if (last_nsec) {
 	    // TODO need to ensure this succeeds once accounting is mandatory
 	    thread_bill_energy(&kobject_dirty(&cur_thread->th_ko)->th,
-			       energy_cpu_mJ(elapsed));
+			       energy_cpu_uJ(elapsed));
 	}
     }
-    last_nsec += elapsed;
+    last_nsec = now;
 }
 
 void

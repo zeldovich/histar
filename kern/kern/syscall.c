@@ -1338,11 +1338,11 @@ sys_self_bill(uint64_t type, uint64_t value)
     switch (type) {
     case THREAD_BILL_ENERGY_NET_SEND:
         thread_bill_energy(&kobject_dirty(&cur_thread->th_ko)->th,
-                               energy_net_send_mJ(value));
+                               energy_net_send_uJ(value));
 	break;
     case THREAD_BILL_ENERGY_NET_RECV:
         thread_bill_energy(&kobject_dirty(&cur_thread->th_ko)->th,
-                               energy_net_recv_mJ(value));
+                               energy_net_recv_uJ(value));
 	break;
     default:
 	return -E_INVAL;
