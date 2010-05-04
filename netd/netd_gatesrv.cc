@@ -28,19 +28,139 @@ static uint64_t netd_server_enabled;
 static struct cobj_ref declassify_gate;
 static struct cobj_ref netd_asref;
 
+#ifdef JOS_ARCH_arm 
+#include <pthread.h>
+#include <pkg/htcdream/smdd/msm_rpcrouter2.h>
+#include <inc/smdd.h>
+#include <pkg/htcdream/support/smddgate.h>
+#include <pkg/htcdream/smdd/smd_rmnet.h>
+static uint64_t last_radio_nsec;
+#endif
+
+// check when we last sent or received. if it's been a while
+// (>= 20 seconds), then the radio will have powered itself
+// down and our operation will cost a lot more than usual.
+//
+// if we send a packet while not idle, we effectively push the
+// next idling period ahead 20 sec, which we should be paying
+// for
+//
+// so, figure out how much further we pushed it ahead and bill
+// appropriately. operations that are back-to-back won't get
+// punished badly. those further away will, and rightly so.
+static int64_t
+get_radio_idle_cost()
+{
+#ifdef JOS_ARCH_arm
+	uint64_t now_nsec = sys_clock_nsec();
+	uint64_t diff_sec = (now_nsec - last_radio_nsec) / UINT64(1000000000);
+
+	// calculated 9J by experiment
+	if (diff_sec > 20)
+		return UINT64(9 * 1000 * 1000);
+	else if (diff_sec != 0)
+		return UINT64(450000) * diff_sec;	// (9J/20) * diff_sec
+#endif
+
+	return 0;
+}
+
+// we need to charge for the radio
+//
+// if our reserve doesn't have enough, we need to transfer our
+// energy into netd's cooperative bucket
+//
+// if the cooperative bucket has enough, we burn it and go on
+// if not, we need to block until it does
+//
+// but somebody else might come along and dump in enough energy
+// to spill us over, which fires up the radio and changes our cost
+//
+// we'll use a condvar to coordinate this nonsense
+//
+// fun, no?
+static cobj_ref netd_coop_rsobj;
+static pthread_mutex_t netd_coop_mutex;
+
+static void
+bill_reserve()
+{
+	cobj_ref th_rsobj = {0, 0}; //magic to get thread's reserve id
+	int64_t cost;
+
+	while ((cost = get_radio_idle_cost()) != 0) {
+		pthread_mutex_lock(&netd_coop_mutex);
+
+		int64_t netd_coop_level = sys_reserve_get_level(netd_coop_rsobj);
+		if (netd_coop_level >= cost) {
+			// burn it and run
+
+			pthread_mutex_unlock(&netd_coop_mutex);
+			break;
+		}
+
+		int64_t th_level = sys_reserve_get_level(th_rsobj);
+		if (th_level + netd_coop_level >= cost) {
+			// burn netd's, burn thread's, and run 
+			// XXX- want to make sure we don't burn _all_ of our
+			// thread's energy, since we want to drop the lock.
+
+			pthread_mutex_unlock(&netd_coop_mutex);
+			break;
+		}
+		
+		pthread_mutex_unlock(&netd_coop_mutex);
+
+		// dump whatever evergy we have into net'd coop bucket
+		// this should yield us, but we'll be back the next quantum
+		// to try again.
+		
+	}
+}
+
 static void
 netd_bill_energy_pre(const struct netd_op_args *netd_op)
 {
-    uint32_t count;
+    uint32_t count = 0;
+    int bill = 0;
 
     switch (netd_op->op_type) {
+    case netd_op_socket:		break;
+    case netd_op_bind:			break;
+    case netd_op_listen:		break;
+    case netd_op_accept:		break;
+
+    case netd_op_connect:
+	count = 60 * 3;		// syn, syn/ack, ack
+	bill = 1;
+	break;
+
+    case netd_op_close:
+	count = 60;		// fin
+	bill = 1;
+	break;
+
+    case netd_op_getsockname:		break;
+    case netd_op_getpeername:		break;
+    case netd_op_setsockopt:		break;
+    case netd_op_getsockopt:		break;
+
     case netd_op_send:
 	count = netd_op->send.count;
+	bill = 1;
 	break;
 
     case netd_op_sendto:
 	count = netd_op->sendto.count;
+	bill = 1;
 	break;
+
+    case netd_op_recvfrom:		break;	// in netd_bill_energy_post()
+    case netd_op_notify:		break;
+    case netd_op_probe:			break;
+    case netd_op_statsync:		break;
+    case netd_op_shutdown:		break;
+    case netd_op_ioctl:			break;
 
     default:
 	return;
@@ -48,19 +168,57 @@ netd_bill_energy_pre(const struct netd_op_args *netd_op)
 
     // user could do an arbitrarily large send, but they just
     // screw themselves over.
-    sys_self_bill(THREAD_BILL_ENERGY_NET_SEND, count);
+
+    (void)count;
+
+    if (bill)
+        bill_reserve();
 }
 
 static void
 netd_bill_energy_post(const struct netd_op_args *netd_op)
 {
-    if (netd_op->op_type != netd_op_recvfrom)
+    uint32_t count = 0;
+    int bill = 0;
+
+    switch (netd_op->op_type) {
+    case netd_op_socket:		break;
+    case netd_op_bind:			break;
+    case netd_op_listen:		break;
+
+    case netd_op_accept:
+	count = 60 * 3;		// syn, syn/ack, ack
+	bill = 1;
+	break;
+
+    case netd_op_connect:		break;
+    case netd_op_close:			break;
+    case netd_op_getsockname:		break;
+    case netd_op_getpeername:		break;
+    case netd_op_setsockopt:		break;
+    case netd_op_getsockopt:		break;
+    case netd_op_send:			break;
+    case netd_op_sendto:		break;
+
+    case netd_op_recvfrom:
+	count = (netd_op->rval >= 0) ? netd_op->rval : 0;
+	bill = 1;
+	break;
+
+    case netd_op_notify:		break;
+    case netd_op_probe:			break;
+    case netd_op_statsync:		break;
+    case netd_op_shutdown:		break;
+    case netd_op_ioctl:			break;
+
+    default:
 	return;
+    }
 
-    if (netd_op->rval >= 0)
-	sys_self_bill(THREAD_BILL_ENERGY_NET_RECV, netd_op->rval);
+    (void)count;
 
-    //XXX what about error case?
+    if (bill)
+	bill_reserve();
 }
 
 static void __attribute__((noreturn))
@@ -271,9 +429,46 @@ netd_server_init(uint64_t gate_ct,
     netd_gate_init(gate_ct, l, clear, h);
 }
 
+#ifdef JOS_ARCH_arm
+static void *
+radio_active_poll(void *unused)
+{
+	// update local cache of last radio time
+	while (1) {
+		struct rmnet_stats rs;
+		uint64_t now_nsec = sys_clock_nsec();
+
+		int r = smddgate_rmnet_stats(0, &rs);
+		assert(r == 0);
+
+		last_radio_nsec = JMAX(rs.tx_last_nsec, rs.rx_last_nsec);
+		sleep(1);
+
+		// shut up gcc attribute candidate shit
+		if (now_nsec == ~UINT64(0)) break;
+	}
+
+	return NULL;
+}
+#endif
+
 void
 netd_server_enable(void)
 {
     netd_server_enabled = 1;
+
+    // init the cooperative reserve junk
+    pthread_mutex_init(&netd_coop_mutex, NULL);
+    int64_t rsid = sys_reserve_create(container, ulabel, "netd coop reserve");
+    assert(rsid >= 0);
+    netd_coop_rsobj = COBJ(container, rsid); 
+    
+
+    // we poll rmnet to get the last tx and rx times...
+#ifdef JOS_ARCH_arm
+    pthread_t tid;
+    pthread_create(&tid, NULL, radio_active_poll, NULL);
+#endif
+
     sys_sync_wakeup(&netd_server_enabled);
 }
