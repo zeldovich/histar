@@ -13,11 +13,21 @@
 int
 main(int argc, char **argv)
 {
-	if (argc != 6) {
-		fprintf(stderr, "usage: %s desthost destport pktsize pktpersec numpkts\n",
+	if (argc != 6 && argc != 7) {
+		fprintf(stderr, "usage: %s desthost destport pktsize pktpersec numpkts [echo|ack|pull]\n",
 		    argv[0]);
 		exit(1);
 	}
+
+	int do_echo = 0;
+	int do_ack  = 0;
+	int do_pull = 0;
+	if (argc == 7 && strcmp(argv[6], "echo") == 0)
+		do_echo = 1;
+	if (argc == 7 && strcmp(argv[6], "ack") == 0)
+		do_ack = 1;
+	if (argc == 7 && strcmp(argv[6], "pull") == 0)
+		do_pull = 1;
 
 	char *desthost = argv[1];
 	uint16_t destport = atoi(argv[2]);
@@ -38,6 +48,13 @@ main(int argc, char **argv)
 	char *buf = malloc(pktsize);
 	memset(buf, 0x55, pktsize);
 
+	if (do_echo)
+		memcpy(buf, "ECHO", 4);
+	if (do_ack)
+		memcpy(buf, "ACK", 3);
+	if (do_pull)
+		memcpy(buf, "PULL", 4);
+
 	uint64_t usec_per_pkt = 1000000 / pktpersec;
 
 	int j = 0;
@@ -55,6 +72,15 @@ main(int argc, char **argv)
 		if (i != 0 && j == 0) {
 			fprintf(stderr, "\rpackets sent: %d, bytes sent: %d", pktpersec, pktpersec * pktsize);
 		}
+	}
+
+	// don't want socket to go away on responses
+	if (do_echo || do_ack)
+		sleep(2);
+
+	if (do_pull) {
+		printf("sleeping with socket open for pull\n");
+		sleep(99999);
 	}
 
 	return (0);

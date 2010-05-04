@@ -40,8 +40,6 @@ extern "C" {
 #include "msm_smd.h"
 #include "smd_rmnet.h"
 
-#define NPKTQUEUE	64
-
 struct ringseg rxsegs[3];
 
 static struct rmnet_private {
