@@ -77,7 +77,7 @@ reserve_alloc(const struct Label *l, struct Reserve **rsp)
     return 0;
 }
 
-int
+int64_t
 reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t amount, uint64_t fail_if_too_low)
 {
     int64_t r;
@@ -117,7 +117,7 @@ reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t amo
 }
 
 // amount here is 1/1024ths to transfer
-int
+int64_t
 reserve_transfer_proportional(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t frac, uint64_t elapsed)
 {
     int64_t r;
