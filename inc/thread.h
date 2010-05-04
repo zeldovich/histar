@@ -19,6 +19,7 @@ struct thread_entry_args {
 };
 
 // energy billing types
-enum { THREAD_BILL_ENERGY_NET_SEND, THREAD_BILL_ENERGY_NET_RECV };
+enum { THREAD_BILL_ENERGY_NET_SEND, THREAD_BILL_ENERGY_NET_RECV,
+       THREAD_BILL_ENERGY_RAW };
 
 #endif

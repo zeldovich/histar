@@ -109,7 +109,9 @@
     SYSCALL_ENTRY(reserve_get_level)		\
     SYSCALL_ENTRY(reserve_get_info)		\
     SYSCALL_ENTRY(reserve_set_global_skew)	\
+    SYSCALL_ENTRY(reserve_transfer)		\
     SYSCALL_ENTRY(self_set_active_reserve)	\
+    SYSCALL_ENTRY(self_get_active_reserve)	\
     SYSCALL_ENTRY(limit_create)			\
     SYSCALL_ENTRY(limit_set_rate)		\
     SYSCALL_ENTRY(self_bill)			\

@@ -145,7 +145,7 @@ limit_update_all(void)
     LIST_FOREACH(lm, &limit_list, lm_link)
 	do {
 	    if (lm->lm_type == LIMIT_TYPE_CONST) {
-		r = reserve_transfer(lm->lm_source, lm->lm_sink, lm->lm_rate, elapsed);
+		r = reserve_transfer(lm->lm_source, lm->lm_sink, (lm->lm_rate * elapsed) / (1lu * 1000 * 1000 * 1000), 1);
 		if (r < 0) {
 		    if (debug_limits)
 			cprintf("source was out of energy\n");

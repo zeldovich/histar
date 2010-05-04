@@ -77,22 +77,8 @@ reserve_alloc(const struct Label *l, struct Reserve **rsp)
     return 0;
 }
 
-// Caller needs to check iflow between reserves wrt to thread label
-static int
-reserve_do_transfer(struct Reserve *src, struct Reserve *dest, int64_t rate, uint64_t elapsed)
-{
-    int64_t amount = (rate * elapsed) / (1 * 1000 * 1000 * 1000);
-    if (amount < 0 || src->rs_level < amount)
-	return -E_NO_SPACE;
-
-    src->rs_level -= amount;
-    dest->rs_level += amount;
-
-    return 0;
-}
-
 int
-reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t rate, uint64_t elapsed)
+reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t amount, uint64_t fail_if_too_low)
 {
     int64_t r;
 
@@ -108,7 +94,26 @@ reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t rat
 	return r;
     struct Reserve *sink = &kobject_dirty(&sinkko->hdr)->rs;
 
-    return reserve_do_transfer(source, sink, rate, elapsed);
+    if (amount < 0)
+	return -E_NO_SPACE;
+
+    if (source->rs_level < amount) {
+	// if fail and not enough then return error
+	if (fail_if_too_low) {
+	    return -E_NO_SPACE;
+	// if not fail and not enough then just use what we can and return amount transferred
+	} else {
+	    amount = source->rs_level;
+	}
+    }
+
+    source->rs_level -= amount;
+    sink->rs_level += amount;
+
+    if (fail_if_too_low)
+	return 0;
+    else
+	return amount;
 }
 
 // amount here is 1/1024ths to transfer

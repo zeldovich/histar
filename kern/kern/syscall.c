@@ -1281,6 +1281,12 @@ sys_reserve_get_info(struct cobj_ref rsref, struct ReserveInfo *rsinfo)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
+sys_reserve_transfer(struct cobj_ref srcrs, struct cobj_ref sinkrs, uint64_t amount, uint64_t fail_if_too_low)
+{
+    return reserve_transfer(srcrs, sinkrs, amount, fail_if_too_low);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
 sys_reserve_set_global_skew(int64_t skew)
 {
     // XXX- this should be restricted - it's a privileged op
@@ -1295,6 +1301,14 @@ sys_self_set_active_reserve(struct cobj_ref rsref)
     check(cobj_get(rsref, kobj_reserve, &ko, iflow_rw));
 
     kobject_dirty(&cur_thread->th_ko)->th.th_rs = rsref;
+    return 0;
+}
+
+static int64_t __attribute__ ((warn_unused_result))
+sys_self_get_active_reserve(struct cobj_ref *rsrefp)
+{
+    check(check_user_access(rsrefp, sizeof(*rsrefp), SEGMAP_WRITE));
+    memcpy(rsrefp, &cur_thread->th_rs, sizeof(*rsrefp));
     return 0;
 }
 
@@ -1344,6 +1358,9 @@ sys_self_bill(uint64_t type, uint64_t value)
         thread_bill_energy(&kobject_dirty(&cur_thread->th_ko)->th,
                                energy_net_recv_uJ(value));
 	break;
+    case THREAD_BILL_ENERGY_RAW:
+        thread_bill_energy(&kobject_dirty(&cur_thread->th_ko)->th,
+                               value);
     default:
 	return -E_INVAL;
     }
@@ -1481,8 +1498,10 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(reserve_create, a1, p2, p3);
 	SYSCALL(reserve_get_level, COBJ(a1, a2));
 	SYSCALL(reserve_get_info, COBJ(a1, a2), p3);
+	SYSCALL(reserve_transfer, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
 	SYSCALL(reserve_set_global_skew, a1);
 	SYSCALL(self_set_active_reserve, COBJ(a1, a2));
+	SYSCALL(self_get_active_reserve, p1);
 	SYSCALL(limit_create, a1, COBJ(a2, a3), COBJ(a4, a5), p6, p7);
 	SYSCALL(limit_set_rate, COBJ(a1, a2), a3, a4);
 	SYSCALL(self_bill, a1, a2);

@@ -565,6 +565,10 @@ int64_t sys_reserve_get_info(struct cobj_ref rsref, struct ReserveInfo *rsinfo)
     return syscall(SYS_reserve_get_info, SOBJ(rsref), SPTR(rsinfo), 0, 0, 0, 0);
 }
 
+int64_t sys_reserve_transfer(struct cobj_ref srcrs, struct cobj_ref sinkrs, uint64_t amount, uint64_t fail_if_too_low)
+{
+    return syscall(SYS_reserve_transfer, SOBJ(srcrs), SOBJ(sinkrs), amount, fail_if_too_low, 0);
+}
 int sys_reserve_set_global_skew(int64_t skew)
 {
     return syscall(SYS_reserve_set_global_skew, skew, 0, 0, 0, 0, 0, 0);
@@ -576,6 +580,11 @@ sys_self_set_active_reserve(struct cobj_ref rsref)
     return syscall(SYS_self_set_active_reserve, SOBJ(rsref), 0, 0, 0, 0, 0);
 }
 
+int64_t
+sys_self_get_active_reserve(struct cobj_ref *rsrefp)
+{
+    return syscall(SYS_self_get_active_reserve, SPTR(rsrefp), 0, 0, 0, 0, 0, 0);
+}
 
 int64_t sys_limit_create(uint64_t ct,
 		 struct cobj_ref sourcersref,
