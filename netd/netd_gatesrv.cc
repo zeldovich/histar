@@ -65,56 +65,54 @@ get_radio_idle_cost()
 	return 0;
 }
 
-// we need to charge for the radio
-//
-// if our reserve doesn't have enough, we need to transfer our
-// energy into netd's cooperative bucket
-//
-// if the cooperative bucket has enough, we burn it and go on
-// if not, we need to block until it does
-//
-// but somebody else might come along and dump in enough energy
-// to spill us over, which fires up the radio and changes our cost
-//
-// we'll use a condvar to coordinate this nonsense
-//
-// fun, no?
+// cooperative energy sharing to fire the radio up
+// if an app doesn't have enough energy to turn the radio on, or even if
+// it is on but has been idle long enough that they'll need to make up
+// the difference for extending the sleep timeout, we'll store the thread's
+// energy into the communal bucket and make progress whenever we can.
 static cobj_ref netd_coop_rsobj;
 static pthread_mutex_t netd_coop_mutex;
 
 static void
 bill_reserve()
 {
-	cobj_ref th_rsobj = {0, 0}; //magic to get thread's reserve id
+	cobj_ref th_rsobj;
 	int64_t cost;
+
+	int r = sys_self_get_active_reserve(&th_rsobj);
+	assert(r == 0);
 
 	while ((cost = get_radio_idle_cost()) != 0) {
 		pthread_mutex_lock(&netd_coop_mutex);
 
 		int64_t netd_coop_level = sys_reserve_get_level(netd_coop_rsobj);
-		if (netd_coop_level >= cost) {
-			// burn it and run
+		assert(netd_coop_level >= 0);
 
+		if (netd_coop_level >= cost) {
+			// transfer cost from netd to our cap, burn it, and run
+			sys_reserve_transfer(netd_coop_rsobj, th_rsobj,
+			    cost, 0);
 			pthread_mutex_unlock(&netd_coop_mutex);
+			sys_self_bill(THREAD_BILL_ENERGY_RAW, cost);
 			break;
 		}
 
 		int64_t th_level = sys_reserve_get_level(th_rsobj);
-		if (th_level + netd_coop_level >= cost) {
+		if ((th_level + netd_coop_level) >= cost) {
 			// burn netd's, burn thread's, and run 
-			// XXX- want to make sure we don't burn _all_ of our
-			// thread's energy, since we want to drop the lock.
-
+			sys_reserve_transfer(netd_coop_rsobj, th_rsobj,
+			    netd_coop_level, 0);
 			pthread_mutex_unlock(&netd_coop_mutex);
+			sys_self_bill(THREAD_BILL_ENERGY_RAW, cost);
 			break;
 		}
 		
 		pthread_mutex_unlock(&netd_coop_mutex);
 
-		// dump whatever evergy we have into net'd coop bucket
+		// dump whatever evergy we have into net's coop bucket
 		// this should yield us, but we'll be back the next quantum
 		// to try again.
-		
+		sys_reserve_transfer(th_rsobj, netd_coop_rsobj, ~UINT64(0), 0);
 	}
 }
 
@@ -459,10 +457,13 @@ netd_server_enable(void)
 
     // init the cooperative reserve junk
     pthread_mutex_init(&netd_coop_mutex, NULL);
-    int64_t rsid = sys_reserve_create(container, ulabel, "netd coop reserve");
+
+    label l(1);
+    uint64_t ctid = start_env->shared_container;	
+    int64_t rsid = sys_reserve_create(ctid, l.to_ulabel(), "netd coop reserve");
     assert(rsid >= 0);
-    netd_coop_rsobj = COBJ(container, rsid); 
-    
+    netd_coop_rsobj = COBJ(ctid, rsid); 
+
 
     // we poll rmnet to get the last tx and rx times...
 #ifdef JOS_ARCH_arm
