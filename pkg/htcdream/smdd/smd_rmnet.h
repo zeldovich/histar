@@ -4,6 +4,8 @@
 struct rmnet_stats {
 	size_t tx_frames, tx_frame_bytes, tx_dropped;
 	size_t rx_frames, rx_frame_bytes, rx_dropped;
+	uint64_t tx_last_nsec;
+	uint64_t rx_last_nsec;
 };
 
 #ifdef __cplusplus

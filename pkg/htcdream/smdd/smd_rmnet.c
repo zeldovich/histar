@@ -62,6 +62,7 @@ static void smd_net_notify(void *_priv, unsigned event)
 	struct rmnet_private *p = (struct rmnet_private *)_priv;
 	int sz;
 	int fast_wakeup = 0;
+	int npkts = 0;
 
 	for (;;) {
 		sz = smd_cur_packet_size(p->ch);
@@ -112,7 +113,12 @@ static void smd_net_notify(void *_priv, unsigned event)
 				pthread_mutex_unlock(&p->mtx);
 			}
 		}
+
+		npkts++;
 	}
+
+	if (npkts)
+		p->stats.rx_last_nsec = sys_clock_nsec();
 
 	if (fast_wakeup)
 		sys_sync_wakeup(&p->rxseg->q_head);
@@ -183,6 +189,7 @@ extern "C" int smd_rmnet_xmit(int which, void *buf, int len)
 	} else {
 		p->stats.tx_frames++;
 		p->stats.tx_frame_bytes += len;	
+		p->stats.tx_last_nsec = sys_clock_nsec();
 	}
 
 	return 0;
