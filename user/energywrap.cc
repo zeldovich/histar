@@ -18,10 +18,13 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/spawn.hh>
 
+static int printing_stats = 0;
+
 void __attribute__((noreturn))
 sigchld_handler(int i)
 {
-    sys_toggle_debug(1);
+    if (printing_stats)
+	sys_toggle_debug(1);
     exit(0);
 }
 
@@ -29,7 +32,7 @@ int
 main(int ac, const char **av)
 try
 {
-    if (ac < 4) {
+    if (ac < 5) {
 	printf("usage: print_stats main_uW prog_path prog_args...\n");
 	return -1;
     }
@@ -96,8 +99,10 @@ try
 	return 0;
     }
 
-    if (print_stats)
+    if (print_stats) {
+	printing_stats = 1;
 	sys_toggle_debug(1);
+    }
     while (1) {
 	usleep(1000000);
     }
