@@ -107,12 +107,12 @@ bill_reserve()
 			break;
 		}
 		
-		pthread_mutex_unlock(&netd_coop_mutex);
-
 		// dump whatever evergy we have into net's coop bucket
 		// this should yield us, but we'll be back the next quantum
 		// to try again.
 		sys_reserve_transfer(th_rsobj, netd_coop_rsobj, ~UINT64(0), 0);
+
+		pthread_mutex_unlock(&netd_coop_mutex);
 	}
 }
 
