@@ -37,7 +37,7 @@ main(int ac, const char **av)
 try
 {
     if (ac < 4) {
-	printf("usage: print_stats foremW backmW prog_path prog_args...\n");
+	printf("usage: print_stats foreuW backuW prog_path prog_args...\n");
 	return -1;
     }
     const int print_stats = atoi(av[1]);

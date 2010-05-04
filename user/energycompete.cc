@@ -42,7 +42,7 @@ main(int ac, const char **av)
 try
 {
     if (ac < 4) {
-	printf("usage: print_stats main_mW prog_path prog_args...\n");
+	printf("usage: print_stats main_uW prog_path prog_args...\n");
 	return -1;
     }
     const int print_stats = atoi(av[1]);
@@ -53,7 +53,7 @@ try
 	args[i] = (char *)av[3 + i];
     args[ac - 3] = NULL;
 
-    printf("running app with %ld mW\n", throttle);
+    printf("running app with %ld uW\n", throttle);
     printf("process container: %ld\n", start_env->proc_container);
 
     // TODO WANT TO CHANGE THIS TO sys_self_get_active_reserve
