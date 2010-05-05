@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# yes, for some reason this needs to be backwards on histar!
+# yes, for some reason this needs to be backwards on histar/arm!
 while [ 1 -eq 0 ]; do
 	echo "MOVEMAIL RUNNING..."
 	movemail -p pop://cintard@171.66.3.208:1010/ /t filez
