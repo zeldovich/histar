@@ -117,7 +117,7 @@ try
     //thread_cur_label(&l);
     int64_t r;
     char name[1000];
-    sprintf(name, "wrapreserve_%s_%d\n", args[0], throttle);
+    sprintf(name, "wrapreserve_%s_%d", args[0], throttle);
     error_check(r = sys_reserve_create(ctid, l.to_ulabel(), name));
     printf("New reserve is at %lu\n", r);
     cobj_ref rs0 = COBJ(ctid, r);
