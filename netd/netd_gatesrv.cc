@@ -29,12 +29,11 @@ static struct cobj_ref declassify_gate;
 static struct cobj_ref netd_asref;
 
 #ifdef JOS_ARCH_arm 
-#include <pthread.h>
-#include <pkg/htcdream/smdd/msm_rpcrouter2.h>
-#include <inc/smdd.h>
-#include <pkg/htcdream/support/smddgate.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 #include <pkg/htcdream/smdd/smd_rmnet.h>
-static uint64_t last_radio_nsec;
+volatile static uint64_t *last_radio_tx_nsec;
+volatile static uint64_t *last_radio_rx_nsec;
 #endif
 
 // check when we last sent or received. if it's been a while
@@ -57,21 +56,25 @@ static uint64_t last_radio_nsec;
 // initiating thread doesn't just power it up and immediately
 // run out of energy 
 
-#define RADIO_ON_COST		UINT64(9 * 1000 * 1000)		/* 9e6uJ */
-#define RADIO_EXTEND_SEC_COST	UINT64(450 * 1000)		/* 450,000 uJ */
+#define RADIO_ON_COST		(9 * 1000 * 1000)	/* 9e6uJ */
+#define RADIO_EXTEND_MSEC_COST	(450)			/* 450 uJ/ms */
 #define NETD_COOP_BUFFER	0.25
 
 static int64_t
 get_radio_idle_cost()
 {
 #ifdef JOS_ARCH_arm
+	uint64_t latest = JMAX(*last_radio_tx_nsec, *last_radio_rx_nsec);
 	uint64_t now_nsec = sys_clock_nsec();
-	uint64_t diff_sec = (now_nsec - last_radio_nsec) / UINT64(1000000000);
+	uint64_t diff_msec = (now_nsec - latest) / (1000 * 1000);
 
-	if (diff_sec > 20)
+	if (diff_msec == 0)
+		diff_msec = 1;
+
+	if (diff_msec > 20000)
 		return RADIO_ON_COST;
-	else if (diff_sec != 0)
-		return RADIO_EXTEND_SEC_COST * diff_sec;
+	else
+		return RADIO_EXTEND_MSEC_COST * diff_msec;
 #endif
 
 	return 0;
@@ -457,29 +460,6 @@ netd_server_init(uint64_t gate_ct,
     netd_gate_init(gate_ct, l, clear, h);
 }
 
-#ifdef JOS_ARCH_arm
-static void *
-radio_active_poll(void *unused)
-{
-	// update local cache of last radio time
-	while (1) {
-		struct rmnet_stats rs;
-		uint64_t now_nsec = sys_clock_nsec();
-
-		int r = smddgate_rmnet_stats(0, &rs);
-		assert(r == 0);
-
-		last_radio_nsec = JMAX(rs.tx_last_nsec, rs.rx_last_nsec);
-		sleep(1);
-
-		// shut up gcc attribute candidate shit
-		if (now_nsec == ~UINT64(0)) break;
-	}
-
-	return NULL;
-}
-#endif
-
 void
 netd_server_enable(void)
 {
@@ -494,11 +474,25 @@ netd_server_enable(void)
     assert(rsid >= 0);
     netd_coop_rsobj = COBJ(ctid, rsid); 
 
-
-    // we poll rmnet to get the last tx and rx times...
+    // map the rings to get the latest xmit and recv times 
 #ifdef JOS_ARCH_arm
-    pthread_t tid;
-    pthread_create(&tid, NULL, radio_active_poll, NULL);
+    struct ringseg *tx_seg = 0;
+    struct ringseg *rx_seg = 0;
+    int fd;
+
+    fd = open("/tmp/rmnet-tx", O_RDONLY);
+    assert(fd != -1);
+    tx_seg = (struct ringseg *)mmap(0, sizeof(*tx_seg),  PROT_READ, 0, fd, 0);
+    assert(tx_seg != MAP_FAILED);
+    last_radio_tx_nsec = &tx_seg->last_nsec;
+
+    fd = open("/tmp/rmnet-rx", O_RDONLY);
+    assert(fd != -1);
+    rx_seg = (struct ringseg *)mmap(0, sizeof(*rx_seg), PROT_READ, 0, fd, 0);
+    assert(rx_seg != MAP_FAILED);
+    last_radio_rx_nsec = &rx_seg->last_nsec;
+
+    cprintf("<<< %s: set up for htc network (last rx: %llu, last tx: %llu) >>>\n", __func__, *last_radio_tx_nsec, *last_radio_rx_nsec);
 #endif
 
     sys_sync_wakeup(&netd_server_enabled);

@@ -32,6 +32,7 @@ struct ringseg {
         struct ringpkt q[NPKTQUEUE];
         uint64_t q_head;
         uint64_t q_tail;
+	uint64_t last_nsec;
 };
 
 #endif

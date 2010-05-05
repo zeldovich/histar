@@ -117,8 +117,10 @@ static void smd_net_notify(void *_priv, unsigned event)
 		npkts++;
 	}
 
-	if (npkts)
+	if (npkts) {
 		p->stats.rx_last_nsec = sys_clock_nsec();
+		p->rxseg->last_nsec = p->stats.rx_last_nsec;
+	}
 
 	if (fast_wakeup)
 		sys_sync_wakeup(&p->rxseg->q_head);
@@ -190,6 +192,7 @@ extern "C" int smd_rmnet_xmit(int which, void *buf, int len)
 		p->stats.tx_frames++;
 		p->stats.tx_frame_bytes += len;	
 		p->stats.tx_last_nsec = sys_clock_nsec();
+		p->txseg->last_nsec = p->stats.tx_last_nsec;
 	}
 
 	return 0;
