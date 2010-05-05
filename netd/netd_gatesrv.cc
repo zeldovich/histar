@@ -48,6 +48,19 @@ static uint64_t last_radio_nsec;
 // so, figure out how much further we pushed it ahead and bill
 // appropriately. operations that are back-to-back won't get
 // punished badly. those further away will, and rightly so.
+
+// radio on/off cycle calculated to be about 9J by experiment
+// we'll bill threads (9J/20) * diff_sec if the radio is on,
+// so they pay for extending the on period
+// if it's not on, we'll require 125% of 9J to fire it up.
+// this will leave .25 * 9J in netd's bucket so that the
+// initiating thread doesn't just power it up and immediately
+// run out of energy 
+
+#define RADIO_ON_COST		UINT64(9 * 1000 * 1000)		/* 9e6uJ */
+#define RADIO_EXTEND_SEC_COST	UINT64(450 * 1000)		/* 450,000 uJ */
+#define NETD_COOP_BUFFER	0.25
+
 static int64_t
 get_radio_idle_cost()
 {
@@ -55,11 +68,10 @@ get_radio_idle_cost()
 	uint64_t now_nsec = sys_clock_nsec();
 	uint64_t diff_sec = (now_nsec - last_radio_nsec) / UINT64(1000000000);
 
-	// calculated 9J by experiment
 	if (diff_sec > 20)
-		return UINT64(9 * 1000 * 1000);
+		return RADIO_ON_COST;
 	else if (diff_sec != 0)
-		return UINT64(450000) * diff_sec;	// (9J/20) * diff_sec
+		return RADIO_EXTEND_SEC_COST * diff_sec;
 #endif
 
 	return 0;
@@ -85,10 +97,18 @@ bill_reserve()
 	while ((cost = get_radio_idle_cost()) != 0) {
 		pthread_mutex_lock(&netd_coop_mutex);
 
+		// require more energy if the radio is going off->on,
+		// since we don't want to block immediately after powering up
+		int64_t needed;
+		if (cost == RADIO_ON_COST)
+			needed = (double)cost * (1.0 + NETD_COOP_BUFFER);
+		else
+			needed = cost;
+
 		int64_t netd_coop_level = sys_reserve_get_level(netd_coop_rsobj);
 		assert(netd_coop_level >= 0);
 
-		if (netd_coop_level >= cost) {
+		if (netd_coop_level >= needed) {
 			// transfer cost from netd to our cap, burn it, and run
 			sys_reserve_transfer(netd_coop_rsobj, th_rsobj,
 			    cost, 0);
@@ -98,21 +118,31 @@ bill_reserve()
 		}
 
 		int64_t th_level = sys_reserve_get_level(th_rsobj);
-		if ((th_level + netd_coop_level) >= cost) {
+		if ((th_level + netd_coop_level) >= needed) {
+			int64_t transfer;
+
+			// take only the difference from netd
+			// be nice and leave a penny for whoever else comes
+			if (th_level < cost)
+				transfer = cost - th_level;
+			else
+				transfer = 0;
+
 			// burn netd's, burn thread's, and run 
 			sys_reserve_transfer(netd_coop_rsobj, th_rsobj,
-			    netd_coop_level, 0);
+			    transfer, 0);
 			pthread_mutex_unlock(&netd_coop_mutex);
 			sys_self_bill(THREAD_BILL_ENERGY_RAW, cost);
 			break;
 		}
-		
+
 		// dump whatever evergy we have into net's coop bucket
 		// this should yield us, but we'll be back the next quantum
 		// to try again.
-		sys_reserve_transfer(th_rsobj, netd_coop_rsobj, ~UINT64(0), 0);
-
+		int64_t r = sys_reserve_transfer(th_rsobj, netd_coop_rsobj, th_level, 0);
+		assert(r >= 0);
 		pthread_mutex_unlock(&netd_coop_mutex);
+		usleep(100000);
 	}
 }
 
