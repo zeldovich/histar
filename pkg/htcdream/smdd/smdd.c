@@ -645,6 +645,7 @@ try
 	smd_tty_init();
 	smd_qmi_init();
 	smd_rpcrouter_init();
+	sleep(3);			// XXX workaround (?)
 	smd_rpc_servers_init();
 	smd_rmnet_init();
 	fprintf(stderr, "done.\n");
