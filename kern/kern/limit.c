@@ -142,24 +142,25 @@ limit_update_all(void)
     struct Limit *lm;
     int r;
     struct Limit *last_lm = 0;
-    LIST_FOREACH(lm, &limit_list, lm_link)
-	do {
-	    if (lm->lm_type == LIMIT_TYPE_CONST) {
-		r = reserve_transfer(lm->lm_source, lm->lm_sink, (lm->lm_rate * elapsed) / (1lu * 1000 * 1000 * 1000), 1);
-		if (r < 0) {
-		    if (debug_limits)
-			cprintf("source was out of energy\n");
-		}
-	    } else if (lm->lm_type == LIMIT_TYPE_PROP) {
-		reserve_transfer_proportional(lm->lm_source, lm->lm_sink, lm->lm_rate, elapsed);
-	    } else {
-		assert(0);
+    LIST_FOREACH(lm, &limit_list, lm_link) {
+	if (lm->lm_type == LIMIT_TYPE_CONST) {
+	    r = reserve_transfer(lm->lm_source, lm->lm_sink, (lm->lm_rate * elapsed) / (1lu * 1000 * 1000 * 1000), 1);
+	    if (r < 0) {
+		if (debug_limits)
+		    cprintf("source was out of energy\n");
 	    }
-	    if (lm)
-		last_lm = lm;
-	    if (limit_profile)
-		limit_prof_dump(lm, now);
-	} while (0);
+	} else if (lm->lm_type == LIMIT_TYPE_PROP) {
+	    reserve_transfer_proportional(lm->lm_source, lm->lm_sink, lm->lm_rate, elapsed);
+	} else {
+	    assert(0);
+	}
+
+	if (lm)
+	    last_lm = lm;
+	if (limit_profile)
+	    limit_prof_dump(lm, now);
+    }
+
     // Move the last_lm to the head of the list
     // to prevent starvation
     if (last_lm) {

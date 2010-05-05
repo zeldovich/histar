@@ -178,21 +178,20 @@ void
 reserve_decay_all(uint64_t elapsed, uint64_t now)
 {
     struct Reserve *rs;
-    LIST_FOREACH(rs, &reserve_list, rs_link)
-	do {
-	    if (!disable_decay && rs->rs_level > 0) {
-		// TODO - this magic 13 should be calculated dynamically
-		// +1 since otherwise decay won't kick in until apps
-		// have 2**12 mJ
-		int64_t decay = (rs->rs_level >> 13);
-		if (!decay)
-		    decay++;
-		rs->rs_level -= decay;
-		rs->rs_decayed += decay;
-	    }
-	    if (reserve_profile)
-		reserve_prof_dump(rs, now);
-	} while (0);
+    LIST_FOREACH(rs, &reserve_list, rs_link) {
+	if (!disable_decay && rs->rs_level > 0) {
+	    // TODO - this magic 13 should be calculated dynamically
+	    // +1 since otherwise decay won't kick in until apps
+	    // have 2**12 mJ
+	    int64_t decay = (rs->rs_level >> 13);
+	    if (!decay)
+		decay++;
+	    rs->rs_level -= decay;
+	    rs->rs_decayed += decay;
+	}
+	if (reserve_profile)
+	    reserve_prof_dump(rs, now);
+    }
 }
 
 void
