@@ -245,7 +245,8 @@ trap_handler(struct Trapframe *tf, uint64_t trampoline_rip)
     uint64_t start = read_tsc();
     if (trap_thread) {
 	prof_user(0, start - trap_user_iret_tsc);
-	prof_thread(trap_thread, start - trap_user_iret_tsc);
+	prof_thread(trap_thread, start - trap_user_iret_tsc,
+	    trapno == T_SYSCALL);
     } else {
 	prof_user(1, start - trap_user_iret_tsc);
     }

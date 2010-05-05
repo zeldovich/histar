@@ -449,7 +449,8 @@ exception_handler(int trapcode, struct Trapframe *tf, uint32_t sp)
 	uint64_t start = karch_get_tsc();
 	if (trap_thread) {
 		prof_user(0, start - trap_user_iret_tsc);
-		prof_thread(trap_thread, start - trap_user_iret_tsc);
+		prof_thread(trap_thread, start - trap_user_iret_tsc,
+		    trapcode == T_SWI);
 	} else {
 		prof_user(1, start - trap_user_iret_tsc);
 	}

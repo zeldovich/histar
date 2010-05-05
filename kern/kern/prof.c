@@ -16,6 +16,7 @@ struct tentry {
     struct entry entry;
     char asname[KOBJ_NAME_LEN];
     uint64_t last;
+    uint64_t syscalls;
 };
 
 #define NTHREADS 32
@@ -26,8 +27,8 @@ struct entry user_table[2];
 struct tentry thread_table[NTHREADS];
 
 static struct periodic_task prof_timer;
-static int prof_enable = 0;
-static int prof_thread_enable = 0;
+static int prof_enable = 1;
+static int prof_thread_enable = 1;
 static uint64_t prof_start_tsc;
 enum { prof_print_count_threshold = 100 };
 enum { prof_print_cycles_threshold = UINT64(10000000) };
@@ -142,7 +143,7 @@ prof_user(int idle, uint64_t time)
 }
 
 void
-prof_thread(const struct Thread *th, uint64_t time)
+prof_thread(const struct Thread *th, uint64_t time, int is_syscall)
 {
     const char *asname = "---";
 
@@ -180,6 +181,7 @@ prof_thread(const struct Thread *th, uint64_t time)
     thread_table[entry].last = now_nsec;
     thread_table[entry].entry.count++;
     thread_table[entry].entry.time += time;
+    thread_table[entry].syscalls += !!is_syscall;
 }
 
 static void
@@ -222,12 +224,13 @@ print_tentry(struct tentry *tab, int i)
 	total_time = 1;
 
     cprintf("%3d cnt %-10"PRIu64" tot %-10"PRIu64" avg %-8"PRIu64
-	    " pct %2"PRIu64".%-4"PRIu64" %s\n",
+	    " pct %2"PRIu64".%-4"PRIu64"  syscalls %-8"PRIu64" %s\n",
 	    i,
 	    tab[i].entry.count, tab[i].entry.time, 
 	    tab[i].entry.time / tab[i].entry.count,
 	    (100 * tab[i].entry.time) / total_time,
 	    ((1000 * tab[i].entry.time) / total_time) % 10,
+	    tab[i].syscalls,
 	    tab[i].asname);
 }
 
