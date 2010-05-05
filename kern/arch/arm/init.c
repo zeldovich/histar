@@ -165,10 +165,12 @@ init(uint32_t bid_hi, uint32_t bid_lo, void *kargs)
 	}
 
 #if defined(JOS_ARM_HTCDREAM)
-	/* seem to be missing an ATAG for memory? hard-code 96MB. */
+	// Seems to be missing an ATAG for memory. Hard-code 101MB.
+	// The rest is used for other stuff, which we don't know
+	// anything about.
 	if (nmem_desc == 0) {
 		mem_desc[0].offset = 0x10000000;
-		mem_desc[0].bytes  = 96 * 1024 * 1024;
+		mem_desc[0].bytes  = 101 * 1024 * 1024;
 		nmem_desc = 1;
 	}
 #endif
