@@ -59,6 +59,10 @@ msm_ttycons_proc_data(void *arg)
 		ret = mtr->uart_rf;
 	}
 
+	// out of nowhere i started getting these...
+	if (ret == 0x11 || ret == 0x13)
+		ret = -1;
+
 	return (ret);
 }
 
