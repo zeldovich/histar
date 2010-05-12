@@ -36,6 +36,7 @@ KERN_BINFILES	+= user/cp
 KERN_BINFILES	+= user/mv
 KERN_BINFILES	+= user/rm
 KERN_BINFILES	+= user/ls
+KERN_BINFILES	+= user/sleep
 #KERN_BINFILES	+= user/find user/sed user/uname user/awk user/perl
 #KERN_BINFILES	+= user/tar user/gzip user/gunzip user/ls user/rm user/cp
 #KERN_BINFILES	+= user/bash user/grep user/egrep user/uniq user/mv user/cat
@@ -81,10 +82,37 @@ KERN_BINFILES	+= user/rild
 KERN_BINFILES	+= user/rilc
 KERN_BINFILES	+= user/radiooptions
 KERN_BINFILES	+= user/bard
+KERN_BINFILES	+= user/rmnetstat
 endif
 endif
 
 KERN_BINFILES	+= user/irqwait
+
+# movemail
+KERN_BINFILES	+= user/movemail user/libmu_cfg.so.0 user/libmu_mbox.so.2
+KERN_BINFILES	+= user/libmu_imap.so.2 user/libmu_pop.so.2 user/libmu_auth.so.2
+KERN_BINFILES	+= user/libmu_nntp.so.2 user/libmu_mh.so.2 user/libmu_maildir.so.2
+KERN_BINFILES	+= user/libmailutils.so.2
+
+# energy junk
+KERN_BINFILES	+= user/reserve-test
+KERN_BINFILES	+= user/energywrap
+KERN_BINFILES	+= user/energycompete
+KERN_BINFILES	+= user/energyforeground
+KERN_BINFILES	+= user/stfu
+KERN_BINFILES	+= user/radiobench
+KERN_BINFILES	+= user/mmtest.sh
+KERN_BINFILES	+= user/mmtest_sleep.sh
+KERN_BINFILES	+= user/rsstest.sh
+KERN_BINFILES	+= user/rsstest_sleep.sh
+KERN_BINFILES	+= user/backgroundapps.sh
+KERN_BINFILES	+= user/backgroundapps
+KERN_BINFILES	+= user/memspin
+KERN_BINFILES	+= user/backgroundapps_timeronly
+
+# try to hunt down bug?
+KERN_BINFILES	+= user/spin.sh
+KERN_BINFILES	+= user/backgroundapps_spin.sh
 
 ## What gets run at startup; flags are:
 ##  "r" for root

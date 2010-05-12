@@ -252,6 +252,10 @@ netd_call(struct Fd *fd, struct netd_op_args *a)
 	    return r;
     }
 
+    // XXX hacky. always pass through the socket type
+    //            should be in lib/netd.c, but this is easier here.
+    a->sock_type = fd->fd_sock.type;
+
     if (netd_mode == netd_lwip_mode)
 	return netd_lwip_call(fd, a);
     else if(netd_mode == netd_linux_mode)

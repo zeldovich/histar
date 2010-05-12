@@ -5,4 +5,5 @@ while [ 1 -eq 0 ]; do
 	echo "WGET RUNNING ON RSS..."
 	wget http://www.nytimes.com/services/xml/rss/nyt/World.xml
 	echo "WGET COMPLETED"
+	sleep 20
 done

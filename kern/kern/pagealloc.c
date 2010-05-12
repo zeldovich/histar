@@ -8,7 +8,7 @@
 #include <inc/queue.h>
 
 enum { scrub_free_pages = 0 };
-enum { page_nomem_debug = 0 };
+enum { page_nomem_debug = 1 };
 enum { page_memstat_debug = 0 };
 
 uint64_t global_npages;		// Amount of physical memory (in pages)

@@ -64,7 +64,7 @@ try
     ac -= optind;
     av += optind;
 
-    if (ac < 1)
+    if (ac < 2)
 	usage();
 
     throttle = atoi(av[0]);

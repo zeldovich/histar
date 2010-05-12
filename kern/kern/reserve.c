@@ -109,6 +109,8 @@ reserve_transfer(struct cobj_ref sourceref, struct cobj_ref sinkref, int64_t amo
 
     source->rs_level -= amount;
     sink->rs_level += amount;
+    source->rs_transferred_out += amount;
+    sink->rs_transferred_in += amount;
 
     if (fail_if_too_low)
 	return 0;
@@ -143,6 +145,8 @@ reserve_transfer_proportional(struct cobj_ref sourceref, struct cobj_ref sinkref
     int64_t amount = (source->rs_level * frac) >> 10;
     source->rs_level -= amount;
     sink->rs_level += amount;
+    source->rs_transferred_out += amount;
+    sink->rs_transferred_in += amount;
 
     return 0;
 }
@@ -169,9 +173,10 @@ static void
 reserve_prof_dump(struct Reserve *rs, uint64_t ts)
 {
     cprintf("Reserve %"PRIu64" %s"
-	    " %"PRIu64" %"PRIu64" %"PRIu64" %"PRIu64"\n",
+	    " %"PRIu64" %"PRIu64" %"PRIu64" %"PRIu64" %"PRIu64" %"PRIu64"\n",
 	    rs->rs_ko.ko_id, &rs->rs_ko.ko_name[0],
-	    rs->rs_level, rs->rs_consumed, rs->rs_decayed, ts);
+	    rs->rs_level, rs->rs_consumed, rs->rs_decayed,
+	    rs->rs_transferred_in, rs->rs_transferred_out, ts);
 }
 
 void

@@ -16,6 +16,8 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <inttypes.h>
+
+#include <sys/socket.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -32,6 +34,7 @@ static struct cobj_ref netd_asref;
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <pkg/htcdream/smdd/smd_rmnet.h>
+#include <pthread.h>
 volatile static uint64_t *last_radio_tx_nsec;
 volatile static uint64_t *last_radio_rx_nsec;
 #endif
@@ -149,6 +152,27 @@ bill_reserve()
 	}
 }
 
+static const char *
+netd_op2s(int op)
+{
+	switch (op) {
+	case netd_op_connect:
+		return "netd_op_connect";
+	case netd_op_close:
+		return "netd_op_close";
+	case netd_op_send:
+		return "netd_op_send";
+	case netd_op_sendto:
+		return "netd_op_sendto";
+	case netd_op_accept:
+		return "netd_op_accept";
+	case netd_op_recvfrom:
+		return "netd_op_recvfrom";
+	default:
+		return "<<unknown!>>";
+	}
+}
+
 static void
 netd_bill_energy_pre(const struct netd_op_args *netd_op)
 {
@@ -162,13 +186,17 @@ netd_bill_energy_pre(const struct netd_op_args *netd_op)
     case netd_op_accept:		break;
 
     case netd_op_connect:
-	count = 60 * 3;		// syn, syn/ack, ack
-	bill = 1;
+	if (netd_op->sock_type == SOCK_STREAM) {
+		count = 60 * 3;		// syn, syn/ack, ack
+		bill = 1;
+	}
 	break;
 
     case netd_op_close:
-	count = 60;		// fin
-	bill = 1;
+	if (netd_op->sock_type == SOCK_STREAM) {
+		count = 60;		// fin
+		bill = 1;
+	}
 	break;
 
     case netd_op_getsockname:		break;
@@ -202,8 +230,14 @@ netd_bill_energy_pre(const struct netd_op_args *netd_op)
 
     (void)count;
 
-    if (bill)
+    if (bill) {
         bill_reserve();
+
+uint64_t latest = JMAX(*last_radio_tx_nsec, *last_radio_rx_nsec);
+uint64_t now_nsec = sys_clock_nsec();
+uint64_t diff_msec = (now_nsec - latest) / (1000 * 1000);
+cprintf("%s: billed for op [%s], sock type %d, last idle %llu msec ago\n", __func__, netd_op2s(netd_op->op_type), netd_op->sock_type, diff_msec);
+    }
 }
 
 static void
@@ -218,6 +252,8 @@ netd_bill_energy_post(const struct netd_op_args *netd_op)
     case netd_op_listen:		break;
 
     case netd_op_accept:
+	if (netd_op->sock_type != SOCK_STREAM)
+		cprintf("\n\n-=-=-=-= WARNING -=-=-=-=-\n%s\n\n", __func__);
 	count = 60 * 3;		// syn, syn/ack, ack
 	bill = 1;
 	break;
@@ -248,8 +284,14 @@ netd_bill_energy_post(const struct netd_op_args *netd_op)
 
     (void)count;
 
-    if (bill)
+    if (bill) {
 	bill_reserve();
+
+uint64_t latest = JMAX(*last_radio_tx_nsec, *last_radio_rx_nsec);
+uint64_t now_nsec = sys_clock_nsec();
+uint64_t diff_msec = (now_nsec - latest) / (1000 * 1000);
+cprintf("%s: billed for op [%s], sock type %d, last idle %llu msec ago\n", __func__, netd_op2s(netd_op->op_type), netd_op->sock_type, diff_msec);
+    }
 }
 
 static void __attribute__((noreturn))
@@ -460,6 +502,29 @@ netd_server_init(uint64_t gate_ct,
     netd_gate_init(gate_ct, l, clear, h);
 }
 
+#ifdef JOS_ARCH_arm
+static void *
+netd_coop_monitor(void *arg)
+{
+	int64_t last = 0;
+
+	while (1) {
+		int64_t netd_coop_level = sys_reserve_get_level(netd_coop_rsobj);
+		if (netd_coop_level != last) {
+			cprintf("<<< netd coop level: %lld (diff %lld/s) >>>\n",
+			    netd_coop_level, (netd_coop_level - last) / 5);
+		}	
+		sleep(5);
+		last = netd_coop_level;
+
+		// shut up, gcc noreturn crap
+		if ((uint64_t)netd_coop_level == 0xbeeffacebeeffaceULL) break;
+	}
+
+	return NULL;
+}
+#endif
+
 void
 netd_server_enable(void)
 {
@@ -493,6 +558,9 @@ netd_server_enable(void)
     last_radio_rx_nsec = &rx_seg->last_nsec;
 
     cprintf("<<< %s: set up for htc network (last rx: %llu, last tx: %llu) >>>\n", __func__, *last_radio_tx_nsec, *last_radio_rx_nsec);
+
+    pthread_t tid;
+    pthread_create(&tid, NULL, netd_coop_monitor, NULL);
 #endif
 
     sys_sync_wakeup(&netd_server_enabled);

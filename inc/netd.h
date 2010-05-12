@@ -168,6 +168,7 @@ struct netd_op_ioctl_args {
 struct netd_op_args {
     uint32_t op_type;
     uint32_t size;
+    int sock_type;		// SOCK_STREAM, SOCK_DGRAM, etc
     int rval;
     int rerrno;
 
