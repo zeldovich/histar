@@ -75,7 +75,7 @@ class gatesrv_descriptor {
 
 cobj_ref gate_create(gatesrv_descriptor *dsc);
 cobj_ref gate_create(uint64_t gate_container, const char *name,
-		     label *label, label *clearance, label *verify,
+		     label *l, label *clearance, label *verify,
 		     gatesrv_entry_t func, uint64_t arg);
 
 void gatesrv_entry_tls(uint64_t fn, uint64_t arg, uint64_t flags)

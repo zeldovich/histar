@@ -139,13 +139,13 @@ gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
 
 struct cobj_ref
 gate_create(uint64_t gate_ct, const char *name,
-	    label *label, label *clearance, label *verify,
+	    label *l, label *clearance, label *verify,
 	    gatesrv_entry_t func, uint64_t arg)
 {
     gatesrv_descriptor gd;
     gd.gate_container_ = gate_ct;
     gd.name_ = name;
-    gd.label_ = label;
+    gd.label_ = l;
     gd.clearance_ = clearance;
     gd.verify_ = verify;
     gd.func_ = func;
