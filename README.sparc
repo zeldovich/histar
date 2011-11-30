@@ -43,6 +43,11 @@ rm -r libstdc++-v3
 
 Download tsim from ftp://ftp.gaisler.com/gaisler.com/tsim/
 
+Note that the free version of tsim supports 32MB of DRAM; you will need
+to reduce the number of embedded binaries to get the kernel to fit in
+tsim's memory.  Copy conf/embedbin/default.mk to conf/embedbin/local.mk
+and adjust appropriately.
+
    % tsim-leon3 -mmu -nosram obj/kern/kernel.init
      ...
    tsim> go
