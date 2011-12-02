@@ -129,7 +129,9 @@ all:
 	$(OBJDIR)/user/%.o $(OBJDIR)/user/%.debuginfo $(OBJDIR)/user/% \
 	$(OBJDIR)/kern/kernel.base $(OBJDIR)/kern/kernel.init
 
-KERN_CFLAGS := $(COMFLAGS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
+KERN_CFLAGS := $(COMFLAGS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) \
+	       -Werror -Wno-error=array-bounds -Wno-array-bounds \
+	       $(KERN_PROF)
 USER_INC    := $(INCLUDES)
 USER_COMFLAGS = $(COMFLAGS) $(USER_INC) -DJOS_USER
 USER_CFLAGS   = $(USER_COMFLAGS) $(CWARNS)
