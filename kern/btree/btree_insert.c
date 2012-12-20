@@ -401,22 +401,22 @@ int
 btree_insert_impl(struct btree *tree, const uint64_t * key, offset_t * val)
 {
     char success, split;
-    assert(tree->magic == BTREE_MAGIC);
-
     uint64_t k[MAX_KEY_SIZE];
     uint64_t v[MAX_VALUE_SIZE];
     offset_t *insFilePos = v;
+
+    if (tree == NULL || key == 0) {
+	cprintf("btree_insert_impl: null tree (%p) or key (%p)\n", tree, key);
+	return -E_INVAL;
+    }
+
+    assert(tree->magic == BTREE_MAGIC);
 
     btree_keycpy(k, key, tree->s_key);
     if (val)
 	btree_valcpy(v, val, tree->s_value);
     else
 	btree_valset(v, 0, tree->s_value);
-
-    if (tree == NULL || key == 0) {
-	cprintf("btree_insert_impl: null tree (%p) or key (%p)\n", tree, key);
-	return -E_INVAL;
-    }
 
     success = 0;
     split = 0;

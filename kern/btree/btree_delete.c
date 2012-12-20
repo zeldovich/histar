@@ -528,8 +528,6 @@ __delete(struct btree *tree, offset_t rootOffset, struct btree_node *prevNode,
 char
 btree_delete_impl(struct btree *tree, const uint64_t * key)
 {
-    assert(tree->magic == BTREE_MAGIC);
-
     int i;
     offset_t filePos[MAX_VALUE_SIZE];
     char merged, success;
@@ -539,6 +537,8 @@ btree_delete_impl(struct btree *tree, const uint64_t * key)
 	cprintf("btree_delete_impl: null tree (%p) or key (%p)\n", tree, key);
 	return -E_INVAL;
     }
+
+    assert(tree->magic == BTREE_MAGIC);
 
     if (tree->root == 0)
 	return -E_NOT_FOUND;
