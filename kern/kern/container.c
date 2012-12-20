@@ -154,7 +154,7 @@ container_put(struct Container *c, const struct kobject_hdr *ko,
     if ((c->ct_avoid_types & (1 << ko->ko_type)))
 	return -E_BAD_TYPE;
 
-    struct container_slot *cs;
+    struct container_slot *cs = 0;
     int r = container_slot_find(c, ko->ko_id, &cs, page_excl_dirty);
     if (r == -E_NOT_FOUND)
 	r = container_slot_alloc(c, &cs);
