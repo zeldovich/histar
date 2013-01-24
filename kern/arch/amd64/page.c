@@ -42,7 +42,7 @@ static void *
 boot_alloc(uint32_t n, uint32_t align)
 {
     boot_freemem = (char *) ROUNDUP (boot_freemem, align);
-    if (boot_freemem + n < boot_freemem || boot_freemem + n > boot_endmem)
+    if (n > boot_endmem - boot_freemem)
 	panic ("out of memory during i386_vm_init");
 
     void *v = boot_freemem;
