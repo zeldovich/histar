@@ -31,7 +31,7 @@ enum { ndelay_threshold = 4 };
 static void __attribute__((noinline))
 reserve_stack_page(void)
 {
-    volatile char page[PGSIZE];
+    volatile char page[PGSIZE] __attribute__((unused));
     page[0] = '\0';
 }
 
