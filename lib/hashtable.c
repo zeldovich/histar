@@ -82,6 +82,7 @@ hash2(register uint64_t * k, register uint64_t length,
     /* c is reserved for the length */
     case 2:
 	b += k[1];
+	__attribute__ ((fallthrough));
     case 1:
 	a += k[0];
     /* case 0: nothing left to add */

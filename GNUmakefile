@@ -131,6 +131,7 @@ all:
 
 KERN_CFLAGS := $(COMFLAGS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) \
 	       -Werror -Wno-error=array-bounds -Wno-array-bounds \
+	       -Wno-error=frame-address \
 	       $(KERN_PROF)
 USER_INC    := $(INCLUDES)
 USER_COMFLAGS = $(COMFLAGS) $(USER_INC) -DJOS_USER
